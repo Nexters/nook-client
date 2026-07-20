@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { platform } from '@/shared/native/platform';
+import { onShareReceived } from '@/shared/native/shareTarget';
 import { useAppStore } from '@/stores/appStore';
+import { useShareStore } from '@/stores/shareStore';
 
 /**
  * 스캐폴드 검증용 홈 화면. 라우터·zustand·네이티브 플랫폼 감지가
@@ -9,10 +11,14 @@ import { useAppStore } from '@/stores/appStore';
 export function HomePage() {
   const ready = useAppStore((s) => s.ready);
   const setReady = useAppStore((s) => s.setReady);
+  const lastShare = useShareStore((s) => s.lastShare);
+  const setLastShare = useShareStore((s) => s.setLastShare);
 
   useEffect(() => {
     setReady(true);
   }, [setReady]);
+
+  useEffect(() => onShareReceived(setLastShare), [setLastShare]);
 
   return (
     <main className="home">
@@ -30,6 +36,10 @@ export function HomePage() {
         <div>
           <dt>스토어</dt>
           <dd>{ready ? 'ready' : 'booting…'}</dd>
+        </div>
+        <div>
+          <dt>마지막 공유 수신</dt>
+          <dd>{lastShare ? lastShare.texts.join(', ') || '(텍스트 없음)' : '없음'}</dd>
         </div>
       </dl>
     </main>
