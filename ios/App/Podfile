@@ -1,6 +1,6 @@
-require_relative '../../node_modules/.pnpm/@capacitor+ios@7.6.8_@capacitor+core@7.6.8/node_modules/@capacitor/ios/scripts/pods_helpers'
+require_relative '../../node_modules/.pnpm/@capacitor+ios@8.4.2_@capacitor+core@8.4.2/node_modules/@capacitor/ios/scripts/pods_helpers'
 
-platform :ios, '14.0'
+platform :ios, '15.0'
 use_frameworks!
 
 # workaround to avoid Xcode caching of Pods that requires
@@ -9,9 +9,9 @@ use_frameworks!
 install! 'cocoapods', :disable_input_output_paths => true
 
 def capacitor_pods
-  pod 'Capacitor', :path => '../../node_modules/.pnpm/@capacitor+ios@7.6.8_@capacitor+core@7.6.8/node_modules/@capacitor/ios'
-  pod 'CapacitorCordova', :path => '../../node_modules/.pnpm/@capacitor+ios@7.6.8_@capacitor+core@7.6.8/node_modules/@capacitor/ios'
-  pod 'CapgoCapacitorShareTarget', :path => '../../node_modules/.pnpm/@capgo+capacitor-share-target@7.0.8_@capacitor+core@7.6.8/node_modules/@capgo/capacitor-share-target'
+  pod 'Capacitor', :path => '../../node_modules/.pnpm/@capacitor+ios@8.4.2_@capacitor+core@8.4.2/node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/.pnpm/@capacitor+ios@8.4.2_@capacitor+core@8.4.2/node_modules/@capacitor/ios'
+  pod 'CapgoCapacitorShareTarget', :path => '../../node_modules/.pnpm/@capgo+capacitor-share-target@8.0.44_@capacitor+core@8.4.2/node_modules/@capgo/capacitor-share-target'
 end
 
 target 'App' do

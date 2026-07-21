@@ -1,22 +1,28 @@
 PODS:
-  - Capacitor (7.6.8):
+  - Capacitor (8.4.2):
     - CapacitorCordova
-  - CapacitorCordova (7.6.8)
+  - CapacitorCordova (8.4.2)
+  - CapgoCapacitorShareTarget (8.0.44):
+    - Capacitor
 
 DEPENDENCIES:
-  - "Capacitor (from `../../node_modules/.pnpm/@capacitor+ios@7.6.8_@capacitor+core@7.6.8/node_modules/@capacitor/ios`)"
-  - "CapacitorCordova (from `../../node_modules/.pnpm/@capacitor+ios@7.6.8_@capacitor+core@7.6.8/node_modules/@capacitor/ios`)"
+  - "Capacitor (from `../../node_modules/.pnpm/@capacitor+ios@8.4.2_@capacitor+core@8.4.2/node_modules/@capacitor/ios`)"
+  - "CapacitorCordova (from `../../node_modules/.pnpm/@capacitor+ios@8.4.2_@capacitor+core@8.4.2/node_modules/@capacitor/ios`)"
+  - "CapgoCapacitorShareTarget (from `../../node_modules/.pnpm/@capgo+capacitor-share-target@8.0.44_@capacitor+core@8.4.2/node_modules/@capgo/capacitor-share-target`)"
 
 EXTERNAL SOURCES:
   Capacitor:
-    :path: "../../node_modules/.pnpm/@capacitor+ios@7.6.8_@capacitor+core@7.6.8/node_modules/@capacitor/ios"
+    :path: "../../node_modules/.pnpm/@capacitor+ios@8.4.2_@capacitor+core@8.4.2/node_modules/@capacitor/ios"
   CapacitorCordova:
-    :path: "../../node_modules/.pnpm/@capacitor+ios@7.6.8_@capacitor+core@7.6.8/node_modules/@capacitor/ios"
+    :path: "../../node_modules/.pnpm/@capacitor+ios@8.4.2_@capacitor+core@8.4.2/node_modules/@capacitor/ios"
+  CapgoCapacitorShareTarget:
+    :path: "../../node_modules/.pnpm/@capgo+capacitor-share-target@8.0.44_@capacitor+core@8.4.2/node_modules/@capgo/capacitor-share-target"
 
 SPEC CHECKSUMS:
-  Capacitor: 6732cd599444d14e7ad5f4b1a3b9694f6e205572
-  CapacitorCordova: e61ee8c40101b8cd011d0224261606a290c082cf
+  Capacitor: 7a1ef4c3b846b5f32437a2b3e11803c1c702a6c5
+  CapacitorCordova: 345eacdc4c8282415446aea4acd8c77d82480bd4
+  CapgoCapacitorShareTarget: 78502e1aa9a80e9adeeac24e97eb60aabe0c068d
 
-PODFILE CHECKSUM: 3f2de90e98fd68955559d09c1c86c9471ab20d9b
+PODFILE CHECKSUM: 44020b8d464c3235a6c29dc540920185bac29fc9
 
 COCOAPODS: 1.16.2
