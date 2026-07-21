@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   plugins: {
     CapacitorShareTarget: {
-      appGroupId: 'group.com.nook.app',
+      appGroupId: 'group.com.nook.app.dev',
     },
   },
   ...(isDev
