@@ -1,0 +1,3 @@
+# staged 파일만 빠르게: 포맷/린트 + 전체 타입체크 (테스트는 CI에서 전수)
+pnpm biome check --staged --no-errors-on-unmatched
+pnpm typecheck
