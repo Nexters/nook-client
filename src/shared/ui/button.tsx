@@ -4,14 +4,8 @@ import * as React from 'react';
 import { cn } from '@/shared/lib/utils';
 
 /**
- * Figma `Tabloid - 4 > Button > Box Btn_48px / _44px / _36px` 기준.
- *
- * - 라벨 텍스트는 모든 variant·상태에서 흰색(gray-0) 고정.
- * - Primary=gray-100, Secondary=gray-60, Disabled=gray-30 (Figma fill 과 1:1).
- * - Icon+Text 는 Figma `Button_Primary_44 > Property 1=Icon+Text` 기준 16px 아이콘 + 8px 간격.
- *
- * 색상/타이포/여백은 전부 src/styles/global.css 의 @theme 토큰에서 파생된
- * 유틸리티만 사용하며, 여기서 hex/px 를 직접 쓰지 않는다.
+ * Figma `Tabloid - 4 > Button > Box Btn` 기준.
+ * 라벨은 전 variant·상태에서 흰색(gray-0) 고정. 색/타이포/여백은 @theme 토큰만 사용.
  */
 const buttonVariants = cva(
   [

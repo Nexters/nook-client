@@ -15,14 +15,6 @@ import { ButtonGroup } from './button-group';
 /**
  * Figma `Tabloid - 4 > Popup` 기준 확인 다이얼로그.
  * Radix AlertDialog(→ alert-dialog.tsx) 위에 올린 얇은 편의 래퍼다.
- *
- * 계측값(Figma):
- * - 카드 280(w-70), radius 12(rounded-xl), fill gray-0
- * - 본문 padding-top 32 / 좌우 32, 제목 B1 SemiBold gray-100(center),
- *   설명 B2 Medium gray-70(center), 제목·설명 간격 8
- * - 푸터: 위 간격 24, 좌우/아래 16, 44px 버튼 2개(Secondary/Primary) 균등폭 + 간격 8
- *
- * 동작: 포커스 트랩·이전 포커스 복원·ESC 닫힘·배경 스크롤 잠금·ARIA 는 Radix 가 담당.
  * AlertDialog 특성상 배경(딤) 클릭으로는 닫히지 않는다 — 취소/확인 중 하나를 고르게 한다.
  */
 export interface PopupProps {

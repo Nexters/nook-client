@@ -4,13 +4,9 @@ import { cn } from '@/shared/lib/utils';
 
 /**
  * Radix AlertDialog 를 우리 @theme 토큰으로 감싼 프리미티브 셋.
- *
- * shadcn 기본 소스에서 존재하지 않는 토큰(bg-background/border/text-muted-foreground)과
- * 애니메이션 유틸(tw-animate) 참조를 걷어내고, 색/타이포는 gray-* 토큰만 사용한다.
- * 확인 버튼은 이 파일이 소유하지 않는다 — 사용처에서 AlertDialogAction/AlertDialogCancel에 Button을 asChild로
-// 합성하고, 필요한 경우 ButtonGroup으로 두 액션의 레이아웃을 구성한다.(Popup 참고).
- *
- * 포커스 트랩·이전 포커스 복원·ESC·스크롤 잠금·ARIA 배선은 전부 Radix 가 담당한다.
+ * 확인 버튼은 이 파일이 소유하지 않는다 — 사용처에서 Action/Cancel 에 Button 을
+ * asChild 로 합성하고, 필요하면 ButtonGroup 으로 배치한다(Popup 참고).
+ * 포커스 트랩·이전 포커스 복원·ESC·스크롤 잠금·ARIA 는 전부 Radix 가 담당한다.
  */
 function AlertDialog(props: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
