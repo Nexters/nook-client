@@ -3,9 +3,8 @@ import { env } from '@/shared/config/env';
 /**
  * 얇은 fetch 래퍼. 기능 모듈의 api.ts 들이 이걸 통해 BE 를 호출한다.
  *
- * NOTE: 네이티브에서 CORS 우회가 필요한 호출(예: 온디바이스 인스타 fetch)은
- * 후속 계획에서 @capacitor/core 의 CapacitorHttp 로 교체한다. 그 교체 지점을
- * 여기(요청 실행부) 한 곳으로 모아두어 features 코드는 바뀌지 않게 한다.
+ * 원격 웹(app.nook.com)이 같은/다른 origin 의 BE 를 호출한다. 인증 헤더 주입 등
+ * 공통 처리는 이 요청 실행부 한 곳에 모아 features 코드는 바뀌지 않게 한다.
  */
 export class HttpError extends Error {
   constructor(
