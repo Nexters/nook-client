@@ -36,8 +36,7 @@ struct GroupRow: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, minHeight: 56, maxHeight: 56)
             .background(isSelected ? Color(hex: 0xF3F4F6) : Color.clear)
             .contentShape(Rectangle())
         }
