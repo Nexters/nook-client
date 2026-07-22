@@ -22,3 +22,6 @@ android/app/build/
 android/local.properties
 android/.idea/
 android/app/src/main/assets/public/
+
+CLAUDE.md
+.claude
