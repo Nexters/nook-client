@@ -10,6 +10,8 @@ import WebKit
 final class WebViewController: UIViewController, WKScriptMessageHandler, WKNavigationDelegate {
 
     private var webView: WKWebView!
+    // WEB_READY 전 전달 시 pending 유실 → 준비 후에만 전달
+    private var webReady = false
 
     private static let webURL = URL(string: "https://app.nook.com")!
     private static let webOrigin = "https://app.nook.com"
@@ -30,12 +32,19 @@ final class WebViewController: UIViewController, WKScriptMessageHandler, WKNavig
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidBecomeActive),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil
+        )
         webView.load(URLRequest(url: Self.webURL))
     }
 
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
+    @objc private func appDidBecomeActive() {
+        guard webReady else { return }
         deliverPendingShares()
+        postToWeb(["v": 1, "type": "APP_RESUMED", "payload": [String: Any]()])
     }
 
     // MARK: 웹 → 네이티브
@@ -55,6 +64,7 @@ final class WebViewController: UIViewController, WKScriptMessageHandler, WKNavig
                 openExternal(url)
             }
         case "WEB_READY":
+            webReady = true
             deliverPendingShares()
         case "REQUEST_LOCATION", "NAV_STATE":
             break  // 후속 레그(위치 브리지 / iOS 는 시스템 back 없음)

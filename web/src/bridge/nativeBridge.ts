@@ -3,6 +3,7 @@ import {
   NativeToWebSchema,
   type Platform,
   type WebToNativeMessage,
+  webReady,
 } from './contract';
 
 declare global {
@@ -34,6 +35,8 @@ class NativeBridge {
   readonly platform: Platform = detectPlatform();
   private handlers = new Set<Handler>();
   private started = false;
+  // 핸들러 등록 전 도착분 버퍼(레이스 방지)
+  private buffer: NativeToWebMessage[] = [];
 
   get isNative(): boolean {
     return this.platform !== 'web';
@@ -43,10 +46,16 @@ class NativeBridge {
     if (this.started) return;
     this.started = true;
     window.__nookReceive = (json: string) => this.receive(json);
+    this.send(webReady());
   }
 
   on(handler: Handler): () => void {
     this.handlers.add(handler);
+    if (this.buffer.length > 0) {
+      const pending = this.buffer;
+      this.buffer = [];
+      for (const message of pending) handler(message);
+    }
     return () => this.handlers.delete(handler);
   }
 
@@ -74,6 +83,10 @@ class NativeBridge {
     if (!parsed.success) {
       if (import.meta.env.DEV)
         console.debug('[bridge] invalid native message', parsed.error.message);
+      return;
+    }
+    if (this.handlers.size === 0) {
+      this.buffer.push(parsed.data);
       return;
     }
     for (const handler of this.handlers) handler(parsed.data);

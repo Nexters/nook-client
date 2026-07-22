@@ -20,6 +20,8 @@ import org.json.JSONObject
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+    // WEB_READY 전 전달 시 pending 유실 → 준비 후에만 전달
+    private var webReady = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,6 +52,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (!webReady) return
         deliverPendingShares()
         postToWeb(JSONObject().put("v", BRIDGE_VERSION).put("type", "APP_RESUMED").put("payload", JSONObject()))
     }
@@ -81,7 +84,7 @@ class MainActivity : AppCompatActivity() {
         fun postMessage(json: String) {
             val message = try { JSONObject(json) } catch (_: Exception) { return }
             when (message.optString("type")) {
-                "WEB_READY" -> runOnUiThread { deliverPendingShares() }
+                "WEB_READY" -> runOnUiThread { webReady = true; deliverPendingShares() }
                 "OPEN_EXTERNAL_URL" -> openExternal(message.optJSONObject("payload")?.optString("url"))
                 // 후속 레그: REQUEST_LOCATION, NAV_STATE
             }
