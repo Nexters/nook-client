@@ -13,14 +13,17 @@ const config: CapacitorConfig = {
   appId: 'com.nook.app',
   appName: 'nook',
   webDir: 'dist',
-  ...(isDev
-    ? {
-        server: {
+  server: {
+    // iOS 기본 scheme(capacitor://)을 https 로 맞춰 안드로이드(기본 https://)와 origin 을
+    // https://localhost 로 통일한다. 카카오맵 등 https origin 을 요구하는 SDK 대응용.
+    iosScheme: 'https',
+    ...(isDev
+      ? {
           url: 'http://10.0.2.2:5173',
           cleartext: true,
-        },
-      }
-    : {}),
+        }
+      : {}),
+  },
 };
 
 export default config;

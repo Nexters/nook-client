@@ -16,7 +16,7 @@ export function HomePage() {
 
   return (
     <main
-      className="mx-auto max-w-md px-5 pb-6"
+      className="px-5 pb-6"
       style={{
         paddingTop: 'calc(1.5rem + env(safe-area-inset-top))',
         paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
