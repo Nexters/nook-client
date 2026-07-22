@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { platform } from '@/shared/native/platform';
 import { useAppStore } from '@/stores/appStore';
 
@@ -40,6 +41,13 @@ export function HomePage() {
           <dd className="text-b2 font-medium text-gray-100">{ready ? 'ready' : 'booting…'}</dd>
         </div>
       </dl>
+      {/* 탭바(group/map/my) 붙기 전까지 지도 화면 확인용 임시 링크 */}
+      <Link
+        to="/map"
+        className="mt-7 flex items-center justify-center rounded-[10px] bg-gray-100 py-3 text-b2 font-medium text-gray-0"
+      >
+        지도로 이동
+      </Link>
     </main>
   );
 }
