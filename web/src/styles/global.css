@@ -35,27 +35,3 @@ body {
   color: var(--muted);
   margin-top: 4px;
 }
-
-.status {
-  margin-top: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.status > div {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 14px;
-  background: #16191f;
-  border: 1px solid #2a2f3a;
-  border-radius: 10px;
-}
-
-.status dt {
-  color: var(--muted);
-}
-
-.status dd {
-  color: var(--accent);
-}

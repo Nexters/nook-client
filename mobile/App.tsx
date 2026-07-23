@@ -1,7 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useRef } from 'react';
-import { Linking, Platform, SafeAreaView, StyleSheet } from 'react-native';
+import { useCallback, useEffect, useRef } from 'react';
+import { AppState, Linking, Platform, SafeAreaView, StyleSheet } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+import { takePending } from './modules/nook-share';
 
 // 원격 웹 URL (.env: app.nook.com / .env.local: dev 오버라이드). 미설정 시 즉시 실패.
 const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL;
@@ -23,6 +24,22 @@ export default function App() {
     );
   }, []);
 
+  // App Group 큐를 읽어(비우고) 실제 공유 항목을 웹으로 전달
+  const deliverPending = useCallback(() => {
+    const items = takePending();
+    if (items.length > 0) {
+      postToWeb({ v: 1, type: 'SHARE_RECEIVED', payload: { items } });
+    }
+  }, [postToWeb]);
+
+  // 백그라운드 → 포그라운드 복귀 시 큐 확인 (콜드스타트는 WEB_READY 에서 처리)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') deliverPending();
+    });
+    return () => sub.remove();
+  }, [deliverPending]);
+
   // 웹 → 네이티브
   const onMessage = useCallback(
     (event: WebViewMessageEvent) => {
@@ -34,12 +51,7 @@ export default function App() {
       }
       switch (message.type) {
         case 'WEB_READY':
-          // 핸드셰이크 → 스파이크: 테스트 공유 1건 전달 (raw 셸의 SHARE_RECEIVED 와 동일 계약)
-          postToWeb({
-            v: 1,
-            type: 'SHARE_RECEIVED',
-            payload: { items: [{ text: 'FROM_EXPO_SHELL' }] },
-          });
+          deliverPending();
           break;
         case 'OPEN_EXTERNAL_URL':
           if (message.payload?.url) Linking.openURL(message.payload.url);
@@ -48,7 +60,7 @@ export default function App() {
           break;
       }
     },
-    [postToWeb],
+    [deliverPending],
   );
 
   return (
