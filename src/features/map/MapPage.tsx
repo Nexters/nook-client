@@ -1,4 +1,5 @@
 import { MapView } from '@/features/map/components/MapView';
+import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
 import { MOCK_PLACES } from '@/features/map/mock/places';
 
@@ -20,6 +21,7 @@ export function MapPage() {
         currentLocation={location.coords}
         initialCenter={location.coords ?? undefined}
       />
+      <PlaceSheet places={MOCK_PLACES} />
     </div>
   );
 }
