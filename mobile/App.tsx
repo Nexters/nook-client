@@ -3,8 +3,11 @@ import { useCallback, useRef } from 'react';
 import { Linking, Platform, SafeAreaView, StyleSheet } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 
-// 스파이크: iOS 시뮬은 localhost 로 host 접근. 실기기는 LAN IP / 프로덕션은 app.nook.com
-const WEB_URL = 'http://172.127.2.17:5173';
+// 원격 웹 URL (.env: app.nook.com / .env.local: dev 오버라이드). 미설정 시 즉시 실패.
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL;
+if (!WEB_URL) {
+  throw new Error('EXPO_PUBLIC_WEB_URL 미설정');
+}
 
 // 웹 로드 전에 플랫폼 힌트 주입 (RN webview 는 window.ReactNativeWebView 를 자동 제공)
 const INJECT_BEFORE = `window.__nookPlatform = ${JSON.stringify(Platform.OS)}; true;`;
