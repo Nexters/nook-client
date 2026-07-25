@@ -7,14 +7,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.nook.app.dev",
-      "entitlements": {
-        "com.apple.security.application-groups": ["group.com.nook.app.dev"]
-      }
+      "supportsTablet": true
     },
     "android": {
-      "package": "com.nook.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

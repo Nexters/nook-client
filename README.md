@@ -48,14 +48,14 @@ docs/                        # 아키텍처 결정 기록 / 브리지 문서
 
 ```bash
 pnpm install
-cp .env.example .env       # BE 주소 설정 (미설정 시 localhost:8080 폴백)
+cp apps/web/.env.example apps/web/.env.local   # BE 주소 (미설정 시 localhost:8080 폴백)
 
 pnpm web:dev               # http://localhost:5173
 pnpm web:build             # tsc --noEmit + vite build → apps/web/dist/
-pnpm typecheck             # web tsc --noEmit
+pnpm typecheck             # web + mobile tsc --noEmit
 pnpm lint                  # biome check
 pnpm format                # biome format --write
-pnpm --filter web test     # vitest run
+pnpm test                  # vitest run
 ```
 
 ### mobile (Expo 셸)
@@ -70,3 +70,25 @@ pnpm android                # 에뮬레이터/실기기
 ```
 
 > 실기기에서는 dev 서버 대신 `vite preview`(빌드본 서빙)로 확인한다 — dev 서버의 재연결 리로드가 웹뷰 상태를 날린다.
+
+## 환경변수 / 앱 variant
+
+env 파일은 **앱별로** 둔다. 루트에는 두지 않는다(Vite·Expo 모두 각 앱 디렉터리를 기준으로 읽는다).
+
+| 위치 | 용도 |
+| --- | --- |
+| `apps/{web,mobile}/.env.example` | 예시값, 커밋 |
+| `apps/{web,mobile}/.env.local` | 로컬 전용, gitignore |
+| EAS environment | mobile 배포 환경(development/preview/production) 값 |
+| 배포 플랫폼 환경변수 | web 배포 값 |
+
+- `VITE_*` 는 번들에 인라인, `EXPO_PUBLIC_*` 는 앱 번들에 포함된다. **둘 다 공개값만** 넣는다.
+- 앱 식별자는 `APP_VARIANT` 로 갈린다 (`apps/mobile/app.config.ts`). 미설정·오타는 production 으로 떨어진다.
+
+| APP_VARIANT | 앱 ID | App Group |
+| --- | --- | --- |
+| `development` | `com.nook.app.dev` | `group.com.nook.app.dev` |
+| `preview` | `com.nook.app.preview` | `group.com.nook.app.preview` |
+| `production`(기본) | `com.nook.app` | `group.com.nook.app` |
+
+variant 별로 ID 가 달라 개발·스테이징·운영 앱을 한 기기에 함께 설치할 수 있다. EAS 빌드 프로필은 `apps/mobile/eas.json` 참고.
