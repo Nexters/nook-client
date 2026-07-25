@@ -6,6 +6,7 @@ import type { WebToNative } from './web-to-native';
 
 export * from './message';
 export type * from './native-to-web';
+export * from './parse';
 export type * from './web-to-native';
 
 export type MessageType = NativeToWeb['type'] | WebToNative['type'];

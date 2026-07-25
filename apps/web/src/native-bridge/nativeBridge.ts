@@ -1,4 +1,9 @@
-import type { NativeToWeb, Platform, WebToNative } from '@nook/bridge-contracts';
+import {
+  type NativeToWeb,
+  type Platform,
+  parseNativeToWeb,
+  type WebToNative,
+} from '@nook/bridge-contracts';
 
 // RN(Expo) webview 셸용 브리지 클라이언트.
 // - 웹→네이티브: window.ReactNativeWebView.postMessage(string) (react-native-webview 제공)
@@ -58,10 +63,8 @@ class NativeBridge {
   }
 
   private receive(json: string): void {
-    let message: NativeToWeb;
-    try {
-      message = JSON.parse(json);
-    } catch {
+    const message = parseNativeToWeb(json);
+    if (!message) {
       return;
     }
     if (this.handlers.size === 0) {

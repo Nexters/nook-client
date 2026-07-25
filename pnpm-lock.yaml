@@ -36,6 +36,12 @@ importers:
       react-native:
         specifier: 0.86.0
         version: 0.86.0(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.3)
+      react-native-safe-area-context:
+        specifier: ~5.7.0
+        version: 5.7.0(react-native@0.86.0(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)
+      react-native-url-polyfill:
+        specifier: ^4.0.0
+        version: 4.0.0(react-native@0.86.0(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.3))
       react-native-webview:
         specifier: 13.16.1
         version: 13.16.1(react-native@0.86.0(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.3))(react@19.2.3)
@@ -46,6 +52,9 @@ importers:
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(jsdom@25.0.1)(lightningcss@1.33.0)(terser@5.49.0)(yaml@2.9.0)
 
   apps/web:
     dependencies:
@@ -120,7 +129,11 @@ importers:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(jsdom@25.0.1)(lightningcss@1.33.0)(terser@5.49.0)(yaml@2.9.0)
 
-  packages/bridge-contracts: {}
+  packages/bridge-contracts:
+    devDependencies:
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(jsdom@25.0.1)(lightningcss@1.33.0)(terser@5.49.0)(yaml@2.9.0)
 
 packages:
 
@@ -3340,6 +3353,17 @@ packages:
 
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
+
+  react-native-safe-area-context@5.7.0:
+    resolution: {integrity: sha512-/9/MtQz8ODphjsLdZ+GZAIcC/RtoqW9EeShf7Uvnfgm/pzYrJ75y3PV/J1wuAV1T5Dye5ygq4EAW20RoBq0ABQ==}
+    peerDependencies:
+      react: 19.2.3
+      react-native: '*'
+
+  react-native-url-polyfill@4.0.0:
+    resolution: {integrity: sha512-eqYM3wBAA0eL1sPYbBAoNfbES3+NkgcxUdelQ7QzmoVtqKB5qGG0U13MPTRUroAWK+y2EoJFS3MZUK0fwTf0pA==}
+    peerDependencies:
+      react-native: '*'
 
   react-native-webview@13.16.1:
     resolution: {integrity: sha512-If0eHhoEdOYDcHsX+xBFwHMbWBGK1BvGDQDQdVkwtSIXiq1uiqjkpWVP2uQ1as94J0CzvFE9PUNDuhiX0Z6ubw==}
@@ -7570,6 +7594,15 @@ snapshots:
   react-is@17.0.2: {}
 
   react-is@18.3.1: {}
+
+  react-native-safe-area-context@5.7.0(react-native@0.86.0(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.3))(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-native: 0.86.0(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.3)
+
+  react-native-url-polyfill@4.0.0(react-native@0.86.0(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.3)):
+    dependencies:
+      react-native: 0.86.0(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.3)
 
   react-native-webview@13.16.1(react-native@0.86.0(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.3))(react@19.2.3):
     dependencies:

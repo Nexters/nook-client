@@ -8,14 +8,18 @@
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-native": "0.86.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-url-polyfill": "^4.0.0",
     "react-native-webview": "13.16.1"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vitest": "^3.0.0"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",

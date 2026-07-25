@@ -9,7 +9,7 @@
     "web:dev": "pnpm --filter web dev",
     "web:build": "pnpm --filter web build",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm --filter web test",
+    "test": "pnpm -r --if-present test",
     "lint": "biome check .",
     "lint:ci": "biome ci .",
     "format": "biome format --write .",
