@@ -30,7 +30,7 @@ apps/
 │       ├── shared/api/      # http 래퍼 (BE 호출 기반)
 │       ├── shared/config/   # env 게이트
 │       └── styles/
-└── mobile/                  # Expo(RN) 셸 — react-native-webview 로 원격 웹 로드
+└── mobile/                  # Expo(RN) 셸 — WebView + 네이티브 공유 대상
 
 packages/
 └── bridge-contracts/        # 셸 ↔ 웹 메시지 계약 (SSOT, 타입 전용)

@@ -24,8 +24,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: variant === 'production' ? 'nook' : `nook (${variant})`,
     slug: 'nook',
+    plugins: [...(config.plugins ?? []), '@bacons/apple-targets'],
     ios: {
       ...config.ios,
+      appleTeamId: 'G476VT3T47',
       bundleIdentifier: appId,
       entitlements: {
         ...config.ios?.entitlements,
