@@ -1,37 +1,98 @@
-:root {
-  --bg: #0f1115;
-  --fg: #e8eaed;
-  --muted: #9aa0a6;
-  --accent: #8ab4f8;
-  color-scheme: dark;
+@import "tailwindcss";
+@import "@fontsource-variable/roboto-mono";
+
+/*
+ * SUIT Variable 은 npm 배포가 없어 로컬에 직접 받아야 한다.
+ * 공식 배포처(https://github.com/sunn-us/SUIT)에서 SUIT-Variable.woff2 를 받아
+ * src/assets/fonts/ 에 두면 아래 @font-face 가 활성화된다.
+ * 파일이 없는 동안은 --font-sans 의 시스템 폰트 폴백으로 동작한다.
+ */
+@font-face {
+  font-family: "SUIT Variable";
+  src: url("../assets/fonts/SUIT-Variable.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-display: swap;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@theme {
+  /* ── Color: 디자인 시스템 Gray Scale + Accent 그대로 ── */
+  --color-*: initial;
+
+  --color-gray-0: #ffffff;
+  --color-gray-10: #f4f5f7;
+  --color-gray-20: #e4e6e9;
+  --color-gray-30: #caced4;
+  --color-gray-40: #b5bbc3;
+  --color-gray-50: #99a0ac;
+  --color-gray-60: #848b96;
+  --color-gray-70: #67707d;
+  --color-gray-80: #4e5662;
+  --color-gray-90: #353c46;
+  --color-gray-100: #1f1f1f;
+
+  --color-yellow: #ffd34e;
+  --color-red: #ff7566;
+  --color-pink: #f7a7d6;
+  --color-purple: #a58af2;
+  --color-blue: #559bff;
+  --color-sky: #38c8c4;
+  --color-green: #2bae7f;
+  --color-cement: #738295;
+
+  /* ── Font family ── */
+  --font-sans:
+    "SUIT Variable", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui, sans-serif;
+  --font-mono: "Roboto Mono Variable", ui-monospace, monospace;
+
+  /* ── Typography: 사이즈 토큰(text-*)에 line-height/letter-spacing 을 함께 묶는다.
+     weight 가 하나로 고정된 H1/S1/E1/E2 만 font-weight 도 함께 묶고,
+     B1~B3 는 SemiBold/Medium/Regular 를 조합해서 써야 하므로 weight 를 비워둔다.
+     예) B2 SemiBold → `text-b2 font-semibold`, E1 → `text-e1 font-mono` ── */
+  --text-*: initial;
+
+  --text-h1: 1.25rem; /* 20pt, SemiBold 고정 */
+  --text-h1--line-height: 1.5;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h1--font-weight: 600;
+
+  --text-b1: 1rem; /* 16pt */
+  --text-b1--line-height: 1.5;
+  --text-b1--letter-spacing: -0.02em;
+
+  --text-b2: 0.875rem; /* 14pt */
+  --text-b2--line-height: 1.5;
+  --text-b2--letter-spacing: -0.02em;
+
+  --text-b3: 0.75rem; /* 12pt */
+  --text-b3--line-height: 1.5;
+  --text-b3--letter-spacing: -0.02em;
+
+  --text-s1: 0.625rem; /* 10pt, SemiBold 고정 */
+  --text-s1--line-height: 1.5;
+  --text-s1--letter-spacing: -0.02em;
+  --text-s1--font-weight: 600;
+
+  --text-e1: 0.875rem; /* 14pt, 영문/모노, Regular 고정 */
+  --text-e1--line-height: 1.4;
+  --text-e1--letter-spacing: -0.02em;
+  --text-e1--font-weight: 400;
+
+  --text-e2: 0.75rem; /* 12pt, 영문/모노, Regular 고정 */
+  --text-e2--line-height: 1.4;
+  --text-e2--letter-spacing: -0.02em;
+  --text-e2--font-weight: 400;
+
+  /* ── Spacing: 시안 기준(4px 배수, 4~40px)이 Tailwind 기본 스케일(1=4px)과
+     정확히 일치해 별도 재정의 없이 p-1(4px) ~ p-10(40px) 그대로 사용한다. ── */
+}
+
+:root {
+  color-scheme: light;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", Pretendard, sans-serif;
-  background: var(--bg);
-  color: var(--fg);
+  font-family: var(--font-sans);
+  background: var(--color-gray-0);
+  color: var(--color-gray-100);
   min-height: 100dvh;
-}
-
-.home {
-  max-width: 640px;
-  margin: 0 auto;
-  /* 노치/홈 인디케이터 회피 (viewport-fit=cover 와 짝) */
-  padding: calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
-}
-
-.home h1 {
-  font-size: 32px;
-  letter-spacing: -0.5px;
-}
-
-.tagline {
-  color: var(--muted);
-  margin-top: 4px;
 }
