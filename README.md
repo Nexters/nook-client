@@ -4,62 +4,69 @@
 
 ## 스택
 
-| 항목         | 선택                     |
-| ------------ | ------------------------ |
-| 빌드/패키지  | Vite + pnpm              |
-| 크로스플랫폼 | Capacitor (번들 웹)      |
-| 서버 상태    | TanStack Query           |
-| 클라 상태    | zustand                  |
-| 라우팅       | React Router v7 (SPA)    |
-| 언어         | TypeScript               |
-| 린트/포맷    | Biome                    |
-| 테스트       | Vitest + Testing Library |
-| CI           | GitHub Actions           |
+| 항목         | 선택                                         |
+| ------------ | -------------------------------------------- |
+| 빌드/패키지  | pnpm workspace + Vite (web)                  |
+| 크로스플랫폼 | Expo(RN) 셸 + `react-native-webview` (원격 웹) |
+| 서버 상태    | TanStack Query                               |
+| 클라 상태    | zustand                                      |
+| 라우팅       | React Router v7 (SPA)                        |
+| 언어         | TypeScript                                   |
+| 린트/포맷    | Biome                                        |
+| 테스트       | Vitest + Testing Library                     |
+| CI           | GitHub Actions                               |
 
-## 구조
+얇은 Expo 셸이 원격 웹(app.nook.com)을 WebView 로 띄우고, 웹이 서비스 본체다. 셸은 WebView 가 못 하는 네이티브 접점만 담당한다.
+
+## 구조 (모노레포)
 
 ```
-src/
-├── app/            # 진입 배선: App, router, providers, queryClient
-├── features/       # 기능 단위 폴더 (components/hooks/api를 기능별 응집)
-│   └── home/
-├── shared/
-│   ├── ui/         # 공용 컴포넌트
-│   ├── lib/        # 순수 유틸
-│   ├── api/        # http 래퍼 (BE 호출 기반)
-│   ├── config/     # env 게이트
-│   └── native/     # ★ Capacitor 플러그인 호출을 감싸는 유일한 지점
-├── stores/         # zustand 슬라이스
-└── styles/
+apps/
+├── web/                     # Vite SPA — 서비스 본체 (화면 전부)
+│   └── src/
+│       ├── app/             # 진입 배선: App, router, providers, queryClient
+│       ├── features/        # 기능 단위 폴더 (home/ …)
+│       ├── native-bridge/   # 셸 통신 클라이언트 (postMessage 프로토콜)
+│       ├── shared/api/      # http 래퍼 (BE 호출 기반)
+│       ├── shared/config/   # env 게이트
+│       └── styles/
+└── mobile/                  # Expo(RN) 셸 — react-native-webview 로 원격 웹 로드
+
+packages/
+└── bridge-contracts/        # 셸 ↔ 웹 메시지 계약 (SSOT, 타입 전용)
+
+docs/                        # 아키텍처 결정 기록 / 브리지 문서
 ```
 
-- `shared/native/` 외에서는 `@capacitor/*` 를 직접 import 하지 않는다. 네이티브 접점을 한 곳에 격리해 features 는 플랫폼을 모르게, 웹 dev 에서도 안전하게 동작하게 한다.
-- `@/` 는 `src/` alias (Vite·tsc·Vitest 공통).
+- pnpm 워크스페이스: `apps/*` + `packages/*` (web·mobile·계약을 한 락으로 관리).
+- 웹↔셸 통신은 `packages/bridge-contracts` 의 `{ v, type, payload }` postMessage 프로토콜. 상세는 `docs/native-bridge.md`.
+- `@/` 는 web 의 `src/` alias (Vite·tsc·Vitest 공통).
 
 ## 실행
 
+### web
+
 ```bash
 pnpm install
-cp .env.example .env      # BE 주소 설정 (미설정 시 localhost:8080 폴백)
+cp .env.example .env       # BE 주소 설정 (미설정 시 localhost:8080 폴백)
 
-pnpm dev                  # http://localhost:5173
-pnpm build                # tsc --noEmit + vite build → dist/
-pnpm typecheck            # tsc --noEmit
-pnpm lint                 # biome check
-pnpm format               # biome format --write
-pnpm test                 # vitest run
+pnpm web:dev               # http://localhost:5173
+pnpm web:build             # tsc --noEmit + vite build → apps/web/dist/
+pnpm typecheck             # web tsc --noEmit
+pnpm lint                  # biome check
+pnpm format                # biome format --write
+pnpm --filter web test     # vitest run
 ```
 
-## 네이티브 (Capacitor)
+### mobile (Expo 셸)
 
 ```bash
-# 웹 번들을 네이티브로 동기화
-pnpm cap:sync             # = pnpm build && cap sync
+cd apps/mobile
+cp .env.example .env.local  # EXPO_PUBLIC_WEB_URL: 웹뷰가 로드할 원격 웹 URL
 
-# 네이티브 실행
-npx cap run android       # 에뮬레이터
-npx cap run ios           # 시뮬레이터
-
-# dev 라이브리로드 (원격 dev 서버를 네이티브 웹뷰가 로드)
-CAP_DEV=1 npx cap run android   # server.url=10.0.2.2:5173 주입 (dev 한정)
+pnpm start                  # Expo dev
+pnpm ios                    # 시뮬레이터/실기기
+pnpm android                # 에뮬레이터/실기기
 ```
+
+> 실기기에서는 dev 서버 대신 `vite preview`(빌드본 서빙)로 확인한다 — dev 서버의 재연결 리로드가 웹뷰 상태를 날린다.

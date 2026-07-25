@@ -31,7 +31,7 @@ jobs:
         run: pnpm test
 
       - name: Build
-        run: pnpm build
+        run: pnpm web:build
         env:
           VITE_API_BASE_URL: http://localhost:8080
 # NOTE: 네이티브(android/ios) 빌드는 무겁고 시크릿(서명)이 필요하므로 이 CI 범위에서 제외한다. 스토어 배포 파이프라인은 후속 계획에서 다룬다.

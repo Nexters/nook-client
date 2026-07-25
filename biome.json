@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!dist", "!android", "!ios", "!coverage"]
+    "includes": ["**", "!**/dist", "!**/coverage"]
   },
   "formatter": {
     "enabled": true,
@@ -19,6 +19,11 @@
     "enabled": true,
     "rules": {
       "preset": "recommended"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
     }
   },
   "javascript": {

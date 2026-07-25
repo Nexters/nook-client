@@ -8,7 +8,8 @@
   "scripts": {
     "web:dev": "pnpm --filter web dev",
     "web:build": "pnpm --filter web build",
-    "typecheck": "pnpm --filter web typecheck",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter web test",
     "lint": "biome check .",
     "lint:ci": "biome ci .",
     "format": "biome format --write .",
@@ -17,5 +18,11 @@
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
     "husky": "^9.1.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.3",
+      "react-dom": "19.2.3"
+    }
   }
 }
