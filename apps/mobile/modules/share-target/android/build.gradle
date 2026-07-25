@@ -1,8 +1,18 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath("org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin:${kotlinVersion}")
+  }
+}
+
 plugins {
   id 'com.android.library'
   id 'expo-module-gradle-plugin'
-  id 'org.jetbrains.kotlin.plugin.compose'
 }
+
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 
 group = 'com.nook.app.share'
 version = '0.1.0'
