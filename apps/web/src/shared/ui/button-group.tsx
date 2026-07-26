@@ -14,7 +14,7 @@ import { cn } from '@/shared/lib/utils';
  */
 const buttonGroupVariants = cva('flex w-full items-center [&>*]:min-w-0 [&>*]:flex-1', {
   variants: {
-    /** 짝을 이루는 버튼 높이에 맞춘 간격 — lg(48px 버튼) 12, md(44px 버튼) 8 */
+    /** 짝을 이루는 버튼 높이에 맞춘 간격 — lg(52px 버튼) 12, md(44px 버튼) 8 */
     size: {
       lg: 'gap-3',
       md: 'gap-2',
