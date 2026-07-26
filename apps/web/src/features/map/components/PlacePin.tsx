@@ -30,12 +30,14 @@ export function PlacePin({
   lng,
   name,
   color,
+  selected = false,
   onClick,
 }: {
   lat: number;
   lng: number;
   name: string;
   color: PlacePinColor;
+  selected?: boolean;
   onClick?: () => void;
 }) {
   return (
@@ -44,7 +46,10 @@ export function PlacePin({
         <button
           type="button"
           onClick={onClick}
-          className={`rounded-sm ${PIN_DOT_CLASS[color]} w-4 h-4`}
+          aria-pressed={selected}
+          className={`h-4 w-4 rounded-sm ${PIN_DOT_CLASS[color]} ${
+            selected ? 'ring-2 ring-blue ring-offset-2' : ''
+          }`}
         ></button>
         <span className="text-s1">{name}</span>
       </div>

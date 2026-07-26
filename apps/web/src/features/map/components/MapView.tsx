@@ -1,3 +1,5 @@
+import type { Ref } from 'react';
+import { useImperativeHandle, useRef } from 'react';
 import { Container as MapDiv, NaverMap, useNavermaps } from 'react-naver-maps';
 import { CurrentLocationDot } from '@/features/map/components/CurrentLocationDot';
 import { PlacePin } from '@/features/map/components/PlacePin';
@@ -8,28 +10,55 @@ const FALLBACK_CENTER = { lat: 37.5729, lng: 126.9762 }; // 위치 못 가져왔
 // 확대 정도는 여기서 조정한다. 네이버 지도는 숫자가 클수록 더 확대된다(대략 1~21).
 const DEFAULT_ZOOM = 18;
 
+export type MapViewHandle = {
+  /** 지도를 초기 중심 좌표·줌으로 되돌린다(현재 위치 버튼용). */
+  recenter: () => void;
+};
+
 /**
  * 네이버 지도 렌더링 지점. 앱의 다른 곳에서는 `react-naver-maps` 를 직접
  * import 하지 않고 이 컴포넌트를 통해서만 지도에 접근한다.
  *
  * `initialCenter` 는 최초 마운트 시점에만 반영된다(uncontrolled). 마운트 이후
  * 값이 바뀌어도 지도는 재센터링되지 않으니, 위치를 알고 나서 지도를 마운트해야 한다.
+ * 재센터링은 `ref.recenter()` 로 명령형 호출한다(naver.maps.Map 인스턴스에 직접 명령).
  */
 export function MapView({
   places,
   currentLocation,
   initialCenter,
+  selectedPlaceId,
+  onPlaceClick,
+  ref,
 }: {
   places: MockPlace[];
   currentLocation: Coordinates | null;
   initialCenter?: Coordinates;
+  selectedPlaceId?: string | null;
+  onPlaceClick?: (id: string) => void;
+  ref?: Ref<MapViewHandle>;
 }) {
   const navermaps = useNavermaps();
   const center = initialCenter ?? FALLBACK_CENTER;
+  const mapRef = useRef<naver.maps.Map | null>(null);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      recenter: () => {
+        const map = mapRef.current;
+        if (!map) return;
+        map.setCenter(new navermaps.LatLng(center.lat, center.lng));
+        map.setZoom(DEFAULT_ZOOM);
+      },
+    }),
+    [navermaps, center.lat, center.lng],
+  );
 
   return (
     <MapDiv style={{ width: '100%', height: '100%' }}>
       <NaverMap
+        ref={mapRef}
         defaultCenter={new navermaps.LatLng(center.lat, center.lng)}
         defaultZoom={DEFAULT_ZOOM}
       >
@@ -40,6 +69,8 @@ export function MapView({
             lng={place.lng}
             name={place.name}
             color={place.color}
+            selected={place.id === selectedPlaceId}
+            onClick={() => onPlaceClick?.(place.id)}
           />
         ))}
         {currentLocation && (
