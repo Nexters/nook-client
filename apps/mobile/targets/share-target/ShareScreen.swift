@@ -1,29 +1,62 @@
 import SwiftUI
 
-// 그룹 5개 이상이면 리스트를 232pt로 고정하고 스크롤 (시트 최대 높이 ~440)
-private let scrollRegion: CGFloat = 232
-private let scrollThreshold = 5
+// 새 그룹 생성 행 + 그룹 4개까지 노출(56*5=280), 초과 시 스크롤
+private let scrollRegion: CGFloat = 280
+private let dismissThreshold: CGFloat = 120
+// ShareViewController.dismissDuration 과 같아야 딤과 시트가 함께 사라진다
+private let dismissDuration: TimeInterval = 0.22
 
 struct ShareScreen: View {
     let onSave: (Set<String>, String) -> Void
     let onCreateGroup: (String, Int) -> Void
     let onDismiss: () -> Void
 
+    @StateObject private var keyboard = KeyboardMonitor()
     @State private var showCreate = false
     @State private var bottomInset: CGFloat = 0
+    @State private var dragOffset: CGFloat = 0
+    @State private var closing = false
+
+    // 시트를 화면 밖으로 내리면서 종료를 알린다. 컨트롤러가 같은 길이로 딤을 걷고 화면을 감춘다.
+    private func close() {
+        guard !closing else { return }
+        closing = true
+        withAnimation(.easeIn(duration: dismissDuration)) {
+            dragOffset = UIScreen.main.bounds.height
+        }
+        onDismiss()
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Color.black.opacity(0.4)
-                .ignoresSafeArea()
-                .onTapGesture(perform: onDismiss)
+            // 딤은 ShareViewController 가 윈도우 배경으로 깔고, 여긴 탭 영역만 잡는다
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture(perform: close)
 
             VStack(spacing: 0) {
-                SheetHandle()
+                SheetHandle(
+                    onDrag: { dragOffset = max(0, $0) },
+                    onDragEnd: {
+                        if dragOffset > dismissThreshold {
+                            close()
+                        } else {
+                            withAnimation(.easeOut(duration: 0.2)) { dragOffset = 0 }
+                        }
+                    }
+                )
                 if showCreate {
-                    CreateGroupContent(onCreateGroup: onCreateGroup)
+                    CreateGroupContent(
+                        panelFraction: keyboard.fraction,
+                        onCreateGroup: onCreateGroup,
+                        onBack: { showCreate = false }
+                    )
                 } else {
-                    SelectGroupContent(onSave: onSave, onNewGroup: { showCreate = true })
+                    SelectGroupContent(
+                        panelFraction: keyboard.fraction,
+                        onSave: onSave,
+                        onNewGroup: { showCreate = true }
+                    )
                 }
             }
             .frame(maxWidth: .infinity)
@@ -31,12 +64,14 @@ struct ShareScreen: View {
             .background(Color.white)
             // 홈 인디케이터 영역까지 흰 배경만 확장(키보드 회피는 유지: .container 한정)
             .ignoresSafeArea(.container, edges: .bottom)
+            .offset(y: dragOffset)
         }
         .background(SafeAreaReader { bottomInset = $0 })
     }
 }
 
 private struct SelectGroupContent: View {
+    let panelFraction: CGFloat
     let onSave: (Set<String>, String) -> Void
     let onNewGroup: () -> Void
 
@@ -45,62 +80,58 @@ private struct SelectGroupContent: View {
     @FocusState private var memoFocused: Bool
 
     var body: some View {
-        // 키보드가 열리면(메모 입력) 핸들 + 인풋만 남기고 리스트·버튼은 접힘
-        if !memoFocused {
-            groupList
-        }
-
-        if !selected.isEmpty {
-            InputField(text: $memo, placeholder: "추가로 메모하고 싶은 내용이 있나요?", focused: $memoFocused)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
-        }
-
-        if !memoFocused {
-            HStack(spacing: 12) {
-                SheetButton(text: "새 그룹 생성", primary: false, onTap: onNewGroup)
-                SheetButton(text: "저장", primary: true) { onSave(selected, memo) }
-            }
-            .padding(16)
-        }
-    }
-
-    @ViewBuilder
-    private var groupList: some View {
-        let rows = VStack(spacing: 0) {
-            ForEach(mockGroups) { group in
-                GroupRow(group: group, isSelected: selected.contains(group.id)) {
-                    if selected.contains(group.id) { selected.remove(group.id) }
-                    else { selected.insert(group.id) }
+        // 키보드가 열리면 핸들 + 인풋만 남기고, 리스트는 키보드 높이에 맞춰 실시간 접힘
+        CollapsibleByKeyboard(fraction: panelFraction) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    CreateGroupRow(onTap: onNewGroup)
+                    ForEach(mockGroups) { group in
+                        GroupRow(group: group, isSelected: selected.contains(group.id)) {
+                            if selected.contains(group.id) { selected.remove(group.id) }
+                            else { selected.insert(group.id) }
+                        }
+                    }
                 }
+                .padding(.horizontal, 16)
             }
+            .frame(height: scrollRegion)
         }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
 
-        if mockGroups.count >= scrollThreshold {
-            ScrollView { rows }.frame(height: scrollRegion)
-        } else {
-            rows
+        // 리스트와 메모 사이 8pt 간격 (접힘 영역 밖 → 280 = 56*5 순수 유지)
+        Spacer().frame(height: 8)
+
+        InputField(text: $memo, placeholder: "추가로 메모하고 싶은 내용이 있나요?", focused: $memoFocused)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
+
+        CollapsibleByKeyboard(fraction: panelFraction) {
+            SheetButton(text: "저장하기", primary: true) { onSave(selected, memo) }
+                .padding(16)
         }
     }
 }
 
 private struct CreateGroupContent: View {
+    let panelFraction: CGFloat
     let onCreateGroup: (String, Int) -> Void
+    let onBack: () -> Void
 
     @State private var name: String = ""
     @State private var selectedColor: Int = -1
     @FocusState private var nameFocused: Bool
 
     var body: some View {
+        CreateGroupHeader(onBack: onBack)
+
+        Spacer().frame(height: 20)
+
         InputField(text: $name, placeholder: "새 그룹명을 입력해주세요", focused: $nameFocused)
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
 
         ColorPalette(selectedIndex: selectedColor) { selectedColor = $0 }
 
-        HStack(spacing: 0) {
+        CollapsibleByKeyboard(fraction: panelFraction) {
             SheetButton(
                 text: "생성 후 저장",
                 primary: true,
@@ -108,8 +139,31 @@ private struct CreateGroupContent: View {
             ) {
                 onCreateGroup(name, selectedColor)
             }
+            .padding(16)
         }
-        .padding(16)
+    }
+}
+
+// 새 그룹 생성 화면 상단바: 좌측 뒤로가기(아이콘 추후 교체) + 중앙 타이틀
+private struct CreateGroupHeader: View {
+    let onBack: () -> Void
+
+    var body: some View {
+        ZStack {
+            Text("새 그룹 생성")
+                .suit(16, .semibold)
+                .foregroundColor(Color(hex: 0x1F1F1F))
+            HStack {
+                Rectangle()
+                    .fill(Color(hex: 0xE4E6E9))
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onBack)
+                Spacer()
+            }
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, minHeight: 44, maxHeight: 44)
     }
 }
 

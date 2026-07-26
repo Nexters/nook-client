@@ -4,7 +4,7 @@ module.exports = (config) => ({
   name: 'ShareExtension',
   displayName: 'nook',
   bundleIdentifier: '.ShareExtension',
-  deploymentTarget: '15.1',
+  deploymentTarget: '16.4',
   frameworks: ['SwiftUI', 'UniformTypeIdentifiers'],
   entitlements: {
     'com.apple.security.application-groups':
