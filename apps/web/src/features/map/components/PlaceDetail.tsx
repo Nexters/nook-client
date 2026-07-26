@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import {
   ClockIcon,
   ExternalLinkIcon,
@@ -10,6 +11,67 @@ import { Badge } from '@/shared/ui';
 
 /** 상세 화면에 보여줄 연관 장소 최대 개수 (Figma 시안 기준 3개). */
 const MAX_RELATED_PLACES = 3;
+
+/**
+ * 메모 표시/편집 행. "수정"을 누르면 인풋으로 바뀌고 "저장"을 누르면(또는 Enter)
+ * 로컬 상태에만 값을 반영한다 — 메모 저장 API 가 아직 없어 실제로 어디에 영속화하진
+ * 않는다. API 가 생기면 onSubmit 안에서 요청을 보내면 된다.
+ */
+function MemoRow({ initialMemo }: { initialMemo: string | null }) {
+  const [memo, setMemo] = useState(initialMemo);
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(initialMemo ?? '');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing) inputRef.current?.focus();
+  }, [isEditing]);
+
+  if (isEditing) {
+    return (
+      <form
+        className="flex h-6 items-center gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setMemo(draft);
+          setIsEditing(false);
+          // TODO: 메모 저장 API 연동 시 여기서 요청을 보낸다.
+        }}
+      >
+        <PenIcon className="size-4 shrink-0 text-gray-40" />
+        <input
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="메모를 남겨보세요"
+          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-b2 text-gray-80 outline-none"
+        />
+        <button type="submit" className="shrink-0 text-b2 text-blue">
+          저장
+        </button>
+      </form>
+    );
+  }
+
+  return (
+    <div className="flex h-6 items-center gap-2">
+      <PenIcon className="size-4 shrink-0 text-gray-40" />
+      <p className="min-w-0 flex-1 truncate text-b2 text-gray-80">
+        {memo && memo.length > 0 ? memo : '메모를 남겨보세요.'}
+      </p>
+      <button
+        type="button"
+        onClick={() => {
+          setDraft(memo ?? '');
+          setIsEditing(true);
+        }}
+        className="shrink-0 text-b2 text-blue"
+      >
+        수정
+      </button>
+    </div>
+  );
+}
 
 function SavedPostsSection({ place }: { place: MockPlace }) {
   if (place.savedPosts.length === 0) return null;
@@ -160,12 +222,7 @@ export function PlaceDetail({
                 영업중 <span aria-hidden="true">•</span> {place.hours}
               </p>
             </div>
-            <div className="flex h-6 items-center gap-2">
-              <PenIcon className="size-4 text-gray-40" />
-              <p className="text-b2 text-gray-80">
-                {place.memo} <span className="text-blue">수정</span>
-              </p>
-            </div>
+            <MemoRow key={place.id} initialMemo={place.memo} />
           </div>
 
           <SavedPostsSection place={place} />

@@ -63,7 +63,7 @@ const MOCK_PLACE_OFFSETS: MockPlaceOffset[] = [
     address: '서울 성동구 서울숲 7길 9 4층',
     tags: ['정갈한', '혼밥', '친절한'],
     hours: '11:00 - 19:30',
-    memo: '지우랑 가면 좋겠다',
+    memo: '',
     savedPosts: [
       {
         id: 'p1',

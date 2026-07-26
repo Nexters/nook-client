@@ -9,9 +9,13 @@ import { Drawer, DrawerContent } from '@/shared/ui';
 /** 이 값을 넘겨 스크롤된 것으로 판단한다(0 근처의 미세한 바운스/오차 무시). */
 const SCROLL_HIDE_HANDLE_THRESHOLD = 4;
 
-function PlaceCard({ place }: { place: MockPlace }) {
+function PlaceCard({ place, onClick }: { place: MockPlace; onClick: () => void }) {
   return (
-    <div className="flex w-[167.5px] shrink-0 flex-col gap-1 pb-2">
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-[167.5px] shrink-0 flex-col items-start gap-1 pb-2"
+    >
       {/* 실제 업체 사진 API 연동 전까지 회색 박스로 대체 */}
       <div className="h-[170px] w-full rounded-sm border border-gray-20 bg-gray-10" />
       <div className="flex flex-col gap-0.5 p-1">
@@ -22,7 +26,7 @@ function PlaceCard({ place }: { place: MockPlace }) {
           <span>{place.category}</span>
         </p>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -53,9 +57,6 @@ export function PlaceSheet({
   const [isScrolled, setIsScrolled] = useState(false);
   const isFull = snap === FULL_SNAP_POINT;
 
-  // full 이 아닌 스냅으로 내려가거나, full 상태에서 연관 장소를 눌러 다른 장소로
-  // 바뀌면 이전 스크롤 위치가 새 콘텐츠에 그대로 남아 핸들이 잘못된 상태로 시작할 수
-  // 있으니 맨 위로 되돌린다.
   // biome-ignore lint/correctness/useExhaustiveDependencies: isFull/selectedPlace.id 는 본문에서 값을 쓰지 않는 트리거 전용 의존성
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
@@ -100,7 +101,11 @@ export function PlaceSheet({
               ) : (
                 <div className="grid grid-cols-2 justify-items-center gap-2">
                   {places.map((place) => (
-                    <PlaceCard key={place.id} place={place} />
+                    <PlaceCard
+                      key={place.id}
+                      place={place}
+                      onClick={() => onSelectPlace(place.id)}
+                    />
                   ))}
                 </div>
               )}
