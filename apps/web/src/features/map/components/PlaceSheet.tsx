@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import emptySavedPlacesIllustration from '@/assets/illustrations/empty-saved-places.svg';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
-import { FULL_SNAP_POINT, SNAP_POINTS } from '@/features/map/constants';
+import { BROWSE_SNAP_POINTS, DETAIL_SNAP_POINTS, FULL_SNAP_POINT } from '@/features/map/constants';
 import type { MockPlace } from '@/features/map/mock/places';
 import { useAppShellContainer } from '@/shared/lib/app-shell-container';
 import { Drawer, DrawerContent } from '@/shared/ui';
@@ -40,32 +40,34 @@ export function PlaceSheet({
   selectedPlace,
   snap,
   onSnapChange,
+  onSelectPlace,
 }: {
   places: MockPlace[];
   selectedPlace: MockPlace | null;
   snap: number | string | null;
   onSnapChange: (snap: number | string | null) => void;
+  onSelectPlace: (id: string) => void;
 }) {
   const shellContainer = useAppShellContainer();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const isFull = snap === FULL_SNAP_POINT;
 
-  // full 이 아닌 스냅으로 내려가거나 다른 장소를 선택하면, 다음에 full 로 열었을 때
-  // 이전 스크롤 위치 때문에 핸들이 잘못된 상태로 시작하지 않도록 맨 위로 되돌린다.
+  // full 이 아닌 스냅으로 내려가거나, full 상태에서 연관 장소를 눌러 다른 장소로
+  // 바뀌면 이전 스크롤 위치가 새 콘텐츠에 그대로 남아 핸들이 잘못된 상태로 시작할 수
+  // 있으니 맨 위로 되돌린다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: isFull/selectedPlace.id 는 본문에서 값을 쓰지 않는 트리거 전용 의존성
   useEffect(() => {
-    if (!isFull) {
-      scrollRef.current?.scrollTo({ top: 0 });
-      setIsScrolled(false);
-    }
-  }, [isFull]);
+    scrollRef.current?.scrollTo({ top: 0 });
+    setIsScrolled(false);
+  }, [isFull, selectedPlace?.id]);
 
   return (
     <Drawer
       open
       dismissible={false}
       modal={false}
-      snapPoints={SNAP_POINTS}
+      snapPoints={selectedPlace ? DETAIL_SNAP_POINTS : BROWSE_SNAP_POINTS}
       activeSnapPoint={snap}
       setActiveSnapPoint={onSnapChange}
       container={shellContainer}
@@ -84,7 +86,12 @@ export function PlaceSheet({
           className="flex h-dvh flex-col gap-3 overflow-y-auto px-4 pb-5"
         >
           {selectedPlace ? (
-            <PlaceDetail place={selectedPlace} expanded={isFull} />
+            <PlaceDetail
+              place={selectedPlace}
+              places={places}
+              expanded={isFull}
+              onSelectPlace={onSelectPlace}
+            />
           ) : (
             <>
               <p className="text-b1 font-medium text-gray-90">최근 저장한 공간</p>

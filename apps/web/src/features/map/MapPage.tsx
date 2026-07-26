@@ -58,10 +58,11 @@ export function MapPage() {
       />
       {snap === PEEK_SNAP_POINT && <RecenterButton onClick={() => mapRef.current?.recenter()} />}
       <PlaceSheet
-        places={[]}
+        places={places}
         selectedPlace={selectedPlace}
         snap={snap}
         onSnapChange={handleSnapChange}
+        onSelectPlace={handlePlaceClick}
       />
     </div>
   );

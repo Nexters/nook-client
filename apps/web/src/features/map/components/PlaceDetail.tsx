@@ -5,8 +5,11 @@ import {
   PenIcon,
   StarOnIcon,
 } from '@/features/map/components/icons';
-import type { MockPlace } from '@/features/map/mock/places';
+import { getDistanceKm, type MockPlace } from '@/features/map/mock/places';
 import { Badge } from '@/shared/ui';
+
+/** 상세 화면에 보여줄 연관 장소 최대 개수 (Figma 시안 기준 3개). */
+const MAX_RELATED_PLACES = 3;
 
 function SavedPostsSection({ place }: { place: MockPlace }) {
   if (place.savedPosts.length === 0) return null;
@@ -38,12 +41,86 @@ function SavedPostsSection({ place }: { place: MockPlace }) {
   );
 }
 
+function RelatedPlaceRow({
+  place,
+  distanceKm,
+  onClick,
+}: {
+  place: MockPlace;
+  distanceKm: number;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" onClick={onClick} className="flex w-full items-center gap-4">
+      {/* 실제 업체 사진 API 연동 전까지 회색 박스로 대체 */}
+      <div className="size-16 shrink-0 rounded-sm border border-gray-20 bg-gray-10" />
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
+        <p className="text-b2 font-semibold text-gray-90">{place.name}</p>
+        <div className="flex flex-col items-start">
+          <p className="flex items-center gap-1 text-b3 text-gray-70">
+            <span>{place.category}</span>
+            <span aria-hidden="true">•</span>
+            <span>{distanceKm}km</span>
+          </p>
+          <p className="truncate text-b3 text-gray-60">{place.address}</p>
+        </div>
+      </div>
+      {/* 이 목록의 모든 장소는 지도 화면의 "저장한 공간" 데이터라 항상 저장됨 상태다. */}
+      <StarOnIcon className="size-8 shrink-0" />
+    </button>
+  );
+}
+
+function RelatedPlacesSection({
+  place,
+  places,
+  onSelectPlace,
+}: {
+  place: MockPlace;
+  places: MockPlace[];
+  onSelectPlace: (id: string) => void;
+}) {
+  const relatedPlaces = places
+    .filter((candidate) => candidate.id !== place.id)
+    .map((candidate) => ({ place: candidate, distanceKm: getDistanceKm(place, candidate) }))
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, MAX_RELATED_PLACES);
+
+  if (relatedPlaces.length === 0) return null;
+
+  return (
+    <div className="flex w-full flex-col gap-4 border-t border-gray-10 pt-4">
+      <p className="text-b1 font-semibold text-gray-100">연관 장소</p>
+      <div className="flex flex-col gap-4">
+        {relatedPlaces.map(({ place: relatedPlace, distanceKm }) => (
+          <RelatedPlaceRow
+            key={relatedPlace.id}
+            place={relatedPlace}
+            distanceKm={distanceKm}
+            onClick={() => onSelectPlace(relatedPlace.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * 지도 핀 클릭 시 드로어에 보여줄 장소 상세.
- * `expanded`(full 스냅) 일 때만 영업정보/메모/저장된 게시물을 추가로 보여준다
- * — mid 스냅에서는 이름·위치·태그·대표 사진까지만 노출한다(Figma 14:1483/14:1902 차이).
+ * `expanded`(full 스냅) 일 때만 영업정보/메모/저장된 게시물/연관 장소를 추가로 보여준다
+ * — mid 스냅에서는 이름·위치·태그·대표 사진까지만 노출한다(Figma 14:1483/14:1902/14:1664 차이).
  */
-export function PlaceDetail({ place, expanded }: { place: MockPlace; expanded: boolean }) {
+export function PlaceDetail({
+  place,
+  places,
+  expanded,
+  onSelectPlace,
+}: {
+  place: MockPlace;
+  places: MockPlace[];
+  expanded: boolean;
+  onSelectPlace: (id: string) => void;
+}) {
   return (
     <div className="flex w-full flex-col gap-3">
       <div className="flex w-full flex-col gap-1">
@@ -92,6 +169,7 @@ export function PlaceDetail({ place, expanded }: { place: MockPlace; expanded: b
           </div>
 
           <SavedPostsSection place={place} />
+          <RelatedPlacesSection place={place} places={places} onSelectPlace={onSelectPlace} />
         </>
       )}
     </div>
