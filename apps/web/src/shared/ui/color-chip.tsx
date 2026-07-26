@@ -17,7 +17,7 @@ export type GroupColor = (typeof GROUP_COLORS)[number];
 
 // Tailwind 가 클래스명을 정적으로 스캔할 수 있도록 템플릿 문자열이 아닌
 // 리터럴 매핑을 사용한다 (동적 `bg-${color}` 는 빌드 시 purge 될 수 있음).
-const COLOR_BG_CLASS: Record<GroupColor, string> = {
+export const COLOR_BG_CLASS: Record<GroupColor, string> = {
   yellow: 'bg-yellow',
   red: 'bg-red',
   pink: 'bg-pink',

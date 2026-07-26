@@ -31,27 +31,48 @@ function Checkbox({
       )}
       {...props}
     >
-      {/* 5.5 = 22px (Tailwind v4 spacing 스케일 1 = 4px) */}
-      <span className="flex size-5.5 items-center justify-center rounded-full bg-gray-20 transition-colors group-data-[state=checked]:bg-gray-100">
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 12 12"
-          fill="none"
-          aria-hidden="true"
-          className="text-gray-0"
-        >
-          <path
-            d="M2.5 6.2 4.9 8.5 9.5 3.8"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
+      <CheckIndicator />
     </CheckboxPrimitive.Root>
   );
 }
 
-export { Checkbox };
+/**
+ * 체크 표시의 시각 부분만 떼어낸 것. 상태는 스스로 갖지 않고 두 가지를 본다 —
+ * 조상 Radix Root 의 `data-state="checked"`, 또는 앞선 형제 `peer` input 의 `:checked`.
+ *
+ * 행 전체가 하나의 컨트롤인 경우(예: 그룹 선택 행)에는 숨긴 네이티브 checkbox 를
+ * `peer` 로 두고 이걸 표시로 쓴다. `Checkbox` 는 button 이라 중첩할 수 없어서다.
+ */
+function CheckIndicator({ className }: { className?: string }) {
+  return (
+    // 5.5 = 22px (Tailwind v4 spacing 스케일 1 = 4px)
+    <span
+      aria-hidden="true"
+      className={cn(
+        // shrink-0 필수 — flex 행 안에서 라벨이 길어질 때 원이 타원으로 찌그러진다.
+        'flex size-5.5 shrink-0 items-center justify-center rounded-full bg-gray-20 transition-colors',
+        'group-data-[state=checked]:bg-gray-100 peer-checked:bg-gray-100',
+        className,
+      )}
+    >
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 12 12"
+        fill="none"
+        aria-hidden="true"
+        className="text-gray-0"
+      >
+        <path
+          d="M2.5 6.2 4.9 8.5 9.5 3.8"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
+  );
+}
+
+export { Checkbox, CheckIndicator };

@@ -27,6 +27,11 @@ export interface PopupProps {
   /** 우측 Primary 버튼 라벨 */
   confirmLabel?: string;
   onConfirm?: () => void;
+  /**
+   * 확인 버튼의 톤. Figma `Popup_Layer > Property 1`.
+   * `warning` 은 되돌릴 수 없는 파괴적 액션(탈퇴하기·삭제하기)에만 쓴다.
+   */
+  variant?: 'default' | 'warning';
   className?: string;
 }
 
@@ -38,6 +43,7 @@ function Popup({
   cancelLabel = '취소',
   confirmLabel = '확인',
   onConfirm,
+  variant = 'default',
   className,
 }: PopupProps) {
   return (
@@ -66,7 +72,11 @@ function Popup({
             </Button>
           </AlertDialogCancel>
           <AlertDialogAction asChild>
-            <Button variant="primary" size="md" onClick={() => onConfirm?.()}>
+            <Button
+              variant={variant === 'warning' ? 'warning' : 'primary'}
+              size="md"
+              onClick={() => onConfirm?.()}
+            >
               {confirmLabel}
             </Button>
           </AlertDialogAction>
