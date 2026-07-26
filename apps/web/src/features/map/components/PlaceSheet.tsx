@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { useAppShellContainer } from '@/app/providers';
 import emptySavedPlacesIllustration from '@/assets/illustrations/empty-saved-places.svg';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { BROWSE_SNAP_POINTS, DETAIL_SNAP_POINTS, FULL_SNAP_POINT } from '@/features/map/constants';
 import type { MockPlace } from '@/features/map/mock/places';
-import { useAppShellContainer } from '@/shared/lib/app-shell-container';
 import { Drawer, DrawerContent } from '@/shared/ui';
 
 /** 이 값을 넘겨 스크롤된 것으로 판단한다(0 근처의 미세한 바운스/오차 무시). */
