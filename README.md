@@ -33,13 +33,15 @@ apps/
 └── mobile/                  # Expo(RN) 셸 — WebView + 네이티브 공유 대상
 
 packages/
-└── bridge-contracts/        # 셸 ↔ 웹 메시지 계약 (SSOT, 타입 전용)
+├── bridge-contracts/        # 셸 ↔ 웹 메시지 계약 (SSOT, 타입 전용)
+└── icons/                   # Web·iOS·Android 공용 SVG와 코드 생성기
 
 docs/                        # 아키텍처 결정 기록 / 브리지 문서
 ```
 
 - pnpm 워크스페이스: `apps/*` + `packages/*` (web·mobile·계약을 한 락으로 관리).
 - 웹↔셸 통신은 `packages/bridge-contracts` 의 `{ v, type, payload }` postMessage 프로토콜. 상세는 `docs/native-bridge.md`.
+- 공용 아이콘은 `packages/icons/src`의 SVG를 기준으로 플랫폼 코드를 생성한다. 상세는 `docs/icons.md`.
 - `@/` 는 web 의 `src/` alias (Vite·tsc·Vitest 공통).
 
 ## 실행

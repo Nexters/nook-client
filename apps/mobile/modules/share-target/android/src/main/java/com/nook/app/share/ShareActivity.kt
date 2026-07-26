@@ -7,6 +7,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.view.WindowCompat
+import com.nook.app.share.model.previewGroups
 
 class ShareActivity : ComponentActivity() {
 
@@ -29,6 +30,8 @@ class ShareActivity : ComponentActivity() {
 
         setContent {
             ShareScreen(
+                // TODO: 서버 연동 시 이 조립 지점에서 조회한 그룹 목록을 주입한다.
+                groups = previewGroups,
                 onSave = { groups, memo ->
                     repository.saveToGroups(sharedText, groups, memo)
                     finish()

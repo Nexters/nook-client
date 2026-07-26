@@ -8,7 +8,9 @@
   "scripts": {
     "web:dev": "pnpm --filter web dev",
     "web:build": "pnpm --filter web build",
-    "typecheck": "pnpm -r typecheck",
+    "icons:generate": "pnpm --filter @nook/icons generate",
+    "icons:check": "pnpm --filter @nook/icons check",
+    "typecheck": "pnpm icons:check && pnpm -r typecheck",
     "test": "pnpm -r --if-present test",
     "lint": "biome check .",
     "lint:ci": "biome ci .",

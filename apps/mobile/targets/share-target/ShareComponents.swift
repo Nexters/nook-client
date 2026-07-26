@@ -25,9 +25,7 @@ struct CreateGroupRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Circle()
-                .fill(Color(hex: 0x99A0AC))
-                .frame(width: 24, height: 24)
+            NookIcon(name: .icon24Add)
                 .padding(.leading, 10)
             Text("새 그룹 생성")
                 .suit(16, .medium)
@@ -55,14 +53,7 @@ struct GroupRow: View {
                 .foregroundColor(Color(hex: 0x1A1A1A))
                 .padding(.leading, 16)
             Spacer(minLength: 0)
-            ZStack {
-                Circle()
-                    .fill(isSelected ? Color(hex: 0x1A1A1A) : Color(hex: 0xE9E9EC))
-                    .frame(width: 24, height: 24)
-                Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(isSelected ? .white : Color(hex: 0xC7C7CC))
-            }
+            NookIcon(name: isSelected ? .checkBtnSelected : .checkBtnUnselected)
         }
         .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, minHeight: 56, maxHeight: 56)
@@ -126,9 +117,7 @@ struct InputField: View {
                     }
             }
             if focused.wrappedValue && !text.isEmpty {
-                Circle()
-                    .fill(Color(hex: 0xE4E6E9))
-                    .frame(width: 24, height: 24)
+                NookIcon(name: .icon24Delete)
                     .onTapGesture { text = "" }
             }
             if focused.wrappedValue {

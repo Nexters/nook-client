@@ -23,7 +23,9 @@ function BottomMenu({ items, className }: BottomMenuProps) {
   return (
     <nav
       className={cn(
-        'fixed inset-x-0 bottom-0 z-50 flex border-t border-gray-10 bg-gray-0 pb-[env(safe-area-inset-bottom)]',
+        // 시안(NAV)은 60px 탭 행 + 24px 좌우 여백에 60px 항목을 justify-between 으로 편다.
+        // 그 아래 20px 은 iOS 홈 인디케이터 영역이라 safe-area 로 대신한다.
+        'fixed inset-x-0 bottom-0 z-50 flex justify-between border-t border-gray-10 bg-gray-0 px-6 pb-[env(safe-area-inset-bottom)]',
         className,
       )}
     >
@@ -32,7 +34,7 @@ function BottomMenu({ items, className }: BottomMenuProps) {
           key={item.to}
           to={item.to}
           end={item.end}
-          className="flex h-[65px] flex-1 flex-col items-center justify-center gap-1"
+          className="flex h-15 w-15 flex-col items-center justify-center gap-1"
         >
           {({ isActive }) => (
             <>

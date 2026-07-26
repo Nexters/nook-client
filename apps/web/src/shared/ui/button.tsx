@@ -20,10 +20,16 @@ const buttonVariants = cva(
       variant: {
         primary: 'bg-gray-100 hover:bg-gray-90 active:bg-gray-90',
         secondary: 'bg-gray-60 hover:bg-gray-70 active:bg-gray-70',
+        /**
+         * 파괴적 액션(삭제하기 등). Figma `Button_44 > Property 1=warning`.
+         * hover/active 를 따로 두지 않는다 — 시안의 System color 에 error 보다
+         * 어두운 단계가 없어서다. 디자이너가 정의하면 그때 추가한다.
+         */
+        warning: 'bg-error',
       },
       size: {
-        /** Box Btn_48px — 라벨 B1(16) SemiBold */
-        lg: 'h-12 px-4 text-b1',
+        /** Box Btn_52px — 라벨 B1(16) SemiBold */
+        lg: 'h-13 px-4 text-b1',
         /** Box Btn_44px — 라벨 B2(14) SemiBold */
         md: 'h-11 px-4 text-b2',
         /** Box Btn_36px — 라벨 B2(14) SemiBold */

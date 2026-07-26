@@ -7,6 +7,7 @@ private let dismissThreshold: CGFloat = 120
 private let dismissDuration: TimeInterval = 0.22
 
 struct ShareScreen: View {
+    let groups: [Group]
     let onSave: (Set<String>, String) -> Void
     let onCreateGroup: (String, Int) -> Void
     let onDismiss: () -> Void
@@ -53,6 +54,7 @@ struct ShareScreen: View {
                     )
                 } else {
                     SelectGroupContent(
+                        groups: groups,
                         panelFraction: keyboard.fraction,
                         onSave: onSave,
                         onNewGroup: { showCreate = true }
@@ -71,6 +73,7 @@ struct ShareScreen: View {
 }
 
 private struct SelectGroupContent: View {
+    let groups: [Group]
     let panelFraction: CGFloat
     let onSave: (Set<String>, String) -> Void
     let onNewGroup: () -> Void
@@ -85,7 +88,7 @@ private struct SelectGroupContent: View {
             ScrollView {
                 VStack(spacing: 0) {
                     CreateGroupRow(onTap: onNewGroup)
-                    ForEach(mockGroups) { group in
+                    ForEach(groups) { group in
                         GroupRow(group: group, isSelected: selected.contains(group.id)) {
                             if selected.contains(group.id) { selected.remove(group.id) }
                             else { selected.insert(group.id) }
@@ -105,7 +108,9 @@ private struct SelectGroupContent: View {
             .padding(.bottom, 12)
 
         CollapsibleByKeyboard(fraction: panelFraction) {
-            SheetButton(text: "저장하기", primary: true) { onSave(selected, memo) }
+            SheetButton(text: "저장하기", primary: true, enabled: !selected.isEmpty) {
+                onSave(selected, memo)
+            }
                 .padding(16)
         }
     }
@@ -133,7 +138,7 @@ private struct CreateGroupContent: View {
 
         CollapsibleByKeyboard(fraction: panelFraction) {
             SheetButton(
-                text: "생성 후 저장",
+                text: "그룹 만들기",
                 primary: true,
                 enabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedColor >= 0
             ) {
@@ -144,7 +149,7 @@ private struct CreateGroupContent: View {
     }
 }
 
-// 새 그룹 생성 화면 상단바: 좌측 뒤로가기(아이콘 추후 교체) + 중앙 타이틀
+// 새 그룹 생성 화면 상단바: 좌측 뒤로가기 + 중앙 타이틀
 private struct CreateGroupHeader: View {
     let onBack: () -> Void
 
@@ -154,9 +159,7 @@ private struct CreateGroupHeader: View {
                 .suit(16, .semibold)
                 .foregroundColor(Color(hex: 0x1F1F1F))
             HStack {
-                Rectangle()
-                    .fill(Color(hex: 0xE4E6E9))
-                    .frame(width: 24, height: 24)
+                NookIcon(name: .icon24Back)
                     .contentShape(Rectangle())
                     .onTapGesture(perform: onBack)
                 Spacer()

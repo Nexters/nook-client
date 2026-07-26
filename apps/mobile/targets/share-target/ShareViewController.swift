@@ -35,6 +35,8 @@ class ShareViewController: UIViewController {
         view.backgroundColor = .clear
 
         let screen = ShareScreen(
+            // TODO: 서버 연동 시 이 조립 지점에서 조회한 그룹 목록을 주입한다.
+            groups: previewGroups,
             onSave: { [weak self] groups, memo in
                 self?.extractTexts { texts in
                     self?.store.saveToGroups(texts: texts, groups: groups, memo: memo)

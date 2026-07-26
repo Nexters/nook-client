@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
@@ -20,7 +19,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -68,13 +66,12 @@ fun InputField(
                     inner()
                 },
             )
-            // Focus + 1자 이상일 때만 노출되는 지우기 버튼 (아이콘은 추후 교체)
+            // Focus + 1자 이상일 때만 노출되는 지우기 버튼
             if (focused && value.isNotEmpty()) {
-                Box(
-                    Modifier
+                NookIcon(
+                    name = NookIconName.Icon24Delete,
+                    modifier = Modifier
                         .size(24.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE4E6E9))
                         .noRippleClick { onChange("") },
                 )
             }

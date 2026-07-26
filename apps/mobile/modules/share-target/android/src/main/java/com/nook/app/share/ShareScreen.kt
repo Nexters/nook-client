@@ -42,7 +42,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
-import com.nook.app.share.model.mockGroups
+import com.nook.app.share.model.Group
+import com.nook.app.share.model.previewGroups
 import com.nook.app.share.ui.CollapsibleByIme
 import com.nook.app.share.ui.ColorPalette
 import com.nook.app.share.ui.CreateGroupRow
@@ -57,6 +58,7 @@ private const val SCROLL_REGION_DP = 280
 
 @Composable
 fun ShareScreen(
+    groups: List<Group>,
     onSave: (Set<String>, String) -> Unit,
     onCreateGroup: (String, Int) -> Unit,
     onDismiss: () -> Unit,
@@ -105,7 +107,12 @@ fun ShareScreen(
             if (showCreate) {
                 CreateGroupContent(panelFraction, onCreateGroup, onBack = { showCreate = false })
             } else {
-                SelectGroupContent(panelFraction, onSave, onCreateGroup = { showCreate = true })
+                SelectGroupContent(
+                    groups,
+                    panelFraction,
+                    onSave,
+                    onCreateGroup = { showCreate = true },
+                )
             }
         }
     }
@@ -150,6 +157,7 @@ private fun SheetHandle(onDrag: (Float) -> Unit, onDragEnd: () -> Unit) {
 
 @Composable
 private fun SelectGroupContent(
+    groups: List<Group>,
     panelFraction: Float,
     onSave: (Set<String>, String) -> Unit,
     onCreateGroup: () -> Unit,
@@ -167,7 +175,7 @@ private fun SelectGroupContent(
                 .padding(horizontal = 16.dp),
         ) {
             CreateGroupRow(onClick = onCreateGroup)
-            mockGroups.forEach { group ->
+            groups.forEach { group ->
                 val isSelected = selected.contains(group.id)
                 GroupRow(group, isSelected) {
                     if (isSelected) selected.remove(group.id) else selected.add(group.id)
@@ -193,6 +201,7 @@ private fun SelectGroupContent(
         SheetButton(
             "저장하기",
             primary = true,
+            enabled = selected.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
@@ -227,7 +236,7 @@ private fun CreateGroupContent(
 
     ColorPalette(selectedColor) { selectedColor = it }
 
-    // 키보드 열리면 생성 후 저장 버튼 숨김
+    // 키보드 열리면 그룹 만들기 버튼 숨김
     CollapsibleByIme(panelFraction) {
         Row(
             Modifier
@@ -235,7 +244,7 @@ private fun CreateGroupContent(
                 .padding(16.dp),
         ) {
             SheetButton(
-                "생성 후 저장",
+                "그룹 만들기",
                 primary = true,
                 modifier = Modifier.weight(1f),
                 enabled = newGroupName.isNotBlank() && selectedColor >= 0,
@@ -246,7 +255,7 @@ private fun CreateGroupContent(
     }
 }
 
-// 새 그룹 생성 화면 상단바: 좌측 뒤로가기(아이콘 추후 교체) + 중앙 타이틀, 요소는 상단 정렬
+// 새 그룹 생성 화면 상단바: 좌측 뒤로가기 + 중앙 타이틀, 요소는 상단 정렬
 @Composable
 private fun CreateGroupHeader(onBack: () -> Unit) {
     Box(
@@ -255,11 +264,11 @@ private fun CreateGroupHeader(onBack: () -> Unit) {
             .height(44.dp)
             .padding(horizontal = 16.dp),
     ) {
-        Box(
-            Modifier
+        NookIcon(
+            name = NookIconName.Icon24Back,
+            modifier = Modifier
                 .align(Alignment.CenterStart)
                 .size(24.dp)
-                .background(Color(0xFFE4E6E9))
                 .noRippleClick(onBack),
         )
         Text(
@@ -274,5 +283,10 @@ private fun CreateGroupHeader(onBack: () -> Unit) {
 @Preview(showBackground = true, backgroundColor = 0xFF888888, widthDp = 390, heightDp = 500)
 @Composable
 private fun ShareScreenPreview() {
-    ShareScreen(onSave = { _, _ -> }, onCreateGroup = { _, _ -> }, onDismiss = {})
+    ShareScreen(
+        groups = previewGroups,
+        onSave = { _, _ -> },
+        onCreateGroup = { _, _ -> },
+        onDismiss = {},
+    )
 }

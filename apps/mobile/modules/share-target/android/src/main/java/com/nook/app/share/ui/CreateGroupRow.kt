@@ -1,24 +1,20 @@
 package com.nook.app.share.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-// 그룹 목록 최상단의 "새 그룹 생성" 행 (아이콘은 추후 교체, 지금은 24dp 원형 플레이스홀더)
+// 그룹 목록 최상단의 "새 그룹 생성" 행
 @Composable
 fun CreateGroupRow(onClick: () -> Unit) {
     Row(
@@ -30,12 +26,11 @@ fun CreateGroupRow(onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         // 아이콘 좌측 패딩 10 → 리스트 컬럼 16 + 10 = 좌측에서 26
-        Box(
-            Modifier
+        NookIcon(
+            name = NookIconName.Icon24Add,
+            modifier = Modifier
                 .padding(start = 10.dp)
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF99A0AC)),
+                .size(24.dp),
         )
         Text(
             "새 그룹 생성",
