@@ -35,7 +35,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       infoPlist: {
         ...config.ios?.infoPlist,
         // WebView(WKWebView) 내 지도 화면의 navigator.geolocation 호출용.
-        NSLocationWhenInUseUsageDescription: '내 주변 장소를 지도에 표시하기 위해 위치 정보를 사용해요.',
+        NSLocationWhenInUseUsageDescription:
+          '내 주변 장소를 지도에 표시하기 위해 위치 정보를 사용해요.',
       },
     },
     android: {
