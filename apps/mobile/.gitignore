@@ -40,4 +40,5 @@ yarn-error.*
 /ios
 /android
 modules/**/android/build/
+modules/**/android/.gradle/
 targets/**/generated.entitlements

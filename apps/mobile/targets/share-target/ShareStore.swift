@@ -28,9 +28,6 @@ struct ShareStore {
     private func append(texts: [String], build: (inout [String: Any]) -> Void) {
         guard let appGroupId, let defaults = UserDefaults(suiteName: appGroupId) else { return }
 
-        // 플러그인(@capgo/capacitor-share-target)이 읽는 페이로드
-        defaults.set(["title": "", "texts": texts, "files": []], forKey: "SharedData")
-
         var entry: [String: Any] = [
             "text": texts.joined(separator: "\n"),
             "savedAt": Date().timeIntervalSince1970 * 1000,

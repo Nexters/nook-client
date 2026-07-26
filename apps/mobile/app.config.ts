@@ -27,7 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     plugins: [...(config.plugins ?? []), '@bacons/apple-targets'],
     ios: {
       ...config.ios,
-      appleTeamId: 'G476VT3T47',
+      appleTeamId: process.env.APPLE_TEAM_ID,
       bundleIdentifier: appId,
       entitlements: {
         ...config.ios?.entitlements,
