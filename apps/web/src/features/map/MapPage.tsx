@@ -2,9 +2,8 @@ import { useMemo, useRef, useState } from 'react';
 import { MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
-import { MID_SNAP_POINT, PEEK_SNAP_POINT } from '@/features/map/constants';
+import { DETAIL_PAGE_SNAP_POINT, PEEK_SNAP_POINT } from '@/features/map/constants';
 import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
-import { shouldClearSelectionOnSnapChange } from '@/features/map/lib/drawer-selection';
 import { getMockPlaces } from '@/features/map/mock/places';
 
 const FALLBACK_CENTER = { lat: 37.5729, lng: 126.9762 }; // 위치 못 가져왔을 때 광화문 인근 폴백
@@ -36,12 +35,13 @@ export function MapPage() {
 
   function handlePlaceClick(id: string) {
     setSelectedPlaceId(id);
-    setSnap(MID_SNAP_POINT);
+    setSnap(DETAIL_PAGE_SNAP_POINT); // detailPage 스냅으로 열어 상세를 보여준다
   }
 
   function handleSnapChange(next: number | string | null) {
     setSnap(next);
-    if (shouldClearSelectionOnSnapChange(next)) {
+    // peek(최소 높이)까지 내려가면 상세를 접고 기본 목록으로 되돌린다.
+    if (next === PEEK_SNAP_POINT) {
       setSelectedPlaceId(null);
     }
   }
@@ -58,7 +58,7 @@ export function MapPage() {
       />
       {snap === PEEK_SNAP_POINT && <RecenterButton onClick={() => mapRef.current?.recenter()} />}
       <PlaceSheet
-        places={places}
+        places={[]}
         selectedPlace={selectedPlace}
         snap={snap}
         onSnapChange={handleSnapChange}
