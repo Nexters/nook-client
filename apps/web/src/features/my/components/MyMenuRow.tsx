@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import arrowRight from '@/assets/icons/16_arrow_right.svg';
+import { Icon16ArrowRight } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -50,7 +50,7 @@ function MyMenuRow({ icon, label, value, badge, onClick, className }: MyMenuRowP
           </span>
         ) : null}
         {value ? <span className="text-right font-mono text-e1 text-gray-50">{value}</span> : null}
-        {onClick ? <img src={arrowRight} alt="" className="size-4 shrink-0" /> : null}
+        {onClick ? <Icon16ArrowRight className="shrink-0" /> : null}
       </span>
     </Comp>
   );

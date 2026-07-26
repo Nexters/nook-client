@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
-import clearIcon from '@/assets/icons/24_delete.svg';
+import { Icon24Delete } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -104,7 +104,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             onClick={onClear}
             className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-1"
           >
-            <img src={clearIcon} alt="" className="size-6" />
+            <Icon24Delete />
           </button>
         ) : null}
         {maxLength !== undefined ? (

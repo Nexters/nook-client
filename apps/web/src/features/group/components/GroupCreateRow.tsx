@@ -1,4 +1,4 @@
-import addIcon from '@/assets/icons/24_add.svg';
+import { Icon24Add } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -25,7 +25,7 @@ function GroupCreateRow({ onClick, label = '새 그룹 생성', className }: Gro
         className,
       )}
     >
-      <img src={addIcon} alt="" className="size-6 shrink-0" />
+      <Icon24Add className="shrink-0" />
       <span className="truncate text-b1 font-medium text-gray-70">{label}</span>
     </button>
   );

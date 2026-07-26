@@ -1,5 +1,4 @@
-import starOff from '@/assets/icons/32_star_off.svg';
-import starOn from '@/assets/icons/32_star_on.svg';
+import { Icon32StarOff, Icon32StarOn } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { Thumbnail } from '@/shared/ui';
 import type { Place } from '../types';
@@ -62,7 +61,7 @@ function PlaceRow({
           aria-label={`${place.name} 즐겨찾기`}
           className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-2"
         >
-          <img src={bookmarked ? starOn : starOff} alt="" className="size-8" />
+          {bookmarked ? <Icon32StarOn /> : <Icon32StarOff />}
         </button>
       ) : null}
     </div>

@@ -1,8 +1,8 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import type * as React from 'react';
-import editBadge from '@/assets/icons/32_edit.svg';
 import profile60 from '@/assets/images/60_Profile.svg';
 import profile100 from '@/assets/images/100_Profile.svg';
+import { Icon32Edit } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -59,7 +59,7 @@ function Avatar({ src, alt = '', onEdit, size = 'lg', className, ...props }: Ava
           )}
         >
           {/* 32_edit 애셋이 흰 원 + 테두리 + 펜을 모두 포함한다. */}
-          <img src={editBadge} alt="" className="size-8" />
+          <Icon32Edit />
         </button>
       ) : null}
     </div>

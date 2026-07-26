@@ -1,5 +1,4 @@
-// 파일명에 공백이 있다(`16_arrow_ diagonal.svg`). 시안 애셋 이름 그대로라 유지한다.
-import arrowDiagonal from '@/assets/icons/16_arrow_ diagonal.svg';
+import { Icon16ArrowDiagonal } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -30,7 +29,7 @@ function OriginalPostLink({ label, href, onClick, className }: OriginalPostLinkP
   const content = (
     <>
       <span className="truncate">{label}</span>
-      <img src={arrowDiagonal} alt="" className="size-4 shrink-0" />
+      <Icon16ArrowDiagonal className="shrink-0" />
     </>
   );
 

@@ -1,5 +1,5 @@
-import groupIcon from '@/assets/icons/16_Group.svg';
-import penIcon from '@/assets/icons/16_pen.svg';
+import type * as React from 'react';
+import { Icon16Group, Icon16Pen } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { EditableTextRow, type GroupColor, GroupTag } from '@/shared/ui';
 
@@ -19,15 +19,17 @@ export interface PostInfoProps {
   className?: string;
 }
 
-function RowIcon({ src }: { src: string }) {
-  return <img src={src} alt="" className="size-4 shrink-0" />;
+function RowIcon({ children }: { children: React.ReactNode }) {
+  return <span className="size-4 shrink-0">{children}</span>;
 }
 
 function PostInfo({ groupName, groupColor, memo, onMemoChange, className }: PostInfoProps) {
   return (
     <div className={cn('flex w-full flex-col gap-1', className)}>
       <div className="flex min-h-6 w-full items-center gap-2">
-        <RowIcon src={groupIcon} />
+        <RowIcon>
+          <Icon16Group />
+        </RowIcon>
         <div className="flex min-w-0 items-center gap-1">
           <GroupTag size="sm" color={groupColor}>
             {groupName}
@@ -37,7 +39,11 @@ function PostInfo({ groupName, groupColor, memo, onMemoChange, className }: Post
       </div>
 
       <EditableTextRow
-        icon={<RowIcon src={penIcon} />}
+        icon={
+          <RowIcon>
+            <Icon16Pen />
+          </RowIcon>
+        }
         value={memo}
         placeholder="메모를 남겨보세요"
         onValueChange={onMemoChange}

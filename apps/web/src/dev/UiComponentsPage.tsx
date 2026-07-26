@@ -1,19 +1,6 @@
 import { type ReactNode, useState } from 'react';
-import chatIcon from '@/assets/icons/16_chat.svg';
-import infoIcon from '@/assets/icons/16_info.svg';
-import instaIcon from '@/assets/icons/16_insta.svg';
-import paperIcon from '@/assets/icons/16_paper.svg';
-import userIcon from '@/assets/icons/16_user.svg';
-import versionIcon from '@/assets/icons/16_version.svg';
-import backIcon from '@/assets/icons/24_back.svg';
-import shareIcon from '@/assets/icons/24_share.svg';
-import groupSelected from '@/assets/icons/32_group_selected.svg';
-import groupUnselected from '@/assets/icons/32_group_unselected.svg';
-import mapSelected from '@/assets/icons/32_map_selected.svg';
-import mapUnselected from '@/assets/icons/32_map_unselected.svg';
 import mySelected from '@/assets/icons/32_my_selected.svg';
 import myUnselected from '@/assets/icons/32_my_unselected.svg';
-import locationButton from '@/assets/icons/40_location.svg';
 import errorCharacter from '@/assets/images/44_error.svg';
 import logo from '@/assets/logo/Vector.svg';
 import type { Group } from '@/features/group';
@@ -23,6 +10,21 @@ import type { Place } from '@/features/place';
 import { PlaceCard, PlaceDetailHeader, PlaceInfo, PlaceRow } from '@/features/place';
 import type { Post } from '@/features/post';
 import { OriginalPostLink, PostInfo, SavedPostCard, SavedPostContext } from '@/features/post';
+import {
+  Icon16Chat,
+  Icon16Info,
+  Icon16Insta,
+  Icon16Paper,
+  Icon16User,
+  Icon16Version,
+  Icon24Back,
+  Icon24Share,
+  Icon32GroupSelected,
+  Icon32GroupUnselected,
+  Icon32MapSelected,
+  Icon32MapUnselected,
+  Icon40Location,
+} from '@/shared/icons/NookIcons';
 import type { BottomMenuItem, GroupColor } from '@/shared/ui';
 import {
   Avatar,
@@ -185,15 +187,15 @@ const NAV_ITEMS: BottomMenuItem[] = [
   {
     to: '/dev/ui',
     label: 'map',
-    icon: <IconImg src={mapUnselected} className="size-8" />,
-    activeIcon: <IconImg src={mapSelected} className="size-8" />,
+    icon: <Icon32MapUnselected />,
+    activeIcon: <Icon32MapSelected />,
     end: true,
   },
   {
     to: '/dev/ui/group',
     label: 'group',
-    icon: <IconImg src={groupUnselected} className="size-8" />,
-    activeIcon: <IconImg src={groupSelected} className="size-8" />,
+    icon: <Icon32GroupUnselected />,
+    activeIcon: <Icon32GroupSelected />,
   },
   {
     to: '/dev/ui/my',
@@ -274,7 +276,7 @@ export function UiComponentsPage() {
         </Row>
         <Row label="Icon + Text">
           <Button size="md">
-            <IconImg src={instaIcon} className="size-4" />
+            <Icon16Insta />
             원본 보기
           </Button>
         </Row>
@@ -346,10 +348,10 @@ export function UiComponentsPage() {
               aria-label="현위치로 이동"
               onClick={() => setFabCount((n) => n + 1)}
             >
-              <IconImg src={locationButton} className="size-10" />
+              <Icon40Location />
             </FloatingButton>
             <FloatingButton floating={false} size="md" tone="light" disabled>
-              <IconImg src={locationButton} className="size-10" />
+              <Icon40Location />
             </FloatingButton>
           </div>
         </Row>
@@ -468,19 +470,19 @@ export function UiComponentsPage() {
           <Header variant="gray" left={<LogoMark />} className="rounded-lg" />
           <Header
             variant="white"
-            left={<IconImg src={backIcon} />}
+            left={<Icon24Back />}
             title="새 그룹 생성"
-            right={<IconImg src={shareIcon} />}
+            right={<Icon24Share />}
             className="rounded-lg border border-gray-20"
           />
           <Header
             variant="white"
-            left={<IconImg src={backIcon} />}
+            left={<Icon24Back />}
             title="제목이 아주 길어지면 말줄임으로 잘리는지 확인합니다"
-            right={<IconImg src={shareIcon} />}
+            right={<Icon24Share />}
             className="rounded-lg border border-gray-20"
           />
-          <Header size="bottom" left={<IconImg src={backIcon} />} title="새 그룹 생성" />
+          <Header size="bottom" left={<Icon24Back />} title="새 그룹 생성" />
         </div>
       </Section>
 
@@ -829,7 +831,7 @@ export function UiComponentsPage() {
         <div className="mx-auto flex w-full max-w-[343px] flex-col gap-4">
           <MyMenuSection title="계정 정보">
             <MyMenuRow
-              icon={<IconImg src={userIcon} className="size-4" />}
+              icon={<Icon16User />}
               label="로그인 정보"
               value="kakao"
               onClick={() => setLastAction('로그인 정보')}
@@ -837,24 +839,19 @@ export function UiComponentsPage() {
           </MyMenuSection>
 
           <MyMenuSection title="앱 정보">
+            <MyMenuRow icon={<Icon16Version />} label="버전 정보" badge="최신버전" value="v1.0" />
             <MyMenuRow
-              icon={<IconImg src={versionIcon} className="size-4" />}
-              label="버전 정보"
-              badge="최신버전"
-              value="v1.0"
-            />
-            <MyMenuRow
-              icon={<IconImg src={infoIcon} className="size-4" />}
+              icon={<Icon16Info />}
               label="개인정보 처리방침"
               onClick={() => setLastAction('개인정보 처리방침')}
             />
             <MyMenuRow
-              icon={<IconImg src={paperIcon} className="size-4" />}
+              icon={<Icon16Paper />}
               label="이용약관"
               onClick={() => setLastAction('이용약관')}
             />
             <MyMenuRow
-              icon={<IconImg src={chatIcon} className="size-4" />}
+              icon={<Icon16Chat />}
               label="문의하기"
               onClick={() => setLastAction('문의하기')}
             />

@@ -1,5 +1,6 @@
 import { Checkbox as CheckboxPrimitive } from 'radix-ui';
 import type * as React from 'react';
+import { CheckBtnSelected, CheckBtnUnselected } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -45,32 +46,9 @@ function Checkbox({
  */
 function CheckIndicator({ className }: { className?: string }) {
   return (
-    // 5.5 = 22px (Tailwind v4 spacing 스케일 1 = 4px)
-    <span
-      aria-hidden="true"
-      className={cn(
-        // shrink-0 필수 — flex 행 안에서 라벨이 길어질 때 원이 타원으로 찌그러진다.
-        'flex size-5.5 shrink-0 items-center justify-center rounded-full bg-gray-20 transition-colors',
-        'group-data-[state=checked]:bg-gray-100 peer-checked:bg-gray-100',
-        className,
-      )}
-    >
-      <svg
-        width="12"
-        height="12"
-        viewBox="0 0 12 12"
-        fill="none"
-        aria-hidden="true"
-        className="text-gray-0"
-      >
-        <path
-          d="M2.5 6.2 4.9 8.5 9.5 3.8"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+    <span aria-hidden="true" className={cn('relative size-6 shrink-0', className)}>
+      <CheckBtnUnselected className="absolute inset-0 group-data-[state=checked]:hidden peer-checked:hidden" />
+      <CheckBtnSelected className="absolute inset-0 hidden group-data-[state=checked]:block peer-checked:block" />
     </span>
   );
 }

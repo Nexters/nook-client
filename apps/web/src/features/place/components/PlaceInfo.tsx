@@ -1,6 +1,5 @@
-import clockIcon from '@/assets/icons/16_clock.svg';
-import locationIcon from '@/assets/icons/16_location.svg';
-import penIcon from '@/assets/icons/16_pen.svg';
+import type * as React from 'react';
+import { Icon16Clock, Icon16Location, Icon16Pen } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { EditableTextRow } from '@/shared/ui';
 
@@ -27,8 +26,8 @@ export interface PlaceInfoProps {
   className?: string;
 }
 
-function RowIcon({ src }: { src: string }) {
-  return <img src={src} alt="" className="size-4 shrink-0" />;
+function RowIcon({ children }: { children: React.ReactNode }) {
+  return <span className="size-4 shrink-0">{children}</span>;
 }
 
 function PlaceInfo({
@@ -43,14 +42,18 @@ function PlaceInfo({
     <div className={cn('flex w-full flex-col gap-1', className)}>
       {address ? (
         <div className="flex min-h-6 w-full items-center gap-2">
-          <RowIcon src={locationIcon} />
+          <RowIcon>
+            <Icon16Location />
+          </RowIcon>
           <p className="truncate text-b2 font-medium text-gray-80">{address}</p>
         </div>
       ) : null}
 
       {businessStatus || businessHours ? (
         <div className="flex min-h-6 w-full items-center gap-2">
-          <RowIcon src={clockIcon} />
+          <RowIcon>
+            <Icon16Clock />
+          </RowIcon>
           <div className="flex min-w-0 items-center gap-1">
             {businessStatus ? (
               <span className="shrink-0 text-b2 font-medium text-gray-80">{businessStatus}</span>
@@ -66,7 +69,11 @@ function PlaceInfo({
       ) : null}
 
       <EditableTextRow
-        icon={<RowIcon src={penIcon} />}
+        icon={
+          <RowIcon>
+            <Icon16Pen />
+          </RowIcon>
+        }
         value={memo}
         placeholder="메모를 남겨보세요"
         onValueChange={onMemoChange}
