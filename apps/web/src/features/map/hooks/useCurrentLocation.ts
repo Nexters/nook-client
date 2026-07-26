@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { Coordinates } from '@/shared/native/geolocation';
-import { getCurrentPosition } from '@/shared/native/geolocation';
+import type { Coordinates } from '@/shared/lib/geolocation';
+import { getCurrentPosition } from '@/shared/lib/geolocation';
 
 export type CurrentLocationState =
   | { status: 'loading' }

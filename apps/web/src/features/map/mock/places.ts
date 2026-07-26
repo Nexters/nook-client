@@ -1,5 +1,5 @@
 import type { PlacePinColor } from '@/features/map/components/PlacePin';
-import type { Coordinates } from '@/shared/native/geolocation';
+import type { Coordinates } from '@/shared/lib/geolocation';
 
 export type SavedPost = {
   id: string;

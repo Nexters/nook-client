@@ -4,7 +4,7 @@ import { Container as MapDiv, NaverMap, useNavermaps } from 'react-naver-maps';
 import { CurrentLocationDot } from '@/features/map/components/CurrentLocationDot';
 import { PlacePin } from '@/features/map/components/PlacePin';
 import type { MockPlace } from '@/features/map/mock/places';
-import type { Coordinates } from '@/shared/native/geolocation';
+import type { Coordinates } from '@/shared/lib/geolocation';
 
 const FALLBACK_CENTER = { lat: 37.5729, lng: 126.9762 }; // 위치 못 가져왔을 때 광화문 인근 폴백
 // 확대 정도는 여기서 조정한다. 네이버 지도는 숫자가 클수록 더 확대된다(대략 1~21).
