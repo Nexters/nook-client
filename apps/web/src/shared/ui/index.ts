@@ -5,6 +5,7 @@ export * from './button';
 export * from './button-group';
 export * from './checkbox';
 export * from './color-chip';
+export * from './drawer';
 export * from './floating-button';
 export * from './input';
 export * from './popup';
