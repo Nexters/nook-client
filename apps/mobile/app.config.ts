@@ -32,10 +32,21 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         // 공유 확장 ↔ 본앱 데이터 전달 통로. 앱 식별자와 함께 움직여야 한다.
         'com.apple.security.application-groups': [`group.${appId}`],
       },
+      infoPlist: {
+        ...config.ios?.infoPlist,
+        // WebView(WKWebView) 내 지도 화면의 navigator.geolocation 호출용.
+        NSLocationWhenInUseUsageDescription: '내 주변 장소를 지도에 표시하기 위해 위치 정보를 사용해요.',
+      },
     },
     android: {
       ...config.android,
       package: appId,
+      // WebView geolocationEnabled 로 navigator.geolocation 을 쓰려면 필요하다.
+      permissions: [
+        ...(config.android?.permissions ?? []),
+        'android.permission.ACCESS_FINE_LOCATION',
+        'android.permission.ACCESS_COARSE_LOCATION',
+      ],
     },
   };
 };
