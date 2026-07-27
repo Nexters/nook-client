@@ -1,6 +1,5 @@
 import { PEEK_SNAP_POINT } from '@/features/map/constants';
 import { LocationCrosshair } from '@/shared/icons/NookIcons';
-import { BOTTOM_MENU_HEIGHT } from '@/shared/ui';
 
 /**
  * 현재 위치로 지도를 되돌리는 버튼(Figma `Button/40_location`).
@@ -17,7 +16,7 @@ export function RecenterButton({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       aria-label="현재 위치로 이동"
       className="absolute right-4 flex size-10 items-center justify-center rounded-full bg-gray-0 text-gray-100 drop-shadow-[0px_0px_2px_rgba(31,31,31,0.3)]"
-      style={{ bottom: `calc(${PEEK_SNAP_POINT * 100}% + 32px + ${BOTTOM_MENU_HEIGHT})` }}
+      style={{ bottom: `calc(${PEEK_SNAP_POINT * 100}% + 20px ` }}
     >
       <LocationCrosshair className="size-4" />
     </button>
