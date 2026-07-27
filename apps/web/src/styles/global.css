@@ -39,6 +39,17 @@
   --color-green: #2bae7f;
   --color-cement: #738295;
 
+  /* ── System / Primary: 시안의 "System color"·"Primary color" 그룹.
+     Accent 와 이름이 겹치지 않게 Figma 변수명을 그대로 따른다.
+     주의: nook-blue(#558eff)와 accent blue(#559bff)는 다른 색이다. ── */
+  --color-error: #fa5947;
+  --color-location: #4e6af3;
+  --color-nook-blue: #558eff;
+
+  /* Gray 0(#fff)~100(#1f1f1f) 밖의 순수 검정. 이미지 위 딤 오버레이 전용이라
+     텍스트·배경색으로는 쓰지 않는다 (본문 색은 gray-100). */
+  --color-black: #000000;
+
   /* ── Font family ── */
   --font-sans:
     "SUIT Variable", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui, sans-serif;
@@ -54,6 +65,11 @@
   --text-h1--line-height: 1.5;
   --text-h1--letter-spacing: -0.02em;
   --text-h1--font-weight: 600;
+
+  --text-h2: 1.125rem; /* 18pt, SemiBold 고정 */
+  --text-h2--line-height: 1.5;
+  --text-h2--letter-spacing: -0.02em;
+  --text-h2--font-weight: 600;
 
   --text-b1: 1rem; /* 16pt */
   --text-b1--line-height: 1.5;

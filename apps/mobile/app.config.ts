@@ -24,9 +24,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: variant === 'production' ? 'nook' : `nook (${variant})`,
     slug: 'nook',
+    plugins: [...(config.plugins ?? []), '@bacons/apple-targets'],
     ios: {
       ...config.ios,
+      appleTeamId: process.env.APPLE_TEAM_ID,
       bundleIdentifier: appId,
+      infoPlist: {
+        ...config.ios?.infoPlist,
+        NSLocalNetworkUsageDescription: '개발용 로컬 웹 서버에 연결하기 위해 사용합니다.',
+      },
       entitlements: {
         ...config.ios?.entitlements,
         // 공유 확장 ↔ 본앱 데이터 전달 통로. 앱 식별자와 함께 움직여야 한다.
