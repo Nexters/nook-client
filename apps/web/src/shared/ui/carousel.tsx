@@ -18,9 +18,21 @@ export interface CarouselProps extends React.HTMLAttributes<HTMLDivElement> {
    * (슬라이드가 1개면 값과 무관하게 렌더하지 않는다.)
    */
   indicator?: boolean;
+  /**
+   * false 면 스냅 기준점의 좌측 16px 여백을 없앤다 — 슬라이드가 화면 폭을 꽉 채우는
+   * 전체화면 이미지 뷰어처럼 좌우 여백이 없는 경우에만 쓴다.
+   */
+  padded?: boolean;
 }
 
-function Carousel({ children, gap = 8, indicator = true, className, ...props }: CarouselProps) {
+function Carousel({
+  children,
+  gap = 8,
+  indicator = true,
+  padded = true,
+  className,
+  ...props
+}: CarouselProps) {
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const [active, setActive] = React.useState(0);
   const count = React.Children.count(children);
@@ -45,7 +57,8 @@ function Carousel({ children, gap = 8, indicator = true, className, ...props }: 
         className={cn(
           // 좌우 16px 여백. scroll-pl-4 가 없으면 스냅이 패딩을 무시해서 두 번째 카드부터
           // 왼쪽 벽에 붙는다 — 첫 카드와 같은 16px 을 유지시킨다.
-          'flex snap-x snap-mandatory overflow-x-auto scroll-pl-4',
+          'flex snap-x snap-mandatory overflow-x-auto',
+          padded && 'scroll-pl-4',
           '[&>*]:shrink-0 [&>*]:snap-start',
           // 네이티브 스크롤바는 모바일 문맥에서 불필요하다.
           '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',

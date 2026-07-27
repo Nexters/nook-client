@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 
 interface BottomMenuVisibilityValue {
   hidden: boolean;
@@ -28,4 +28,14 @@ export function useBottomMenuVisibility() {
     throw new Error('useBottomMenuVisibility must be used within BottomMenuVisibilityProvider');
   }
   return context;
+}
+
+/** 마운트되어 있는 동안 하단 탭바를 숨긴다 (탭 밖의 전체화면 상세/폼 라우트용). */
+export function useHideBottomMenu() {
+  const { setHidden } = useBottomMenuVisibility();
+
+  useEffect(() => {
+    setHidden(true);
+    return () => setHidden(false);
+  }, [setHidden]);
 }

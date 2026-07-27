@@ -7,8 +7,9 @@ import { cn } from '@/shared/lib/utils';
  * Figma `Tabloid - 4 > Input > inputfield` (Default/Focus/Typing/Filled × Large/Small) 기준.
  *
  * 시안의 4개 상태는 별도 prop 이 아니라 실제 입력 상태에서 파생된다 —
- *   Default  = 비어 있고 포커스 없음       Focus  = 포커스, 값 없음(플레이스홀더 유지)
- *   Typing   = 포커스, 값 있음(X·카운터)    Filled = 포커스 해제, 값 있음
+ *   Default  = 비어 있고 포커스 없음(플레이스홀더만)   Focus  = 포커스, 값 없음(카운터만)
+ *   Typing   = 포커스, 값 있음(X·카운터)               Filled = 포커스 해제, 값 있음(텍스트만)
+ * 즉 카운터는 포커스 중에만, X 는 포커스 중이면서 값이 있을 때만 보인다.
  * 커서(caret)는 네이티브 <input> 이 그리므로 시안의 커서 레이어는 구현하지 않는다.
  *
  * 값 지우기는 `onClear` 를 넘긴 경우에만 X 버튼이 뜨고, 실제 초기화는 사용처가 한다
@@ -61,6 +62,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       maxLength,
       onClear,
       onChange,
+      onFocus,
+      onBlur,
       value,
       defaultValue,
       disabled,
@@ -71,6 +74,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     // uncontrolled 에서도 글자수를 세야 해서 길이만 별도로 들고 있는다.
     // controlled 면 props.value 가 항상 우선이라 외부에서 값을 바꿔도 어긋나지 않는다.
     const [innerLength, setInnerLength] = React.useState(() => String(defaultValue ?? '').length);
+    const [focused, setFocused] = React.useState(false);
     const length = value !== undefined ? String(value).length : innerLength;
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,7 +82,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       onChange?.(event);
     };
 
-    const showClear = onClear !== undefined && length > 0 && !disabled;
+    // 시안: 카운터는 포커스 중에만, X 는 포커스 중 + 값이 있을 때만.
+    const showClear = onClear !== undefined && focused && length > 0 && !disabled;
+    const showCounter = maxLength !== undefined && focused && !disabled;
 
     return (
       <div className={cn(inputVariants({ scale }), className)}>
@@ -90,6 +96,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           defaultValue={defaultValue}
           disabled={disabled}
           onChange={handleChange}
+          onFocus={(event) => {
+            setFocused(true);
+            onFocus?.(event);
+          }}
+          onBlur={(event) => {
+            setFocused(false);
+            onBlur?.(event);
+          }}
           className={cn(
             'min-w-0 flex-1 bg-transparent font-medium text-gray-100 outline-none',
             'placeholder:text-gray-50 disabled:cursor-not-allowed disabled:text-gray-50',
@@ -101,13 +115,15 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <button
             type="button"
             aria-label="입력 지우기"
+            // 눌러서 포커스가 빠지면 blur → 버튼이 사라져 click 이 안 잡힌다. 기본 동작을 막아 포커스를 유지한다.
+            onMouseDown={(event) => event.preventDefault()}
             onClick={onClear}
             className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-1"
           >
             <Icon24Delete />
           </button>
         ) : null}
-        {maxLength !== undefined ? (
+        {showCounter ? (
           <span className="shrink-0 text-right text-b3 font-medium text-gray-50 tabular-nums">
             {length}/{maxLength}
           </span>

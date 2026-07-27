@@ -1,6 +1,6 @@
 import { cn } from '@/shared/lib/utils';
 import { Thumbnail } from '@/shared/ui';
-import type { Group } from '../types';
+import type { CollectionSummary } from '../types';
 
 /**
  * Figma `List/2Line`.
@@ -11,9 +11,12 @@ import type { Group } from '../types';
  * 시안 폭 167px 도 (343 - gap 8) / 2 라서, 카드는 `w-full` 이고 열 수는 부모가 정한다.
  *
  * 커버는 `group.thumbnails[0]` 을 쓴다 — 없으면 `Thumbnail` 의 기본 이미지가 나온다.
+ *
+ * 그룹 상세의 게시물 그리드도 같은 모양이라 `CollectionSummary` 로 넓혀 재사용한다
+ * (공개 그룹 / 저장된 게시물 양쪽이 이 모양을 만족한다).
  */
 export interface CollectionCardProps {
-  group: Group;
+  group: CollectionSummary;
   onClick?: () => void;
   className?: string;
 }

@@ -20,6 +20,11 @@ export interface EditableTextRowProps {
   /** 값이 비었을 때 보여줄 문구 (입력 placeholder 로도 쓴다) */
   placeholder?: string;
   onValueChange?: (value: string) => void;
+  /**
+   * 넘기면 인라인 편집 대신 이 콜백만 부른다 — 시안이 그 자리 입력이 아니라
+   * 별도 편집 화면(게시물 상세의 `메모하기` 바텀시트)을 여는 경우에 쓴다.
+   */
+  onEdit?: () => void;
   /** 편집 버튼 라벨. 시안은 값 유무와 무관하게 "수정". */
   editLabel?: string;
   /** 접근성용 입력 라벨 */
@@ -32,6 +37,7 @@ function EditableTextRow({
   value,
   placeholder = '',
   onValueChange,
+  onEdit,
   editLabel = '수정',
   inputLabel = '입력',
   className,
@@ -92,10 +98,10 @@ function EditableTextRow({
           >
             {value || placeholder}
           </p>
-          {onValueChange ? (
+          {onEdit || onValueChange ? (
             <button
               type="button"
-              onClick={startEdit}
+              onClick={onEdit ?? startEdit}
               className="shrink-0 text-b2 font-medium text-nook-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
             >
               {editLabel}

@@ -1,14 +1,54 @@
+import { useNavigate } from 'react-router-dom';
+import nookLogo from '@/assets/logo/Vector.svg';
+import { FloatingButton, Header } from '@/shared/ui';
+import { GroupCard } from './components/GroupCard';
+import { GroupEmpty } from './components/GroupEmpty';
+// TODO(api): 그룹 목록 API 연동 시 목데이터 대신 TanStack Query 훅으로 교체한다.
+import { getMockGroups } from './mock/groups';
+
+/** Figma `그룹 > 홈 - 그룹` (그룹 없음 / 빈 그룹 / 그룹 여러개). */
 export function GroupPage() {
+  const navigate = useNavigate();
+  const groups = getMockGroups();
+
   return (
+    // 뷰포트 높이에 고정한다 — 하단 탭바(fixed)와 FAB(fixed)는 화면이 작아져도 제자리를
+    // 지키고, 넘치는 내용은 아래 목록 영역 안에서만 스크롤된다.
     <main
-      className="px-5"
-      style={{
-        paddingTop: 'calc(1.5rem + env(safe-area-inset-top))',
-        paddingBottom: 'calc(5.25rem + env(safe-area-inset-bottom))',
-      }}
+      className="flex h-dvh flex-col overflow-hidden bg-gray-10"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <h1 className="text-h1">group</h1>
-      <p className="mt-1 text-b2 text-gray-60">저장한 장소 그룹</p>
+      <Header
+        variant="gray"
+        className="shrink-0"
+        left={<img src={nookLogo} alt="nook" className="h-[22px] w-[50px]" />}
+      />
+
+      <div
+        className="min-h-0 flex-1 overflow-y-auto px-4"
+        // 하단 탭바(60px) + FAB 가 마지막 카드를 가리지 않도록 스크롤 끝에 여백을 둔다.
+        style={{ paddingBottom: 'calc(7.5rem + env(safe-area-inset-bottom))' }}
+      >
+        {groups.length === 0 ? (
+          <GroupEmpty message="아직 생성한 그룹이 없어요" />
+        ) : (
+          <div className="flex flex-col gap-2">
+            {groups.map((group) => (
+              <GroupCard
+                key={group.id}
+                group={group}
+                onClick={() => navigate(`/group/${group.id}`)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <FloatingButton
+        aboveBottomMenu
+        aria-label="새 그룹 만들기"
+        onClick={() => navigate('/group/new')}
+      />
     </main>
   );
 }
