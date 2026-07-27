@@ -17,8 +17,6 @@ import {
   Icon16Paper,
   Icon16User,
   Icon16Version,
-  Icon24Back,
-  Icon24Share,
   Icon32GroupSelected,
   Icon32GroupUnselected,
   Icon32MapSelected,
@@ -28,6 +26,7 @@ import {
 import type { BottomMenuItem, GroupColor } from '@/shared/ui';
 import {
   Avatar,
+  BackButton,
   Badge,
   BottomMenu,
   Button,
@@ -49,6 +48,7 @@ import {
   Header,
   Input,
   Popup,
+  ShareButton,
   Snackbar,
   Thumbnail,
   Toast,
@@ -194,16 +194,16 @@ const MOCK_PLACE_LONG: Place = {
 const NAV_ITEMS: BottomMenuItem[] = [
   {
     to: '/dev/ui',
-    label: 'map',
-    icon: <Icon32MapUnselected />,
-    activeIcon: <Icon32MapSelected />,
-    end: true,
-  },
-  {
-    to: '/dev/ui/group',
     label: 'group',
     icon: <Icon32GroupUnselected />,
     activeIcon: <Icon32GroupSelected />,
+    end: true,
+  },
+  {
+    to: '/dev/ui/map',
+    label: 'map',
+    icon: <Icon32MapUnselected />,
+    activeIcon: <Icon32MapSelected />,
   },
   {
     to: '/dev/ui/my',
@@ -460,7 +460,8 @@ export function UiComponentsPage() {
       <Section title="Input">
         <p className="text-b3 text-gray-50">
           시안의 Default/Focus/Typing/Filled 는 prop 이 아니라 실제 입력 상태에서 파생됩니다. 아래
-          칸을 클릭해 포커스·입력해보면 네 상태가 그대로 나타납니다.
+          칸을 클릭해 포커스·입력해보면 네 상태가 그대로 나타납니다 — 글자수는 포커스 중에만, X
+          버튼은 포커스 중 + 값이 있을 때만 보입니다.
         </p>
         <Row label="Scale=Large(52px) — Default / Filled / Disabled">
           <div className="flex w-full max-w-[343px] flex-col gap-2">
@@ -486,7 +487,7 @@ export function UiComponentsPage() {
             />
           </div>
         </Row>
-        <Row label="maxLength 만 — X 버튼 없이 글자수만 (uncontrolled)">
+        <Row label="maxLength 만 — 포커스 중에 X 버튼 없이 글자수만 (uncontrolled)">
           <div className="w-full max-w-[343px]">
             <Input scale="sm" maxLength={25} defaultValue="초록뷰" />
           </div>
@@ -495,8 +496,8 @@ export function UiComponentsPage() {
 
       <Section title="Header">
         <p className="text-b3 text-gray-50">
-          시안의 5개 variant 를 배경(variant) + 좌/제목/우 슬롯 조합으로 표현합니다. 로고와 아이콘은
-          애셋이라 컴포넌트가 소유하지 않고 슬롯으로 받습니다 (아래는 mock).
+          시안의 5개 variant 를 배경(variant) + 좌/제목/우 슬롯 조합으로 표현합니다. 로고는 애셋이라
+          슬롯으로 받고, 뒤로가기·공유는 공용 BackButton / ShareButton 을 넣습니다.
         </p>
         <div className="flex flex-col gap-3">
           <Header
@@ -507,19 +508,19 @@ export function UiComponentsPage() {
           <Header variant="gray" left={<LogoMark />} className="rounded-lg" />
           <Header
             variant="white"
-            left={<Icon24Back />}
+            left={<BackButton />}
             title="새 그룹 생성"
-            right={<Icon24Share />}
+            right={<ShareButton onClick={() => setLastAction('공유하기')} />}
             className="rounded-lg border border-gray-20"
           />
           <Header
             variant="white"
-            left={<Icon24Back />}
+            left={<BackButton />}
             title="제목이 아주 길어지면 말줄임으로 잘리는지 확인합니다"
-            right={<Icon24Share />}
+            right={<ShareButton onClick={() => setLastAction('공유하기')} />}
             className="rounded-lg border border-gray-20"
           />
-          <Header size="bottom" left={<Icon24Back />} title="새 그룹 생성" />
+          <Header size="bottom" left={<BackButton />} title="새 그룹 생성" />
         </div>
       </Section>
 
@@ -581,14 +582,17 @@ export function UiComponentsPage() {
 
       <Section title="Chips (Chip_GroupColor)">
         <Row label={`8색 그룹 팔레트 · 클릭해 선택 (선택: ${selectedColor})`}>
-          {GROUP_COLORS.map((color) => (
-            <ColorChip
-              key={color}
-              color={color}
-              selected={selectedColor === color}
-              onClick={() => setSelectedColor(color)}
-            />
-          ))}
+          {/* 시안 간격 20px — 선택 테두리는 ring 이라 간격을 밀지 않는다. */}
+          <div className="flex items-center gap-5">
+            {GROUP_COLORS.map((color) => (
+              <ColorChip
+                key={color}
+                color={color}
+                selected={selectedColor === color}
+                onClick={() => setSelectedColor(color)}
+              />
+            ))}
+          </div>
         </Row>
       </Section>
 
@@ -839,6 +843,13 @@ export function UiComponentsPage() {
               groupColor="purple"
               memo={postMemo}
               onMemoChange={setPostMemo}
+            />
+            {/* onMemoEdit — 인라인 편집 대신 외부 편집기(게시물 상세의 메모 시트)를 여는 형태 */}
+            <PostInfo
+              groupName="카페"
+              groupColor="yellow"
+              memo="지우랑 가면 좋겠다"
+              onMemoEdit={() => setLastAction('메모 편집 시트 열기')}
             />
           </div>
         </Row>
