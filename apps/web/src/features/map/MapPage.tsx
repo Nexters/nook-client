@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
@@ -10,6 +11,7 @@ const FALLBACK_CENTER = { lat: 37.5729, lng: 126.9762 }; // 위치 못 가져왔
 
 export function MapPage() {
   const location = useCurrentLocation();
+  const { setHidden: setBottomMenuHidden } = useBottomMenuVisibility();
   const mapRef = useRef<MapViewHandle>(null);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [snap, setSnap] = useState<number | string | null>(PEEK_SNAP_POINT);
@@ -22,6 +24,11 @@ export function MapPage() {
       ),
     [location],
   );
+
+  useEffect(() => {
+    setBottomMenuHidden(selectedPlaceId !== null);
+    return () => setBottomMenuHidden(false);
+  }, [selectedPlaceId, setBottomMenuHidden]);
 
   if (location.status === 'loading') {
     return (

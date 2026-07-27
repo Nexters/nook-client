@@ -5,7 +5,7 @@ import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { BROWSE_SNAP_POINTS, DETAIL_SNAP_POINTS, FULL_SNAP_POINT } from '@/features/map/constants';
 import type { MockPlace } from '@/features/map/mock/places';
 import { PlaceCard } from '@/features/place';
-import { BOTTOM_MENU_HEIGHT, Drawer, DrawerContent } from '@/shared/ui';
+import { Drawer, DrawerContent } from '@/shared/ui';
 
 /** 이 값을 넘겨 스크롤된 것으로 판단한다(0 근처의 미세한 바운스/오차 무시). */
 const SCROLL_HIDE_HANDLE_THRESHOLD = 4;
@@ -56,7 +56,7 @@ export function PlaceSheet({
       <DrawerContent
         overlay={false}
         showHandle={!isFull || !isScrolled}
-        className="max-h-[100dvh] overflow-hidden"
+        className="bottom-[calc(60px+env(safe-area-inset-bottom))] max-h-[calc(100dvh-60px-env(safe-area-inset-bottom))] overflow-hidden"
       >
         <div
           ref={scrollRef}
@@ -64,12 +64,7 @@ export function PlaceSheet({
             if (!isFull) return;
             setIsScrolled(e.currentTarget.scrollTop > SCROLL_HIDE_HANDLE_THRESHOLD);
           }}
-          className="flex h-dvh flex-col gap-3 overflow-y-auto px-4 pb-5"
-          // vaul 은 스냅 비율을 이 박스 자신의 높이(h-dvh)만 기준으로 계산하고 bottom
-          // 오프셋은 신경 쓰지 않는다 — 그래서 박스 자체를 옮기는 대신, 콘텐츠 하단에
-          // BottomMenu 높이만큼 빈 패딩을 더 두고 BottomMenu 를 그 위(z-index)에 그려서
-          // 가린다. full 스냅에선 BottomMenu 가 아예 없으니 이 여백도 필요 없다.
-          style={{ paddingBottom: isFull ? undefined : `calc(1.25rem + ${BOTTOM_MENU_HEIGHT})` }}
+          className="flex h-[calc(100dvh-60px-env(safe-area-inset-bottom))] flex-col gap-3 overflow-y-auto px-4 pb-5"
         >
           {selectedPlace ? (
             <PlaceDetail
