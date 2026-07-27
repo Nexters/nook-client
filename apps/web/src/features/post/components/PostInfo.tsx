@@ -16,6 +16,8 @@ export interface PostInfoProps {
   groupColor: GroupColor;
   memo?: string;
   onMemoChange?: (memo: string) => void;
+  /** 넘기면 인라인 편집 대신 이 콜백을 부른다 (게시물 상세의 `메모하기` 바텀시트). */
+  onMemoEdit?: () => void;
   className?: string;
 }
 
@@ -23,7 +25,14 @@ function RowIcon({ children }: { children: React.ReactNode }) {
   return <span className="size-4 shrink-0">{children}</span>;
 }
 
-function PostInfo({ groupName, groupColor, memo, onMemoChange, className }: PostInfoProps) {
+function PostInfo({
+  groupName,
+  groupColor,
+  memo,
+  onMemoChange,
+  onMemoEdit,
+  className,
+}: PostInfoProps) {
   return (
     <div className={cn('flex w-full flex-col gap-1', className)}>
       <div className="flex min-h-6 w-full items-center gap-2">
@@ -47,6 +56,7 @@ function PostInfo({ groupName, groupColor, memo, onMemoChange, className }: Post
         value={memo}
         placeholder="메모를 남겨보세요"
         onValueChange={onMemoChange}
+        onEdit={onMemoEdit}
         inputLabel="메모"
       />
     </div>
