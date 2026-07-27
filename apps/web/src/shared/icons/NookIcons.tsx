@@ -711,3 +711,57 @@ export function CheckBtnUnselected({ size, width, height, ...props }: NookIconPr
     </svg>
   );
 }
+
+export function LocationCrosshair({ size, width, height, ...props }: NookIconProps) {
+  const renderedWidth = width ?? size ?? 16;
+  const renderedHeight = height ?? (size === undefined ? 16 : size * 1);
+  return (
+    <svg
+      viewBox="0 0 17 17"
+      width={renderedWidth}
+      height={renderedHeight}
+      fill="none"
+      role="presentation"
+      aria-hidden="true"
+      {...props}
+    >
+      <circle
+        cx="8.5"
+        cy="8.5"
+        r="8"
+        fill="none"
+        stroke="#1F1F1F"
+        strokeWidth="1"
+        strokeLinecap="butt"
+      />
+      <path
+        d="M0.5 8.5L3.5 8.5"
+        fill="none"
+        stroke="#1F1F1F"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <path
+        d="M13.5 8.5L16.5 8.5"
+        fill="none"
+        stroke="#1F1F1F"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8.5 0.5L8.5 3.5"
+        fill="none"
+        stroke="#1F1F1F"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8.5 13.5L8.5 16.5"
+        fill="none"
+        stroke="#1F1F1F"
+        strokeWidth="1"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

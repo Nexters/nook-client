@@ -30,6 +30,7 @@ enum NookIconName {
     case icon40Location
     case checkBtnSelected
     case checkBtnUnselected
+    case locationCrosshair
 
     fileprivate var metrics: (viewBox: CGSize, defaultSize: CGSize) {
         switch self {
@@ -89,6 +90,8 @@ enum NookIconName {
             return (CGSize(width: 24, height: 24), CGSize(width: 24, height: 24))
         case .checkBtnUnselected:
             return (CGSize(width: 24, height: 24), CGSize(width: 24, height: 24))
+        case .locationCrosshair:
+            return (CGSize(width: 17, height: 17), CGSize(width: 16, height: 16))
         }
     }
 }
@@ -1072,6 +1075,25 @@ struct NookIcon: View {
             path1.addLine(to: CGPoint(x: 10.4042, y: 15.2979))
             path1.addLine(to: CGPoint(x: 17, y: 8.70215))
             context.stroke(path1, with: .color(Color(red: 1.000000, green: 1.000000, blue: 1.000000)), style: StrokeStyle(lineWidth: 1.5, lineCap: .butt))
+        case .locationCrosshair:
+            let path0 = Path(ellipseIn: CGRect(x: 0.5, y: 0.5, width: 16, height: 16))
+            context.stroke(path0, with: .color(Color(red: 0.121569, green: 0.121569, blue: 0.121569)), style: StrokeStyle(lineWidth: 1, lineCap: .butt))
+            var path1 = Path()
+            path1.move(to: CGPoint(x: 0.5, y: 8.5))
+            path1.addLine(to: CGPoint(x: 3.5, y: 8.5))
+            context.stroke(path1, with: .color(Color(red: 0.121569, green: 0.121569, blue: 0.121569)), style: StrokeStyle(lineWidth: 1, lineCap: .round))
+            var path2 = Path()
+            path2.move(to: CGPoint(x: 13.5, y: 8.5))
+            path2.addLine(to: CGPoint(x: 16.5, y: 8.5))
+            context.stroke(path2, with: .color(Color(red: 0.121569, green: 0.121569, blue: 0.121569)), style: StrokeStyle(lineWidth: 1, lineCap: .round))
+            var path3 = Path()
+            path3.move(to: CGPoint(x: 8.5, y: 0.5))
+            path3.addLine(to: CGPoint(x: 8.5, y: 3.5))
+            context.stroke(path3, with: .color(Color(red: 0.121569, green: 0.121569, blue: 0.121569)), style: StrokeStyle(lineWidth: 1, lineCap: .round))
+            var path4 = Path()
+            path4.move(to: CGPoint(x: 8.5, y: 13.5))
+            path4.addLine(to: CGPoint(x: 8.5, y: 16.5))
+            context.stroke(path4, with: .color(Color(red: 0.121569, green: 0.121569, blue: 0.121569)), style: StrokeStyle(lineWidth: 1, lineCap: .round))
             }
         }
         .frame(width: width, height: height)

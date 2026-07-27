@@ -44,7 +44,7 @@ function Carousel({ children, gap = 8, indicator = true, className, ...props }: 
         className={cn(
           // 좌우 16px 여백. scroll-pl-4 가 없으면 스냅이 패딩을 무시해서 두 번째 카드부터
           // 왼쪽 벽에 붙는다 — 첫 카드와 같은 16px 을 유지시킨다.
-          'flex snap-x snap-mandatory overflow-x-auto px-4 scroll-pl-4',
+          'flex snap-x snap-mandatory overflow-x-auto scroll-pl-4',
           '[&>*]:shrink-0 [&>*]:snap-start',
           // 네이티브 스크롤바는 모바일 문맥에서 불필요하다.
           '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
