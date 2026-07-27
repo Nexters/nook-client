@@ -32,7 +32,7 @@ function MyMenuRow({ icon, label, value, badge, onClick, className }: MyMenuRowP
     <Comp
       {...(onClick ? { type: 'button' as const, onClick } : {})}
       className={cn(
-        'flex h-16 w-full items-center justify-between gap-2 overflow-hidden rounded-sm bg-gray-0 px-4 text-left',
+        'flex h-16 w-full items-center justify-between gap-2 overflow-hidden bg-gray-0 px-4 text-left',
         onClick &&
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset',
         className,
