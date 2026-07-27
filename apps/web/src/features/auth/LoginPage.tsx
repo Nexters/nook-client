@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import nookLogo from '@/assets/logo/Vector.svg';
 import { OnboardingCarousel } from '@/features/auth/components/OnboardingCarousel';
 import {
@@ -5,9 +6,12 @@ import {
   KakaoIcon,
   SocialLoginButton,
 } from '@/features/auth/components/SocialLoginButton';
-import { requestSocialLogin } from '@/features/auth/social-login';
+// @coldbrow Temporary deactivation for UT
+// import { requestSocialLogin } from '@/features/auth/social-login';
 
 export function LoginPage() {
+  const navigate = useNavigate();
+
   return (
     <main
       className="mx-auto grid h-dvh w-full max-w-[375px] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-gray-0 px-4"
@@ -32,18 +36,20 @@ export function LoginPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 pb-0">
+      <div className="flex flex-col gap-2 pb-3">
         <SocialLoginButton
           provider="kakao"
           icon={<KakaoIcon />}
           label="카카오로 시작하기"
-          onClick={() => requestSocialLogin('kakao')}
+          onClick={() => navigate('/map')}
+          // onClick={() => requestSocialLogin('kakao')}
         />
         <SocialLoginButton
           provider="apple"
           icon={<AppleIcon />}
           label="Apple로 시작하기"
-          onClick={() => requestSocialLogin('apple')}
+          onClick={() => navigate('/map')}
+          // onClick={() => requestSocialLogin('apple')}
         />
       </div>
     </main>
