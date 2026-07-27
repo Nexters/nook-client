@@ -4,31 +4,11 @@ import emptySavedPlacesIllustration from '@/assets/illustrations/empty-saved-pla
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { BROWSE_SNAP_POINTS, DETAIL_SNAP_POINTS, FULL_SNAP_POINT } from '@/features/map/constants';
 import type { MockPlace } from '@/features/map/mock/places';
-import { Drawer, DrawerContent } from '@/shared/ui';
+import { PlaceCard } from '@/features/place';
+import { BOTTOM_MENU_HEIGHT, Drawer, DrawerContent } from '@/shared/ui';
 
 /** 이 값을 넘겨 스크롤된 것으로 판단한다(0 근처의 미세한 바운스/오차 무시). */
 const SCROLL_HIDE_HANDLE_THRESHOLD = 4;
-
-function PlaceCard({ place, onClick }: { place: MockPlace; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-[167.5px] shrink-0 flex-col items-start gap-1 pb-2"
-    >
-      {/* 실제 업체 사진 API 연동 전까지 회색 박스로 대체 */}
-      <div className="h-[170px] w-full rounded-sm border border-gray-20 bg-gray-10" />
-      <div className="flex flex-col gap-0.5 p-1">
-        <p className="text-b2 font-semibold text-gray-90">{place.name}</p>
-        <p className="flex gap-0.5 text-b3 font-medium text-gray-60">
-          <span>{place.region}</span>
-          <span>•</span>
-          <span>{place.category}</span>
-        </p>
-      </div>
-    </button>
-  );
-}
 
 function EmptySavedPlaces() {
   return (
@@ -85,9 +65,15 @@ export function PlaceSheet({
             setIsScrolled(e.currentTarget.scrollTop > SCROLL_HIDE_HANDLE_THRESHOLD);
           }}
           className="flex h-dvh flex-col gap-3 overflow-y-auto px-4 pb-5"
+          // vaul 은 스냅 비율을 이 박스 자신의 높이(h-dvh)만 기준으로 계산하고 bottom
+          // 오프셋은 신경 쓰지 않는다 — 그래서 박스 자체를 옮기는 대신, 콘텐츠 하단에
+          // BottomMenu 높이만큼 빈 패딩을 더 두고 BottomMenu 를 그 위(z-index)에 그려서
+          // 가린다. full 스냅에선 BottomMenu 가 아예 없으니 이 여백도 필요 없다.
+          style={{ paddingBottom: isFull ? undefined : `calc(1.25rem + ${BOTTOM_MENU_HEIGHT})` }}
         >
           {selectedPlace ? (
             <PlaceDetail
+              key={selectedPlace.id}
               place={selectedPlace}
               places={places}
               expanded={isFull}
@@ -103,7 +89,12 @@ export function PlaceSheet({
                   {places.map((place) => (
                     <PlaceCard
                       key={place.id}
-                      place={place}
+                      place={{
+                        id: place.id,
+                        name: place.name,
+                        category: place.category,
+                        region: place.region,
+                      }}
                       onClick={() => onSelectPlace(place.id)}
                     />
                   ))}

@@ -1,0 +1,8 @@
+<svg width="16" height="16" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+<title>location crosshair</title>
+<circle cx="8.5" cy="8.5" r="8" stroke="#1F1F1F"/>
+<path d="M0.5 8.5L3.5 8.5" stroke="#1F1F1F" stroke-linecap="round"/>
+<path d="M13.5 8.5L16.5 8.5" stroke="#1F1F1F" stroke-linecap="round"/>
+<path d="M8.5 0.5L8.5 3.5" stroke="#1F1F1F" stroke-linecap="round"/>
+<path d="M8.5 13.5L8.5 16.5" stroke="#1F1F1F" stroke-linecap="round"/>
+</svg>

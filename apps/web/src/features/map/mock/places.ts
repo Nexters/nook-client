@@ -1,10 +1,19 @@
 import type { PlacePinColor } from '@/features/map/components/PlacePin';
 import type { Coordinates } from '@/shared/lib/geolocation';
 
+/** 실제 이미지 API 연동 전까지 쓰는 회색 플레이스홀더(140x175, gray-20). */
+const SAVED_POST_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="140" height="175"><rect width="140" height="175" fill="#e4e6e9"/></svg>',
+)}`;
+
 export type SavedPost = {
   id: string;
   excerpt: string;
   author: string;
+  /** 원본 계정 표기 (예: "@nook.official on instagram") */
+  authorHandle: string;
+  images: string[];
+  originalUrl: string;
 };
 
 export type MockPlace = {
@@ -44,11 +53,27 @@ const MOCK_PLACE_OFFSETS: MockPlaceOffset[] = [
     hours: '10:00 - 20:00',
     memo: '창가 자리가 좋다',
     savedPosts: [
-      { id: 'p1', excerpt: '조용히 작업하기 좋은 공간, 창밖 뷰가 예쁘다.', author: 'by Nook' },
+      {
+        id: 'p1',
+        excerpt: '조용히 작업하기 좋은 공간, 창밖 뷰가 예쁘다.',
+        author: 'by Nook',
+        authorHandle: '@nook.official on instagram',
+        images: [
+          SAVED_POST_IMAGE,
+          SAVED_POST_IMAGE,
+          SAVED_POST_IMAGE,
+          SAVED_POST_IMAGE,
+          SAVED_POST_IMAGE,
+        ],
+        originalUrl: 'https://www.instagram.com/p/mock-1-p1/',
+      },
       {
         id: 'p2',
         excerpt: '드립커피 향이 좋았다. 다음엔 디저트도 먹어보고 싶다.',
         author: 'by Nook',
+        authorHandle: '@nook.official on instagram',
+        images: [SAVED_POST_IMAGE],
+        originalUrl: 'https://www.instagram.com/p/mock-1-p2/',
       },
     ],
     color: 'yellow',
@@ -69,11 +94,17 @@ const MOCK_PLACE_OFFSETS: MockPlaceOffset[] = [
         id: 'p1',
         excerpt: '북적이는 성수에서 여유로운 카페를 찾고 있다면 망설임 없이 추천.',
         author: 'by Purr',
+        authorHandle: '@nook.official on instagram',
+        images: [SAVED_POST_IMAGE, SAVED_POST_IMAGE, SAVED_POST_IMAGE],
+        originalUrl: 'https://www.instagram.com/p/mock-2-p1/',
       },
       {
         id: 'p2',
         excerpt: '라떼가 부드럽고 자리 간격이 넓어서 오래 앉아있기 좋았다.',
         author: 'by Purr',
+        authorHandle: '@nook.official on instagram',
+        images: [SAVED_POST_IMAGE],
+        originalUrl: 'https://www.instagram.com/p/mock-2-p2/',
       },
     ],
     color: 'red',
@@ -90,7 +121,14 @@ const MOCK_PLACE_OFFSETS: MockPlaceOffset[] = [
     hours: '09:00 - 21:00',
     memo: '콘센트 자리 확인하기',
     savedPosts: [
-      { id: 'p1', excerpt: '테이블이 넓고 콘센트가 많아 노트북 작업하기 좋다.', author: 'by Nook' },
+      {
+        id: 'p1',
+        excerpt: '테이블이 넓고 콘센트가 많아 노트북 작업하기 좋다.',
+        author: 'by Nook',
+        authorHandle: '@nook.official on instagram',
+        images: [SAVED_POST_IMAGE],
+        originalUrl: 'https://www.instagram.com/p/mock-3-p1/',
+      },
     ],
     color: 'purple',
     latOffset: -0.0023,
@@ -106,8 +144,22 @@ const MOCK_PLACE_OFFSETS: MockPlaceOffset[] = [
     hours: '08:00 - 18:00',
     memo: '소금빵이 맛있다',
     savedPosts: [
-      { id: 'p1', excerpt: '오전 일찍 가야 원하는 빵을 다 살 수 있다.', author: 'by Nook' },
-      { id: 'p2', excerpt: '소금빵과 크루아상이 특히 인기.', author: 'by Nook' },
+      {
+        id: 'p1',
+        excerpt: '오전 일찍 가야 원하는 빵을 다 살 수 있다.',
+        author: 'by Nook',
+        authorHandle: '@nook.official on instagram',
+        images: [SAVED_POST_IMAGE, SAVED_POST_IMAGE],
+        originalUrl: 'https://www.instagram.com/p/mock-4-p1/',
+      },
+      {
+        id: 'p2',
+        excerpt: '소금빵과 크루아상이 특히 인기.',
+        author: 'by Nook',
+        authorHandle: '@nook.official on instagram',
+        images: [SAVED_POST_IMAGE],
+        originalUrl: 'https://www.instagram.com/p/mock-4-p2/',
+      },
     ],
     color: 'sky',
     latOffset: 0.0032,

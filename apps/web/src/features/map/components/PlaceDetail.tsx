@@ -1,135 +1,51 @@
-import { useEffect, useRef, useState } from 'react';
-import {
-  ClockIcon,
-  ExternalLinkIcon,
-  LocationPinIcon,
-  PenIcon,
-  StarOnIcon,
-} from '@/features/map/components/icons';
+import { useState } from 'react';
 import { getDistanceKm, type MockPlace } from '@/features/map/mock/places';
+import type { Place as DesignPlace } from '@/features/place';
+import { PlaceInfo, PlaceRow } from '@/features/place';
+import type { Post } from '@/features/post';
+import { SavedPostCard } from '@/features/post';
+import { Icon32StarOn } from '@/shared/icons/NookIcons';
 import { Badge } from '@/shared/ui';
 
 /** 상세 화면에 보여줄 연관 장소 최대 개수 (Figma 시안 기준 3개). */
 const MAX_RELATED_PLACES = 3;
 
 /**
- * 메모 표시/편집 행. "수정"을 누르면 인풋으로 바뀌고 "저장"을 누르면(또는 Enter)
- * 로컬 상태에만 값을 반영한다 — 메모 저장 API 가 아직 없어 실제로 어디에 영속화하진
- * 않는다. API 가 생기면 onSubmit 안에서 요청을 보내면 된다.
+ * 지점 정보/저장된 게시물/연관 장소 섹션 사이 구분선(Figma 14:1873).
+ * 얇은 border 가 아니라 6px 두께의 회색 띠다 — 부모의 좌우 padding(px-4)과
+ * 위아래 gap(gap-3, 12px)을 상쇄해서 정확히 6px만 차지하는 풀블리드 바로 만든다.
  */
-function MemoRow({ initialMemo }: { initialMemo: string | null }) {
-  const [memo, setMemo] = useState(initialMemo);
-  const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState(initialMemo ?? '');
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isEditing) inputRef.current?.focus();
-  }, [isEditing]);
-
-  if (isEditing) {
-    return (
-      <form
-        className="flex h-6 items-center gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setMemo(draft);
-          setIsEditing(false);
-          // TODO: 메모 저장 API 연동 시 여기서 요청을 보낸다.
-        }}
-      >
-        <PenIcon className="size-4 shrink-0 text-gray-40" />
-        <input
-          ref={inputRef}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="메모를 남겨보세요"
-          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-b2 text-gray-80 outline-none"
-        />
-        <button type="submit" className="shrink-0 text-b2 text-blue">
-          저장
-        </button>
-      </form>
-    );
-  }
-
-  return (
-    <div className="flex h-6 items-center gap-2">
-      <PenIcon className="size-4 shrink-0 text-gray-40" />
-      <p className="min-w-0 flex-1 truncate text-b2 text-gray-80">
-        {memo && memo.length > 0 ? memo : '메모를 남겨보세요.'}
-      </p>
-      <button
-        type="button"
-        onClick={() => {
-          setDraft(memo ?? '');
-          setIsEditing(true);
-        }}
-        className="shrink-0 text-b2 text-blue"
-      >
-        수정
-      </button>
-    </div>
-  );
+function SectionDivider() {
+  return <div className="-mx-4 -my-3 h-1.5 shrink-0 bg-gray-10" />;
 }
 
 function SavedPostsSection({ place }: { place: MockPlace }) {
   if (place.savedPosts.length === 0) return null;
 
   return (
-    <div className="flex w-full flex-col gap-3 border-t border-gray-10 pt-4">
-      <p className="text-b1 font-semibold text-gray-100">저장된 게시물</p>
-      <div className="flex gap-2 overflow-x-auto">
-        {place.savedPosts.map((post) => (
-          // 실제 게시물 사진 API 연동 전까지 회색 박스로 대체
-          <div
-            key={post.id}
-            className="h-[175px] w-[140px] shrink-0 rounded-sm border border-gray-20 bg-gray-10"
-          />
-        ))}
+    <>
+      <SectionDivider />
+      <div className="flex w-full flex-col">
+        {place.savedPosts.map((savedPost) => {
+          const post: Post = {
+            id: savedPost.id,
+            authorHandle: savedPost.authorHandle,
+            sharedBy: savedPost.author,
+            caption: savedPost.excerpt,
+            images: savedPost.images,
+            originalUrl: savedPost.originalUrl,
+          };
+          return (
+            <SavedPostCard
+              key={savedPost.id}
+              post={post}
+              groupName={place.category}
+              groupColor={place.color}
+            />
+          );
+        })}
       </div>
-      <div className="flex flex-col gap-2">
-        {place.savedPosts.map((post) => (
-          <p key={post.id} className="text-b2 text-gray-80">
-            {post.excerpt} <span className="text-gray-50">{post.author}</span>
-          </p>
-        ))}
-      </div>
-      <div className="flex h-11 items-center justify-between rounded-sm bg-gray-10 px-4 py-2.5">
-        <p className="text-b2 text-gray-80">@nook.official on instagram</p>
-        <ExternalLinkIcon className="size-4 text-gray-60" />
-      </div>
-    </div>
-  );
-}
-
-function RelatedPlaceRow({
-  place,
-  distanceKm,
-  onClick,
-}: {
-  place: MockPlace;
-  distanceKm: number;
-  onClick: () => void;
-}) {
-  return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-4">
-      {/* 실제 업체 사진 API 연동 전까지 회색 박스로 대체 */}
-      <div className="size-16 shrink-0 rounded-sm border border-gray-20 bg-gray-10" />
-      <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
-        <p className="text-b2 font-semibold text-gray-90">{place.name}</p>
-        <div className="flex flex-col items-start">
-          <p className="flex items-center gap-1 text-b3 text-gray-70">
-            <span>{place.category}</span>
-            <span aria-hidden="true">•</span>
-            <span>{distanceKm}km</span>
-          </p>
-          <p className="truncate text-b3 text-gray-60">{place.address}</p>
-        </div>
-      </div>
-      {/* 이 목록의 모든 장소는 지도 화면의 "저장한 공간" 데이터라 항상 저장됨 상태다. */}
-      <StarOnIcon className="size-8 shrink-0" />
-    </button>
+    </>
   );
 }
 
@@ -151,19 +67,30 @@ function RelatedPlacesSection({
   if (relatedPlaces.length === 0) return null;
 
   return (
-    <div className="flex w-full flex-col gap-4 border-t border-gray-10 pt-4">
-      <p className="text-b1 font-semibold text-gray-100">연관 장소</p>
-      <div className="flex flex-col gap-4">
-        {relatedPlaces.map(({ place: relatedPlace, distanceKm }) => (
-          <RelatedPlaceRow
-            key={relatedPlace.id}
-            place={relatedPlace}
-            distanceKm={distanceKm}
-            onClick={() => onSelectPlace(relatedPlace.id)}
-          />
-        ))}
+    <>
+      <SectionDivider />
+      <div className="flex w-full flex-col gap-4 mt-4">
+        <p className="text-b1 font-semibold text-gray-100">연관 장소</p>
+        <div className="flex flex-col gap-4">
+          {relatedPlaces.map(({ place: relatedPlace, distanceKm }) => {
+            const rowPlace: DesignPlace = {
+              id: relatedPlace.id,
+              name: relatedPlace.name,
+              category: relatedPlace.category,
+              distance: `${distanceKm}km`,
+              address: relatedPlace.address,
+            };
+            return (
+              <PlaceRow
+                key={relatedPlace.id}
+                place={rowPlace}
+                onClick={() => onSelectPlace(relatedPlace.id)}
+              />
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -183,6 +110,9 @@ export function PlaceDetail({
   expanded: boolean;
   onSelectPlace: (id: string) => void;
 }) {
+  // 메모 저장 API 가 아직 없어 로컬 상태에만 반영한다. 값을 바꾸면 여기서 API 를 호출한다.
+  const [memo, setMemo] = useState(place.memo);
+
   return (
     <div className="flex w-full flex-col gap-3">
       <div className="flex w-full flex-col gap-1">
@@ -193,7 +123,7 @@ export function PlaceDetail({
           </div>
           {/* 즐겨찾기 off 상태 시안이 아직 없어 정적 표시만 한다. */}
           <button type="button" aria-label="저장됨" className="shrink-0">
-            <StarOnIcon className="size-8" />
+            <Icon32StarOn />
           </button>
         </div>
         <p className="text-b2 text-gray-70">{place.address}</p>
@@ -211,19 +141,14 @@ export function PlaceDetail({
 
       {expanded && (
         <>
-          <div className="flex w-full flex-col gap-1">
-            <div className="flex h-6 items-center gap-2">
-              <LocationPinIcon className="size-4 text-gray-40" />
-              <p className="text-b2 text-gray-80">{place.address}</p>
-            </div>
-            <div className="flex h-6 items-center gap-2">
-              <ClockIcon className="size-4 text-gray-40" />
-              <p className="text-b2 text-gray-80">
-                영업중 <span aria-hidden="true">•</span> {place.hours}
-              </p>
-            </div>
-            <MemoRow key={place.id} initialMemo={place.memo} />
-          </div>
+          <PlaceInfo
+            address={place.address}
+            businessStatus="영업중"
+            businessHours={place.hours}
+            memo={memo}
+            onMemoChange={setMemo}
+            className="mb-4"
+          />
 
           <SavedPostsSection place={place} />
           <RelatedPlacesSection place={place} places={places} onSelectPlace={onSelectPlace} />

@@ -36,11 +36,11 @@ function SavedPostCard({
 
   return (
     <div className={cn('flex w-full flex-col overflow-hidden bg-gray-0 pb-1', className)}>
-      <div className="flex w-full items-center justify-between px-4 pt-4 pb-3">
+      <div className="flex w-full items-center justify-between pt-4 pb-3">
         <h2 className="text-b1 font-semibold text-gray-100">{title}</h2>
       </div>
 
-      <div className="flex w-full items-center gap-2 px-4 pb-3">
+      <div className="flex w-full items-center gap-2 pb-3">
         <GroupTag color={groupColor}>{groupName}</GroupTag>
         {post.sharedBy ? (
           <span className="truncate font-mono text-e2 text-gray-60">{post.sharedBy}</span>
@@ -65,7 +65,7 @@ function SavedPostCard({
       ) : null}
 
       {post.caption ? (
-        <div className="flex w-full flex-col px-4">
+        <div className="flex w-full flex-col">
           <p
             className={cn(
               'text-b2 font-normal text-gray-80',
@@ -85,7 +85,7 @@ function SavedPostCard({
       ) : null}
 
       {post.originalUrl ? (
-        <div className="w-full p-4">
+        <div className="w-full py-4">
           <OriginalPostLink label={post.authorHandle} href={post.originalUrl} />
         </div>
       ) : null}
