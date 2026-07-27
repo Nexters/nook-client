@@ -4,6 +4,7 @@ import { LoginPage } from '@/features/auth/LoginPage';
 import { GroupPage } from '@/features/group/GroupPage';
 import { MapPage } from '@/features/map/MapPage';
 import { MyPage } from '@/features/my/MyPage';
+import { PostDetailPage } from '@/features/post/PostDetailPage';
 
 // 셸 WebView 에서 딥링크/새로고침 시 BrowserRouter 경로 문제가 확인되면
 // createHashRouter 로 폴백한다.
@@ -45,6 +46,10 @@ export const router = createBrowserRouter([
           {
             path: 'group',
             element: <GroupPage />,
+          },
+          {
+            path: 'post/:postId',
+            element: <PostDetailPage />,
           },
           {
             path: 'my',
