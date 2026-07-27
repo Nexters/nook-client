@@ -32,17 +32,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       infoPlist: {
         ...config.ios?.infoPlist,
         NSLocalNetworkUsageDescription: '개발용 로컬 웹 서버에 연결하기 위해 사용합니다.',
+        // WebView(WKWebView) 내 지도 화면의 navigator.geolocation 호출용.
+        NSLocationWhenInUseUsageDescription:
+          '내 주변 장소를 지도에 표시하기 위해 위치 정보를 사용해요.',
       },
       entitlements: {
         ...config.ios?.entitlements,
         // 공유 확장 ↔ 본앱 데이터 전달 통로. 앱 식별자와 함께 움직여야 한다.
         'com.apple.security.application-groups': [`group.${appId}`],
-      },
-      infoPlist: {
-        ...config.ios?.infoPlist,
-        // WebView(WKWebView) 내 지도 화면의 navigator.geolocation 호출용.
-        NSLocationWhenInUseUsageDescription:
-          '내 주변 장소를 지도에 표시하기 위해 위치 정보를 사용해요.',
       },
     },
     android: {
