@@ -1,6 +1,8 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ProtectedAppLayout } from '@/app/layouts/ProtectedAppLayout';
 import { LoginPage } from '@/features/auth/LoginPage';
+import { GroupDetailPage } from '@/features/group/GroupDetailPage';
+import { GroupFormPage } from '@/features/group/GroupFormPage';
 import { GroupPage } from '@/features/group/GroupPage';
 import { MapPage } from '@/features/map/MapPage';
 import { MyPage } from '@/features/my/MyPage';
@@ -46,6 +48,18 @@ export const router = createBrowserRouter([
           {
             path: 'group',
             element: <GroupPage />,
+          },
+          {
+            path: 'group/new',
+            element: <GroupFormPage mode="create" />,
+          },
+          {
+            path: 'group/:groupId',
+            element: <GroupDetailPage />,
+          },
+          {
+            path: 'group/:groupId/edit',
+            element: <GroupFormPage mode="edit" />,
           },
           {
             path: 'post/:postId',

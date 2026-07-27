@@ -15,4 +15,18 @@ export interface Group {
   thumbnails?: string[];
   /** 공개 그룹을 만든 계정 표기 (예: "@abcde"). 내 그룹에는 없다. */
   authorHandle?: string;
+  /** 그룹 소유자 이름. 그룹 상세의 "by Purr" 표기에 쓴다. */
+  ownerName?: string;
+}
+
+/**
+ * 2열 그리드 카드(`CollectionCard`)가 그리는 데 필요한 최소 형태.
+ * 공개 그룹(`Group`)과 그룹에 저장된 게시물(`GroupPost`) 둘 다 이 모양을 만족해서
+ * 카드 하나로 양쪽을 그린다.
+ */
+export type CollectionSummary = Pick<Group, 'name' | 'placeCount' | 'thumbnails' | 'authorHandle'>;
+
+/** 그룹에 저장된 게시물 — 그룹 상세 그리드의 한 칸. */
+export interface GroupPost extends CollectionSummary {
+  id: string;
 }
