@@ -36,7 +36,7 @@ export function LoginPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 pb-3">
+      <div className="flex flex-col gap-2 pb-3 pt-4">
         <SocialLoginButton
           provider="kakao"
           icon={<KakaoIcon />}
