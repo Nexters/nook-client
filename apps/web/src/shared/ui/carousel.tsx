@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/shared/lib/utils';
+import { CarouselIndicator } from '@/shared/ui/carousel-indicator';
 
 /**
  * Figma `Tabloid - 4 > 캐러셀` 기준.
@@ -53,23 +54,7 @@ function Carousel({ children, gap = 8, indicator = true, className, ...props }: 
         {children}
       </div>
 
-      {indicator && count > 1 ? (
-        <div className="flex items-center justify-center gap-1 py-3">
-          {React.Children.map(children, (_child, index) => (
-            <span
-              // 슬라이드에는 key 가 있지만 점은 순서 자체가 정체성이라 index 로 충분하다.
-              // biome-ignore lint/suspicious/noArrayIndexKey: 인디케이터는 순서 고정
-              key={index}
-              aria-hidden="true"
-              className={cn(
-                // 시안의 인디케이터는 4px 정사각형이다 (원이 아니다).
-                'size-1 shrink-0 transition-colors',
-                index === active ? 'bg-gray-100' : 'bg-gray-30',
-              )}
-            />
-          ))}
-        </div>
-      ) : null}
+      {indicator ? <CarouselIndicator count={count} activeIndex={active} className="py-3" /> : null}
     </div>
   );
 }

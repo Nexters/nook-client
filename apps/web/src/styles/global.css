@@ -111,4 +111,9 @@ body {
   background: var(--color-gray-0);
   color: var(--color-gray-100);
   min-height: 100dvh;
+  margin: 0;
+}
+
+#root {
+  min-height: 100dvh;
 }

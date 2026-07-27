@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ProtectedAppLayout } from '@/app/layouts/ProtectedAppLayout';
+import { LoginPage } from '@/features/auth/LoginPage';
 import { GroupPage } from '@/features/group/GroupPage';
 import { MapPage } from '@/features/map/MapPage';
 import { MyPage } from '@/features/my/MyPage';
@@ -28,7 +29,11 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/map" replace />,
+        element: <Navigate to="/login" replace />,
+      },
+      {
+        path: 'login',
+        element: <LoginPage />,
       },
       {
         element: <ProtectedAppLayout />,
