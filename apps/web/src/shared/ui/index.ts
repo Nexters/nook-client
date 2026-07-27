@@ -5,6 +5,7 @@ export * from './bottom-menu';
 export * from './button';
 export * from './button-group';
 export * from './carousel';
+export * from './carousel-indicator';
 export * from './checkbox';
 export * from './color-chip';
 export * from './editable-text-row';

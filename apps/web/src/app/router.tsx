@@ -1,4 +1,5 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { LoginPage } from '@/features/auth/LoginPage';
 import { HomePage } from '@/features/home/HomePage';
 
 // 셸 WebView 에서 딥링크/새로고침 시 BrowserRouter 경로 문제가 확인되면
@@ -22,6 +23,14 @@ const devRoutes = import.meta.env.DEV
 export const router = createBrowserRouter([
   {
     path: '/',
+    element: <Navigate to="/login" replace />,
+  },
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
+    path: '/home',
     element: <HomePage />,
   },
   ...devRoutes,
