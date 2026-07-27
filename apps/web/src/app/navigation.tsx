@@ -12,18 +12,19 @@ function ImageIcon({ src }: { src: string }) {
   return <img src={src} alt="" className="size-8" aria-hidden="true" />;
 }
 
+// 시안 `NAV` 기준 순서 — 왼쪽부터 group / map / my.
 export const bottomMenuItems: BottomMenuItem[] = [
-  {
-    to: '/map',
-    label: 'map',
-    icon: <Icon32MapUnselected />,
-    activeIcon: <Icon32MapSelected />,
-  },
   {
     to: '/group',
     label: 'group',
     icon: <Icon32GroupUnselected />,
     activeIcon: <Icon32GroupSelected />,
+  },
+  {
+    to: '/map',
+    label: 'map',
+    icon: <Icon32MapUnselected />,
+    activeIcon: <Icon32MapSelected />,
   },
   {
     to: '/my',
