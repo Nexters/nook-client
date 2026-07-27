@@ -26,16 +26,20 @@ export interface BottomMenuItem {
 
 export interface BottomMenuProps {
   items: BottomMenuItem[];
+  hidden?: boolean;
   className?: string;
 }
 
-function BottomMenu({ items, className }: BottomMenuProps) {
+function BottomMenu({ items, hidden = false, className }: BottomMenuProps) {
   return (
     <nav
+      aria-hidden={hidden}
       className={cn(
         // 시안(NAV)은 60px 탭 행 + 24px 좌우 여백에 60px 항목을 justify-between 으로 편다.
         // 그 아래 20px 은 iOS 홈 인디케이터 영역이라 safe-area 로 대신한다.
-        'fixed inset-x-0 bottom-0 z-50 flex justify-between border-t border-gray-10 bg-gray-0 px-6 pb-[env(safe-area-inset-bottom)]',
+        'fixed inset-x-0 bottom-0 z-[60] flex justify-between border-t border-gray-10 bg-gray-0 px-6 pb-[env(safe-area-inset-bottom)]',
+        'transition-[transform,opacity] duration-200 ease-out will-change-transform',
+        hidden ? 'pointer-events-none translate-y-full opacity-0' : 'translate-y-0 opacity-100',
         className,
       )}
     >

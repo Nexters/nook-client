@@ -7,7 +7,7 @@ export function HomePage() {
       // 노치/홈 인디케이터 회피 (viewport-fit=cover 와 짝)
       style={{
         paddingTop: 'calc(1.5rem + env(safe-area-inset-top))',
-        paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
+        paddingBottom: 'calc(5.25rem + env(safe-area-inset-bottom))',
       }}
     >
       <h1 className="text-h1">nook</h1>
