@@ -1,6 +1,9 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { ProtectedAppLayout } from '@/app/layouts/ProtectedAppLayout';
 import { LoginPage } from '@/features/auth/LoginPage';
-import { HomePage } from '@/features/home/HomePage';
+import { GroupPage } from '@/features/group/GroupPage';
+import { MapPage } from '@/features/map/MapPage';
+import { MyPage } from '@/features/my/MyPage';
 
 // 셸 WebView 에서 딥링크/새로고침 시 BrowserRouter 경로 문제가 확인되면
 // createHashRouter 로 폴백한다.
@@ -23,15 +26,33 @@ const devRoutes = import.meta.env.DEV
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/login" replace />,
-  },
-  {
-    path: '/login',
-    element: <LoginPage />,
-  },
-  {
-    path: '/home',
-    element: <HomePage />,
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/login" replace />,
+      },
+      {
+        path: 'login',
+        element: <LoginPage />,
+      },
+      {
+        element: <ProtectedAppLayout />,
+        children: [
+          {
+            path: 'map',
+            element: <MapPage />,
+          },
+          {
+            path: 'group',
+            element: <GroupPage />,
+          },
+          {
+            path: 'my',
+            element: <MyPage />,
+          },
+        ],
+      },
+    ],
   },
   ...devRoutes,
 ]);

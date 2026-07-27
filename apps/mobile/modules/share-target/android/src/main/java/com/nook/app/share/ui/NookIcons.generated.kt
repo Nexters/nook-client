@@ -40,6 +40,7 @@ enum class NookIconName {
     Icon40Location,
     CheckBtnSelected,
     CheckBtnUnselected,
+    LocationCrosshair,
 }
 
 @Composable
@@ -74,6 +75,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon40Location -> 40f to 40f
             NookIconName.CheckBtnSelected -> 24f to 24f
             NookIconName.CheckBtnUnselected -> 24f to 24f
+            NookIconName.LocationCrosshair -> 17f to 17f
         }
         drawContext.canvas.save()
         drawContext.canvas.scale(size.width / viewBox.first, size.height / viewBox.second, Offset.Zero)
@@ -1139,6 +1141,33 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
                 lineTo(17f, 8.70215f)
             }
             drawPath(path = path1, color = Color(0xFFFFFFFF), style = Stroke(width = 1.5f, cap = StrokeCap.Butt))
+        }
+        NookIconName.LocationCrosshair -> {
+            drawCircle(color = Color(0xFF1F1F1F), center = Offset(8.5f, 8.5f), radius = 8f, style = Stroke(width = 1f, cap = StrokeCap.Butt))
+            val path1 = Path().apply {
+
+                moveTo(0.5f, 8.5f)
+                lineTo(3.5f, 8.5f)
+            }
+            drawPath(path = path1, color = Color(0xFF1F1F1F), style = Stroke(width = 1f, cap = StrokeCap.Round))
+            val path2 = Path().apply {
+
+                moveTo(13.5f, 8.5f)
+                lineTo(16.5f, 8.5f)
+            }
+            drawPath(path = path2, color = Color(0xFF1F1F1F), style = Stroke(width = 1f, cap = StrokeCap.Round))
+            val path3 = Path().apply {
+
+                moveTo(8.5f, 0.5f)
+                lineTo(8.5f, 3.5f)
+            }
+            drawPath(path = path3, color = Color(0xFF1F1F1F), style = Stroke(width = 1f, cap = StrokeCap.Round))
+            val path4 = Path().apply {
+
+                moveTo(8.5f, 13.5f)
+                lineTo(8.5f, 16.5f)
+            }
+            drawPath(path = path4, color = Color(0xFF1F1F1F), style = Stroke(width = 1f, cap = StrokeCap.Round))
         }
         }
         drawContext.canvas.restore()

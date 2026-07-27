@@ -19,7 +19,18 @@ function readApiBaseUrl(): string {
   return value;
 }
 
+function readNaverMapClientId(): string {
+  const value = import.meta.env.VITE_NAVER_MAP_CLIENT_ID;
+  if (!value && import.meta.env.DEV) {
+    console.warn(
+      '[env] VITE_NAVER_MAP_CLIENT_ID 미설정 — 지도가 렌더링되지 않습니다. .env 를 확인하세요.',
+    );
+  }
+  return value ?? '';
+}
+
 export const env = {
   apiBaseUrl: readApiBaseUrl(),
+  naverMapClientId: readNaverMapClientId(),
   isDev: import.meta.env.DEV,
 } as const;

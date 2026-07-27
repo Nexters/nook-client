@@ -19,14 +19,17 @@
     "radix-ui": "^1.6.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-naver-maps": "^0.2.2",
     "react-router-dom": "^7.1.0",
     "tailwind-merge": "^3.6.0",
+    "vaul": "^1.1.2",
     "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.1.0",
+    "@types/navermaps": "^3.7.5",
     "@types/node": "^22",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

@@ -8,6 +8,7 @@ export * from './carousel';
 export * from './carousel-indicator';
 export * from './checkbox';
 export * from './color-chip';
+export * from './drawer';
 export * from './editable-text-row';
 export * from './floating-button';
 export * from './group-tag';

@@ -35,6 +35,14 @@ import {
   Carousel,
   Checkbox,
   ColorChip,
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
   FloatingButton,
   GROUP_COLORS,
   GroupTag,
@@ -418,6 +426,35 @@ export function UiComponentsPage() {
           cancelLabel="취소"
           confirmLabel="탈퇴하기"
         />
+      </Section>
+
+      <Section title="Drawer (vaul)">
+        <Row label="트리거로 열고 닫기 (기본 modal 사용)">
+          <Drawer>
+            <DrawerTrigger asChild>
+              <Button size="md">시트 열기</Button>
+            </DrawerTrigger>
+            <DrawerContent>
+              <DrawerHeader>
+                <DrawerTitle>목표 설정</DrawerTitle>
+                <DrawerDescription>하루 활동 목표를 설정해요.</DrawerDescription>
+              </DrawerHeader>
+              <DrawerFooter>
+                <Button size="md">저장</Button>
+                <DrawerClose asChild>
+                  <Button variant="secondary" size="md">
+                    취소
+                  </Button>
+                </DrawerClose>
+              </DrawerFooter>
+            </DrawerContent>
+          </Drawer>
+        </Row>
+        <p className="text-b3 text-gray-50">
+          드래그·스냅·ARIA 는 vaul 이 담당하고, 여기선 색/여백 토큰만 우리 값으로 바꿨습니다. 지도
+          위 비모달·스냅포인트 버전은{' '}
+          <code className="font-mono text-e2">features/map/components/PlaceSheet</code> 참고.
+        </p>
       </Section>
 
       <Section title="Input">
