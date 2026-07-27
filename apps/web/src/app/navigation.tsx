@@ -14,16 +14,16 @@ function ImageIcon({ src }: { src: string }) {
 
 export const bottomMenuItems: BottomMenuItem[] = [
   {
-    to: '/map',
-    label: 'map',
-    icon: <Icon32MapUnselected />,
-    activeIcon: <Icon32MapSelected />,
-  },
-  {
     to: '/group',
     label: 'group',
     icon: <Icon32GroupUnselected />,
     activeIcon: <Icon32GroupSelected />,
+  },
+  {
+    to: '/map',
+    label: 'map',
+    icon: <Icon32MapUnselected />,
+    activeIcon: <Icon32MapSelected />,
   },
   {
     to: '/my',
