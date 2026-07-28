@@ -1,11 +1,11 @@
+import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { Icon32Edit } from '@/shared/icons/NookIcons';
 import { BackButton, Badge, COLOR_BG_CLASS, Header, ShareButton } from '@/shared/ui';
 import { CollectionCard } from './components/CollectionCard';
 import { GroupEmpty } from './components/GroupEmpty';
-// TODO(api): 그룹 상세/게시물 API 연동 시 목데이터 대신 TanStack Query 훅으로 교체한다.
-import { getMockGroup, getMockGroupPosts } from './mock/groups';
+import { useGroupPosts, useGroups } from './queries';
 
 /** Figma `그룹 > 그룹 상세` (기본 / 빈 그룹). */
 export function GroupDetailPage() {
@@ -13,8 +13,27 @@ export function GroupDetailPage() {
   const navigate = useNavigate();
   useHideBottomMenu();
 
-  const group = getMockGroup(groupId);
-  const posts = getMockGroupPosts(groupId);
+  // 상세 전용 API가 아직 없어 목록 캐시에서 고른다.
+  const { data: groups, isPending } = useGroups();
+  const group = groups?.find((item) => String(item.id) === groupId);
+
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useGroupPosts(group?.id);
+  const posts = data?.posts;
+
+  // 그리드 끝(sentinel)이 화면에 들어오면 다음 페이지를 당긴다.
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) fetchNextPage();
+    });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  if (isPending) return null;
 
   if (!group) {
     return (
@@ -50,16 +69,16 @@ export function GroupDetailPage() {
             <Icon32Edit size={28} />
           </button>
         </div>
-        {group.ownerName ? (
-          <p className="font-mono text-e2 text-gray-60">by {group.ownerName}</p>
+        {data?.ownerNickname ? (
+          <p className="font-mono text-e2 text-gray-60">by {data.ownerNickname}</p>
         ) : null}
       </div>
 
-      {posts.length === 0 ? (
+      {posts?.length === 0 ? (
         <GroupEmpty message="아직 저장한 게시물이 없어요" />
       ) : (
         <div className="grid grid-cols-2 gap-2 px-4 pt-4">
-          {posts.map((post) => (
+          {posts?.map((post) => (
             <CollectionCard
               key={post.id}
               group={post}
@@ -68,6 +87,8 @@ export function GroupDetailPage() {
           ))}
         </div>
       )}
+      {/* 다음 페이지 트리거. 마지막 페이지면 관찰 대상이 없어 아무 일도 하지 않는다. */}
+      <div ref={sentinelRef} aria-hidden="true" className="h-1" />
     </main>
   );
 }

@@ -97,7 +97,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-// Thumbnail/Avatar 확인용 mock 이미지. 네트워크 없이(Capacitor 오프라인) 뜨도록
+// Thumbnail/Avatar 확인용 mock 이미지. 네트워크 없이(WebView 오프라인) 뜨도록
 // 외부 URL 대신 인라인 data URI 를 쓴다.
 const SAMPLE_IMAGE =
   'data:image/svg+xml;utf8,' +
@@ -112,21 +112,21 @@ const SAMPLE_IMAGE =
 
 // 도메인 컴포넌트 확인용 mock. 실제 API/store 는 연결하지 않는다(룰 §3 도메인 섹션).
 const MOCK_GROUP_FILLED: Group = {
-  id: 'g1',
+  id: 1,
   name: '카페',
   color: 'yellow',
   placeCount: 112,
   thumbnails: Array.from({ length: 5 }, () => SAMPLE_IMAGE),
 };
 const MOCK_GROUP_EMPTY: Group = {
-  id: 'g2',
+  id: 2,
   name: '서촌 놀거리',
   color: 'sky',
   placeCount: 0,
   thumbnails: [],
 };
 const MOCK_GROUP_LONG: Group = {
-  id: 'g3',
+  id: 3,
   name: '이름이 아주 길어지는 그룹은 말줄임으로 잘립니다',
   color: 'purple',
   placeCount: 3,
@@ -136,7 +136,7 @@ const MOCK_GROUPS = [MOCK_GROUP_FILLED, MOCK_GROUP_EMPTY, MOCK_GROUP_LONG];
 // 공개 그룹(다른 사람이 만든 것) — CollectionCard 용
 const MOCK_COLLECTIONS: Group[] = [
   {
-    id: 'c1',
+    id: 101,
     name: '지금 가기 좋은 초록뷰 카페',
     color: 'green',
     placeCount: 3,
@@ -144,7 +144,7 @@ const MOCK_COLLECTIONS: Group[] = [
     thumbnails: [SAMPLE_IMAGE],
   },
   {
-    id: 'c2',
+    id: 102,
     name: '몰래 가려고 저장해둔 서울 카페인데 제목이 길면 잘립니다',
     color: 'sky',
     placeCount: 1,
@@ -221,7 +221,7 @@ export function UiComponentsPage() {
   const [lastAction, setLastAction] = useState<string>('—');
   const [fabCount, setFabCount] = useState(0);
   const [groupName, setGroupName] = useState('초록뷰 카');
-  const [selectedGroups, setSelectedGroups] = useState<string[]>(['g1']);
+  const [selectedGroups, setSelectedGroups] = useState<number[]>([1]);
   const [bookmarked, setBookmarked] = useState<string[]>(['p1']);
   const [memo, setMemo] = useState('지우랑 가면 좋겠다');
   const [detailMemo, setDetailMemo] = useState('지우랑 가면 좋겠다');

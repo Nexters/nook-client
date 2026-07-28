@@ -21,6 +21,18 @@ describe('ApiClient', () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
+  it('fetcher 를 주지 않으면 globalThis 에 바인딩된 전역 fetch 를 쓴다', async () => {
+    // 언바인딩 fetch 는 브라우저에서만 Illegal invocation 을 던져 여기선 재현되지 않는다.
+    // 대신 호출 시점의 this 가 globalThis 인지로 바인딩 자체를 검증한다.
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ ok: true }));
+    const client = new ApiClient({ baseUrl: 'https://api.example.com/api/v1' });
+
+    await client.request('/resources');
+
+    expect(fetchSpy.mock.contexts[0]).toBe(globalThis);
+    fetchSpy.mockRestore();
+  });
+
   it('Base URL과 인증 토큰을 적용한다', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }));
     const client = new ApiClient({

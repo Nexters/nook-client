@@ -26,7 +26,8 @@ interface ApiClientOptions {
 
 function parseBaseUrl(value: string): URL {
   try {
-    return new URL(value);
+    // dev 프록시를 쓸 때의 상대 경로(`/api/v1`)도 허용한다 — 현재 출처 기준으로 해석한다.
+    return new URL(value, globalThis.location?.origin);
   } catch (cause) {
     throw new ApiClientError(`올바르지 않은 API Base URL입니다: ${value}`, {
       kind: 'contract',
@@ -68,9 +69,10 @@ export class ApiClient implements ApiRequester {
 
   constructor(options: ApiClientOptions) {
     this.baseUrl = options.baseUrl ? parseBaseUrl(options.baseUrl) : undefined;
-    // `?? fetch` 로 담으면 this.fetcher(...) 가 this=ApiClient 로 호출돼 브라우저에서
-    // Illegal invocation 이 난다(요청 시작 전이라 네트워크 탭에도 안 잡힌다).
-    this.fetcher = options.fetcher ?? ((input, init) => globalThis.fetch(input, init));
+    // 전역 fetch 는 반드시 globalThis 에 바인딩해서 보관한다. 언바인딩된 참조를 인스턴스
+    // 프로퍼티로 호출하면 브라우저가 `TypeError: Illegal invocation` 을 던져, 요청이 나가지도
+    // 않은 채 아래 catch 의 네트워크 오류로 둔갑한다. (Node/undici 는 허용해서 테스트에선 안 보임)
+    this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
     this.getAccessToken = options.getAccessToken;
     this.defaultTimeoutMs = options.defaultTimeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
