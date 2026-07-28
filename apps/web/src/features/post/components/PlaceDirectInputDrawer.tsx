@@ -18,6 +18,16 @@ export interface PlaceDirectInputDrawerProps {
   onPlaceConfirmed: (place: Place) => void;
 }
 
+/**
+ * 검색 목록 모드 전용 스냅(고정 90% 하나뿐) — `snapPoints` 를 이 모드에서도 항상 정의해
+ * 둬야, 장소를 선택해 상세 모드로 넘어갈 때 vaul 이 "snapPoints 가 이번에 처음 생겼다"고
+ * 보지 않는다. `undefined` 로 뒀다가 상세 진입 시점에 처음 배열을 준다는 이전 방식은,
+ * vaul 이 새 스냅 위치를 계산하기 전에 오프셋 0(완전히 펼친 상태)으로 한 프레임 그렸다가
+ * 뒤늦게 애니메이션으로 내려앉아 시트가 확 커졌다가 훅 줄어드는 것처럼 보였다 —
+ * `map/PlaceSheet.tsx` 가 검색/상세 두 모드 모두에서 스냅을 항상 켜두는 것과 같은 이유.
+ */
+const PLACE_LIST_SNAP_POINTS: [number] = [0.9];
+
 /** Figma `장소 바텀시트`(장소 상세) collapsed/expanded 스냅 — `map/PlaceSheet` 와 동일 패턴. */
 const PLACE_DETAIL_SNAP_POINTS: [number, number] = [0.55, 1];
 
@@ -38,7 +48,7 @@ function PlaceDirectInputDrawer({
   const [focused, setFocused] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(
-    PLACE_DETAIL_SNAP_POINTS[0],
+    PLACE_LIST_SNAP_POINTS[0],
   );
   const [viewingPost, setViewingPost] = useState<Post | null>(null);
   const results = searchMockPlaces(query);
@@ -73,7 +83,7 @@ function PlaceDirectInputDrawer({
     if (open) return;
     setQuery('');
     setSelectedPlace(null);
-    setActiveSnapPoint(PLACE_DETAIL_SNAP_POINTS[0]);
+    setActiveSnapPoint(PLACE_LIST_SNAP_POINTS[0]);
     setViewingPost(null);
   }, [open]);
 
@@ -83,9 +93,9 @@ function PlaceDirectInputDrawer({
         open={open}
         onOpenChange={onOpenChange}
         container={shellContainer}
-        snapPoints={selectedPlace ? PLACE_DETAIL_SNAP_POINTS : undefined}
-        activeSnapPoint={selectedPlace ? activeSnapPoint : undefined}
-        setActiveSnapPoint={selectedPlace ? setActiveSnapPoint : undefined}
+        snapPoints={selectedPlace ? PLACE_DETAIL_SNAP_POINTS : PLACE_LIST_SNAP_POINTS}
+        activeSnapPoint={activeSnapPoint}
+        setActiveSnapPoint={setActiveSnapPoint}
       >
         <DrawerContent
           className={cn(
@@ -96,9 +106,9 @@ function PlaceDirectInputDrawer({
             // 높이에 갇혀 있을 때뿐이다(PostDetailPage/GroupPage/MapPage 가 그 패턴을 따른다) —
             // 그렇지 않고 페이지가 뷰포트보다 길어지면 셸도 같이 늘어나 모든 스냅 비율이 틀어진다.
             // 이와 별개로, 드로어 엘리먼트 자체는 항상 셸 전체 높이(h-dvh)여야 그 계산이 맞고
-            // 지금 보이는 스냅만큼만 잘려 보인다. 콘텐츠 길이에 맞춰 자동으로 줄어들게
-            // 두면(높이 지정 없음) collapsed 스냅에서 대부분이 화면 밖으로 밀려난다.
-            selectedPlace ? 'h-dvh overflow-hidden' : 'h-[90dvh] px-4 pb-11',
+            // 지금 보이는 스냅만큼만 잘려 보인다 — 그래서 목록/상세 모드 상관없이 항상 h-dvh 로
+            // 고정하고, 모드별 여백/스크롤은 안쪽 래퍼(아래)에서 따로 준다.
+            'h-dvh overflow-hidden',
           )}
         >
           <DrawerTitle className="sr-only">
@@ -113,7 +123,7 @@ function PlaceDirectInputDrawer({
               onSelectPost={setViewingPost}
             />
           ) : (
-            <>
+            <div className="flex min-h-0 flex-1 flex-col px-4 pb-11">
               {/* 앞에 돋보기 아이콘 슬롯이 필요해 공용 `Input` (@/shared/ui) 을 못 쓰고 직접 구현한다 —
                   대신 포커스 보더/클리어 버튼 동작은 `Input` 과 동일하게 맞춘다. */}
               <div className="flex h-11 w-full shrink-0 items-center gap-2 rounded-lg border border-gray-30 px-3 transition-colors focus-within:border-gray-100">
@@ -145,7 +155,14 @@ function PlaceDirectInputDrawer({
                     <li key={place.id} className={cn(index > 0 && 'border-t border-gray-10')}>
                       <button
                         type="button"
-                        onClick={() => setSelectedPlace(place)}
+                        onClick={() => {
+                          // 선택과 동시에 상세 스냅으로 바꿔야 vaul 이 "이미 켜져 있던" 스냅을
+                          // 새 값으로 자연스럽게 애니메이션한다(이 파일 상단 PLACE_LIST_SNAP_POINTS
+                          // 주석 참고) — 다음 렌더까지 미루면 잠깐 목록 스냅(0.9)으로 있다가
+                          // 다시 상세 스냅(0.55)으로 튀는 것처럼 보인다.
+                          setSelectedPlace(place);
+                          setActiveSnapPoint(PLACE_DETAIL_SNAP_POINTS[0]);
+                        }}
                         className="flex w-full items-center gap-2 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset"
                       >
                         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-gray-10">
@@ -169,7 +186,7 @@ function PlaceDirectInputDrawer({
                   ))}
                 </ul>
               ) : null}
-            </>
+            </div>
           )}
         </DrawerContent>
       </Drawer>
