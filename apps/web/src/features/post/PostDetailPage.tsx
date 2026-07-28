@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
-import { PlaceRow } from '@/features/place';
 import { cn } from '@/shared/lib/utils';
-import { BackButton, Carousel, Header } from '@/shared/ui';
+import { BackButton, Carousel, Header, Snackbar } from '@/shared/ui';
 import { MemoSheet } from './components/MemoSheet';
 import { OriginalPostLink } from './components/OriginalPostLink';
+import { PlaceDirectInputDrawer } from './components/PlaceDirectInputDrawer';
 import { PostImageViewer } from './components/PostImageViewer';
 import { PostInfo } from './components/PostInfo';
+import { RelatedPlacesSection } from './components/RelatedPlacesSection';
+import { useRelatedPlaces } from './hooks/useRelatedPlaces';
 // TODO(api): 게시물 상세 API 연동 시 목데이터 대신 TanStack Query 훅으로 교체한다.
 import { getMockPostDetail } from './mock/posts';
 
@@ -28,13 +30,32 @@ export function PostDetailPage() {
   const [memoOpen, setMemoOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
-  // TODO(api): 즐겨찾기 토글은 장소 API 연동 후 서버 상태를 따르게 바꾼다.
-  const [bookmarkedPlaceIds, setBookmarkedPlaceIds] = useState(detail?.bookmarkedPlaceIds ?? []);
+  const relatedPlacesState = useRelatedPlaces(postId);
+  const [directInputOpen, setDirectInputOpen] = useState(false);
+  const [showRelatedPlacesErrorToast, setShowRelatedPlacesErrorToast] = useState(false);
+
+  // TODO(api): 즐겨찾기 토글은 북마크 API 연동 후 서버 상태를 따르게 바꾼다.
+  // 파싱 응답의 bookmarked 초기값 위에 사용자가 토글한 값만 덮어쓴다.
+  const [bookmarkOverrides, setBookmarkOverrides] = useState<Record<string, boolean>>({});
 
   const toggleBookmark = (placeId: string, next: boolean) =>
-    setBookmarkedPlaceIds((prev) =>
-      next ? [...prev, placeId] : prev.filter((id) => id !== placeId),
-    );
+    setBookmarkOverrides((prev) => ({ ...prev, [placeId]: next }));
+
+  const bookmarkedPlaceIds =
+    relatedPlacesState.status === 'success'
+      ? relatedPlacesState.places
+          .map((place) => place.id)
+          .filter(
+            (id) => bookmarkOverrides[id] ?? relatedPlacesState.bookmarkedPlaceIds.includes(id),
+          )
+      : [];
+
+  useEffect(() => {
+    if (relatedPlacesState.status !== 'error') return;
+    setShowRelatedPlacesErrorToast(true);
+    const timer = setTimeout(() => setShowRelatedPlacesErrorToast(false), 3000);
+    return () => clearTimeout(timer);
+  }, [relatedPlacesState.status]);
 
   if (!detail) {
     return (
@@ -47,7 +68,7 @@ export function PostDetailPage() {
     );
   }
 
-  const { post, title, groupName, groupColor, relatedPlaces } = detail;
+  const { post, title, groupName, groupColor } = detail;
   const images = post.images ?? [];
 
   return (
@@ -120,29 +141,28 @@ export function PostDetailPage() {
         ) : null}
       </div>
 
-      {relatedPlaces.length > 0 ? (
-        <>
-          {/* 시안의 6px 회색 띠 — 게시물 정보와 연관 장소를 가르는 구분면 */}
-          <div className="mt-4 h-1.5 w-full bg-gray-10" />
-          <section className="px-4">
-            <h2 className="py-4 text-b1 font-semibold text-gray-100">연관 장소</h2>
-            <div className="flex flex-col gap-4">
-              {relatedPlaces.map((place) => (
-                <PlaceRow
-                  key={place.id}
-                  place={place}
-                  bookmarked={bookmarkedPlaceIds.includes(place.id)}
-                  onBookmarkedChange={(next) => toggleBookmark(place.id, next)}
-                />
-              ))}
-            </div>
-          </section>
-        </>
-      ) : null}
+      <RelatedPlacesSection
+        state={relatedPlacesState}
+        bookmarkedPlaceIds={bookmarkedPlaceIds}
+        onBookmarkedChange={toggleBookmark}
+        onDirectAddClick={() => setDirectInputOpen(true)}
+      />
 
       <MemoSheet open={memoOpen} onOpenChange={setMemoOpen} memo={memo} onSave={setMemo} />
 
       {viewerOpen ? <PostImageViewer images={images} onClose={() => setViewerOpen(false)} /> : null}
+
+      <PlaceDirectInputDrawer open={directInputOpen} onOpenChange={setDirectInputOpen} />
+
+      {showRelatedPlacesErrorToast ? (
+        <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+          <Snackbar
+            title="위치를 찾지 못 했어요"
+            description="게시물은 저장됐지만 지도에는 표시되지 않아요"
+            className="w-full max-w-[343px]"
+          />
+        </div>
+      ) : null}
     </main>
   );
 }
