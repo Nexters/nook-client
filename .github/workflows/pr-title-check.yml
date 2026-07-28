@@ -1,0 +1,40 @@
+name: PR Title Check
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  check-title:
+    name: Check title format
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate PR title (conventional commits)
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const title = context.payload.pull_request.title;
+            // <type>(<scope>): <subject>  — scope/! 는 선택, subject 필수
+            const pattern =
+              /^(feat|fix|refactor|style|docs|test|chore|perf|ci|build|revert)(\([a-z0-9\-]+\))?!?: .+/;
+
+            if (pattern.test(title)) {
+              core.info(`OK: ${title}`);
+              return;
+            }
+
+            core.setFailed(
+              [
+                `PR 제목 형식이 올바르지 않습니다: "${title}"`,
+                '',
+                '형식: <type>(<scope>): <subject>   (scope 는 생략 가능)',
+                '예) feat(share-target): 공유 시트 UI 개편',
+                '    fix: 로그인 리다이렉트 오류 수정',
+                '',
+                'type: feat | fix | refactor | style | docs | test | chore | perf | ci | build | revert',
+              ].join('\n'),
+            );
