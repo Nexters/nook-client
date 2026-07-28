@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 class ShareViewController: UIViewController {
 
     private let store = ShareStore()
+    private let api = ShareApiClient()
     private var isCompleting = false
 
     // 시스템이 확장을 시트 카드로 감싸는 걸 막아 호스트 앱(인스타)이 뒤로 비치게 함
@@ -34,19 +35,37 @@ class ShareViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .clear
 
+        Task { [weak self] in
+            guard let self else { return }
+            let groups = (try? await api?.groups()) ?? []
+            await MainActor.run { self.mountScreen(groups: groups) }
+        }
+    }
+
+    private func mountScreen(groups: [Group]) {
         let screen = ShareScreen(
-            // TODO: 서버 연동 시 이 조립 지점에서 조회한 그룹 목록을 주입한다.
-            groups: previewGroups,
+            groups: groups,
             onSave: { [weak self] groups, memo in
                 self?.extractTexts { texts in
-                    self?.store.saveToGroups(texts: texts, groups: groups, memo: memo)
-                    self?.complete()
+                    guard let self else { return }
+                    Task {
+                        do {
+                            guard let url = texts.first, let api = self.api else { throw ShareApiError.configuration }
+                            try await api.save(url: url, groupIds: groups, memo: memo)
+                        } catch {
+                            self.store.saveToGroups(texts: texts, groups: groups, memo: memo)
+                        }
+                        await MainActor.run { self.complete() }
+                    }
                 }
             },
             onCreateGroup: { [weak self] name, colorIndex in
-                self?.extractTexts { texts in
-                    self?.store.saveNewGroup(texts: texts, name: name, colorIndex: colorIndex)
-                    self?.complete()
+                guard let self else { return }
+                Task {
+                    if let api = self.api, (try? await api.createGroup(name: name, colorIndex: colorIndex)) != nil {
+                        let updated = (try? await api.groups()) ?? groups
+                        await MainActor.run { self.replaceScreen(groups: updated) }
+                    }
                 }
             },
             onDismiss: { [weak self] in self?.complete() }
@@ -59,6 +78,13 @@ class ShareViewController: UIViewController {
         host.view.frame = view.bounds
         host.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         host.didMove(toParent: self)
+    }
+
+    private func replaceScreen(groups: [Group]) {
+        children.forEach { child in
+            child.willMove(toParent: nil); child.view.removeFromSuperview(); child.removeFromParent()
+        }
+        mountScreen(groups: groups)
     }
 
     private func extractTexts(completion: @escaping ([String]) -> Void) {

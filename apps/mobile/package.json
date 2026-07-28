@@ -5,6 +5,7 @@
   "dependencies": {
     "@bacons/apple-targets": "^4.0.6",
     "@nook/bridge-contracts": "workspace:*",
+    "@react-native-seoul/kakao-login": "^5.4.2",
     "expo": "~57.0.8",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",

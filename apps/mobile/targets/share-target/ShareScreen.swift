@@ -8,7 +8,7 @@ private let dismissDuration: TimeInterval = 0.22
 
 struct ShareScreen: View {
     let groups: [Group]
-    let onSave: (Set<String>, String) -> Void
+    let onSave: (Set<Int64>, String) -> Void
     let onCreateGroup: (String, Int) -> Void
     let onDismiss: () -> Void
 
@@ -75,10 +75,10 @@ struct ShareScreen: View {
 private struct SelectGroupContent: View {
     let groups: [Group]
     let panelFraction: CGFloat
-    let onSave: (Set<String>, String) -> Void
+    let onSave: (Set<Int64>, String) -> Void
     let onNewGroup: () -> Void
 
-    @State private var selected: Set<String> = []
+    @State private var selected: Set<Int64> = []
     @State private var memo: String = ""
     @FocusState private var memoFocused: Bool
 

@@ -11,7 +11,7 @@ struct ShareStore {
         return "group." + String(extensionId.dropLast(".ShareExtension".count))
     }
 
-    func saveToGroups(texts: [String], groups: Set<String>, memo: String) {
+    func saveToGroups(texts: [String], groups: Set<Int64>, memo: String) {
         append(texts: texts) { entry in
             entry["groups"] = Array(groups)
             entry["memo"] = memo

@@ -407,7 +407,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             ${icons.map((icon) => `NookIconName.${icon.type} -> ${icon.viewBox.width}f to ${icon.viewBox.height}f`).join('\n            ')}
         }
         drawContext.canvas.save()
-        drawContext.canvas.scale(size.width / viewBox.first, size.height / viewBox.second, Offset.Zero)
+        drawContext.canvas.scale(size.width / viewBox.first, size.height / viewBox.second)
         when (name) {
         ${switches}
         }

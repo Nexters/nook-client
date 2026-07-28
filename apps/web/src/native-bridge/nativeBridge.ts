@@ -22,6 +22,7 @@ declare global {
 }
 
 type Handler = (message: NativeToWeb) => void;
+type SessionResult = Extract<NativeToWeb, { type: 'SESSION_RESULT' }>['payload'];
 
 function detectPlatform(): Platform {
   if (window.ReactNativeWebView) {
@@ -36,6 +37,7 @@ class NativeBridge {
   private handlers = new Set<Handler>();
   private buffer: NativeToWeb[] = [];
   private started = false;
+  private pending = new Map<string, (result: SessionResult) => void>();
 
   get isNative(): boolean {
     return !!window.ReactNativeWebView;
@@ -62,10 +64,42 @@ class NativeBridge {
     window.ReactNativeWebView?.postMessage(JSON.stringify(message));
   }
 
+  requestSession(type: 'SESSION_GET' | 'SESSION_CLEAR'): Promise<SessionResult>;
+  requestSession(type: 'SESSION_REFRESH', revision: number): Promise<SessionResult>;
+  requestSession(
+    type: 'SESSION_ESTABLISH',
+    accessToken: string,
+    refreshToken: string | null,
+  ): Promise<SessionResult>;
+  requestSession(
+    type: string,
+    first?: number | string,
+    second?: string | null,
+  ): Promise<SessionResult> {
+    const requestId = globalThis.crypto.randomUUID();
+    const payload =
+      type === 'SESSION_REFRESH'
+        ? { requestId, revision: first as number }
+        : type === 'SESSION_ESTABLISH'
+          ? { requestId, accessToken: first as string, refreshToken: second ?? null }
+          : { requestId };
+    return new Promise((resolve) => {
+      this.pending.set(requestId, resolve);
+      this.send({ v: 1, type, payload } as WebToNative);
+    });
+  }
+
   private receive(json: string): void {
     const message = parseNativeToWeb(json);
     if (!message) {
       return;
+    }
+    if (message.type === 'SESSION_RESULT') {
+      const resolve = this.pending.get(message.payload.requestId);
+      if (resolve) {
+        this.pending.delete(message.payload.requestId);
+        resolve(message.payload);
+      }
     }
     if (this.handlers.size === 0) {
       this.buffer.push(message);

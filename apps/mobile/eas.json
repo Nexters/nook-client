@@ -12,13 +12,6 @@
         "APP_VARIANT": "development"
       }
     },
-    "preview": {
-      "distribution": "internal",
-      "environment": "preview",
-      "env": {
-        "APP_VARIANT": "preview"
-      }
-    },
     "production": {
       "environment": "production",
       "env": {

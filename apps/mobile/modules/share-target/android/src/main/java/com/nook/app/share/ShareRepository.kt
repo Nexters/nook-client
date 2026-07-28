@@ -7,7 +7,7 @@ import org.json.JSONObject
 // 공유로 받은 내용을 앱이 다음 실행 때 읽어갈 수 있도록 SharedPreferences에 큐잉한다.
 class ShareRepository(private val context: Context) {
 
-    fun saveToGroups(text: String, groups: Set<String>, memo: String) {
+    fun saveToGroups(text: String, groups: Set<Long>, memo: String) {
         append {
             put("text", text)
             put("groups", JSONArray(groups))

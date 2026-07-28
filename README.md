@@ -87,7 +87,7 @@ env 파일은 **앱별로** 둔다. 루트에는 두지 않는다(Vite·Expo 모
 | --- | --- |
 | `apps/{web,mobile}/.env.example` | 예시값, 커밋 |
 | `apps/{web,mobile}/.env.local` | 로컬 전용, gitignore |
-| EAS environment | mobile 배포 환경(development/preview/production) 값 |
+| EAS environment | mobile 배포 환경(development/production) 값 |
 | 배포 플랫폼 환경변수 | web 배포 값 |
 
 - `VITE_*` 는 번들에 인라인, `EXPO_PUBLIC_*` 는 앱 번들에 포함된다. **둘 다 공개값만** 넣는다.
@@ -96,7 +96,6 @@ env 파일은 **앱별로** 둔다. 루트에는 두지 않는다(Vite·Expo 모
 | APP_VARIANT | 앱 ID | App Group |
 | --- | --- | --- |
 | `development` | `com.nook.app.dev` | `group.com.nook.app.dev` |
-| `preview` | `com.nook.app.preview` | `group.com.nook.app.preview` |
 | `production`(기본) | `com.nook.app` | `group.com.nook.app` |
 
-variant 별로 ID 가 달라 개발·스테이징·운영 앱을 한 기기에 함께 설치할 수 있다. EAS 빌드 프로필은 `apps/mobile/eas.json` 참고.
+variant 별로 ID 가 달라 개발 앱과 운영 앱을 한 기기에 함께 설치할 수 있다. EAS 빌드 프로필은 `apps/mobile/eas.json` 참고.

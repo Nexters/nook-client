@@ -82,7 +82,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.LocationCrosshair -> 17f to 17f
         }
         drawContext.canvas.save()
-        drawContext.canvas.scale(size.width / viewBox.first, size.height / viewBox.second, Offset.Zero)
+        drawContext.canvas.scale(size.width / viewBox.first, size.height / viewBox.second)
         when (name) {
         NookIconName.Icon16ArrowDiagonal -> {
             val path0 = Path().apply {

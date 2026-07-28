@@ -7,25 +7,34 @@ import { WebView } from 'react-native-webview';
 import { useWebViewBridge } from './src/bridge/useWebViewBridge';
 
 export default function App() {
-  const { injectedJavaScript, onMessage, onShouldStartLoadWithRequest, webUrl } =
-    useWebViewBridge();
+  const {
+    bootstrapped,
+    injectedJavaScript,
+    onMessage,
+    onShouldStartLoadWithRequest,
+    webUrl,
+    webViewRef,
+  } = useWebViewBridge();
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
         <StatusBar style="dark" />
-        <WebView
-          source={{ uri: webUrl }}
-          injectedJavaScriptBeforeContentLoaded={injectedJavaScript}
-          onMessage={onMessage}
-          // 모든 탐색을 콜백으로 전달하고, 실제 허용 여부는 정확한 URL 판정으로 결정한다.
-          originWhitelist={['*']}
-          onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
-          // 웹의 navigator.geolocation 을 프록시한다. Android 전용 prop — iOS(WKWebView)는
-          // Info.plist 의 NSLocationWhenInUseUsageDescription 만으로 자체 처리한다.
-          geolocationEnabled
-          style={styles.webview}
-        />
+        {bootstrapped ? (
+          <WebView
+            ref={webViewRef}
+            source={{ uri: webUrl }}
+            injectedJavaScriptBeforeContentLoaded={injectedJavaScript}
+            onMessage={onMessage}
+            // 모든 탐색을 콜백으로 전달하고, 실제 허용 여부는 정확한 URL 판정으로 결정한다.
+            originWhitelist={['*']}
+            onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
+            // 웹의 navigator.geolocation 을 프록시한다. Android 전용 prop — iOS(WKWebView)는
+            // Info.plist 의 NSLocationWhenInUseUsageDescription 만으로 자체 처리한다.
+            geolocationEnabled
+            style={styles.webview}
+          />
+        ) : null}
       </SafeAreaView>
     </SafeAreaProvider>
   );

@@ -7,7 +7,12 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.view.WindowCompat
-import com.nook.app.share.model.previewGroups
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.lifecycleScope
+import com.nook.app.share.model.Group
+import kotlinx.coroutines.launch
 
 class ShareActivity : ComponentActivity() {
 
@@ -28,17 +33,25 @@ class ShareActivity : ComponentActivity() {
                 intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString().orEmpty()
             } else ""
 
+        var groups by mutableStateOf<List<Group>>(emptyList())
+        val api = ShareApiClient(applicationContext)
+        lifecycleScope.launch { groups = runCatching { api.groups() }.getOrDefault(emptyList()) }
+
         setContent {
             ShareScreen(
-                // TODO: 서버 연동 시 이 조립 지점에서 조회한 그룹 목록을 주입한다.
-                groups = previewGroups,
-                onSave = { groups, memo ->
-                    repository.saveToGroups(sharedText, groups, memo)
-                    finish()
+                groups = groups,
+                onSave = { selected, memo ->
+                    lifecycleScope.launch {
+                        runCatching { api.savePost(sharedText, selected, memo) }
+                            .onFailure { repository.saveToGroups(sharedText, selected, memo) }
+                        finish()
+                    }
                 },
                 onCreateGroup = { name, colorIndex ->
-                    repository.saveNewGroup(sharedText, name, colorIndex)
-                    finish()
+                    lifecycleScope.launch {
+                        runCatching { api.createGroup(name, colorIndex) }
+                            .onSuccess { groups = groups + it }
+                    }
                 },
                 onDismiss = { finish() },
             )

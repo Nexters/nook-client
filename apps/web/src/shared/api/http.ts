@@ -5,6 +5,7 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 
 export type ApiAuthMode = 'none' | 'optional' | 'required';
 export type AccessTokenProvider = () => Promise<string | null> | string | null;
+export type SessionRefresher = () => Promise<string | null>;
 
 export interface ApiRequestInit extends RequestInit {
   /** 외부 URL에 토큰이 실수로 전달되지 않도록 기본값은 none이다. */
@@ -64,6 +65,7 @@ export class ApiClient implements ApiRequester {
   private readonly fetcher: typeof fetch;
   private readonly defaultTimeoutMs: number;
   private getAccessToken?: AccessTokenProvider;
+  private refreshSession?: SessionRefresher;
 
   constructor(options: ApiClientOptions) {
     this.baseUrl = options.baseUrl ? parseBaseUrl(options.baseUrl) : undefined;
@@ -79,7 +81,15 @@ export class ApiClient implements ApiRequester {
     this.getAccessToken = provider;
   }
 
+  setSessionRefresher(refresher?: SessionRefresher): void {
+    this.refreshSession = refresher;
+  }
+
   async request<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
+    return this.requestOnce<T>(path, init, false);
+  }
+
+  private async requestOnce<T>(path: string, init: ApiRequestInit, retried: boolean): Promise<T> {
     if (!this.baseUrl) {
       throw new ApiClientError('VITE_API_BASE_URL이 설정되지 않았습니다.', {
         kind: 'contract',
@@ -138,6 +148,20 @@ export class ApiClient implements ApiRequester {
       });
       const payload = await parseResponseBody(response);
 
+      if (
+        response.status === 401 &&
+        auth !== 'none' &&
+        !retried &&
+        !url.pathname.endsWith('/auth/token/refresh') &&
+        this.refreshSession
+      ) {
+        const token = await this.refreshSession();
+        if (token) {
+          const retryHeaders = new Headers(init.headers);
+          retryHeaders.delete('Authorization');
+          return this.requestOnce<T>(path, { ...init, headers: retryHeaders }, true);
+        }
+      }
       if (!response.ok) throw createHttpError(response, payload);
       return payload as T;
     } catch (cause) {
