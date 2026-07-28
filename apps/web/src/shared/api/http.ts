@@ -17,7 +17,7 @@ export interface ApiRequester {
 }
 
 interface ApiClientOptions {
-  baseUrl: string;
+  baseUrl?: string;
   fetcher?: typeof fetch;
   getAccessToken?: AccessTokenProvider;
   defaultTimeoutMs?: number;
@@ -59,13 +59,13 @@ async function parseResponseBody(response: Response): Promise<unknown> {
 }
 
 export class ApiClient implements ApiRequester {
-  private readonly baseUrl: URL;
+  private readonly baseUrl?: URL;
   private readonly fetcher: typeof fetch;
   private readonly defaultTimeoutMs: number;
   private getAccessToken?: AccessTokenProvider;
 
   constructor(options: ApiClientOptions) {
-    this.baseUrl = parseBaseUrl(options.baseUrl);
+    this.baseUrl = options.baseUrl ? parseBaseUrl(options.baseUrl) : undefined;
     this.fetcher = options.fetcher ?? fetch;
     this.getAccessToken = options.getAccessToken;
     this.defaultTimeoutMs = options.defaultTimeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -76,6 +76,12 @@ export class ApiClient implements ApiRequester {
   }
 
   async request<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
+    if (!this.baseUrl) {
+      throw new ApiClientError('VITE_API_BASE_URL이 설정되지 않았습니다.', {
+        kind: 'contract',
+      });
+    }
+
     const { auth = 'none', timeoutMs = this.defaultTimeoutMs, signal, ...requestInit } = init;
     const url = resolveRequestUrl(this.baseUrl, path);
 

@@ -10,6 +10,17 @@ function jsonResponse(body: unknown, init?: ResponseInit): Response {
 }
 
 describe('ApiClient', () => {
+  it('Base URL이 없어도 생성할 수 있고 요청 시 설정 오류를 반환한다', async () => {
+    const fetcher = vi.fn<typeof fetch>();
+    const client = new ApiClient({ fetcher });
+
+    await expect(client.request('/resources')).rejects.toMatchObject({
+      kind: 'contract',
+      message: 'VITE_API_BASE_URL이 설정되지 않았습니다.',
+    });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it('Base URL과 인증 토큰을 적용한다', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }));
     const client = new ApiClient({

@@ -7,9 +7,9 @@
 function readApiBaseUrl(): string {
   const value = import.meta.env.VITE_API_BASE_URL;
   if (!value) {
-    throw new Error('[env] VITE_API_BASE_URL 미설정 - .env 를 확인하세요.');
+    console.warn('[env] VITE_API_BASE_URL 미설정 - API 요청을 사용할 수 없습니다.');
   }
-  return value;
+  return value ?? '';
 }
 
 function readNaverMapClientId(): string {
