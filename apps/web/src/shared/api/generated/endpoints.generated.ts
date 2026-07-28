@@ -14,6 +14,8 @@ import type {
   ApiResponsePostResponse,
   ApiResponseSavedPostDetailResponse,
   ApiResponseSavedPostPageResponse,
+  ApiResponseSocialAuthResponse,
+  ApiResponseTokenResponse,
   ApiResponseUnit,
   CreateGroupRequest,
   CreatePostRequest,
@@ -24,8 +26,6 @@ import type {
   ReplaceSavedPostGroupsRequest,
   SignupMemberRequest,
   SocialAuthRequest,
-  SocialAuthResponse,
-  TokenResponse,
   UpdateGroupRequest,
   UpdatePlaceBookmarkRequest,
   UpdatePostMemoRequest,
@@ -34,11 +34,14 @@ export const getAuthenticateSocialUrl = () => {
   return `/api/v1/auth/social`;
 };
 
+/**
+ * @summary 소셜 로그인
+ */
 export const authenticateSocial = async (
   socialAuthRequest: SocialAuthRequest,
   options?: Parameters<typeof orvalMutator>[1],
-): Promise<SocialAuthResponse> => {
-  return orvalMutator<SocialAuthResponse>(getAuthenticateSocialUrl(), {
+): Promise<ApiResponseSocialAuthResponse> => {
+  return orvalMutator<ApiResponseSocialAuthResponse>(getAuthenticateSocialUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -50,11 +53,14 @@ export const getRefreshUrl = () => {
   return `/api/v1/auth/token/refresh`;
 };
 
+/**
+ * @summary 로그인 토큰 재발급
+ */
 export const refresh = async (
   refreshTokenRequest: RefreshTokenRequest,
   options?: Parameters<typeof orvalMutator>[1],
-): Promise<TokenResponse> => {
-  return orvalMutator<TokenResponse>(getRefreshUrl(), {
+): Promise<ApiResponseTokenResponse> => {
+  return orvalMutator<ApiResponseTokenResponse>(getRefreshUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -168,11 +174,14 @@ export const getSignupUrl = () => {
   return `/api/v1/members`;
 };
 
+/**
+ * @summary 회원가입
+ */
 export const signup = async (
   signupMemberRequest: SignupMemberRequest,
   options?: Parameters<typeof orvalMutator>[1],
-): Promise<TokenResponse> => {
-  return orvalMutator<TokenResponse>(getSignupUrl(), {
+): Promise<ApiResponseTokenResponse> => {
+  return orvalMutator<ApiResponseTokenResponse>(getSignupUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },

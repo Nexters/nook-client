@@ -7,10 +7,12 @@
 
 export type GetDetailParams = {
   /**
+   * 조회할 페이지 번호. 0부터 시작합니다.
    * @minimum 0
    */
   page?: number;
   /**
+   * 페이지당 게시물 수
    * @minimum 1
    * @maximum 100
    */

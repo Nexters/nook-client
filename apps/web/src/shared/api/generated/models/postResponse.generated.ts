@@ -7,6 +7,8 @@
 import type { PostResponsePlaceParsingStatus } from './postResponsePlaceParsingStatus.generated';
 
 export interface PostResponse {
+  /** 게시물 장소 파싱 상태 */
   placeParsingStatus: PostResponsePlaceParsingStatus;
+  /** 저장된 게시물 식별자 */
   postId: number;
 }

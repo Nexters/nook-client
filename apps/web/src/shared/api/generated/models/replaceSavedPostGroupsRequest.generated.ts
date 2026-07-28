@@ -6,7 +6,6 @@
  */
 
 export interface ReplaceSavedPostGroupsRequest {
-  areGroupIdsPositive: boolean;
   /** 게시물을 연결할 전체 그룹 식별자 목록. 빈 목록이면 모든 그룹에서 제거합니다. */
   groupIds: number[];
 }

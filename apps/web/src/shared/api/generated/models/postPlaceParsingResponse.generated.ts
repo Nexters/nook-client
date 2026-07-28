@@ -8,10 +8,18 @@ import type { PlaceResponse } from './placeResponse.generated';
 import type { PostPlaceParsingResponsePlaceParsingStatus } from './postPlaceParsingResponsePlaceParsingStatus.generated';
 
 export interface PostPlaceParsingResponse {
-  /** @nullable */
+  /**
+   * 장소 파싱 실패 사유. 실패 상태에서만 내려갑니다.
+   * @nullable
+   */
   failureReason?: string | null;
+  /** 게시물 장소 파싱 상태 */
   placeParsingStatus: PostPlaceParsingResponsePlaceParsingStatus;
-  /** @nullable */
+  /**
+   * 파싱된 장소 목록. 완료 상태에서만 내려갑니다.
+   * @nullable
+   */
   places?: PlaceResponse[] | null;
+  /** 게시물 식별자 */
   postId: number;
 }

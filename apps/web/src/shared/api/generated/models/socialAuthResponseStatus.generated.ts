@@ -5,6 +5,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * 소셜 인증 결과 상태
+ */
 export type SocialAuthResponseStatus =
   (typeof SocialAuthResponseStatus)[keyof typeof SocialAuthResponseStatus];
 

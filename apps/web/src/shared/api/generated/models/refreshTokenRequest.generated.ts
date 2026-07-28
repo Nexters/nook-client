@@ -6,6 +6,9 @@
  */
 
 export interface RefreshTokenRequest {
-  /** @minLength 1 */
+  /**
+   * 서비스 refresh token
+   * @minLength 1
+   */
   refreshToken: string;
 }

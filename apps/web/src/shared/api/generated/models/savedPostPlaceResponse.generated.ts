@@ -6,17 +6,32 @@
  */
 
 export interface SavedPostPlaceResponse {
+  /** 장소 주소 */
   address: string;
+  /** 사용자의 장소 북마크 여부 */
   bookmarked: boolean;
-  /** @nullable */
+  /**
+   * 장소 카테고리
+   * @nullable
+   */
   category?: string | null;
+  /** provider의 장소 식별자 */
   externalPlaceId: string;
+  /** 장소 식별자 */
   id: number;
+  /** 장소 위도 */
   latitude: number;
+  /** 장소 경도 */
   longitude: number;
+  /** 장소명 */
   name: string;
-  /** @nullable */
+  /**
+   * 장소 전화번호
+   * @nullable
+   */
   phoneNumber?: string | null;
+  /** 장소 provider */
   provider: string;
+  /** 게시물 내 장소 순서 */
   sequence: number;
 }
