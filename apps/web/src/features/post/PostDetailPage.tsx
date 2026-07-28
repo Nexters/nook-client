@@ -46,6 +46,7 @@ export function PostDetailPage() {
   const [manualPlaces, setManualPlaces] = useState<Place[]>([]);
 
   function handlePlaceConfirmed(place: Place) {
+    // TODO(api): 장소 연결은 실제로는 서버에 저장해야 한다. 지금은 화면 상태(manualPlaces)만 갱신해 새로고침/재방문 시 사라진다.
     setManualPlaces((prev) =>
       prev.some((existing) => existing.id === place.id) ? prev : [...prev, place],
     );
@@ -91,81 +92,83 @@ export function PostDetailPage() {
 
   return (
     <main
-      className="min-h-dvh bg-gray-0"
-      style={{
-        paddingTop: 'env(safe-area-inset-top)',
-        paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))',
-      }}
+      className="flex h-dvh flex-col overflow-hidden bg-gray-0"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <Header left={<BackButton />} />
+      <div
+        className="min-h-0 flex-1 overflow-y-auto"
+        style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+      >
+        <Header left={<BackButton />} />
 
-      {images.length > 0 ? (
-        <Carousel>
-          {images.map((src, index) => (
-            <button
-              // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
-              // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
-              key={index}
-              type="button"
-              aria-label={`${index + 1}번째 이미지 크게 보기`}
-              onClick={() => setViewerOpen(true)}
-              // 좌우 16px 여백은 첫/마지막 슬라이드가 만든다 — 스크롤 컨테이너에 padding 을
-              // 주면 다음 이미지가 화면 끝까지 이어지지 않고 잘린다(시안은 끝까지 이어진다).
-              className={cn(
-                'h-[300px] w-[281px] overflow-hidden rounded-sm',
-                index === 0 && 'ml-4',
-                index === images.length - 1 && 'mr-4',
-              )}
-            >
-              <img src={src} alt="" className="size-full object-cover" />
-            </button>
-          ))}
-        </Carousel>
-      ) : null}
-
-      <div className="flex flex-col gap-2 px-4 pt-1">
-        <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
-
-        {post.caption ? (
-          <div className="flex flex-col">
-            <p
-              className={cn(
-                'whitespace-pre-wrap text-b2 font-normal text-gray-80',
-                expanded ? '' : 'line-clamp-1',
-              )}
-            >
-              {post.caption}
-            </p>
-            <button
-              type="button"
-              onClick={() => setExpanded((prev) => !prev)}
-              className="self-start text-b2 font-medium text-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-            >
-              {expanded ? '접기' : '더보기'}
-            </button>
-          </div>
+        {images.length > 0 ? (
+          <Carousel>
+            {images.map((src, index) => (
+              <button
+                // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
+                // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
+                key={index}
+                type="button"
+                aria-label={`${index + 1}번째 이미지 크게 보기`}
+                onClick={() => setViewerOpen(true)}
+                // 좌우 16px 여백은 첫/마지막 슬라이드가 만든다 — 스크롤 컨테이너에 padding 을
+                // 주면 다음 이미지가 화면 끝까지 이어지지 않고 잘린다(시안은 끝까지 이어진다).
+                className={cn(
+                  'h-[300px] w-[281px] overflow-hidden rounded-sm',
+                  index === 0 && 'ml-4',
+                  index === images.length - 1 && 'mr-4',
+                )}
+              >
+                <img src={src} alt="" className="size-full object-cover" />
+              </button>
+            ))}
+          </Carousel>
         ) : null}
 
-        <PostInfo
-          groupName={groupName}
-          groupColor={groupColor}
-          memo={memo}
-          onMemoEdit={() => setMemoOpen(true)}
-          className="pt-2"
+        <div className="flex flex-col gap-2 px-4 pt-1">
+          <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
+
+          {post.caption ? (
+            <div className="flex flex-col">
+              <p
+                className={cn(
+                  'whitespace-pre-wrap text-b2 font-normal text-gray-80',
+                  expanded ? '' : 'line-clamp-1',
+                )}
+              >
+                {post.caption}
+              </p>
+              <button
+                type="button"
+                onClick={() => setExpanded((prev) => !prev)}
+                className="self-start text-b2 font-medium text-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+              >
+                {expanded ? '접기' : '더보기'}
+              </button>
+            </div>
+          ) : null}
+
+          <PostInfo
+            groupName={groupName}
+            groupColor={groupColor}
+            memo={memo}
+            onMemoEdit={() => setMemoOpen(true)}
+            className="pt-2"
+          />
+
+          {post.originalUrl ? (
+            <OriginalPostLink label={post.authorHandle} href={post.originalUrl} className="mt-2" />
+          ) : null}
+        </div>
+
+        <RelatedPlacesSection
+          state={relatedPlacesState}
+          manualPlaces={manualPlaces}
+          bookmarkedPlaceIds={bookmarkedPlaceIds}
+          onBookmarkedChange={toggleBookmark}
+          onDirectAddClick={() => setDirectInputOpen(true)}
         />
-
-        {post.originalUrl ? (
-          <OriginalPostLink label={post.authorHandle} href={post.originalUrl} className="mt-2" />
-        ) : null}
       </div>
-
-      <RelatedPlacesSection
-        state={relatedPlacesState}
-        manualPlaces={manualPlaces}
-        bookmarkedPlaceIds={bookmarkedPlaceIds}
-        onBookmarkedChange={toggleBookmark}
-        onDirectAddClick={() => setDirectInputOpen(true)}
-      />
 
       <MemoSheet open={memoOpen} onOpenChange={setMemoOpen} memo={memo} onSave={setMemo} />
 

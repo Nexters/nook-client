@@ -90,8 +90,12 @@ function PlaceDirectInputDrawer({
         <DrawerContent
           className={cn(
             'flex flex-col',
-            // vaul 은 snapPoints 를 뷰포트 높이 비율로 계산해 transform 으로 감춘다 —
-            // 드로어 엘리먼트 자체가 항상 뷰포트 전체 높이(h-dvh)여야 그 계산이 맞고,
+            // vaul 은 snapPoints 를 뷰포트가 아니라 `container` prop(앱 셸, providers.tsx)의
+            // 박스 높이 비율로 계산해 transform 으로 감춘다 — 셸 높이가 실제 뷰포트 높이와
+            // 같아지는 건 이 드로어를 호스팅하는 페이지 자체가 `h-dvh` + 내부 스크롤로 뷰포트
+            // 높이에 갇혀 있을 때뿐이다(PostDetailPage/GroupPage/MapPage 가 그 패턴을 따른다) —
+            // 그렇지 않고 페이지가 뷰포트보다 길어지면 셸도 같이 늘어나 모든 스냅 비율이 틀어진다.
+            // 이와 별개로, 드로어 엘리먼트 자체는 항상 셸 전체 높이(h-dvh)여야 그 계산이 맞고
             // 지금 보이는 스냅만큼만 잘려 보인다. 콘텐츠 길이에 맞춰 자동으로 줄어들게
             // 두면(높이 지정 없음) collapsed 스냅에서 대부분이 화면 밖으로 밀려난다.
             selectedPlace ? 'h-dvh overflow-hidden' : 'h-[90dvh] px-4 pb-11',
@@ -170,19 +174,21 @@ function PlaceDirectInputDrawer({
         </DrawerContent>
       </Drawer>
 
-      {open && selectedPlace ? (
+      {open && selectedPlace && !viewingPost ? (
         // vaul 이 snapPoints 를 표현하려고 드로어 엘리먼트 전체를 transform 으로 밀어
         // 올리는데, 그 안의 자식은 collapsed 스냅에서 화면 밖(엘리먼트 실제 바닥)으로
         // 같이 밀려난다 — 스냅과 무관하게 항상 보여야 하는 이 바는 드로어 밖, 뷰포트
         // 기준 fixed 로 따로 그린다(Figma 시안도 시트와 겹치는 별도 레이어다).
         //
-        // Drawer(vaul)가 모달로 열려 있는 동안 Radix 가 이 형제 엘리먼트를
-        // aria-hidden + pointer-events:none 처리해버린다(§PostImageViewer 와 같은 원인).
-        // 거기는 "열려있는 동안 배타적으로 대체하는" 오버레이라 별도 Dialog 로 감싸는 게
-        // 맞았지만, 이 바는 드로어 콘텐츠와 "동시에" 계속 조작 가능해야 해서 같은 방법(중첩
-        // Dialog)을 쓰면 두 모달의 포커스 트랩이 서로 얽혀 브라우저가 멈춘다(실제 확인함) —
-        // 여기는 포인터 이벤트만 명시적으로 되살린다. 스크린리더 접근성은 이 바만 놓고 보면
-        // 완전하지 않다는 한계가 남는다(후속 과제로 문서화).
+        // Drawer(vaul)가 모달로 열려 있는 동안 `aria-hidden` 패키지의 hideOthers() 가 이
+        // 형제 엘리먼트에 aria-hidden/data-aria-hidden 을 붙이고, 이와 별개로 Radix Dialog 가
+        // 모달이 열려 있는 동안 `document.body.style.pointerEvents = 'none'` 을 직접 설정해
+        // 클릭도 막아버린다(§PostImageViewer 와 같은 원인). 거기는 "열려있는 동안 배타적으로
+        // 대체하는" 오버레이라 별도 Dialog 로 감싸는 게 맞았지만, 이 바는 드로어 콘텐츠와
+        // "동시에" 계속 조작 가능해야 해서 같은 방법(중첩 Dialog)을 쓰면 두 모달의 포커스
+        // 트랩이 서로 얽혀 브라우저가 멈춘다(실제 확인함) — 여기는 포인터 이벤트만 명시적으로
+        // 되살린다. 스크린리더 접근성은 이 바만 놓고 보면 완전하지 않다는 한계가 남는다(후속
+        // 과제로 문서화).
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex items-center gap-2.5 border-t border-gray-10 bg-gray-0 px-4 pt-2 pb-8">
           <p className="pointer-events-auto flex-1 text-b2 font-semibold text-gray-80">
             이 장소가 맞나요?
