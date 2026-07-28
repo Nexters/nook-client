@@ -1,0 +1,255 @@
+import { Dialog } from 'radix-ui';
+import { useEffect, useState } from 'react';
+import { useAppShellContainer } from '@/app/providers';
+import type { Place } from '@/features/place';
+import type { Post } from '@/features/post';
+import { Icon16Location, Icon18MagnifyingGlass, Icon24Delete } from '@/shared/icons/NookIcons';
+import { cn } from '@/shared/lib/utils';
+import { Button, Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
+import { getMockPlacePosts } from '../mock/placePosts';
+import { searchMockPlaces } from '../mock/placeSearchResults';
+import { PlaceSearchResultDetail } from './PlaceSearchResultDetail';
+import { PostImageViewer } from './PostImageViewer';
+
+export interface PlaceDirectInputDrawerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** 장소 상세에서 "추가하기"를 눌렀을 때 호출된다. 이 드로어는 그 후 스스로 닫는다. */
+  onPlaceConfirmed: (place: Place) => void;
+}
+
+/**
+ * 검색 목록 모드 전용 스냅(고정 90% 하나뿐) — `snapPoints` 를 이 모드에서도 항상 정의해
+ * 둬야, 장소를 선택해 상세 모드로 넘어갈 때 vaul 이 "snapPoints 가 이번에 처음 생겼다"고
+ * 보지 않는다. `undefined` 로 뒀다가 상세 진입 시점에 처음 배열을 준다는 이전 방식은,
+ * vaul 이 새 스냅 위치를 계산하기 전에 오프셋 0(완전히 펼친 상태)으로 한 프레임 그렸다가
+ * 뒤늦게 애니메이션으로 내려앉아 시트가 확 커졌다가 훅 줄어드는 것처럼 보였다 —
+ * `map/PlaceSheet.tsx` 가 검색/상세 두 모드 모두에서 스냅을 항상 켜두는 것과 같은 이유.
+ */
+const PLACE_LIST_SNAP_POINTS: [number] = [0.9];
+
+/** Figma `장소 바텀시트`(장소 상세) collapsed/expanded 스냅 — `map/PlaceSheet` 와 동일 패턴. */
+const PLACE_DETAIL_SNAP_POINTS: [number, number] = [0.55, 1];
+
+/**
+ * Figma `게시물 상세_직접 입력` — 연관 장소를 못 찾았을 때 사용자가 직접 검색해 넣는 바텀시트.
+ *
+ * 검색 리스트와 장소 상세는 별도 드로어가 아니라 같은 Drawer 안에서 콘텐츠만 바꾼다
+ * (`selectedPlace` 유무로 분기) — `map/PlaceSheet`+`PlaceDetail` 이 이미 쓰는 컨벤션과 동일.
+ * 장소 상세 안에서 게시물을 누르면 `PostImageViewer`(기존 오버레이)를 그대로 재사용한다.
+ */
+function PlaceDirectInputDrawer({
+  open,
+  onOpenChange,
+  onPlaceConfirmed,
+}: PlaceDirectInputDrawerProps) {
+  const shellContainer = useAppShellContainer();
+  const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(
+    PLACE_LIST_SNAP_POINTS[0],
+  );
+  const [viewingPost, setViewingPost] = useState<Post | null>(null);
+  const results = searchMockPlaces(query);
+
+  // 배경 페이지가 스크롤된 채로 열리면 vaul 이 "콘텐츠를 스크롤하는 중"으로 오인해
+  // 끌어내리기(dismiss) 제스처를 막아버린다 — 열려 있는 동안만 문서 스크롤 위치를 고정해
+  // 화면은 그대로 두면서 vaul 의 드래그 판정(scrollTop === 0)은 항상 통과하게 한다.
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement;
+    const scrollY = root.scrollTop;
+    const previous = {
+      position: root.style.position,
+      top: root.style.top,
+      width: root.style.width,
+    };
+    root.style.position = 'fixed';
+    root.style.top = `-${scrollY}px`;
+    root.style.width = '100%';
+    return () => {
+      root.style.position = previous.position;
+      root.style.top = previous.top;
+      root.style.width = previous.width;
+      root.scrollTop = scrollY;
+    };
+  }, [open]);
+
+  // "추가하기" 확정처럼 부모가 `open` prop 을 직접 false 로 바꿔 닫는 경우, vaul 의
+  // onOpenChange 콜백은 호출되지 않는다(그건 드로어 스스로 닫힐 때만 불린다) — 닫히는
+  // 계기와 무관하게 항상 초기화되도록 `open` 값 자체를 감시한다.
+  useEffect(() => {
+    if (open) return;
+    setQuery('');
+    setSelectedPlace(null);
+    setActiveSnapPoint(PLACE_LIST_SNAP_POINTS[0]);
+    setViewingPost(null);
+  }, [open]);
+
+  return (
+    <>
+      <Drawer
+        open={open}
+        onOpenChange={onOpenChange}
+        container={shellContainer}
+        snapPoints={selectedPlace ? PLACE_DETAIL_SNAP_POINTS : PLACE_LIST_SNAP_POINTS}
+        activeSnapPoint={activeSnapPoint}
+        setActiveSnapPoint={setActiveSnapPoint}
+      >
+        <DrawerContent
+          className={cn(
+            'flex flex-col',
+            // vaul 은 snapPoints 를 뷰포트가 아니라 `container` prop(앱 셸, providers.tsx)의
+            // 박스 높이 비율로 계산해 transform 으로 감춘다 — 셸 높이가 실제 뷰포트 높이와
+            // 같아지는 건 이 드로어를 호스팅하는 페이지 자체가 `h-dvh` + 내부 스크롤로 뷰포트
+            // 높이에 갇혀 있을 때뿐이다(PostDetailPage/GroupPage/MapPage 가 그 패턴을 따른다) —
+            // 그렇지 않고 페이지가 뷰포트보다 길어지면 셸도 같이 늘어나 모든 스냅 비율이 틀어진다.
+            // 이와 별개로, 드로어 엘리먼트 자체는 항상 셸 전체 높이(h-dvh)여야 그 계산이 맞고
+            // 지금 보이는 스냅만큼만 잘려 보인다 — 그래서 목록/상세 모드 상관없이 항상 h-dvh 로
+            // 고정하고, 모드별 여백/스크롤은 안쪽 래퍼(아래)에서 따로 준다.
+            'h-dvh overflow-hidden',
+          )}
+        >
+          <DrawerTitle className="sr-only">
+            {selectedPlace ? `${selectedPlace.name} 상세` : '장소 직접 입력'}
+          </DrawerTitle>
+
+          {selectedPlace ? (
+            <PlaceSearchResultDetail
+              place={selectedPlace}
+              posts={getMockPlacePosts(selectedPlace.id)}
+              expanded={activeSnapPoint === PLACE_DETAIL_SNAP_POINTS[1]}
+              onSelectPost={setViewingPost}
+            />
+          ) : (
+            // h-[90dvh] 는 PLACE_LIST_SNAP_POINTS[0](0.9) 와 맞물려 있다 — flex-1 로 두면
+            // 이 래퍼가 DrawerContent 의 h-dvh 전체(100%)를 채우는데, 실제로 화면에 보이는
+            // 건 그 중 90% 뿐이라 나머지 10%(리스트 하단 + pb-11 여백)가 스크롤로도 닿지
+            // 않는 죽은 영역이 된다. 래퍼 자체를 보이는 비율(90dvh)만큼만 잡아야 내부
+            // `overflow-y-auto` 가 실제로 전부 스크롤해서 보여줄 수 있다.
+            <div className="flex h-[90dvh] flex-col px-4 pb-11">
+              {/* 앞에 돋보기 아이콘 슬롯이 필요해 공용 `Input` (@/shared/ui) 을 못 쓰고 직접 구현한다 —
+                  대신 포커스 보더/클리어 버튼 동작은 `Input` 과 동일하게 맞춘다. */}
+              <div className="flex h-11 w-full shrink-0 items-center gap-2 rounded-lg border border-gray-30 px-3 transition-colors focus-within:border-gray-100">
+                <Icon18MagnifyingGlass className="shrink-0" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onFocus={() => setFocused(true)}
+                  onBlur={() => setFocused(false)}
+                  placeholder="장소명을 입력해주세요"
+                  className="min-w-0 flex-1 bg-transparent text-b2 font-medium text-gray-100 outline-none placeholder:text-gray-50"
+                />
+                {focused && query.length > 0 ? (
+                  <button
+                    type="button"
+                    aria-label="입력 지우기"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => setQuery('')}
+                    className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-1"
+                  >
+                    <Icon24Delete />
+                  </button>
+                ) : null}
+              </div>
+
+              {results.length > 0 ? (
+                <ul className="mt-5 flex w-full flex-1 flex-col overflow-y-auto">
+                  {results.map((place, index) => (
+                    <li key={place.id} className={cn(index > 0 && 'border-t border-gray-10')}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // 선택과 동시에 상세 스냅으로 바꿔야 vaul 이 "이미 켜져 있던" 스냅을
+                          // 새 값으로 자연스럽게 애니메이션한다(이 파일 상단 PLACE_LIST_SNAP_POINTS
+                          // 주석 참고) — 다음 렌더까지 미루면 잠깐 목록 스냅(0.9)으로 있다가
+                          // 다시 상세 스냅(0.55)으로 튀는 것처럼 보인다.
+                          setSelectedPlace(place);
+                          setActiveSnapPoint(PLACE_DETAIL_SNAP_POINTS[0]);
+                        }}
+                        className="flex w-full items-center gap-2 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset"
+                      >
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-gray-10">
+                          <Icon16Location />
+                        </span>
+                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                          <div className="flex items-end gap-0.5">
+                            <span className="truncate text-b2 font-semibold text-gray-90">
+                              {place.name}
+                            </span>
+                            <span className="shrink-0 text-b3 font-medium text-gray-70">
+                              {place.category}
+                            </span>
+                          </div>
+                          <p className="truncate text-b3 font-medium text-gray-80">
+                            {place.address} · {place.distance}
+                          </p>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          )}
+        </DrawerContent>
+      </Drawer>
+
+      {open && selectedPlace && !viewingPost ? (
+        // vaul 이 snapPoints 를 표현하려고 드로어 엘리먼트 전체를 transform 으로 밀어
+        // 올리는데, 그 안의 자식은 collapsed 스냅에서 화면 밖(엘리먼트 실제 바닥)으로
+        // 같이 밀려난다 — 스냅과 무관하게 항상 보여야 하는 이 바는 드로어 밖, 뷰포트
+        // 기준 fixed 로 따로 그린다(Figma 시안도 시트와 겹치는 별도 레이어다).
+        //
+        // Drawer(vaul)가 모달로 열려 있는 동안 `aria-hidden` 패키지의 hideOthers() 가 이
+        // 형제 엘리먼트에 aria-hidden/data-aria-hidden 을 붙이고, 이와 별개로 Radix Dialog 가
+        // 모달이 열려 있는 동안 `document.body.style.pointerEvents = 'none'` 을 직접 설정해
+        // 클릭도 막아버린다(§PostImageViewer 와 같은 원인). 거기는 "열려있는 동안 배타적으로
+        // 대체하는" 오버레이라 별도 Dialog 로 감싸는 게 맞았지만, 이 바는 드로어 콘텐츠와
+        // "동시에" 계속 조작 가능해야 해서 같은 방법(중첩 Dialog)을 쓰면 두 모달의 포커스
+        // 트랩이 서로 얽혀 브라우저가 멈춘다(실제 확인함) — 여기는 포인터 이벤트만 명시적으로
+        // 되살린다. 다만 aria-hidden 자체는 풀리지 않고 Drawer 의 포커스 트랩도 이 바까지는
+        // 미치지 못해서, 마우스/터치로만 누를 수 있고 키보드·스크린리더로는 이 버튼에 전혀
+        // 도달할 수 없다 — "일부 제한"이 아니라 완전히 막힌 상태다(후속 과제로 남겨둔다).
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex items-center gap-2.5 border-t border-gray-10 bg-gray-0 px-4 pt-2 pb-8">
+          <p className="pointer-events-auto flex-1 text-b2 font-semibold text-gray-80">
+            이 장소가 맞나요?
+          </p>
+          <Button
+            size="md"
+            onClick={() => onPlaceConfirmed(selectedPlace)}
+            className="pointer-events-auto flex-1"
+          >
+            추가하기
+          </Button>
+        </div>
+      ) : null}
+
+      {viewingPost ? (
+        // 장소 상세 Drawer 가 열려 있는 동안 겹쳐 뜨는 오버레이라 일반 형제(`fixed` div)로만
+        // 두면 Radix 가 Drawer 를 이미 모달로 보고 이 오버레이째로 배경(aria-hidden) 처리해
+        // 버린다 — `PostImageViewer` 를 별도 Radix Dialog 로 한 번 더 감싸 "지금 열려 있는
+        // 최상단 모달"로 인식시켜야 뒤로가기 버튼 등이 접근 가능한 상태로 남는다.
+        <Dialog.Root
+          open
+          onOpenChange={(next) => {
+            if (!next) setViewingPost(null);
+          }}
+        >
+          <Dialog.Portal container={shellContainer}>
+            <Dialog.Content>
+              <Dialog.Title className="sr-only">이미지 확대 보기</Dialog.Title>
+              <PostImageViewer
+                images={viewingPost.images ?? []}
+                onClose={() => setViewingPost(null)}
+              />
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+      ) : null}
+    </>
+  );
+}
+
+export { PlaceDirectInputDrawer };

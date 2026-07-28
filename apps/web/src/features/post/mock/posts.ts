@@ -1,10 +1,11 @@
 import type { GroupColor } from '@/shared/ui';
-import type { Place } from '../../place/types';
 import type { Post } from '../types';
 
 /**
  * 게시물 상세 목데이터. **API 스펙 확정 시 `features/post/api.ts` + TanStack Query 로
  * 교체한다** — 화면은 `getMockPostDetail` 하나만 부르므로 교체 지점이 그 함수다.
+ *
+ * 연관 장소와 북마크 초기값은 별도 파싱 API(`mock/placeParsing.ts` → `getMockPlaceParsing`)가 담당한다.
  */
 
 /** 이미지 API 연동 전까지 쓰는 단색 플레이스홀더. */
@@ -19,45 +20,14 @@ const IMAGE_B = placeholder('#b4bdc9', 281, 300);
 const IMAGE_C = placeholder('#d7dce3', 281, 300);
 const IMAGE_D = placeholder('#cfd5dd', 281, 300);
 
-/** 게시물 상세가 한 화면에 필요로 하는 묶음 — 게시물 + 저장된 그룹 + 연관 장소. */
+/** 게시물 상세가 한 화면에 필요로 하는 묶음 — 게시물 + 저장된 그룹. */
 export interface PostDetail {
   post: Post;
   title: string;
   groupName: string;
   groupColor: GroupColor;
   memo?: string;
-  /** Figma `연관 장소`. 비어 있으면 그 섹션을 통째로 렌더하지 않는다. */
-  relatedPlaces: Place[];
-  /** 이미 즐겨찾기한 장소 id — 시안의 파란 북마크 상태. */
-  bookmarkedPlaceIds: string[];
 }
-
-const RELATED_PLACES: Place[] = [
-  {
-    id: 'place-1',
-    name: '아이소',
-    category: '카페',
-    distance: '16.2km',
-    address: '경기 용인시 처인구 양지읍 은이로 72',
-    thumbnail: placeholder('#b4bdc9', 64, 64),
-  },
-  {
-    id: 'place-2',
-    name: '퍼머넌트해비탯',
-    category: '카페',
-    distance: '16.2km',
-    address: '경기 용인시 처인구 양지읍 은이로 72',
-    thumbnail: placeholder('#d7dce3', 64, 64),
-  },
-  {
-    id: 'place-3',
-    // 썸네일이 없으면 `PlaceRow` 가 시안 `Image_x` 로 떨어진다.
-    name: '탐석과 사랑',
-    category: '카페',
-    distance: '16.2km',
-    address: '경기 용인시 처인구 양지읍 은이로 72',
-  },
-];
 
 const MOCK_POST_DETAILS: Record<string, PostDetail> = {
   'post-1': {
@@ -65,9 +35,6 @@ const MOCK_POST_DETAILS: Record<string, PostDetail> = {
     groupName: '카페',
     groupColor: 'yellow',
     memo: '지우랑 가면 좋겠다',
-    relatedPlaces: RELATED_PLACES,
-    // 시안: 앞의 두 장소만 파란 북마크(저장됨)
-    bookmarkedPlaceIds: ['place-1', 'place-2'],
     post: {
       id: 'post-1',
       authorHandle: '@nook.official on instagram',
@@ -77,18 +44,42 @@ const MOCK_POST_DETAILS: Record<string, PostDetail> = {
       originalUrl: 'https://instagram.com',
     },
   },
-  // 시안 `연관 장소 X` — 연결된 장소가 아직 없는 게시물.
+  // 시안 `연관 장소 X` — 파싱은 성공했지만 연결된 장소가 없는 게시물.
   'post-2': {
     title: '몰래 가려고 저장해둔 서울 카페',
     groupName: '카페',
     groupColor: 'yellow',
-    relatedPlaces: [],
-    bookmarkedPlaceIds: [],
     post: {
       id: 'post-2',
       authorHandle: '@nook.official on instagram',
       caption: '조용히 혼자 가고 싶은 서울 카페들을 모아뒀어요. 주말 오전이 가장 한산합니다.',
       images: [IMAGE_B, IMAGE_C],
+      originalUrl: 'https://instagram.com',
+    },
+  },
+  // 시안 `게시물 상세_직접 입력` 실패 케이스 — 연관 장소 파싱 자체가 실패하는 게시물.
+  'post-3': {
+    title: '위치 태그 없이 올라온 카페 사진',
+    groupName: '카페',
+    groupColor: 'yellow',
+    post: {
+      id: 'post-3',
+      authorHandle: '@nook.official on instagram',
+      caption: '위치 정보 없이 올라온 게시물이라 연관 장소 파싱이 실패할 수 있어요.',
+      images: [IMAGE_D],
+      originalUrl: 'https://instagram.com',
+    },
+  },
+  // 파싱 진행 중(PENDING → 3초 폴링 후 SUCCESS) 데모용 게시물 — mock/placeParsing.ts 참고.
+  'post-4': {
+    title: '방금 저장해서 아직 분석 중인 게시물',
+    groupName: '카페',
+    groupColor: 'yellow',
+    post: {
+      id: 'post-4',
+      authorHandle: '@nook.official on instagram',
+      caption: '방금 저장한 게시물은 연관 장소 파싱이 끝날 때까지 로딩으로 보인다.',
+      images: [IMAGE_A],
       originalUrl: 'https://instagram.com',
     },
   },

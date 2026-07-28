@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
-import { PlaceRow } from '@/features/place';
+import type { Place } from '@/features/place';
 import { cn } from '@/shared/lib/utils';
-import { BackButton, Carousel, Header } from '@/shared/ui';
+import { BackButton, Carousel, Header, Snackbar } from '@/shared/ui';
 import { MemoSheet } from './components/MemoSheet';
 import { OriginalPostLink } from './components/OriginalPostLink';
+import { PlaceDirectInputDrawer } from './components/PlaceDirectInputDrawer';
 import { PostImageViewer } from './components/PostImageViewer';
 import { PostInfo } from './components/PostInfo';
+import { RelatedPlacesSection } from './components/RelatedPlacesSection';
+import { useRelatedPlaces } from './hooks/useRelatedPlaces';
 // TODO(api): 게시물 상세 API 연동 시 목데이터 대신 TanStack Query 훅으로 교체한다.
 import { getMockPostDetail } from './mock/posts';
 
@@ -28,13 +31,50 @@ export function PostDetailPage() {
   const [memoOpen, setMemoOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
-  // TODO(api): 즐겨찾기 토글은 장소 API 연동 후 서버 상태를 따르게 바꾼다.
-  const [bookmarkedPlaceIds, setBookmarkedPlaceIds] = useState(detail?.bookmarkedPlaceIds ?? []);
+  const relatedPlacesState = useRelatedPlaces(postId);
+  const [directInputOpen, setDirectInputOpen] = useState(false);
+  const [showRelatedPlacesErrorToast, setShowRelatedPlacesErrorToast] = useState(false);
+
+  // TODO(api): 즐겨찾기 토글은 북마크 API 연동 후 서버 상태를 따르게 바꾼다.
+  // 파싱 응답의 bookmarked 초기값 위에 사용자가 토글한 값만 덮어쓴다.
+  const [bookmarkOverrides, setBookmarkOverrides] = useState<Record<string, boolean>>({});
 
   const toggleBookmark = (placeId: string, next: boolean) =>
-    setBookmarkedPlaceIds((prev) =>
-      next ? [...prev, placeId] : prev.filter((id) => id !== placeId),
+    setBookmarkOverrides((prev) => ({ ...prev, [placeId]: next }));
+
+  // "직접 추가"로 확정한 장소 — 파싱 상태와 무관하게 항상 연관 장소에 보여준다.
+  const [manualPlaces, setManualPlaces] = useState<Place[]>([]);
+
+  function handlePlaceConfirmed(place: Place) {
+    // TODO(api): 장소 연결은 실제로는 서버에 저장해야 한다. 지금은 화면 상태(manualPlaces)만 갱신해 새로고침/재방문 시 사라진다.
+    setManualPlaces((prev) =>
+      prev.some((existing) => existing.id === place.id) ? prev : [...prev, place],
     );
+    // 시안: 직접 추가한 장소는 항상 파란 북마크(저장됨) 상태로 시작한다.
+    setBookmarkOverrides((prev) => ({ ...prev, [place.id]: true }));
+    setDirectInputOpen(false);
+  }
+
+  const allPlaceIds = [
+    ...(relatedPlacesState.status === 'success'
+      ? relatedPlacesState.places.map((place) => place.id)
+      : []),
+    ...manualPlaces.map((place) => place.id),
+  ];
+
+  const bookmarkedPlaceIds = allPlaceIds.filter(
+    (id) =>
+      bookmarkOverrides[id] ??
+      (relatedPlacesState.status === 'success' &&
+        relatedPlacesState.bookmarkedPlaceIds.includes(id)),
+  );
+
+  useEffect(() => {
+    if (relatedPlacesState.status !== 'error') return;
+    setShowRelatedPlacesErrorToast(true);
+    const timer = setTimeout(() => setShowRelatedPlacesErrorToast(false), 3000);
+    return () => clearTimeout(timer);
+  }, [relatedPlacesState.status]);
 
   if (!detail) {
     return (
@@ -47,102 +87,108 @@ export function PostDetailPage() {
     );
   }
 
-  const { post, title, groupName, groupColor, relatedPlaces } = detail;
+  const { post, title, groupName, groupColor } = detail;
   const images = post.images ?? [];
 
   return (
     <main
-      className="min-h-dvh bg-gray-0"
-      style={{
-        paddingTop: 'env(safe-area-inset-top)',
-        paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))',
-      }}
+      className="flex h-dvh flex-col overflow-hidden bg-gray-0"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <Header left={<BackButton />} />
+      <div
+        className="min-h-0 flex-1 overflow-y-auto"
+        style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+      >
+        <Header left={<BackButton />} />
 
-      {images.length > 0 ? (
-        <Carousel>
-          {images.map((src, index) => (
-            <button
-              // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
-              // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
-              key={index}
-              type="button"
-              aria-label={`${index + 1}번째 이미지 크게 보기`}
-              onClick={() => setViewerOpen(true)}
-              // 좌우 16px 여백은 첫/마지막 슬라이드가 만든다 — 스크롤 컨테이너에 padding 을
-              // 주면 다음 이미지가 화면 끝까지 이어지지 않고 잘린다(시안은 끝까지 이어진다).
-              className={cn(
-                'h-[300px] w-[281px] overflow-hidden rounded-sm',
-                index === 0 && 'ml-4',
-                index === images.length - 1 && 'mr-4',
-              )}
-            >
-              <img src={src} alt="" className="size-full object-cover" />
-            </button>
-          ))}
-        </Carousel>
-      ) : null}
-
-      <div className="flex flex-col gap-2 px-4 pt-1">
-        <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
-
-        {post.caption ? (
-          <div className="flex flex-col">
-            <p
-              className={cn(
-                'whitespace-pre-wrap text-b2 font-normal text-gray-80',
-                expanded ? '' : 'line-clamp-1',
-              )}
-            >
-              {post.caption}
-            </p>
-            <button
-              type="button"
-              onClick={() => setExpanded((prev) => !prev)}
-              className="self-start text-b2 font-medium text-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-            >
-              {expanded ? '접기' : '더보기'}
-            </button>
-          </div>
+        {images.length > 0 ? (
+          <Carousel>
+            {images.map((src, index) => (
+              <button
+                // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
+                // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
+                key={index}
+                type="button"
+                aria-label={`${index + 1}번째 이미지 크게 보기`}
+                onClick={() => setViewerOpen(true)}
+                // 좌우 16px 여백은 첫/마지막 슬라이드가 만든다 — 스크롤 컨테이너에 padding 을
+                // 주면 다음 이미지가 화면 끝까지 이어지지 않고 잘린다(시안은 끝까지 이어진다).
+                className={cn(
+                  'h-[300px] w-[281px] overflow-hidden rounded-sm',
+                  index === 0 && 'ml-4',
+                  index === images.length - 1 && 'mr-4',
+                )}
+              >
+                <img src={src} alt="" className="size-full object-cover" />
+              </button>
+            ))}
+          </Carousel>
         ) : null}
 
-        <PostInfo
-          groupName={groupName}
-          groupColor={groupColor}
-          memo={memo}
-          onMemoEdit={() => setMemoOpen(true)}
-          className="pt-2"
-        />
+        <div className="flex flex-col gap-2 px-4 pt-1">
+          <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
 
-        {post.originalUrl ? (
-          <OriginalPostLink label={post.authorHandle} href={post.originalUrl} className="mt-2" />
-        ) : null}
-      </div>
-
-      {relatedPlaces.length > 0 ? (
-        <>
-          {/* 시안의 6px 회색 띠 — 게시물 정보와 연관 장소를 가르는 구분면 */}
-          <div className="mt-4 h-1.5 w-full bg-gray-10" />
-          <section className="px-4">
-            <h2 className="py-4 text-b1 font-semibold text-gray-100">연관 장소</h2>
-            <div className="flex flex-col gap-4">
-              {relatedPlaces.map((place) => (
-                <PlaceRow
-                  key={place.id}
-                  place={place}
-                  bookmarked={bookmarkedPlaceIds.includes(place.id)}
-                  onBookmarkedChange={(next) => toggleBookmark(place.id, next)}
-                />
-              ))}
+          {post.caption ? (
+            <div className="flex flex-col">
+              <p
+                className={cn(
+                  'whitespace-pre-wrap text-b2 font-normal text-gray-80',
+                  expanded ? '' : 'line-clamp-1',
+                )}
+              >
+                {post.caption}
+              </p>
+              <button
+                type="button"
+                onClick={() => setExpanded((prev) => !prev)}
+                className="self-start text-b2 font-medium text-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+              >
+                {expanded ? '접기' : '더보기'}
+              </button>
             </div>
-          </section>
-        </>
-      ) : null}
+          ) : null}
+
+          <PostInfo
+            groupName={groupName}
+            groupColor={groupColor}
+            memo={memo}
+            onMemoEdit={() => setMemoOpen(true)}
+            className="pt-2"
+          />
+
+          {post.originalUrl ? (
+            <OriginalPostLink label={post.authorHandle} href={post.originalUrl} className="mt-2" />
+          ) : null}
+        </div>
+
+        <RelatedPlacesSection
+          state={relatedPlacesState}
+          manualPlaces={manualPlaces}
+          bookmarkedPlaceIds={bookmarkedPlaceIds}
+          onBookmarkedChange={toggleBookmark}
+          onDirectAddClick={() => setDirectInputOpen(true)}
+        />
+      </div>
 
       <MemoSheet open={memoOpen} onOpenChange={setMemoOpen} memo={memo} onSave={setMemo} />
 
       {viewerOpen ? <PostImageViewer images={images} onClose={() => setViewerOpen(false)} /> : null}
+
+      <PlaceDirectInputDrawer
+        open={directInputOpen}
+        onOpenChange={setDirectInputOpen}
+        onPlaceConfirmed={handlePlaceConfirmed}
+      />
+
+      {showRelatedPlacesErrorToast ? (
+        <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+          <Snackbar
+            title="위치를 찾지 못 했어요"
+            description="게시물은 저장됐지만 지도에는 표시되지 않아요"
+            className="w-full max-w-[343px]"
+          />
+        </div>
+      ) : null}
     </main>
   );
 }
