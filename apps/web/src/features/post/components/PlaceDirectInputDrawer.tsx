@@ -5,7 +5,7 @@ import type { Place } from '@/features/place';
 import type { Post } from '@/features/post';
 import { Icon16Location, Icon18MagnifyingGlass, Icon24Delete } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
-import { Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
+import { Button, Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
 import { getMockPlacePosts } from '../mock/placePosts';
 import { searchMockPlaces } from '../mock/placeSearchResults';
 import { PlaceSearchResultDetail } from './PlaceSearchResultDetail';
@@ -66,20 +66,22 @@ function PlaceDirectInputDrawer({
     };
   }, [open]);
 
-  function handleOpenChange(next: boolean) {
-    if (!next) {
-      setQuery('');
-      setSelectedPlace(null);
-      setActiveSnapPoint(PLACE_DETAIL_SNAP_POINTS[0]);
-    }
-    onOpenChange(next);
-  }
+  // "추가하기" 확정처럼 부모가 `open` prop 을 직접 false 로 바꿔 닫는 경우, vaul 의
+  // onOpenChange 콜백은 호출되지 않는다(그건 드로어 스스로 닫힐 때만 불린다) — 닫히는
+  // 계기와 무관하게 항상 초기화되도록 `open` 값 자체를 감시한다.
+  useEffect(() => {
+    if (open) return;
+    setQuery('');
+    setSelectedPlace(null);
+    setActiveSnapPoint(PLACE_DETAIL_SNAP_POINTS[0]);
+    setViewingPost(null);
+  }, [open]);
 
   return (
     <>
       <Drawer
         open={open}
-        onOpenChange={handleOpenChange}
+        onOpenChange={onOpenChange}
         container={shellContainer}
         snapPoints={selectedPlace ? PLACE_DETAIL_SNAP_POINTS : undefined}
         activeSnapPoint={selectedPlace ? activeSnapPoint : undefined}
@@ -88,7 +90,11 @@ function PlaceDirectInputDrawer({
         <DrawerContent
           className={cn(
             'flex flex-col',
-            selectedPlace ? 'overflow-hidden' : 'h-[90dvh] px-4 pb-11',
+            // vaul 은 snapPoints 를 뷰포트 높이 비율로 계산해 transform 으로 감춘다 —
+            // 드로어 엘리먼트 자체가 항상 뷰포트 전체 높이(h-dvh)여야 그 계산이 맞고,
+            // 지금 보이는 스냅만큼만 잘려 보인다. 콘텐츠 길이에 맞춰 자동으로 줄어들게
+            // 두면(높이 지정 없음) collapsed 스냅에서 대부분이 화면 밖으로 밀려난다.
+            selectedPlace ? 'h-dvh overflow-hidden' : 'h-[90dvh] px-4 pb-11',
           )}
         >
           <DrawerTitle className="sr-only">
@@ -101,7 +107,6 @@ function PlaceDirectInputDrawer({
               posts={getMockPlacePosts(selectedPlace.id)}
               expanded={activeSnapPoint === PLACE_DETAIL_SNAP_POINTS[1]}
               onSelectPost={setViewingPost}
-              onConfirm={() => onPlaceConfirmed(selectedPlace)}
             />
           ) : (
             <>
@@ -164,6 +169,33 @@ function PlaceDirectInputDrawer({
           )}
         </DrawerContent>
       </Drawer>
+
+      {open && selectedPlace ? (
+        // vaul 이 snapPoints 를 표현하려고 드로어 엘리먼트 전체를 transform 으로 밀어
+        // 올리는데, 그 안의 자식은 collapsed 스냅에서 화면 밖(엘리먼트 실제 바닥)으로
+        // 같이 밀려난다 — 스냅과 무관하게 항상 보여야 하는 이 바는 드로어 밖, 뷰포트
+        // 기준 fixed 로 따로 그린다(Figma 시안도 시트와 겹치는 별도 레이어다).
+        //
+        // Drawer(vaul)가 모달로 열려 있는 동안 Radix 가 이 형제 엘리먼트를
+        // aria-hidden + pointer-events:none 처리해버린다(§PostImageViewer 와 같은 원인).
+        // 거기는 "열려있는 동안 배타적으로 대체하는" 오버레이라 별도 Dialog 로 감싸는 게
+        // 맞았지만, 이 바는 드로어 콘텐츠와 "동시에" 계속 조작 가능해야 해서 같은 방법(중첩
+        // Dialog)을 쓰면 두 모달의 포커스 트랩이 서로 얽혀 브라우저가 멈춘다(실제 확인함) —
+        // 여기는 포인터 이벤트만 명시적으로 되살린다. 스크린리더 접근성은 이 바만 놓고 보면
+        // 완전하지 않다는 한계가 남는다(후속 과제로 문서화).
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex items-center gap-2.5 border-t border-gray-10 bg-gray-0 px-4 pt-2 pb-8">
+          <p className="pointer-events-auto flex-1 text-b2 font-semibold text-gray-80">
+            이 장소가 맞나요?
+          </p>
+          <Button
+            size="md"
+            onClick={() => onPlaceConfirmed(selectedPlace)}
+            className="pointer-events-auto flex-1"
+          >
+            추가하기
+          </Button>
+        </div>
+      ) : null}
 
       {viewingPost ? (
         // 장소 상세 Drawer 가 열려 있는 동안 겹쳐 뜨는 오버레이라 일반 형제(`fixed` div)로만

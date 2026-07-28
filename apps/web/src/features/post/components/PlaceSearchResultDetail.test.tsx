@@ -24,7 +24,6 @@ describe('PlaceSearchResultDetail', () => {
         posts={POSTS}
         expanded={false}
         onSelectPost={() => {}}
-        onConfirm={() => {}}
       />,
     );
 
@@ -42,7 +41,6 @@ describe('PlaceSearchResultDetail', () => {
         posts={POSTS}
         expanded={false}
         onSelectPost={onSelectPost}
-        onConfirm={() => {}}
       />,
     );
 
@@ -52,31 +50,9 @@ describe('PlaceSearchResultDetail', () => {
     expect(onSelectPost).toHaveBeenCalledWith(POSTS[0]);
   });
 
-  it('"추가하기"를 누르면 onConfirm 이 호출된다', () => {
-    const onConfirm = vi.fn();
-    render(
-      <PlaceSearchResultDetail
-        place={PLACE}
-        posts={POSTS}
-        expanded={false}
-        onSelectPost={() => {}}
-        onConfirm={onConfirm}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: '추가하기' }));
-    expect(onConfirm).toHaveBeenCalled();
-  });
-
   it('expanded=true 면 게시물이 그리드로 보인다', () => {
     const { container } = render(
-      <PlaceSearchResultDetail
-        place={PLACE}
-        posts={POSTS}
-        expanded
-        onSelectPost={() => {}}
-        onConfirm={() => {}}
-      />,
+      <PlaceSearchResultDetail place={PLACE} posts={POSTS} expanded onSelectPost={() => {}} />,
     );
 
     expect(container.querySelector('.grid')).not.toBeNull();

@@ -2,7 +2,7 @@ import type { Place } from '@/features/place';
 import { PlaceDetailHeader } from '@/features/place';
 import type { Post } from '@/features/post';
 import { cn } from '@/shared/lib/utils';
-import { Button, Carousel, DrawerFooter } from '@/shared/ui';
+import { Carousel } from '@/shared/ui';
 
 export interface PlaceSearchResultDetailProps {
   place: Place;
@@ -11,7 +11,6 @@ export interface PlaceSearchResultDetailProps {
   /** collapsed 면 가로 스크롤 캐러셀, expanded 면 2열 그리드로 게시물을 보여준다. */
   expanded: boolean;
   onSelectPost: (post: Post) => void;
-  onConfirm: () => void;
 }
 
 function PostThumbnailButton({
@@ -47,19 +46,23 @@ function PostThumbnailButton({
  * 캐러셀(각 카드 = 게시물 1개의 대표 이미지), expanded 에서는 2열 그리드로
  * 레이아웃만 바뀐다 — 게시물 목록 자체는 동일하다.
  *
- * 하단 "이 장소가 맞나요? / 추가하기" 바는 `DrawerFooter`(mt-auto)로 스크롤 영역과
- * 분리해 항상 바닥에 붙인다.
+ * 하단 "이 장소가 맞나요? / 추가하기" 바는 이 컴포넌트가 아니라 `PlaceDirectInputDrawer`가
+ * 그린다 — vaul 의 snapPoints 는 드로어 엘리먼트 전체를 transform 으로 밀어 올려/내려
+ * 스냅을 표현하는데, 그 안에 있는 자식은(설령 `mt-auto`/`sticky`를 써도) collapsed 스냅에서
+ * 화면 밖(엘리먼트의 실제 바닥, 즉 full 스냅 기준 바닥)으로 같이 밀려나 버린다. 항상
+ * 화면에 보여야 하는 바는 그 transform 밖, 뷰포트 기준 `fixed` 로 따로 그려야 한다
+ * (Figma 시안도 실제로 시트와 겹치는 별도 레이어로 되어 있다).
  */
 function PlaceSearchResultDetail({
   place,
   posts,
   expanded,
   onSelectPost,
-  onConfirm,
 }: PlaceSearchResultDetailProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4">
+      {/* 하단 fixed 바에 가리지 않도록 스크롤 영역 자체에 여유 패딩을 둔다. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-20">
         <PlaceDetailHeader place={place} className="pt-4 pb-4" />
 
         {posts.length > 0 ? (
@@ -88,13 +91,6 @@ function PlaceSearchResultDetail({
           )
         ) : null}
       </div>
-
-      <DrawerFooter className="flex-row items-center gap-2.5 border-t border-gray-10 p-4">
-        <p className="flex-1 text-b2 font-semibold text-gray-80">이 장소가 맞나요?</p>
-        <Button size="md" onClick={onConfirm} className="flex-1">
-          추가하기
-        </Button>
-      </DrawerFooter>
     </div>
   );
 }
