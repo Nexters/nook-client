@@ -5,6 +5,8 @@
  * OpenAPI spec version: v1
  */
 import type { SavedPostMediaResponse } from './savedPostMediaResponse.generated';
+import type { SavedPostSummaryResponseProcessingStage } from './savedPostSummaryResponseProcessingStage.generated';
+import type { SavedPostSummaryResponseProcessingStatus } from './savedPostSummaryResponseProcessingStatus.generated';
 
 export interface SavedPostSummaryResponse {
   /**
@@ -19,6 +21,13 @@ export interface SavedPostSummaryResponse {
   memo?: string | null;
   /** 저장 게시물 식별자 */
   postId: number;
+  /**
+   * 현재 처리 단계. 모든 처리가 완료되면 null입니다.
+   * @nullable
+   */
+  processingStage?: SavedPostSummaryResponseProcessingStage;
+  /** 게시물 전체 처리 상태 */
+  processingStatus: SavedPostSummaryResponseProcessingStatus;
   representativeMedia?: SavedPostMediaResponse | null;
   /** 게시물 저장 시각 */
   savedAt: string;

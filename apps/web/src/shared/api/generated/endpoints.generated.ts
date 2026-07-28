@@ -272,7 +272,7 @@ export const getCreatePostUrl = () => {
 };
 
 /**
- * @summary URL로 게시물 생성
+ * @summary URL로 게시물 저장 시작
  */
 export const createPost = async (
   createPostRequest: CreatePostRequest,

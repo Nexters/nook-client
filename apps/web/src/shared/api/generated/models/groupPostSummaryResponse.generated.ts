@@ -4,6 +4,8 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { GroupPostSummaryResponseProcessingStage } from './groupPostSummaryResponseProcessingStage.generated';
+import type { GroupPostSummaryResponseProcessingStatus } from './groupPostSummaryResponseProcessingStatus.generated';
 import type { SavedPostMediaResponse } from './savedPostMediaResponse.generated';
 
 export interface GroupPostSummaryResponse {
@@ -21,6 +23,13 @@ export interface GroupPostSummaryResponse {
   placeCount: number;
   /** 저장 게시물 식별자 */
   postId: number;
+  /**
+   * 현재 처리 단계. 모든 처리가 완료되면 null입니다.
+   * @nullable
+   */
+  processingStage?: GroupPostSummaryResponseProcessingStage;
+  /** 게시물 전체 처리 상태 */
+  processingStatus: GroupPostSummaryResponseProcessingStatus;
   representativeMedia?: SavedPostMediaResponse | null;
   /** 게시물 저장 시각 */
   savedAt: string;

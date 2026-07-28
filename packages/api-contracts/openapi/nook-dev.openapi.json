@@ -562,6 +562,27 @@
             "format": "int64",
             "type": "integer"
           },
+          "processingStage": {
+            "description": "현재 처리 단계. 모든 처리가 완료되면 null입니다.",
+            "enum": [
+              "CONTENT",
+              "PLACE"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "processingStatus": {
+            "description": "게시물 전체 처리 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "representativeMedia": {
             "oneOf": [
               {
@@ -588,6 +609,7 @@
         "required": [
           "placeCount",
           "postId",
+          "processingStatus",
           "savedAt"
         ],
         "type": "object"
@@ -922,11 +944,33 @@
             "description": "저장된 게시물 식별자",
             "format": "int64",
             "type": "integer"
+          },
+          "processingStage": {
+            "description": "현재 처리 단계. 모든 처리가 완료되면 null입니다.",
+            "enum": [
+              "CONTENT",
+              "PLACE"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "processingStatus": {
+            "description": "게시물 전체 처리 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
           }
         },
         "required": [
           "placeParsingStatus",
-          "postId"
+          "postId",
+          "processingStatus"
         ],
         "type": "object"
       },
@@ -1033,6 +1077,27 @@
             "format": "int64",
             "type": "integer"
           },
+          "processingStage": {
+            "description": "현재 처리 단계. 모든 처리가 완료되면 null입니다.",
+            "enum": [
+              "CONTENT",
+              "PLACE"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "processingStatus": {
+            "description": "게시물 전체 처리 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "publishedAt": {
             "description": "게시물 발행 시각",
             "format": "date-time",
@@ -1061,6 +1126,7 @@
           "placeParsingStatus",
           "places",
           "postId",
+          "processingStatus",
           "savedAt"
         ],
         "type": "object"
@@ -1225,6 +1291,27 @@
             "format": "int64",
             "type": "integer"
           },
+          "processingStage": {
+            "description": "현재 처리 단계. 모든 처리가 완료되면 null입니다.",
+            "enum": [
+              "CONTENT",
+              "PLACE"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "processingStatus": {
+            "description": "게시물 전체 처리 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "representativeMedia": {
             "oneOf": [
               {
@@ -1250,6 +1337,7 @@
         },
         "required": [
           "postId",
+          "processingStatus",
           "savedAt"
         ],
         "type": "object"
@@ -1905,7 +1993,7 @@
             "description": "OK"
           }
         },
-        "summary": "URL로 게시물 생성",
+        "summary": "URL로 게시물 저장 시작",
         "tags": [
           "Post"
         ]
