@@ -1,30 +1,42 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
-type AppVariant = 'development' | 'preview' | 'production';
+type AppVariant = 'development' | 'production';
 
 const SUFFIX: Record<AppVariant, string> = {
   development: '.dev',
-  preview: '.preview',
   production: '',
 };
 
 // APP_VARIANT 미설정 시 production. 오타·누락으로 엉뚱한 식별자가 만들어지지 않게
 // 알 수 없는 값도 production 으로 떨어뜨린다.
 function resolveVariant(): AppVariant {
-  const value = process.env.APP_VARIANT;
-  return value === 'development' || value === 'preview' ? value : 'production';
+  return process.env.APP_VARIANT === 'development' ? 'development' : 'production';
 }
+
+// react-native/gradle/libs.versions.toml 의 kotlin 과 맞춘다. 카카오 플러그인이
+// 값을 안 주면 android.kotlinVersion 을 1.5.10 으로 덮어써 Compose 모듈이 깨진다.
+const KOTLIN_VERSION = '2.1.20';
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const variant = resolveVariant();
-  // dev/preview 를 같은 기기에 동시 설치할 수 있도록 식별자를 분리한다.
+  // dev 와 운영 앱을 같은 기기에 동시 설치할 수 있도록 식별자를 분리한다.
   const appId = `com.nook.app${SUFFIX[variant]}`;
+
+  const kakaoAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY;
+  // 미설정이면 kakaoundefined:// 스킴이 조용히 생성되므로 여기서 끊는다.
+  if (!kakaoAppKey) {
+    throw new Error('EXPO_PUBLIC_KAKAO_APP_KEY 미설정');
+  }
 
   return {
     ...config,
     name: variant === 'production' ? 'nook' : `nook (${variant})`,
     slug: 'nook',
-    plugins: [...(config.plugins ?? []), '@bacons/apple-targets'],
+    plugins: [
+      ...(config.plugins ?? []),
+      '@bacons/apple-targets',
+      ['@react-native-seoul/kakao-login', { kakaoAppKey, kotlinVersion: KOTLIN_VERSION }],
+    ],
     ios: {
       ...config.ios,
       appleTeamId: process.env.APPLE_TEAM_ID,
