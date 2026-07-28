@@ -385,7 +385,271 @@ git commit -m "feat(post): 장소 파싱 API 계층과 useRelatedPlaces 훅 추�
 
 ---
 
-## Task 3: `RelatedPlacesSection` 컴포넌트 + `PostDetailPage` 연동 + 에러 스낵바
+## Task 3: 장소 검색 mock 데이터
+
+**Files:**
+- Create: `apps/web/src/features/post/mock/placeSearchResults.ts`
+- Test: `apps/web/src/features/post/mock/placeSearchResults.test.ts`
+
+**Interfaces:**
+- Produces: `export function searchMockPlaces(query: string): Place[]` — 검색어가 비어있으면 빈 배열, 아니면 이름에 검색어가 포함된(대소문자 무시) 장소만 반환.
+- Consumes: `Place` from `@/features/place`.
+
+- [ ] **Step 1: 실패하는 테스트 작성**
+
+`apps/web/src/features/post/mock/placeSearchResults.test.ts`:
+```ts
+import { describe, expect, it } from 'vitest';
+import { searchMockPlaces } from './placeSearchResults';
+
+describe('searchMockPlaces', () => {
+  it('검색어가 비어 있으면 빈 배열을 반환한다', () => {
+    expect(searchMockPlaces('')).toEqual([]);
+    expect(searchMockPlaces('   ')).toEqual([]);
+  });
+
+  it('이름에 검색어가 포함된 장소만 반환한다', () => {
+    const results = searchMockPlaces('앤미');
+    expect(results.map((place) => place.name)).toEqual(['앤미', '앤미용실', '앤미술']);
+  });
+
+  it('일치하는 장소가 없으면 빈 배열을 반환한다', () => {
+    expect(searchMockPlaces('존재하지않는장소')).toEqual([]);
+  });
+});
+```
+
+- [ ] **Step 2: 테스트 실행 → 실패 확인**
+
+Run: `pnpm --filter web test -- run src/features/post/mock/placeSearchResults.test.ts`
+Expected: FAIL — `Cannot find module './placeSearchResults'`
+
+- [ ] **Step 3: 구현**
+
+`apps/web/src/features/post/mock/placeSearchResults.ts`:
+```ts
+import type { Place } from '@/features/place';
+
+/**
+ * `PlaceDirectInputDrawer` 검색 결과 목데이터. 실제 장소 검색 API 연동 전까지
+ * 이름에 검색어가 포함되는 항목만 클라이언트에서 필터링해 보여준다.
+ */
+const MOCK_SEARCH_PLACES: Place[] = [
+  {
+    id: 'search-1',
+    name: '앤미',
+    category: '일식',
+    distance: '16.2km',
+    address: '서울 관악구 관악로 12길 47 (봉천동)',
+  },
+  {
+    id: 'search-2',
+    name: '앤미용실',
+    category: '미용실',
+    distance: '16.2km',
+    address: '서울 관악구 관악로 12길 47 (봉천동)',
+  },
+  {
+    id: 'search-3',
+    name: '앤미술',
+    category: '교습소',
+    distance: '16.2km',
+    address: '서울 관악구 관악로 12길 47 (봉천동)',
+  },
+];
+
+export function searchMockPlaces(query: string): Place[] {
+  const normalized = query.trim().toLowerCase();
+  if (normalized.length === 0) return [];
+  return MOCK_SEARCH_PLACES.filter((place) => place.name.toLowerCase().includes(normalized));
+}
+```
+
+- [ ] **Step 4: 테스트 실행 → 통과 확인**
+
+Run: `pnpm --filter web test -- run src/features/post/mock/placeSearchResults.test.ts`
+Expected: PASS (3 tests)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add apps/web/src/features/post/mock/placeSearchResults.ts apps/web/src/features/post/mock/placeSearchResults.test.ts
+git commit -m "feat(post): 장소 직접 입력 검색 mock 데이터 추가"
+```
+
+---
+
+## Task 4: `PlaceDirectInputDrawer` 컴포넌트 (초기 뷰 + 검색 결과 뷰)
+
+이 시안(node 74-4111, 74-4193)에서 검색 결과 행을 눌렀을 때 나오는 다음 화면은 범위 밖이다 — 행에는 `onClick`을 달지 않는다. 이 태스크는 드로어를 `PostDetailPage`와 독립적으로 완성한다 — `PostDetailPage` 연동은 Task 5에서 한다(이 시점엔 아직 "직접 추가" 배너 자체가 없다).
+
+**Files:**
+- Modify: `apps/web/src/test/setup.ts:1` (vaul Drawer가 jsdom에 없는 `ResizeObserver`를 요구한다 — 스텁 추가)
+- Create: `apps/web/src/features/post/components/PlaceDirectInputDrawer.tsx`
+- Test: `apps/web/src/features/post/components/PlaceDirectInputDrawer.test.tsx`
+
+**Interfaces:**
+- Consumes: `Drawer`, `DrawerContent`, `DrawerTitle`(`@/shared/ui`), `Icon18MagnifyingGlass`, `Icon24Delete`, `Icon16Location`(`@/shared/icons/NookIcons`, Task 1), `searchMockPlaces`(Task 3), `cn`(`@/shared/lib/utils`).
+- Produces: `PlaceDirectInputDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void })` — Task 5의 `PostDetailPage`가 이 시그니처로 호출한다.
+
+- [ ] **Step 1: jsdom에 `ResizeObserver` 스텁 추가**
+
+`apps/web/src/test/setup.ts`(1번째 줄 `import '@testing-library/jest-dom/vitest';` 다음)에 추가:
+```ts
+// vaul(Drawer)이 콘텐츠 높이 측정에 ResizeObserver 를 쓰는데 jsdom 에는 없다.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+```
+
+- [ ] **Step 2: 실패하는 테스트 작성**
+
+`apps/web/src/features/post/components/PlaceDirectInputDrawer.test.tsx`:
+```tsx
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import { PlaceDirectInputDrawer } from './PlaceDirectInputDrawer';
+
+describe('PlaceDirectInputDrawer', () => {
+  it('열려 있으면 검색 인풋을 보여준다', () => {
+    render(<PlaceDirectInputDrawer open onOpenChange={() => {}} />);
+
+    expect(screen.getByPlaceholderText('장소명을 입력해주세요')).toBeInTheDocument();
+  });
+
+  it('검색어를 입력하면 이름이 일치하는 장소 목록이 뜬다', () => {
+    render(<PlaceDirectInputDrawer open onOpenChange={() => {}} />);
+
+    fireEvent.change(screen.getByPlaceholderText('장소명을 입력해주세요'), {
+      target: { value: '앤미' },
+    });
+
+    expect(screen.getByText('앤미용실')).toBeInTheDocument();
+  });
+
+  it('일치하는 장소가 없으면 목록을 보여주지 않는다', () => {
+    render(<PlaceDirectInputDrawer open onOpenChange={() => {}} />);
+
+    fireEvent.change(screen.getByPlaceholderText('장소명을 입력해주세요'), {
+      target: { value: '존재하지않는장소' },
+    });
+
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+  });
+});
+```
+
+- [ ] **Step 3: 테스트 실행 → 실패 확인**
+
+Run: `pnpm --filter web test -- run src/features/post/components/PlaceDirectInputDrawer.test.tsx`
+Expected: FAIL — `Cannot find module './PlaceDirectInputDrawer'`
+
+- [ ] **Step 4: `PlaceDirectInputDrawer` 구현**
+
+`apps/web/src/features/post/components/PlaceDirectInputDrawer.tsx`:
+```tsx
+import { useState } from 'react';
+import { Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
+import { Icon16Location, Icon18MagnifyingGlass, Icon24Delete } from '@/shared/icons/NookIcons';
+import { cn } from '@/shared/lib/utils';
+import { searchMockPlaces } from '../mock/placeSearchResults';
+
+export interface PlaceDirectInputDrawerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+/**
+ * Figma `게시물 상세_직접 입력` — 연관 장소를 못 찾았을 때 사용자가 직접 검색해 넣는 바텀시트.
+ *
+ * 검색 결과 행을 눌렀을 때 나오는 다음 화면(장소 확정 등)은 이후 작업이라
+ * 이 드로어는 검색어 입력과 결과 목록 표시까지만 담당한다 — 행에는 아직 onClick 이 없다.
+ */
+function PlaceDirectInputDrawer({ open, onOpenChange }: PlaceDirectInputDrawerProps) {
+  const [query, setQuery] = useState('');
+  const results = searchMockPlaces(query);
+
+  return (
+    <Drawer
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) setQuery('');
+        onOpenChange(next);
+      }}
+    >
+      <DrawerContent className="px-4 pb-11">
+        <DrawerTitle className="sr-only">장소 직접 입력</DrawerTitle>
+        <div className="flex h-11 w-full items-center gap-2 rounded-lg border border-gray-30 px-3">
+          <Icon18MagnifyingGlass className="shrink-0" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="장소명을 입력해주세요"
+            className="min-w-0 flex-1 bg-transparent text-b2 font-medium text-gray-100 outline-none placeholder:text-gray-50"
+          />
+          {query.length > 0 ? (
+            <button
+              type="button"
+              aria-label="입력 지우기"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => setQuery('')}
+              className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-1"
+            >
+              <Icon24Delete />
+            </button>
+          ) : null}
+        </div>
+
+        {results.length > 0 ? (
+          <ul className="mt-5 flex w-full flex-col">
+            {results.map((place, index) => (
+              <li
+                key={place.id}
+                className={cn('flex items-center gap-2 py-2', index > 0 && 'border-t border-gray-10')}
+              >
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-gray-10">
+                  <Icon16Location />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <div className="flex items-end gap-0.5">
+                    <span className="truncate text-b2 font-semibold text-gray-90">{place.name}</span>
+                    <span className="shrink-0 text-b3 font-medium text-gray-70">{place.category}</span>
+                  </div>
+                  <p className="truncate text-b3 font-medium text-gray-80">
+                    {place.address} · {place.distance}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
+export { PlaceDirectInputDrawer };
+```
+
+- [ ] **Step 5: 테스트 실행 → 통과 확인**
+
+Run: `pnpm --filter web test -- run src/features/post/components/PlaceDirectInputDrawer.test.tsx`
+Expected: PASS (3 tests). `ResizeObserver` 관련 에러가 나면 Step 1의 스텁이 `setupFiles`(vite.config.ts의 `test.setupFiles: ['./src/test/setup.ts']`)를 통해 실제로 로드되는지 확인한다.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add apps/web/src/test/setup.ts apps/web/src/features/post/components/PlaceDirectInputDrawer.tsx apps/web/src/features/post/components/PlaceDirectInputDrawer.test.tsx
+git commit -m "feat(post): 장소 직접 입력 드로어(초기/검색 뷰) 추가"
+```
+
+---
+
+## Task 5: `RelatedPlacesSection` 컴포넌트 + `PostDetailPage` 연동 + 에러 스낵바 + 최종 검증
 
 **Files:**
 - Create: `apps/web/src/features/post/components/RelatedPlacesSection.tsx`
@@ -394,8 +658,8 @@ git commit -m "feat(post): 장소 파싱 API 계층과 useRelatedPlaces 훅 추�
 - Modify: `apps/web/src/features/post/PostDetailPage.test.tsx` (전체)
 
 **Interfaces:**
-- Consumes: `useRelatedPlaces(postId): RelatedPlacesState`(Task 2), `Place`(`@/features/place`), `PlaceRow`(`@/features/place`), `Icon16ExclamationCircle`(`@/shared/icons/NookIcons`, Task 1), `Snackbar`(`@/shared/ui`).
-- Produces: `RelatedPlacesSection({ state, bookmarkedPlaceIds, onBookmarkedChange, onDirectAddClick })` — `onBookmarkedChange: (placeId: string, next: boolean) => void`, `onDirectAddClick: () => void`. `PostDetailPage`가 소유하는 `directInputOpen` 상태(Task 5에서 `PlaceDirectInputDrawer`에 연결)를 이 콜백으로 연다.
+- Consumes: `useRelatedPlaces(postId): RelatedPlacesState`(Task 2), `Place`(`@/features/place`), `PlaceRow`(`@/features/place`), `Icon16ExclamationCircle`(`@/shared/icons/NookIcons`, Task 1), `Snackbar`(`@/shared/ui`), `PlaceDirectInputDrawer`(Task 4, 이미 존재).
+- Produces: `RelatedPlacesSection({ state, bookmarkedPlaceIds, onBookmarkedChange, onDirectAddClick })` — `onBookmarkedChange: (placeId: string, next: boolean) => void`, `onDirectAddClick: () => void`. `PostDetailPage`가 소유하는 `directInputOpen` 상태를 이 콜백으로 연다.
 
 - [ ] **Step 1: `mock/posts.ts`에서 연관 장소 관련 필드 제거 + `post-3`·`post-4` 추가**
 
@@ -587,7 +851,7 @@ import { useRelatedPlaces } from './hooks/useRelatedPlaces';
 // TODO(api): 게시물 상세 API 연동 시 목데이터 대신 TanStack Query 훅으로 교체한다.
 import { getMockPostDetail } from './mock/posts';
 ```
-(`PlaceRow` import는 지운다 — 더 이상 이 파일에서 직접 쓰지 않고 `RelatedPlacesSection`이 대신 import한다. `PlaceDirectInputDrawer` 는 Task 5 에서 만든다 — 이 태스크 시점엔 아직 파일이 없어 타입체크가 실패하는 게 정상이다. Step 순서상 Task 5 완료 후에 전체 타입체크가 통과한다.)
+(`PlaceRow` import는 지운다 — 더 이상 이 파일에서 직접 쓰지 않고 `RelatedPlacesSection`이 대신 import한다. `PlaceDirectInputDrawer`는 Task 4에서 이미 만들어졌다.)
 
 31-37번째 줄(기존 `bookmarkedPlaceIds` useState + `toggleBookmark` — 이제 북마크 초기값은 파싱 응답에서 온다)을 아래로 교체한다:
 ```tsx
@@ -672,9 +936,9 @@ import { getMockPostDetail } from './mock/posts';
       ) : null}
 ```
 
-- [ ] **Step 4: 기존 테스트를 새 동작에 맞게 갱신**
+- [ ] **Step 4: 기존 테스트를 새 동작에 맞게 갱신 (드로어 통합 테스트 포함)**
 
-`apps/web/src/features/post/PostDetailPage.test.tsx` 전체를 아래로 교체한다:
+`apps/web/src/features/post/PostDetailPage.test.tsx` 전체를 아래로 교체한다 — 기존 6개 테스트에 드로어 통합 테스트 2개("직접 추가" 배너 클릭 → 드로어 오픈, 검색어 입력 → 결과 표시)를 더한 8개다(`PlaceDirectInputDrawer`는 Task 4에서 이미 만들어졌다):
 ```tsx
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -757,150 +1021,6 @@ describe('게시물 상세', () => {
     fireEvent.click(screen.getByRole('button', { name: '더보기' }));
     expect(screen.getByRole('button', { name: '접기' })).toBeInTheDocument();
   });
-});
-```
-
-(직접 추가 배너 → 드로어 오픈 테스트는 Task 4에서 드로어가 만들어진 뒤 추가한다.)
-
-- [ ] **Step 5: 테스트 실행**
-
-Run: `pnpm --filter web test -- run src/features/post/PostDetailPage.test.tsx`
-Expected: FAIL — `PlaceDirectInputDrawer` 모듈을 찾을 수 없음(Task 5 에서 만든다). 이 시점의 실패는 예상된 것이다.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add apps/web/src/features/post/mock/posts.ts apps/web/src/features/post/components/RelatedPlacesSection.tsx apps/web/src/features/post/PostDetailPage.tsx apps/web/src/features/post/PostDetailPage.test.tsx
-git commit -m "feat(post): 연관 장소 로딩/에러 처리 + 직접 추가 배너, 에러 스낵바 연동"
-```
-
----
-
-## Task 4: 장소 검색 mock 데이터
-
-**Files:**
-- Create: `apps/web/src/features/post/mock/placeSearchResults.ts`
-- Test: `apps/web/src/features/post/mock/placeSearchResults.test.ts`
-
-**Interfaces:**
-- Produces: `export function searchMockPlaces(query: string): Place[]` — 검색어가 비어있으면 빈 배열, 아니면 이름에 검색어가 포함된(대소문자 무시) 장소만 반환.
-- Consumes: `Place` from `@/features/place`.
-
-- [ ] **Step 1: 실패하는 테스트 작성**
-
-`apps/web/src/features/post/mock/placeSearchResults.test.ts`:
-```ts
-import { describe, expect, it } from 'vitest';
-import { searchMockPlaces } from './placeSearchResults';
-
-describe('searchMockPlaces', () => {
-  it('검색어가 비어 있으면 빈 배열을 반환한다', () => {
-    expect(searchMockPlaces('')).toEqual([]);
-    expect(searchMockPlaces('   ')).toEqual([]);
-  });
-
-  it('이름에 검색어가 포함된 장소만 반환한다', () => {
-    const results = searchMockPlaces('앤미');
-    expect(results.map((place) => place.name)).toEqual(['앤미', '앤미용실', '앤미술']);
-  });
-
-  it('일치하는 장소가 없으면 빈 배열을 반환한다', () => {
-    expect(searchMockPlaces('존재하지않는장소')).toEqual([]);
-  });
-});
-```
-
-- [ ] **Step 2: 테스트 실행 → 실패 확인**
-
-Run: `pnpm --filter web test -- run src/features/post/mock/placeSearchResults.test.ts`
-Expected: FAIL — `Cannot find module './placeSearchResults'`
-
-- [ ] **Step 3: 구현**
-
-`apps/web/src/features/post/mock/placeSearchResults.ts`:
-```ts
-import type { Place } from '@/features/place';
-
-/**
- * `PlaceDirectInputDrawer` 검색 결과 목데이터. 실제 장소 검색 API 연동 전까지
- * 이름에 검색어가 포함되는 항목만 클라이언트에서 필터링해 보여준다.
- */
-const MOCK_SEARCH_PLACES: Place[] = [
-  {
-    id: 'search-1',
-    name: '앤미',
-    category: '일식',
-    distance: '16.2km',
-    address: '서울 관악구 관악로 12길 47 (봉천동)',
-  },
-  {
-    id: 'search-2',
-    name: '앤미용실',
-    category: '미용실',
-    distance: '16.2km',
-    address: '서울 관악구 관악로 12길 47 (봉천동)',
-  },
-  {
-    id: 'search-3',
-    name: '앤미술',
-    category: '교습소',
-    distance: '16.2km',
-    address: '서울 관악구 관악로 12길 47 (봉천동)',
-  },
-];
-
-export function searchMockPlaces(query: string): Place[] {
-  const normalized = query.trim().toLowerCase();
-  if (normalized.length === 0) return [];
-  return MOCK_SEARCH_PLACES.filter((place) => place.name.toLowerCase().includes(normalized));
-}
-```
-
-- [ ] **Step 4: 테스트 실행 → 통과 확인**
-
-Run: `pnpm --filter web test -- run src/features/post/mock/placeSearchResults.test.ts`
-Expected: PASS (3 tests)
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add apps/web/src/features/post/mock/placeSearchResults.ts apps/web/src/features/post/mock/placeSearchResults.test.ts
-git commit -m "feat(post): 장소 직접 입력 검색 mock 데이터 추가"
-```
-
----
-
-## Task 5: `PlaceDirectInputDrawer` (초기 뷰 + 검색 결과 뷰) + 최종 검증
-
-이 시안(node 74-4111, 74-4193)에서 검색 결과 행을 눌렀을 때 나오는 다음 화면은 범위 밖이다 — 행에는 `onClick`을 달지 않는다.
-
-**Files:**
-- Modify: `apps/web/src/test/setup.ts:1` (vaul Drawer가 jsdom에 없는 `ResizeObserver`를 요구한다 — 스텁 추가)
-- Create: `apps/web/src/features/post/components/PlaceDirectInputDrawer.tsx`
-- Modify: `apps/web/src/features/post/PostDetailPage.test.tsx` (드로어 오픈 테스트 추가)
-
-**Interfaces:**
-- Consumes: `Drawer`, `DrawerContent`, `DrawerTitle`(`@/shared/ui`), `Icon18MagnifyingGlass`, `Icon24Delete`, `Icon16Location`(`@/shared/icons/NookIcons`), `searchMockPlaces`(Task 4), `cn`(`@/shared/lib/utils`).
-- Produces: `PlaceDirectInputDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void })` — Task 3의 `PostDetailPage`가 이미 이 시그니처로 호출하고 있다.
-
-- [ ] **Step 1: jsdom에 `ResizeObserver` 스텁 추가**
-
-`apps/web/src/test/setup.ts`(1번째 줄 `import '@testing-library/jest-dom/vitest';` 다음)에 추가:
-```ts
-// vaul(Drawer)이 콘텐츠 높이 측정에 ResizeObserver 를 쓰는데 jsdom 에는 없다.
-if (typeof globalThis.ResizeObserver === 'undefined') {
-  globalThis.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
-}
-```
-
-- [ ] **Step 2: 드로어를 여는 실패하는 테스트 추가**
-
-`apps/web/src/features/post/PostDetailPage.test.tsx`의 마지막 `it(...)` 다음(파일의 `});` 닫는 괄호 직전)에 추가:
-```tsx
 
   it('직접 추가 배너를 누르면 장소 검색 드로어가 열린다', async () => {
     await renderPost('post-1');
@@ -920,104 +1040,13 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
 
     expect(screen.getByText('앤미용실')).toBeInTheDocument();
   });
-```
-
-- [ ] **Step 3: 테스트 실행 → 실패 확인**
-
-Run: `pnpm --filter web test -- run src/features/post/PostDetailPage.test.tsx`
-Expected: FAIL — `Cannot find module './components/PlaceDirectInputDrawer'`
-
-- [ ] **Step 4: `PlaceDirectInputDrawer` 구현**
-
-`apps/web/src/features/post/components/PlaceDirectInputDrawer.tsx`:
-```tsx
-import { useState } from 'react';
-import { Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
-import { Icon16Location, Icon18MagnifyingGlass, Icon24Delete } from '@/shared/icons/NookIcons';
-import { cn } from '@/shared/lib/utils';
-import { searchMockPlaces } from '../mock/placeSearchResults';
-
-export interface PlaceDirectInputDrawerProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-/**
- * Figma `게시물 상세_직접 입력` — 연관 장소를 못 찾았을 때 사용자가 직접 검색해 넣는 바텀시트.
- *
- * 검색 결과 행을 눌렀을 때 나오는 다음 화면(장소 확정 등)은 이후 작업이라
- * 이 드로어는 검색어 입력과 결과 목록 표시까지만 담당한다 — 행에는 아직 onClick 이 없다.
- */
-function PlaceDirectInputDrawer({ open, onOpenChange }: PlaceDirectInputDrawerProps) {
-  const [query, setQuery] = useState('');
-  const results = searchMockPlaces(query);
-
-  return (
-    <Drawer
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) setQuery('');
-        onOpenChange(next);
-      }}
-    >
-      <DrawerContent className="px-4 pb-11">
-        <DrawerTitle className="sr-only">장소 직접 입력</DrawerTitle>
-        <div className="flex h-11 w-full items-center gap-2 rounded-lg border border-gray-30 px-3">
-          <Icon18MagnifyingGlass className="shrink-0" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="장소명을 입력해주세요"
-            className="min-w-0 flex-1 bg-transparent text-b2 font-medium text-gray-100 outline-none placeholder:text-gray-50"
-          />
-          {query.length > 0 ? (
-            <button
-              type="button"
-              aria-label="입력 지우기"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => setQuery('')}
-              className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-1"
-            >
-              <Icon24Delete />
-            </button>
-          ) : null}
-        </div>
-
-        {results.length > 0 ? (
-          <ul className="mt-5 flex w-full flex-col">
-            {results.map((place, index) => (
-              <li
-                key={place.id}
-                className={cn('flex items-center gap-2 py-2', index > 0 && 'border-t border-gray-10')}
-              >
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-gray-10">
-                  <Icon16Location />
-                </span>
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <div className="flex items-end gap-0.5">
-                    <span className="truncate text-b2 font-semibold text-gray-90">{place.name}</span>
-                    <span className="shrink-0 text-b3 font-medium text-gray-70">{place.category}</span>
-                  </div>
-                  <p className="truncate text-b3 font-medium text-gray-80">
-                    {place.address} · {place.distance}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </DrawerContent>
-    </Drawer>
-  );
-}
-
-export { PlaceDirectInputDrawer };
+});
 ```
 
 - [ ] **Step 5: 테스트 실행 → 통과 확인**
 
 Run: `pnpm --filter web test -- run src/features/post/PostDetailPage.test.tsx`
-Expected: PASS (8 tests). `ResizeObserver` 관련 에러가 나면 Step 1의 스텁이 `setupFiles`(vite.config.ts의 `test.setupFiles: ['./src/test/setup.ts']`)를 통해 실제로 로드되는지 확인한다.
+Expected: PASS (8 tests)
 
 - [ ] **Step 6: 전체 검증**
 
@@ -1033,6 +1062,6 @@ Expected: PASS
 - [ ] **Step 7: Commit**
 
 ```bash
-git add apps/web/src/test/setup.ts apps/web/src/features/post/components/PlaceDirectInputDrawer.tsx apps/web/src/features/post/PostDetailPage.test.tsx
-git commit -m "feat(post): 장소 직접 입력 드로어(초기/검색 뷰) 추가"
+git add apps/web/src/features/post/mock/posts.ts apps/web/src/features/post/components/RelatedPlacesSection.tsx apps/web/src/features/post/PostDetailPage.tsx apps/web/src/features/post/PostDetailPage.test.tsx
+git commit -m "feat(post): 연관 장소 로딩/에러 처리 + 직접 추가 배너, 에러 스낵바, 드로어 연동"
 ```
