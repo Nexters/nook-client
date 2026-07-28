@@ -7,13 +7,24 @@
 import type { SavedPostMediaResponse } from './savedPostMediaResponse.generated';
 
 export interface SavedPostSummaryResponse {
-  /** @nullable */
+  /**
+   * 게시물 작성자 식별자
+   * @nullable
+   */
   authorIdentifier?: string | null;
-  /** @nullable */
+  /**
+   * 사용자 메모
+   * @nullable
+   */
   memo?: string | null;
+  /** 저장 게시물 식별자 */
   postId: number;
   representativeMedia?: SavedPostMediaResponse | null;
+  /** 게시물 저장 시각 */
   savedAt: string;
-  /** @nullable */
+  /**
+   * 게시물 제목
+   * @nullable
+   */
   title?: string | null;
 }

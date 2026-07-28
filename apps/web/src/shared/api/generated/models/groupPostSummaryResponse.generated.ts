@@ -4,9 +4,9 @@
  * Nook API
  * OpenAPI spec version: v1
  */
-import type { PlacePostMediaResponse } from './placePostMediaResponse.generated';
+import type { SavedPostMediaResponse } from './savedPostMediaResponse.generated';
 
-export interface PlacePostResponse {
+export interface GroupPostSummaryResponse {
   /**
    * 게시물 작성자 식별자
    * @nullable
@@ -17,9 +17,11 @@ export interface PlacePostResponse {
    * @nullable
    */
   memo?: string | null;
+  /** 게시물에 연결된 장소 개수 */
+  placeCount: number;
   /** 저장 게시물 식별자 */
   postId: number;
-  representativeMedia?: PlacePostMediaResponse | null;
+  representativeMedia?: SavedPostMediaResponse | null;
   /** 게시물 저장 시각 */
   savedAt: string;
   /**

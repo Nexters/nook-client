@@ -6,6 +6,7 @@
  */
 
 /**
+ * 소셜 로그인 provider
  * @nullable
  */
 export type SocialAuthRequestProvider =

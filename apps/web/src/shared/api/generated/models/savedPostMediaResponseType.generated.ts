@@ -5,6 +5,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * 미디어 유형
+ */
 export type SavedPostMediaResponseType =
   (typeof SavedPostMediaResponseType)[keyof typeof SavedPostMediaResponseType];
 

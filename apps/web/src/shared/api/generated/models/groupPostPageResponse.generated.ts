@@ -4,13 +4,15 @@
  * Nook API
  * OpenAPI spec version: v1
  */
-import type { SavedPostSummaryResponse } from './savedPostSummaryResponse.generated';
+import type { GroupPostSummaryResponse } from './groupPostSummaryResponse.generated';
 
-export interface SavedPostPageResponse {
+export interface GroupPostPageResponse {
   /** 다음 페이지 존재 여부 */
   hasNext: boolean;
-  /** 저장 게시물 목록 */
-  items: SavedPostSummaryResponse[];
+  /** 그룹에 저장된 게시물 목록 */
+  items: GroupPostSummaryResponse[];
+  /** 그룹 소유자의 닉네임 */
+  ownerNickname: string;
   /** 현재 페이지 번호 */
   page: number;
   /** 페이지당 게시물 수 */

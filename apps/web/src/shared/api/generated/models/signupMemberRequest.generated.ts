@@ -7,11 +7,13 @@
 
 export interface SignupMemberRequest {
   /**
+   * 회원 닉네임
    * @minLength 2
    * @maxLength 20
    */
   nickname: string;
   /**
+   * 프로필 이미지 URL
    * @minLength 0
    * @maxLength 2048
    * @nullable

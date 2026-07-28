@@ -6,6 +6,8 @@
  */
 
 export interface TokenResponse {
+  /** 서비스 access token */
   accessToken: string;
+  /** 서비스 refresh token */
   refreshToken: string;
 }

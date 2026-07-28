@@ -7,7 +7,10 @@
 import type { SavedPostMediaResponseType } from './savedPostMediaResponseType.generated';
 
 export interface SavedPostMediaResponse {
+  /** 게시물 내 미디어 순서 */
   sequence: number;
+  /** 미디어 유형 */
   type: SavedPostMediaResponseType;
+  /** 미디어 URL */
   url: string;
 }

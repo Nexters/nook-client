@@ -7,12 +7,24 @@
 import type { SocialAuthRequestProvider } from './socialAuthRequestProvider.generated';
 
 export interface SocialAuthRequest {
-  /** @nullable */
+  /**
+   * provider access token
+   * @nullable
+   */
   accessToken?: string | null;
-  /** @nullable */
+  /**
+   * provider authorization code
+   * @nullable
+   */
   authorizationCode?: string | null;
-  /** @nullable */
+  /**
+   * provider identity token
+   * @nullable
+   */
   identityToken?: string | null;
-  /** @nullable */
+  /**
+   * 소셜 로그인 provider
+   * @nullable
+   */
   provider: SocialAuthRequestProvider;
 }

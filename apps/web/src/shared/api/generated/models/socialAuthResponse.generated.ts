@@ -7,11 +7,21 @@
 import type { SocialAuthResponseStatus } from './socialAuthResponseStatus.generated';
 
 export interface SocialAuthResponse {
-  /** @nullable */
+  /**
+   * 서비스 access token. 로그인 완료 상태에서만 내려갑니다.
+   * @nullable
+   */
   accessToken?: string | null;
-  /** @nullable */
+  /**
+   * 서비스 refresh token. 로그인 완료 상태에서만 내려갑니다.
+   * @nullable
+   */
   refreshToken?: string | null;
-  /** @nullable */
+  /**
+   * 회원가입에 사용할 임시 token. 회원가입 필요 상태에서만 내려갑니다.
+   * @nullable
+   */
   signupToken?: string | null;
+  /** 소셜 인증 결과 상태 */
   status: SocialAuthResponseStatus;
 }

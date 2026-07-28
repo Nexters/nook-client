@@ -7,10 +7,16 @@
 import type { PlacePostResponse } from './placePostResponse.generated';
 
 export interface PlacePostPageResponse {
+  /** 다음 페이지 존재 여부 */
   hasNext: boolean;
+  /** 저장 게시물 목록 */
   items: PlacePostResponse[];
+  /** 현재 페이지 번호 */
   page: number;
+  /** 페이지당 게시물 수 */
   size: number;
+  /** 전체 게시물 수 */
   totalElements: number;
+  /** 전체 페이지 수 */
   totalPages: number;
 }
