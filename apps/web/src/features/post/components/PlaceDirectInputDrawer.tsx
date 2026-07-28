@@ -123,7 +123,12 @@ function PlaceDirectInputDrawer({
               onSelectPost={setViewingPost}
             />
           ) : (
-            <div className="flex min-h-0 flex-1 flex-col px-4 pb-11">
+            // h-[90dvh] 는 PLACE_LIST_SNAP_POINTS[0](0.9) 와 맞물려 있다 — flex-1 로 두면
+            // 이 래퍼가 DrawerContent 의 h-dvh 전체(100%)를 채우는데, 실제로 화면에 보이는
+            // 건 그 중 90% 뿐이라 나머지 10%(리스트 하단 + pb-11 여백)가 스크롤로도 닿지
+            // 않는 죽은 영역이 된다. 래퍼 자체를 보이는 비율(90dvh)만큼만 잡아야 내부
+            // `overflow-y-auto` 가 실제로 전부 스크롤해서 보여줄 수 있다.
+            <div className="flex h-[90dvh] flex-col px-4 pb-11">
               {/* 앞에 돋보기 아이콘 슬롯이 필요해 공용 `Input` (@/shared/ui) 을 못 쓰고 직접 구현한다 —
                   대신 포커스 보더/클리어 버튼 동작은 `Input` 과 동일하게 맞춘다. */}
               <div className="flex h-11 w-full shrink-0 items-center gap-2 rounded-lg border border-gray-30 px-3 transition-colors focus-within:border-gray-100">
@@ -204,8 +209,9 @@ function PlaceDirectInputDrawer({
         // 대체하는" 오버레이라 별도 Dialog 로 감싸는 게 맞았지만, 이 바는 드로어 콘텐츠와
         // "동시에" 계속 조작 가능해야 해서 같은 방법(중첩 Dialog)을 쓰면 두 모달의 포커스
         // 트랩이 서로 얽혀 브라우저가 멈춘다(실제 확인함) — 여기는 포인터 이벤트만 명시적으로
-        // 되살린다. 스크린리더 접근성은 이 바만 놓고 보면 완전하지 않다는 한계가 남는다(후속
-        // 과제로 문서화).
+        // 되살린다. 다만 aria-hidden 자체는 풀리지 않고 Drawer 의 포커스 트랩도 이 바까지는
+        // 미치지 못해서, 마우스/터치로만 누를 수 있고 키보드·스크린리더로는 이 버튼에 전혀
+        // 도달할 수 없다 — "일부 제한"이 아니라 완전히 막힌 상태다(후속 과제로 남겨둔다).
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex items-center gap-2.5 border-t border-gray-10 bg-gray-0 px-4 pt-2 pb-8">
           <p className="pointer-events-auto flex-1 text-b2 font-semibold text-gray-80">
             이 장소가 맞나요?
