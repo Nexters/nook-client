@@ -10,25 +10,26 @@ private struct ServerGroup: Decodable { let id: Int64; let name: String; let col
 enum ShareApiError: Error { case noSession, invalidResponse, http(Int), configuration }
 
 final class ShareApiClient {
-    private let baseURL: URL
+    // API 버전 경로(/api/v1)까지 포함한 값이다. 웹의 VITE_API_BASE_URL 과 같은 규칙.
+    private let baseURL: String
     private let session = ShareSessionVault()
     private let decoder = JSONDecoder()
 
     init?() {
         guard let value = Bundle.main.object(forInfoDictionaryKey: "NookApiBaseUrl") as? String,
-              let url = URL(string: value), !value.isEmpty else { return nil }
-        baseURL = url
+              !value.isEmpty, URL(string: value) != nil else { return nil }
+        baseURL = value.hasSuffix("/") ? String(value.dropLast()) : value
     }
 
     func groups() async throws -> [Group] {
-        let data = try await protectedRequest(path: "/api/v1/groups")
+        let data = try await protectedRequest(path: "/groups")
         let result = try unwrap(ApiEnvelope<[ServerGroup]>.self, data)
         return result.map { Group(id: $0.id, name: $0.name, color: groupColor($0.color)) }
     }
 
     func createGroup(name: String, colorIndex: Int) async throws -> Group {
         let body = try JSONSerialization.data(withJSONObject: ["name": name, "color": groupColorNames[colorIndex]])
-        let data = try await protectedRequest(path: "/api/v1/groups", method: "POST", body: body)
+        let data = try await protectedRequest(path: "/groups", method: "POST", body: body)
         let result = try unwrap(ApiEnvelope<ServerGroup>.self, data)
         return Group(id: result.id, name: result.name, color: groupColor(result.color))
     }
@@ -38,7 +39,7 @@ final class ShareApiClient {
             "url": url, "groupIds": Array(groupIds), "memo": memo,
             "areGroupIdsPositive": groupIds.allSatisfy { $0 > 0 },
         ])
-        _ = try await protectedRequest(path: "/api/v1/posts", method: "POST", body: body)
+        _ = try await protectedRequest(path: "/posts", method: "POST", body: body)
     }
 
     private func protectedRequest(path: String, method: String = "GET", body: Data? = nil) async throws -> Data {
@@ -67,7 +68,7 @@ final class ShareApiClient {
         if current.revision > failedRevision { return current }
         guard let refreshToken = current.refreshToken else { try session.clear(); return nil }
         let body = try JSONEncoder().encode(["refreshToken": refreshToken])
-        let response = try await request(path: "/api/v1/auth/token/refresh", method: "POST", body: body, token: nil)
+        let response = try await request(path: "/auth/token/refresh", method: "POST", body: body, token: nil)
         if (400..<500).contains(response.0) { try session.clear(); return nil }
         guard (200..<300).contains(response.0) else { throw ShareApiError.http(response.0) }
         let pair = try unwrap(ApiEnvelope<TokenPair>.self, response.1)
@@ -75,7 +76,9 @@ final class ShareApiClient {
     }
 
     private func request(path: String, method: String, body: Data?, token: String?) async throws -> (Int, Data) {
-        var request = URLRequest(url: URL(string: path, relativeTo: baseURL)!)
+        // 절대 경로를 relativeTo 로 붙이면 base 의 /api/v1 이 버려지므로 문자열로 잇는다.
+        guard let url = URL(string: baseURL + path) else { throw ShareApiError.configuration }
+        var request = URLRequest(url: url)
         request.httpMethod = method; request.httpBody = body; request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if body != nil { request.setValue("application/json", forHTTPHeaderField: "Content-Type") }

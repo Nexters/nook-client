@@ -56,7 +56,8 @@ async function performRefresh(failedRevision: number): Promise<StoredSession | n
   if (!API_BASE_URL) throw new Error('EXPO_PUBLIC_API_BASE_URL 미설정');
 
   const refreshGeneration = generation;
-  const response = await fetch(new URL('/api/v1/auth/token/refresh', API_BASE_URL), {
+  // API_BASE_URL 은 웹과 같이 /api/v1 까지 포함한다. 절대 경로로 넘기면 그 경로가 버려진다.
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, '')}/auth/token/refresh`, {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken: before.refreshToken }),
