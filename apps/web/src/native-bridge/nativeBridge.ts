@@ -24,6 +24,15 @@ declare global {
 type Handler = (message: NativeToWeb) => void;
 type SessionResult = Extract<NativeToWeb, { type: 'SESSION_RESULT' }>['payload'];
 
+// crypto.randomUUID 는 보안 컨텍스트에서만 존재한다. 실기기가 http://<LAN IP> 의
+// dev 서버를 볼 때는 비보안 컨텍스트라 undefined 다. 요청/응답 짝을 맞추는 용도라
+// 암호학적 강도는 필요 없으므로 폴백을 둔다.
+function randomRequestId(): string {
+  const uuid = globalThis.crypto?.randomUUID;
+  if (uuid) return uuid.call(globalThis.crypto);
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function detectPlatform(): Platform {
   if (window.ReactNativeWebView) {
     const p = window.__nookPlatform;
@@ -76,7 +85,7 @@ class NativeBridge {
     first?: number | string,
     second?: string | null,
   ): Promise<SessionResult> {
-    const requestId = globalThis.crypto.randomUUID();
+    const requestId = randomRequestId();
     const payload =
       type === 'SESSION_REFRESH'
         ? { requestId, revision: first as number }
