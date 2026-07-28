@@ -28,11 +28,13 @@ apps/
 │       ├── features/        # 기능 단위 폴더 (home/ …)
 │       ├── native-bridge/   # 셸 통신 클라이언트 (postMessage 프로토콜)
 │       ├── shared/api/      # http 래퍼 (BE 호출 기반)
+│       │   └── generated/   # Orval 생성 DTO·API 함수
 │       ├── shared/config/   # env 게이트
 │       └── styles/
 └── mobile/                  # Expo(RN) 셸 — WebView + 네이티브 공유 대상
 
 packages/
+├── api-contracts/           # OpenAPI 스냅샷과 Orval 생성 설정
 ├── bridge-contracts/        # 셸 ↔ 웹 메시지 계약 (SSOT, 타입 전용)
 └── icons/                   # Web·iOS·Android 공용 SVG와 코드 생성기
 
@@ -42,6 +44,7 @@ docs/                        # 아키텍처 결정 기록 / 브리지 문서
 - pnpm 워크스페이스: `apps/*` + `packages/*` (web·mobile·계약을 한 락으로 관리).
 - 웹↔셸 통신은 `packages/bridge-contracts` 의 `{ v, type, payload }` postMessage 프로토콜. 상세는 `docs/native-bridge.md`.
 - API 계층과 플랫폼별 인증·생성 코드 경계는 `docs/[NOOK-55] 01.API_통신_구조.md`를 따른다.
+- OpenAPI 명세와 Orval 설정은 `packages/api-contracts`에서 관리하고 생성 코드는 Web의 `shared/api/generated`에 둔다. `pnpm api:refresh`로 재생성하며, 상세 규칙은 `docs/[NOOK-56] 01.OpenAPI_스키마_DTO.md`를 따른다.
 - 공용 아이콘은 `packages/icons/src`의 SVG를 기준으로 플랫폼 코드를 생성한다. 상세는 `docs/icons.md`.
 - `@/` 는 web 의 `src/` alias (Vite·tsc·Vitest 공통).
 
@@ -55,6 +58,8 @@ cp apps/web/.env.example apps/web/.env.local   # BE 주소 필수
 
 pnpm web:dev               # http://localhost:5173
 pnpm web:build             # tsc --noEmit + vite build → apps/web/dist/
+pnpm api:refresh           # 개발 서버 명세 + Orval 코드 재생성
+pnpm check                 # 생성물 + lint + typecheck + test 검증
 pnpm typecheck             # web + mobile tsc --noEmit
 pnpm lint                  # biome check
 pnpm format                # biome format --write

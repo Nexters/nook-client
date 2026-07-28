@@ -7,7 +7,13 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/dist", "!**/coverage", "!**/src/assets"]
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/coverage",
+      "!**/src/assets",
+      "!packages/api-contracts/openapi"
+    ]
   },
   "formatter": {
     "enabled": true,

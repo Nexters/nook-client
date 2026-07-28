@@ -1,0 +1,18 @@
+{
+  "name": "@nook/api-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "openapi:fetch": "node scripts/fetch-openapi.mjs",
+    "openapi:check": "node scripts/fetch-openapi.mjs --check",
+    "generate": "orval --config orval.config.ts --formatter biome --fail-on-warnings",
+    "generate:check": "node scripts/check-generated.mjs",
+    "refresh": "pnpm openapi:fetch && pnpm generate",
+    "check": "pnpm generate:check",
+    "check:remote": "pnpm openapi:check && pnpm generate:check"
+  },
+  "devDependencies": {
+    "orval": "8.23.0"
+  }
+}
