@@ -6,6 +6,8 @@
  */
 
 export interface PlacePostMediaResponse {
+  /** 미디어 유형 */
   type: string;
+  /** 미디어 URL */
   url: string;
 }

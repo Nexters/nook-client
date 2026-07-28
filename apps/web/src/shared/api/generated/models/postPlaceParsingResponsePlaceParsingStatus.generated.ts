@@ -5,6 +5,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * 게시물 장소 파싱 상태
+ */
 export type PostPlaceParsingResponsePlaceParsingStatus =
   (typeof PostPlaceParsingResponsePlaceParsingStatus)[keyof typeof PostPlaceParsingResponsePlaceParsingStatus];
 

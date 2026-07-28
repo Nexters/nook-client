@@ -6,16 +6,20 @@
  */
 
 export interface CreatePostRequest {
-  areGroupIdsPositive: boolean;
-  /** @nullable */
-  groupIds?: number[] | null;
   /**
+   * 게시물을 함께 저장할 그룹 식별자 목록
+   * @minItems 1
+   */
+  groupIds: number[];
+  /**
+   * 사용자 메모
    * @minLength 0
    * @maxLength 2000
    * @nullable
    */
   memo?: string | null;
   /**
+   * 저장할 게시물 URL
    * @minLength 0
    * @maxLength 2048
    */
