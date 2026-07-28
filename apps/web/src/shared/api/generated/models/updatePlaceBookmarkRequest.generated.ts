@@ -6,5 +6,6 @@
  */
 
 export interface UpdatePlaceBookmarkRequest {
+  /** 북마크 여부 */
   bookmarked: boolean;
 }

@@ -278,6 +278,80 @@
         ],
         "type": "object"
       },
+      "ApiResponseSocialAuthResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SocialAuthResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
+      "ApiResponseTokenResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TokenResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
       "ApiResponseUnit": {
         "description": "공통 API 응답",
         "properties": {
@@ -343,20 +417,18 @@
       },
       "CreatePostRequest": {
         "properties": {
-          "areGroupIdsPositive": {
-            "type": "boolean"
-          },
           "groupIds": {
+            "description": "게시물을 함께 저장할 그룹 식별자 목록",
             "items": {
               "format": "int64",
               "type": "integer"
             },
-            "type": [
-              "array",
-              "null"
-            ]
+            "minItems": 1,
+            "type": "array"
           },
           "memo": {
+            "description": "사용자 메모",
+            "example": "다음 주말에 방문",
             "maxLength": 2000,
             "minLength": 0,
             "type": [
@@ -365,13 +437,15 @@
             ]
           },
           "url": {
+            "description": "저장할 게시물 URL",
+            "example": "https://www.instagram.com/p/example",
             "maxLength": 2048,
             "minLength": 0,
             "type": "string"
           }
         },
         "required": [
-          "areGroupIdsPositive",
+          "groupIds",
           "url"
         ],
         "type": "object"
@@ -412,43 +486,54 @@
       "PlaceDetailResponse": {
         "properties": {
           "address": {
+            "description": "장소 주소",
             "type": "string"
           },
           "bookmarked": {
+            "description": "사용자의 장소 북마크 여부",
             "type": "boolean"
           },
           "category": {
+            "description": "장소 카테고리",
             "type": [
               "string",
               "null"
             ]
           },
           "externalPlaceId": {
+            "description": "provider의 장소 식별자",
             "type": "string"
           },
           "id": {
+            "description": "장소 식별자",
             "format": "int64",
             "type": "integer"
           },
           "latitude": {
+            "description": "장소 위도",
             "type": "number"
           },
           "longitude": {
+            "description": "장소 경도",
             "type": "number"
           },
           "name": {
+            "description": "장소명",
             "type": "string"
           },
           "phoneNumber": {
+            "description": "장소 전화번호",
             "type": [
               "string",
               "null"
             ]
           },
           "posts": {
-            "$ref": "#/components/schemas/PlacePostPageResponse"
+            "$ref": "#/components/schemas/PlacePostPageResponse",
+            "description": "이 장소와 연결된 저장 게시물 페이지"
           },
           "provider": {
+            "description": "장소 provider",
             "type": "string"
           }
         },
@@ -468,9 +553,11 @@
       "PlacePostMediaResponse": {
         "properties": {
           "type": {
+            "description": "미디어 유형",
             "type": "string"
           },
           "url": {
+            "description": "미디어 URL",
             "type": "string"
           }
         },
@@ -483,27 +570,33 @@
       "PlacePostPageResponse": {
         "properties": {
           "hasNext": {
+            "description": "다음 페이지 존재 여부",
             "type": "boolean"
           },
           "items": {
+            "description": "저장 게시물 목록",
             "items": {
               "$ref": "#/components/schemas/PlacePostResponse"
             },
             "type": "array"
           },
           "page": {
+            "description": "현재 페이지 번호",
             "format": "int32",
             "type": "integer"
           },
           "size": {
+            "description": "페이지당 게시물 수",
             "format": "int32",
             "type": "integer"
           },
           "totalElements": {
+            "description": "전체 게시물 수",
             "format": "int64",
             "type": "integer"
           },
           "totalPages": {
+            "description": "전체 페이지 수",
             "format": "int32",
             "type": "integer"
           }
@@ -521,18 +614,21 @@
       "PlacePostResponse": {
         "properties": {
           "authorIdentifier": {
+            "description": "게시물 작성자 식별자",
             "type": [
               "string",
               "null"
             ]
           },
           "memo": {
+            "description": "사용자 메모",
             "type": [
               "string",
               "null"
             ]
           },
           "postId": {
+            "description": "저장 게시물 식별자",
             "format": "int64",
             "type": "integer"
           },
@@ -547,10 +643,12 @@
             ]
           },
           "savedAt": {
+            "description": "게시물 저장 시각",
             "format": "date-time",
             "type": "string"
           },
           "title": {
+            "description": "게시물 제목",
             "type": [
               "string",
               "null"
@@ -566,40 +664,50 @@
       "PlaceResponse": {
         "properties": {
           "address": {
+            "description": "장소 주소",
             "type": "string"
           },
           "bookmarked": {
+            "description": "사용자의 장소 북마크 여부",
             "type": "boolean"
           },
           "category": {
+            "description": "장소 카테고리",
             "type": [
               "string",
               "null"
             ]
           },
           "externalPlaceId": {
+            "description": "provider의 장소 식별자",
             "type": "string"
           },
           "id": {
+            "description": "장소 식별자",
             "format": "int64",
             "type": "integer"
           },
           "latitude": {
+            "description": "장소 위도",
             "type": "number"
           },
           "longitude": {
+            "description": "장소 경도",
             "type": "number"
           },
           "name": {
+            "description": "장소명",
             "type": "string"
           },
           "phoneNumber": {
+            "description": "장소 전화번호",
             "type": [
               "string",
               "null"
             ]
           },
           "provider": {
+            "description": "장소 provider",
             "type": "string"
           }
         },
@@ -618,12 +726,14 @@
       "PostPlaceParsingResponse": {
         "properties": {
           "failureReason": {
+            "description": "장소 파싱 실패 사유. 실패 상태에서만 내려갑니다.",
             "type": [
               "string",
               "null"
             ]
           },
           "placeParsingStatus": {
+            "description": "게시물 장소 파싱 상태",
             "enum": [
               "PENDING",
               "PROCESSING",
@@ -633,6 +743,7 @@
             "type": "string"
           },
           "places": {
+            "description": "파싱된 장소 목록. 완료 상태에서만 내려갑니다.",
             "items": {
               "$ref": "#/components/schemas/PlaceResponse"
             },
@@ -642,6 +753,7 @@
             ]
           },
           "postId": {
+            "description": "게시물 식별자",
             "format": "int64",
             "type": "integer"
           }
@@ -655,6 +767,7 @@
       "PostResponse": {
         "properties": {
           "placeParsingStatus": {
+            "description": "게시물 장소 파싱 상태",
             "enum": [
               "PENDING",
               "PROCESSING",
@@ -664,6 +777,7 @@
             "type": "string"
           },
           "postId": {
+            "description": "저장된 게시물 식별자",
             "format": "int64",
             "type": "integer"
           }
@@ -677,6 +791,7 @@
       "RefreshTokenRequest": {
         "properties": {
           "refreshToken": {
+            "description": "서비스 refresh token",
             "minLength": 1,
             "type": "string"
           }
@@ -688,9 +803,6 @@
       },
       "ReplaceSavedPostGroupsRequest": {
         "properties": {
-          "areGroupIdsPositive": {
-            "type": "boolean"
-          },
           "groupIds": {
             "description": "게시물을 연결할 전체 그룹 식별자 목록. 빈 목록이면 모든 그룹에서 제거합니다.",
             "example": [
@@ -705,7 +817,6 @@
           }
         },
         "required": [
-          "areGroupIdsPositive",
           "groupIds"
         ],
         "type": "object"
@@ -713,45 +824,53 @@
       "SavedPostDetailResponse": {
         "properties": {
           "authorIdentifier": {
+            "description": "게시물 작성자 식별자",
             "type": [
               "string",
               "null"
             ]
           },
           "body": {
+            "description": "게시물 본문",
             "type": [
               "string",
               "null"
             ]
           },
           "canonicalUrl": {
+            "description": "게시물 원본 URL",
             "type": "string"
           },
           "hashtags": {
+            "description": "게시물 해시태그 목록",
             "items": {
               "type": "string"
             },
             "type": "array"
           },
           "media": {
+            "description": "게시물 미디어 목록",
             "items": {
               "$ref": "#/components/schemas/SavedPostMediaResponse"
             },
             "type": "array"
           },
           "memo": {
+            "description": "사용자 메모",
             "type": [
               "string",
               "null"
             ]
           },
           "placeParsingFailureReason": {
+            "description": "장소 파싱 실패 사유",
             "type": [
               "string",
               "null"
             ]
           },
           "placeParsingStatus": {
+            "description": "게시물 장소 파싱 상태",
             "enum": [
               "PENDING",
               "PROCESSING",
@@ -761,16 +880,19 @@
             "type": "string"
           },
           "places": {
+            "description": "게시물에서 파싱된 장소 목록",
             "items": {
               "$ref": "#/components/schemas/SavedPostPlaceResponse"
             },
             "type": "array"
           },
           "postId": {
+            "description": "저장 게시물 식별자",
             "format": "int64",
             "type": "integer"
           },
           "publishedAt": {
+            "description": "게시물 발행 시각",
             "format": "date-time",
             "type": [
               "string",
@@ -778,10 +900,12 @@
             ]
           },
           "savedAt": {
+            "description": "게시물 저장 시각",
             "format": "date-time",
             "type": "string"
           },
           "title": {
+            "description": "게시물 제목",
             "type": [
               "string",
               "null"
@@ -802,10 +926,12 @@
       "SavedPostMediaResponse": {
         "properties": {
           "sequence": {
+            "description": "게시물 내 미디어 순서",
             "format": "int32",
             "type": "integer"
           },
           "type": {
+            "description": "미디어 유형",
             "enum": [
               "IMAGE",
               "VIDEO"
@@ -813,6 +939,7 @@
             "type": "string"
           },
           "url": {
+            "description": "미디어 URL",
             "type": "string"
           }
         },
@@ -826,27 +953,33 @@
       "SavedPostPageResponse": {
         "properties": {
           "hasNext": {
+            "description": "다음 페이지 존재 여부",
             "type": "boolean"
           },
           "items": {
+            "description": "저장 게시물 목록",
             "items": {
               "$ref": "#/components/schemas/SavedPostSummaryResponse"
             },
             "type": "array"
           },
           "page": {
+            "description": "현재 페이지 번호",
             "format": "int32",
             "type": "integer"
           },
           "size": {
+            "description": "페이지당 게시물 수",
             "format": "int32",
             "type": "integer"
           },
           "totalElements": {
+            "description": "전체 게시물 수",
             "format": "int64",
             "type": "integer"
           },
           "totalPages": {
+            "description": "전체 페이지 수",
             "format": "int32",
             "type": "integer"
           }
@@ -864,43 +997,54 @@
       "SavedPostPlaceResponse": {
         "properties": {
           "address": {
+            "description": "장소 주소",
             "type": "string"
           },
           "bookmarked": {
+            "description": "사용자의 장소 북마크 여부",
             "type": "boolean"
           },
           "category": {
+            "description": "장소 카테고리",
             "type": [
               "string",
               "null"
             ]
           },
           "externalPlaceId": {
+            "description": "provider의 장소 식별자",
             "type": "string"
           },
           "id": {
+            "description": "장소 식별자",
             "format": "int64",
             "type": "integer"
           },
           "latitude": {
+            "description": "장소 위도",
             "type": "number"
           },
           "longitude": {
+            "description": "장소 경도",
             "type": "number"
           },
           "name": {
+            "description": "장소명",
             "type": "string"
           },
           "phoneNumber": {
+            "description": "장소 전화번호",
             "type": [
               "string",
               "null"
             ]
           },
           "provider": {
+            "description": "장소 provider",
             "type": "string"
           },
           "sequence": {
+            "description": "게시물 내 장소 순서",
             "format": "int32",
             "type": "integer"
           }
@@ -921,18 +1065,21 @@
       "SavedPostSummaryResponse": {
         "properties": {
           "authorIdentifier": {
+            "description": "게시물 작성자 식별자",
             "type": [
               "string",
               "null"
             ]
           },
           "memo": {
+            "description": "사용자 메모",
             "type": [
               "string",
               "null"
             ]
           },
           "postId": {
+            "description": "저장 게시물 식별자",
             "format": "int64",
             "type": "integer"
           },
@@ -947,10 +1094,12 @@
             ]
           },
           "savedAt": {
+            "description": "게시물 저장 시각",
             "format": "date-time",
             "type": "string"
           },
           "title": {
+            "description": "게시물 제목",
             "type": [
               "string",
               "null"
@@ -966,11 +1115,15 @@
       "SignupMemberRequest": {
         "properties": {
           "nickname": {
+            "description": "회원 닉네임",
+            "example": "누커",
             "maxLength": 20,
             "minLength": 2,
             "type": "string"
           },
           "profileImageUrl": {
+            "description": "프로필 이미지 URL",
+            "example": "https://example.com/profile.png",
             "maxLength": 2048,
             "minLength": 0,
             "pattern": "^https://.+",
@@ -988,24 +1141,28 @@
       "SocialAuthRequest": {
         "properties": {
           "accessToken": {
+            "description": "provider access token",
             "type": [
               "string",
               "null"
             ]
           },
           "authorizationCode": {
+            "description": "provider authorization code",
             "type": [
               "string",
               "null"
             ]
           },
           "identityToken": {
+            "description": "provider identity token",
             "type": [
               "string",
               "null"
             ]
           },
           "provider": {
+            "description": "소셜 로그인 provider",
             "enum": [
               "KAKAO",
               "GOOGLE",
@@ -1025,24 +1182,28 @@
       "SocialAuthResponse": {
         "properties": {
           "accessToken": {
+            "description": "서비스 access token. 로그인 완료 상태에서만 내려갑니다.",
             "type": [
               "string",
               "null"
             ]
           },
           "refreshToken": {
+            "description": "서비스 refresh token. 로그인 완료 상태에서만 내려갑니다.",
             "type": [
               "string",
               "null"
             ]
           },
           "signupToken": {
+            "description": "회원가입에 사용할 임시 token. 회원가입 필요 상태에서만 내려갑니다.",
             "type": [
               "string",
               "null"
             ]
           },
           "status": {
+            "description": "소셜 인증 결과 상태",
             "enum": [
               "SIGNED_IN",
               "SIGNUP_REQUIRED"
@@ -1058,9 +1219,11 @@
       "TokenResponse": {
         "properties": {
           "accessToken": {
+            "description": "서비스 access token",
             "type": "string"
           },
           "refreshToken": {
+            "description": "서비스 refresh token",
             "type": "string"
           }
         },
@@ -1105,6 +1268,7 @@
       "UpdatePlaceBookmarkRequest": {
         "properties": {
           "bookmarked": {
+            "description": "북마크 여부",
             "type": "boolean"
           }
         },
@@ -1126,6 +1290,14 @@
           }
         },
         "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "JWT",
+        "description": "서비스 access token을 입력합니다.",
+        "scheme": "bearer",
+        "type": "http"
       }
     }
   },
@@ -1153,15 +1325,16 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/SocialAuthResponse"
+                  "$ref": "#/components/schemas/ApiResponseSocialAuthResponse"
                 }
               }
             },
             "description": "OK"
           }
         },
+        "summary": "소셜 로그인",
         "tags": [
-          "auth-controller"
+          "Auth"
         ]
       }
     },
@@ -1183,15 +1356,16 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
+                  "$ref": "#/components/schemas/ApiResponseTokenResponse"
                 }
               }
             },
             "description": "OK"
           }
         },
+        "summary": "로그인 토큰 재발급",
         "tags": [
-          "auth-controller"
+          "Auth"
         ]
       }
     },
@@ -1250,6 +1424,7 @@
         "operationId": "delete",
         "parameters": [
           {
+            "description": "삭제할 그룹 식별자",
             "in": "path",
             "name": "groupId",
             "required": true,
@@ -1274,6 +1449,7 @@
         "operationId": "update",
         "parameters": [
           {
+            "description": "수정할 그룹 식별자",
             "in": "path",
             "name": "groupId",
             "required": true,
@@ -1317,6 +1493,7 @@
         "operationId": "listPosts",
         "parameters": [
           {
+            "description": "조회할 그룹 식별자",
             "in": "path",
             "name": "groupId",
             "required": true,
@@ -1327,6 +1504,7 @@
             }
           },
           {
+            "description": "조회할 페이지 번호. 0부터 시작합니다.",
             "in": "query",
             "name": "page",
             "required": false,
@@ -1338,6 +1516,7 @@
             }
           },
           {
+            "description": "페이지당 게시물 수",
             "in": "query",
             "name": "size",
             "required": false,
@@ -1373,6 +1552,7 @@
         "operationId": "signup",
         "parameters": [
           {
+            "description": "소셜 로그인 후 발급받은 signup token",
             "in": "header",
             "name": "Authorization",
             "required": true,
@@ -1396,15 +1576,16 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
+                  "$ref": "#/components/schemas/ApiResponseTokenResponse"
                 }
               }
             },
             "description": "OK"
           }
         },
+        "summary": "회원가입",
         "tags": [
-          "member-controller"
+          "Member"
         ]
       }
     },
@@ -1413,6 +1594,7 @@
         "operationId": "getDetail",
         "parameters": [
           {
+            "description": "조회할 장소 식별자",
             "in": "path",
             "name": "placeId",
             "required": true,
@@ -1423,6 +1605,7 @@
             }
           },
           {
+            "description": "조회할 페이지 번호. 0부터 시작합니다.",
             "in": "query",
             "name": "page",
             "required": false,
@@ -1434,6 +1617,7 @@
             }
           },
           {
+            "description": "페이지당 게시물 수",
             "in": "query",
             "name": "size",
             "required": false,
@@ -1469,6 +1653,7 @@
         "operationId": "updateBookmark",
         "parameters": [
           {
+            "description": "북마크를 변경할 장소 식별자",
             "in": "path",
             "name": "placeId",
             "required": true,
@@ -1512,6 +1697,7 @@
         "operationId": "listSavedPosts",
         "parameters": [
           {
+            "description": "조회할 페이지 번호. 0부터 시작합니다.",
             "in": "query",
             "name": "page",
             "required": false,
@@ -1523,6 +1709,7 @@
             }
           },
           {
+            "description": "페이지당 게시물 수",
             "in": "query",
             "name": "size",
             "required": false,
@@ -1587,6 +1774,7 @@
         "operationId": "getSavedPostDetail",
         "parameters": [
           {
+            "description": "조회할 저장 게시물 식별자",
             "in": "path",
             "name": "postId",
             "required": true,
@@ -1620,6 +1808,7 @@
         "operationId": "replaceGroups",
         "parameters": [
           {
+            "description": "그룹을 재지정할 저장 게시물 식별자",
             "in": "path",
             "name": "postId",
             "required": true,
@@ -1663,6 +1852,7 @@
         "operationId": "updateMemo",
         "parameters": [
           {
+            "description": "메모를 변경할 저장 게시물 식별자",
             "in": "path",
             "name": "postId",
             "required": true,
@@ -1706,6 +1896,7 @@
         "operationId": "findPlaceParsing",
         "parameters": [
           {
+            "description": "장소 파싱 결과를 조회할 게시물 식별자",
             "in": "path",
             "name": "postId",
             "required": true,
@@ -1735,10 +1926,25 @@
       }
     }
   },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
   "servers": [
     {
       "description": "Generated server url",
-      "url": "http://api-dev.everynook.co.kr"
+      "url": "https://api-dev.everynook.co.kr"
+    }
+  ],
+  "tags": [
+    {
+      "description": "회원 API",
+      "name": "Member"
+    },
+    {
+      "description": "인증 API",
+      "name": "Auth"
     }
   ]
 }

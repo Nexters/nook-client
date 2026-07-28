@@ -9,23 +9,48 @@ import type { SavedPostMediaResponse } from './savedPostMediaResponse.generated'
 import type { SavedPostPlaceResponse } from './savedPostPlaceResponse.generated';
 
 export interface SavedPostDetailResponse {
-  /** @nullable */
+  /**
+   * 게시물 작성자 식별자
+   * @nullable
+   */
   authorIdentifier?: string | null;
-  /** @nullable */
+  /**
+   * 게시물 본문
+   * @nullable
+   */
   body?: string | null;
+  /** 게시물 원본 URL */
   canonicalUrl: string;
+  /** 게시물 해시태그 목록 */
   hashtags: string[];
+  /** 게시물 미디어 목록 */
   media: SavedPostMediaResponse[];
-  /** @nullable */
+  /**
+   * 사용자 메모
+   * @nullable
+   */
   memo?: string | null;
-  /** @nullable */
+  /**
+   * 장소 파싱 실패 사유
+   * @nullable
+   */
   placeParsingFailureReason?: string | null;
+  /** 게시물 장소 파싱 상태 */
   placeParsingStatus: SavedPostDetailResponsePlaceParsingStatus;
+  /** 게시물에서 파싱된 장소 목록 */
   places: SavedPostPlaceResponse[];
+  /** 저장 게시물 식별자 */
   postId: number;
-  /** @nullable */
+  /**
+   * 게시물 발행 시각
+   * @nullable
+   */
   publishedAt?: string | null;
+  /** 게시물 저장 시각 */
   savedAt: string;
-  /** @nullable */
+  /**
+   * 게시물 제목
+   * @nullable
+   */
   title?: string | null;
 }
