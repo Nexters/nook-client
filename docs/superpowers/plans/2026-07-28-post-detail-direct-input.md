@@ -4,13 +4,14 @@
 
 **Goal:** 게시물 상세(`/post/:postId`)에서 연관 장소 파싱 API의 로딩/에러 상태를 처리하고, 로딩이 끝나면(성공/실패 모두) "찾는 장소가 없으신가요? 직접 추가" 배너를 노출하며, 배너를 누르면 장소를 직접 검색해 넣는 바텀시트(초기 뷰 + 검색 결과 뷰)를 띄운다.
 
-**Architecture:** 연관 장소는 게시물 상세와 별도로 비동기 응답하는 API라는 전제 하에, `useRelatedPlaces` 훅이 `{status:'loading'|'success'|'error'}` 상태를 관리한다. `PostDetailPage`는 이 상태를 `RelatedPlacesSection`(로딩 문구 / 장소 목록 / 배너)에 넘기고, 에러일 때만 별도로 하단 `Snackbar` 토스트를 띄운다. 배너 클릭은 `PlaceDirectInputDrawer`(검색 인풋 + 결과 목록)를 연다. 실제 API가 아직 없으므로 모든 데이터는 `postId` 별로 분기하는 mock 함수로 흉내내고, `TODO(api)` 주석으로 교체 지점을 표시한다(기존 `mock/posts.ts` 컨벤션을 따른다).
+**Architecture:** 연관 장소는 게시물 상세와 별도로 비동기 응답하는 API라는 전제 하에, `useRelatedPlaces` 훅이 TanStack Query(`useQuery`)로 서버 응답을 관리하고 화면에는 `{status:'loading'|'success'|'error'}` discriminated union으로 좁혀 노출한다. (`QueryClientProvider`는 `app/providers.tsx`에 이미 설정돼 있지만 실사용 `useQuery`는 이 훅이 프로젝트 첫 사례다.) `PostDetailPage`는 이 상태를 `RelatedPlacesSection`(로딩 문구 / 장소 목록 / 배너)에 넘기고, 에러일 때만 별도로 하단 `Snackbar` 토스트를 띄운다. 배너 클릭은 `PlaceDirectInputDrawer`(검색 인풋 + 결과 목록)를 연다. 실제 API가 아직 없으므로 모든 데이터는 `postId` 별로 분기하는 mock 함수로 흉내내고, `TODO(api)` 주석으로 교체 지점을 표시한다(기존 `mock/posts.ts` 컨벤션을 따른다).
 
-**Tech Stack:** React 19 + TypeScript, react-router-dom v7, Tailwind v4(`@theme` 토큰), vaul(Drawer), vitest + @testing-library/react.
+**Tech Stack:** React 19 + TypeScript, react-router-dom v7, @tanstack/react-query v5, Tailwind v4(`@theme` 토큰), vaul(Drawer), vitest + @testing-library/react.
 
 ## Global Constraints
 
 - 실제 연관 장소 API는 아직 없다 — 모든 신규 로직은 mock 함수로 구현하고 `// TODO(api): ...` 주석으로 교체 지점을 남긴다(기존 `getMockPostDetail` 컨벤션과 동일).
+- 연관 장소 같은 서버 상태는 TanStack Query(`useQuery`)로 관리한다 — mock 교체 시 `queryFn`만 실제 API 호출로 바꾸면 되는 구조를 만든다. 테스트에서는 전역 `queryClient`(retry: 1)를 쓰지 말고 `retry: false`인 새 `QueryClient`로 감싼다(에러 케이스가 재시도 때문에 느려지지 않게).
 - 새 UI는 반드시 `apps/web/src/shared/ui`의 기존 프리미티브(`Drawer`, `Snackbar`, `Button` 등)와 `@/shared/icons/NookIcons`의 아이콘만 쓴다. 새 디자인 시스템 컴포넌트를 만들지 않는다.
 - 새 아이콘이 필요하면 `packages/icons/src/*.svg`에 소스를 추가하고 `pnpm icons:generate`로 생성한다 — `apps/web/src/shared/icons/NookIcons.tsx`를 직접 손으로 고치지 않는다(파일 상단에 "Do not edit directly" 명시됨). `pnpm typecheck`가 `icons:check`를 포함하므로 생성 파일이 최신이 아니면 타입체크가 실패한다.
 - "이후 장소 리스트를 클릭했을 때 나오는 화면"은 이번 범위가 아니다 — 검색 결과 행은 표시만 하고 `onClick`을 달지 않는다.
@@ -77,16 +78,15 @@ git commit -m "feat(icons): 느낌표 원형, 돋보기 아이콘 추가"
 **Files:**
 - Create: `apps/web/src/features/post/mock/relatedPlaces.ts`
 - Create: `apps/web/src/features/post/hooks/useRelatedPlaces.ts`
-- Test: `apps/web/src/features/post/hooks/useRelatedPlaces.test.ts`
+- Test: `apps/web/src/features/post/hooks/useRelatedPlaces.test.tsx` (JSX 래퍼가 필요해 `.tsx`)
 - Modify: `apps/web/src/features/post/mock/posts.ts:22-99` (아래 Task 3 Step 1에서 `relatedPlaces` 필드 제거 — 이 태스크에서는 새 파일만 추가하고 기존 파일은 건드리지 않는다)
 
 **Interfaces:**
 - Produces:
-  - `export type RelatedPlacesResult = { status: 'success'; places: Place[] } | { status: 'error' }` — `mock/relatedPlaces.ts`
-  - `export function getMockRelatedPlaces(postId: string | undefined): Promise<RelatedPlacesResult>` — `mock/relatedPlaces.ts`
+  - `export function getMockRelatedPlaces(postId: string | undefined): Promise<Place[]>` — `mock/relatedPlaces.ts`. 파싱 실패 게시물이면 reject 한다 — 에러 표현은 TanStack Query 의 `isError` 가 담당한다.
   - `export type RelatedPlacesState = { status: 'loading' } | { status: 'success'; places: Place[] } | { status: 'error' }` — `hooks/useRelatedPlaces.ts`
-  - `export function useRelatedPlaces(postId: string | undefined): RelatedPlacesState` — `hooks/useRelatedPlaces.ts`
-- Consumes: `Place` type from `@/features/place`.
+  - `export function useRelatedPlaces(postId: string | undefined): RelatedPlacesState` — `hooks/useRelatedPlaces.ts`. 내부는 `useQuery`(queryKey `['post', postId, 'related-places']`)이고 화면에는 3-state union 으로 좁혀 노출한다 — 소비처가 쿼리 객체 전체에 의존하지 않게 하기 위해서다.
+- Consumes: `Place` type from `@/features/place`, `useQuery` from `@tanstack/react-query`.
 
 - [ ] **Step 1: mock 함수 작성**
 
@@ -96,8 +96,9 @@ import type { Place } from '../../place/types';
 
 /**
  * 연관 장소는 게시물 상세와 별도로 파싱되는 API 결과라는 전제로 만든 목데이터.
- * API 스펙 확정 시 이 파일의 `getMockRelatedPlaces` 호출부를 `features/post/api.ts` 의
- * 실제 쿼리로 교체한다.
+ * API 스펙 확정 시 `useRelatedPlaces` 의 queryFn 에서 이 함수 호출을
+ * `features/post/api.ts` 의 실제 호출로 교체한다 — 성공은 resolve, 실패는 reject 로
+ * 이미 실제 API 와 같은 계약을 갖는다.
  */
 
 function placeholder(hex: string, width: number, height: number) {
@@ -106,66 +107,73 @@ function placeholder(hex: string, width: number, height: number) {
   )}`;
 }
 
-export type RelatedPlacesResult = { status: 'success'; places: Place[] } | { status: 'error' };
-
 /** 실제 파싱 API 의 응답 지연을 흉내내는 값. 테스트에서는 `waitFor` 로 기다린다. */
 const MOCK_DELAY_MS = 300;
 
-const MOCK_RESULTS: Record<string, RelatedPlacesResult> = {
-  'post-1': {
-    status: 'success',
-    places: [
-      {
-        id: 'place-1',
-        name: '아이소',
-        category: '카페',
-        distance: '16.2km',
-        address: '경기 용인시 처인구 양지읍 은이로 72',
-        thumbnail: placeholder('#b4bdc9', 64, 64),
-      },
-      {
-        id: 'place-2',
-        name: '퍼머넌트해비탯',
-        category: '카페',
-        distance: '16.2km',
-        address: '경기 용인시 처인구 양지읍 은이로 72',
-        thumbnail: placeholder('#d7dce3', 64, 64),
-      },
-      {
-        id: 'place-3',
-        // 썸네일이 없으면 `PlaceRow` 가 시안 `Image_x` 로 떨어진다.
-        name: '탐석과 사랑',
-        category: '카페',
-        distance: '16.2km',
-        address: '경기 용인시 처인구 양지읍 은이로 72',
-      },
-    ],
-  },
+// 'post-3' 은 의도적으로 키가 없다 — 파싱 실패(reject) 케이스 (시안 `게시물 상세_직접 입력` 실패).
+const MOCK_RESULTS: Record<string, Place[]> = {
+  'post-1': [
+    {
+      id: 'place-1',
+      name: '아이소',
+      category: '카페',
+      distance: '16.2km',
+      address: '경기 용인시 처인구 양지읍 은이로 72',
+      thumbnail: placeholder('#b4bdc9', 64, 64),
+    },
+    {
+      id: 'place-2',
+      name: '퍼머넌트해비탯',
+      category: '카페',
+      distance: '16.2km',
+      address: '경기 용인시 처인구 양지읍 은이로 72',
+      thumbnail: placeholder('#d7dce3', 64, 64),
+    },
+    {
+      id: 'place-3',
+      // 썸네일이 없으면 `PlaceRow` 가 시안 `Image_x` 로 떨어진다.
+      name: '탐석과 사랑',
+      category: '카페',
+      distance: '16.2km',
+      address: '경기 용인시 처인구 양지읍 은이로 72',
+    },
+  ],
   // 시안 `연관 장소 X` — 파싱은 성공했지만 매칭된 장소가 없는 게시물.
-  'post-2': { status: 'success', places: [] },
-  // 시안 `게시물 상세_직접 입력` 실패 케이스 — 파싱 자체가 실패한 게시물.
-  'post-3': { status: 'error' },
+  'post-2': [],
 };
 
-export function getMockRelatedPlaces(postId: string | undefined): Promise<RelatedPlacesResult> {
-  const result: RelatedPlacesResult = (postId && MOCK_RESULTS[postId]) || { status: 'error' };
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(result), MOCK_DELAY_MS);
+export function getMockRelatedPlaces(postId: string | undefined): Promise<Place[]> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const places = postId ? MOCK_RESULTS[postId] : undefined;
+      if (places) resolve(places);
+      else reject(new Error(`연관 장소 파싱 실패: ${postId ?? '(postId 없음)'}`));
+    }, MOCK_DELAY_MS);
   });
 }
 ```
 
 - [ ] **Step 2: 훅의 실패하는 테스트 작성**
 
-`apps/web/src/features/post/hooks/useRelatedPlaces.test.ts`:
-```ts
+`apps/web/src/features/post/hooks/useRelatedPlaces.test.tsx`:
+```tsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 import { useRelatedPlaces } from './useRelatedPlaces';
 
+// 전역 queryClient(retry: 1)를 쓰면 에러 케이스가 재시도 때문에 느려진다 — 테스트는 재시도 없이 돈다.
+function createWrapper() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+}
+
 describe('useRelatedPlaces', () => {
   it('로딩 후 매칭된 장소 목록을 성공으로 반환한다', async () => {
-    const { result } = renderHook(() => useRelatedPlaces('post-1'));
+    const { result } = renderHook(() => useRelatedPlaces('post-1'), { wrapper: createWrapper() });
 
     expect(result.current.status).toBe('loading');
 
@@ -178,7 +186,7 @@ describe('useRelatedPlaces', () => {
   });
 
   it('매칭된 장소가 없으면 빈 목록으로 성공한다', async () => {
-    const { result } = renderHook(() => useRelatedPlaces('post-2'));
+    const { result } = renderHook(() => useRelatedPlaces('post-2'), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.status).not.toBe('loading'));
 
@@ -186,7 +194,7 @@ describe('useRelatedPlaces', () => {
   });
 
   it('파싱이 실패하면 에러 상태를 반환한다', async () => {
-    const { result } = renderHook(() => useRelatedPlaces('post-3'));
+    const { result } = renderHook(() => useRelatedPlaces('post-3'), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.status).not.toBe('loading'));
 
@@ -197,14 +205,14 @@ describe('useRelatedPlaces', () => {
 
 - [ ] **Step 3: 테스트 실행 → 실패 확인**
 
-Run: `pnpm --filter web test -- run src/features/post/hooks/useRelatedPlaces.test.ts`
+Run: `pnpm --filter web test -- run src/features/post/hooks/useRelatedPlaces.test.tsx`
 Expected: FAIL — `Cannot find module './useRelatedPlaces'` (아직 훅 파일이 없음)
 
 - [ ] **Step 4: 훅 구현**
 
 `apps/web/src/features/post/hooks/useRelatedPlaces.ts`:
 ```ts
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { Place } from '@/features/place';
 import { getMockRelatedPlaces } from '../mock/relatedPlaces';
 
@@ -214,36 +222,32 @@ export type RelatedPlacesState =
   | { status: 'error' };
 
 /**
- * 연관 장소는 게시물 상세와 별도로 파싱되는 API 라 훅을 분리했다.
- * API 스펙 확정 시 `getMockRelatedPlaces` 호출부만 실제 쿼리로 교체한다.
+ * 연관 장소는 게시물 상세와 별도로 파싱되는 API 라 쿼리를 분리했다.
+ * TanStack Query 상태를 3-state union 으로 좁혀 노출한다 — 소비처
+ * (`RelatedPlacesSection`)가 쿼리 객체 전체에 의존하지 않게 하기 위해서다.
  */
 export function useRelatedPlaces(postId: string | undefined): RelatedPlacesState {
-  const [state, setState] = useState<RelatedPlacesState>({ status: 'loading' });
+  const query = useQuery({
+    queryKey: ['post', postId, 'related-places'],
+    // TODO(api): 연관 장소 파싱 API 확정 시 features/post/api.ts 의 실제 호출로 교체한다.
+    queryFn: () => getMockRelatedPlaces(postId),
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    setState({ status: 'loading' });
-    getMockRelatedPlaces(postId).then((result) => {
-      if (!cancelled) setState(result);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [postId]);
-
-  return state;
+  if (query.isPending) return { status: 'loading' };
+  if (query.isError) return { status: 'error' };
+  return { status: 'success', places: query.data };
 }
 ```
 
 - [ ] **Step 5: 테스트 실행 → 통과 확인**
 
-Run: `pnpm --filter web test -- run src/features/post/hooks/useRelatedPlaces.test.ts`
+Run: `pnpm --filter web test -- run src/features/post/hooks/useRelatedPlaces.test.tsx`
 Expected: PASS (3 tests)
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add apps/web/src/features/post/mock/relatedPlaces.ts apps/web/src/features/post/hooks/useRelatedPlaces.ts apps/web/src/features/post/hooks/useRelatedPlaces.test.ts
+git add apps/web/src/features/post/mock/relatedPlaces.ts apps/web/src/features/post/hooks/useRelatedPlaces.ts apps/web/src/features/post/hooks/useRelatedPlaces.test.tsx
 git commit -m "feat(post): 연관 장소 로딩/성공/에러 상태를 관리하는 useRelatedPlaces 훅 추가"
 ```
 
@@ -517,6 +521,7 @@ import { getMockPostDetail } from './mock/posts';
 
 `apps/web/src/features/post/PostDetailPage.test.tsx` 전체를 아래로 교체한다:
 ```tsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
@@ -524,14 +529,18 @@ import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import { PostDetailPage } from '@/features/post/PostDetailPage';
 
 async function renderPost(postId: string) {
+  // 전역 queryClient(retry: 1) 대신 재시도 없는 클라이언트 — 에러 케이스 테스트가 느려지지 않게.
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
-    <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
-      <MemoryRouter initialEntries={[`/post/${postId}`]}>
-        <Routes>
-          <Route path="/post/:postId" element={<PostDetailPage />} />
-        </Routes>
-      </MemoryRouter>
-    </BottomMenuVisibilityProvider>,
+    <QueryClientProvider client={queryClient}>
+      <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
+        <MemoryRouter initialEntries={[`/post/${postId}`]}>
+          <Routes>
+            <Route path="/post/:postId" element={<PostDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </BottomMenuVisibilityProvider>
+    </QueryClientProvider>,
   );
   // 연관 장소는 별도 API 로 비동기 로드된다 — 로딩 문구가 사라질 때까지 기다린다.
   await waitFor(() =>
