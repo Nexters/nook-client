@@ -6,6 +6,7 @@ import {
   KakaoIcon,
   SocialLoginButton,
 } from '@/features/auth/components/SocialLoginButton';
+import { env } from '@/shared/config/env';
 // @coldbrow Temporary deactivation for UT
 // import { requestSocialLogin } from '@/features/auth/social-login';
 
@@ -51,6 +52,15 @@ export function LoginPage() {
           onClick={() => navigate('/map')}
           // onClick={() => requestSocialLogin('apple')}
         />
+        {env.enableDevRoutes ? (
+          <button
+            type="button"
+            className="mt-1 h-9 text-b3 font-semibold text-gray-60 underline underline-offset-4"
+            onClick={() => navigate('/dev/ut')}
+          >
+            테스트 토큰으로 로그인
+          </button>
+        ) : null}
       </div>
     </main>
   );

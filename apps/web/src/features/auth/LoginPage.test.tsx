@@ -49,4 +49,19 @@ describe('LoginPage', () => {
 
     expect(screen.getByText('지도 화면')).toBeInTheDocument();
   });
+
+  it('development 테스트 세션 화면으로 이동한다', () => {
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/dev/ut" element={<p>테스트 세션 화면</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '테스트 토큰으로 로그인' }));
+
+    expect(screen.getByText('테스트 세션 화면')).toBeInTheDocument();
+  });
 });
