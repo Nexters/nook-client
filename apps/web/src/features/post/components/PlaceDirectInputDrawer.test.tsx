@@ -78,4 +78,44 @@ describe('PlaceDirectInputDrawer', () => {
 
     expect(onPlaceConfirmed).toHaveBeenCalledWith(expect.objectContaining({ id: 'search-1' }));
   });
+
+  it('부모가 open 을 false 로 바꿔 닫으면 다시 열었을 때 검색 목록부터 다시 보여준다', () => {
+    const { rerender } = render(
+      <PlaceDirectInputDrawer open onOpenChange={() => {}} onPlaceConfirmed={() => {}} />,
+    );
+    fireEvent.change(screen.getByPlaceholderText('장소명을 입력해주세요'), {
+      target: { value: '앤미' },
+    });
+    fireEvent.click(screen.getByText('앤미'));
+    expect(screen.getByText('서울대입구역 2번 출구')).toBeInTheDocument();
+
+    rerender(
+      <PlaceDirectInputDrawer open={false} onOpenChange={() => {}} onPlaceConfirmed={() => {}} />,
+    );
+    rerender(<PlaceDirectInputDrawer open onOpenChange={() => {}} onPlaceConfirmed={() => {}} />);
+
+    expect(screen.getByPlaceholderText('장소명을 입력해주세요')).toBeInTheDocument();
+    expect(screen.queryByText('서울대입구역 2번 출구')).not.toBeInTheDocument();
+  });
+
+  it('게시물 이미지 뷰어가 열려 있는 동안은 "추가하기" 바를 보여주지 않는다', () => {
+    render(
+      <MemoryRouter>
+        <PlaceDirectInputDrawer open onOpenChange={() => {}} onPlaceConfirmed={() => {}} />
+      </MemoryRouter>,
+    );
+    fireEvent.change(screen.getByPlaceholderText('장소명을 입력해주세요'), {
+      target: { value: '앤미' },
+    });
+    fireEvent.click(screen.getByText('앤미'));
+    expect(screen.getByRole('button', { name: '추가하기', hidden: true })).toBeInTheDocument();
+
+    const [firstThumbnail] = screen.getAllByRole('button', { name: '게시물 크게 보기' });
+    if (!firstThumbnail) throw new Error('게시물 썸네일을 찾지 못했다.');
+    fireEvent.click(firstThumbnail);
+
+    expect(
+      screen.queryByRole('button', { name: '추가하기', hidden: true }),
+    ).not.toBeInTheDocument();
+  });
 });

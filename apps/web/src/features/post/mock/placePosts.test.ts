@@ -6,7 +6,9 @@ describe('getMockPlacePosts', () => {
     const posts = getMockPlacePosts('search-1');
 
     expect(posts.length).toBeGreaterThan(0);
-    expect(posts[0]!.images?.length).toBeGreaterThan(0);
+    const [firstPost] = posts;
+    if (!firstPost) throw new Error('게시물을 찾지 못했다.');
+    expect(firstPost.images?.length).toBeGreaterThan(0);
   });
 
   it('게시물이 여러 장 이미지를 가진 경우도 있다(이미지 뷰어 인디케이터 테스트용)', () => {
