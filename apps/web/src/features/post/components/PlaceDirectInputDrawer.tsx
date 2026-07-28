@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAppShellContainer } from '@/app/providers';
 import { Icon16Location, Icon18MagnifyingGlass, Icon24Delete } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
@@ -16,6 +17,7 @@ export interface PlaceDirectInputDrawerProps {
  * 이 드로어는 검색어 입력과 결과 목록 표시까지만 담당한다 — 행에는 아직 onClick 이 없다.
  */
 function PlaceDirectInputDrawer({ open, onOpenChange }: PlaceDirectInputDrawerProps) {
+  const shellContainer = useAppShellContainer();
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
   const results = searchMockPlaces(query);
@@ -27,12 +29,14 @@ function PlaceDirectInputDrawer({ open, onOpenChange }: PlaceDirectInputDrawerPr
         if (!next) setQuery('');
         onOpenChange(next);
       }}
+      container={shellContainer}
     >
-      <DrawerContent className="px-4 pb-11">
+      {/* 시안: 화면 높이의 90% 정도를 덮는 고정 높이 — 내용이 적어도/많아도 시트 높이는 그대로다. */}
+      <DrawerContent className="h-[90dvh] px-4 pb-11">
         <DrawerTitle className="sr-only">장소 직접 입력</DrawerTitle>
         {/* 앞에 돋보기 아이콘 슬롯이 필요해 공용 `Input` (@/shared/ui) 을 못 쓰고 직접 구현한다 —
             대신 포커스 보더/클리어 버튼 동작은 `Input` 과 동일하게 맞춘다. */}
-        <div className="flex h-11 w-full items-center gap-2 rounded-lg border border-gray-30 px-3 transition-colors focus-within:border-gray-100">
+        <div className="flex h-11 w-full shrink-0 items-center gap-2 rounded-lg border border-gray-30 px-3 transition-colors focus-within:border-gray-100">
           <Icon18MagnifyingGlass className="shrink-0" />
           <input
             value={query}
@@ -56,7 +60,7 @@ function PlaceDirectInputDrawer({ open, onOpenChange }: PlaceDirectInputDrawerPr
         </div>
 
         {results.length > 0 ? (
-          <ul className="mt-5 flex w-full flex-col">
+          <ul className="mt-5 flex w-full flex-1 flex-col overflow-y-auto">
             {results.map((place, index) => (
               <li
                 key={place.id}
