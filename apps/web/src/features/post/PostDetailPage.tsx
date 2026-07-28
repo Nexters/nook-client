@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
+import type { Place } from '@/features/place';
 import { cn } from '@/shared/lib/utils';
 import { BackButton, Carousel, Header, Snackbar } from '@/shared/ui';
 import { MemoSheet } from './components/MemoSheet';
@@ -41,14 +42,31 @@ export function PostDetailPage() {
   const toggleBookmark = (placeId: string, next: boolean) =>
     setBookmarkOverrides((prev) => ({ ...prev, [placeId]: next }));
 
-  const bookmarkedPlaceIds =
-    relatedPlacesState.status === 'success'
-      ? relatedPlacesState.places
-          .map((place) => place.id)
-          .filter(
-            (id) => bookmarkOverrides[id] ?? relatedPlacesState.bookmarkedPlaceIds.includes(id),
-          )
-      : [];
+  // "직접 추가"로 확정한 장소 — 파싱 상태와 무관하게 항상 연관 장소에 보여준다.
+  const [manualPlaces, setManualPlaces] = useState<Place[]>([]);
+
+  function handlePlaceConfirmed(place: Place) {
+    setManualPlaces((prev) =>
+      prev.some((existing) => existing.id === place.id) ? prev : [...prev, place],
+    );
+    // 시안: 직접 추가한 장소는 항상 파란 북마크(저장됨) 상태로 시작한다.
+    setBookmarkOverrides((prev) => ({ ...prev, [place.id]: true }));
+    setDirectInputOpen(false);
+  }
+
+  const allPlaceIds = [
+    ...(relatedPlacesState.status === 'success'
+      ? relatedPlacesState.places.map((place) => place.id)
+      : []),
+    ...manualPlaces.map((place) => place.id),
+  ];
+
+  const bookmarkedPlaceIds = allPlaceIds.filter(
+    (id) =>
+      bookmarkOverrides[id] ??
+      (relatedPlacesState.status === 'success' &&
+        relatedPlacesState.bookmarkedPlaceIds.includes(id)),
+  );
 
   useEffect(() => {
     if (relatedPlacesState.status !== 'error') return;
@@ -143,6 +161,7 @@ export function PostDetailPage() {
 
       <RelatedPlacesSection
         state={relatedPlacesState}
+        manualPlaces={manualPlaces}
         bookmarkedPlaceIds={bookmarkedPlaceIds}
         onBookmarkedChange={toggleBookmark}
         onDirectAddClick={() => setDirectInputOpen(true)}
@@ -155,10 +174,7 @@ export function PostDetailPage() {
       <PlaceDirectInputDrawer
         open={directInputOpen}
         onOpenChange={setDirectInputOpen}
-        // TODO(task-4): 확정한 장소를 연관 장소(manualPlaces) 목록에 추가하는 로직을 붙인다.
-        // 지금은 드로어를 닫기만 한다 — PlaceDirectInputDrawer 의 문서화된 계약대로
-        // "추가하기"를 누르면 호출부가 스스로 드로어를 닫는다.
-        onPlaceConfirmed={() => setDirectInputOpen(false)}
+        onPlaceConfirmed={handlePlaceConfirmed}
       />
 
       {showRelatedPlacesErrorToast ? (
