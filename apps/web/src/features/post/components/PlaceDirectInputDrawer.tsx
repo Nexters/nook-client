@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppShellContainer } from '@/app/providers';
 import { Icon16Location, Icon18MagnifyingGlass, Icon24Delete } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
@@ -21,6 +21,29 @@ function PlaceDirectInputDrawer({ open, onOpenChange }: PlaceDirectInputDrawerPr
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
   const results = searchMockPlaces(query);
+
+  // 배경 페이지가 스크롤된 채로 열리면 vaul 이 "콘텐츠를 스크롤하는 중"으로 오인해
+  // 끌어내리기(dismiss) 제스처를 막아버린다 — 열려 있는 동안만 문서 스크롤 위치를 고정해
+  // 화면은 그대로 두면서 vaul 의 드래그 판정(scrollTop === 0)은 항상 통과하게 한다.
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement;
+    const scrollY = root.scrollTop;
+    const previous = {
+      position: root.style.position,
+      top: root.style.top,
+      width: root.style.width,
+    };
+    root.style.position = 'fixed';
+    root.style.top = `-${scrollY}px`;
+    root.style.width = '100%';
+    return () => {
+      root.style.position = previous.position;
+      root.style.top = previous.top;
+      root.style.width = previous.width;
+      root.scrollTop = scrollY;
+    };
+  }, [open]);
 
   return (
     <Drawer
