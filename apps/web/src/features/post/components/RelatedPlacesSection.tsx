@@ -49,7 +49,7 @@ function RelatedPlacesSection({
           <button
             type="button"
             onClick={onDirectAddClick}
-            className="flex w-full items-center justify-between rounded-sm border border-nook-blue/80 bg-gray-0 px-1 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+            className="flex w-full items-center justify-between rounded-sm bg-gray-0 px-1 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
           >
             <span className="flex items-center gap-2">
               <Icon16ExclamationCircle />
