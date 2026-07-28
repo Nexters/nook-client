@@ -108,7 +108,6 @@ function DevPostCreator() {
           url: url.trim(),
           memo: memo.trim() || null,
           groupIds: selectedGroupIds,
-          areGroupIdsPositive: selectedGroupIds.every((groupId) => groupId > 0),
         },
         { auth: 'required' },
       );

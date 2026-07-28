@@ -127,7 +127,6 @@ describe('DevSessionPage', () => {
           url: 'https://example.com/post',
           memo: '테스트 메모',
           groupIds: [1, 2],
-          areGroupIdsPositive: true,
         },
         { auth: 'required' },
       ),

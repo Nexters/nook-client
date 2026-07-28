@@ -68,7 +68,9 @@ export class ApiClient implements ApiRequester {
 
   constructor(options: ApiClientOptions) {
     this.baseUrl = options.baseUrl ? parseBaseUrl(options.baseUrl) : undefined;
-    this.fetcher = options.fetcher ?? fetch;
+    // `?? fetch` 로 담으면 this.fetcher(...) 가 this=ApiClient 로 호출돼 브라우저에서
+    // Illegal invocation 이 난다(요청 시작 전이라 네트워크 탭에도 안 잡힌다).
+    this.fetcher = options.fetcher ?? ((input, init) => globalThis.fetch(input, init));
     this.getAccessToken = options.getAccessToken;
     this.defaultTimeoutMs = options.defaultTimeoutMs ?? DEFAULT_TIMEOUT_MS;
   }

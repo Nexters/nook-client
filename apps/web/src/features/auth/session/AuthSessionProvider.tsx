@@ -73,8 +73,15 @@ function clearDevWebSession() {
   }
 }
 
+// React 는 자식 effect 를 부모보다 먼저 실행한다. 토큰 주입을 effect 에 두면 자식의 첫 요청이
+// 토큰 없이 나가 AUTH_REQUIRED 로 끊긴다 — fetch 이전이라 네트워크 탭에도 안 잡힌다.
+// nativeBridge.start() 와 같은 이유로 렌더 중에 끝낸다.
+let currentSession: SessionState = anonymousSession;
+apiClient.setAccessTokenProvider(() => currentSession.accessToken);
+
 export function AuthSessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionState>(restoreDevWebSession);
+  currentSession = session;
 
   useEffect(() => {
     if (!nativeBridge.isNative) return;
@@ -101,11 +108,14 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    apiClient.setAccessTokenProvider(() => session.accessToken);
+    // 401 응답 이후에만 쓰이므로 effect 로 충분하다. revision 은 호출 시점 값을 읽는다.
     apiClient.setSessionRefresher(
       nativeBridge.isNative
         ? async () => {
-            const result = await nativeBridge.requestSession('SESSION_REFRESH', session.revision);
+            const result = await nativeBridge.requestSession(
+              'SESSION_REFRESH',
+              currentSession.revision,
+            );
             setSession({
               status: result.status,
               accessToken: result.accessToken ?? null,
@@ -115,7 +125,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
           }
         : undefined,
     );
-  }, [session.accessToken, session.revision]);
+  }, []);
 
   const value = useMemo<SessionContextValue>(
     () => ({
