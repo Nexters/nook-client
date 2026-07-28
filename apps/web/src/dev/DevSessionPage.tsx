@@ -10,24 +10,61 @@ function errorMessage(cause: unknown, fallback: string) {
   return cause instanceof Error ? cause.message : fallback;
 }
 
+// UT 참가자별 고정 access token. 개발 라우트에서만 노출된다.
+// refresh token 은 발급하지 않아 만료되면 세션이 정리되고, 그때는 토큰을 새로 받아 교체한다.
+export const UT_ACCOUNTS = [
+  {
+    name: '김윤영',
+    token:
+      'eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJub29rLWFwaSIsInN1YiI6IjEiLCJqdGkiOiJmNzcwNWRjZi1iZjE5LTQzMzctYWFiYy1kMWFiOWE3ZjRiZjgiLCJpYXQiOjE3ODUyNDU4MTcsImV4cCI6MTc4NzgzNzgxNywidG9rZW5fdHlwZSI6ImFjY2VzcyJ9.5GH6vu08z8YwH1VneIHR-rwQ7KQfXxq-T-qJrmD6tDM',
+  },
+  {
+    name: '배서영',
+    token:
+      'eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJub29rLWFwaSIsInN1YiI6IjIiLCJqdGkiOiJiMTYzNWEwMi0zOWYyLTQ4YjktYTU0OC05NjQxOTkzNzBjZWQiLCJpYXQiOjE3ODUyNDU4MTcsImV4cCI6MTc4NzgzNzgxNywidG9rZW5fdHlwZSI6ImFjY2VzcyJ9.7rBji19yo2xJDcBVA18H7OK9NxuEuPNn_3GHUvTuGVY',
+  },
+  {
+    name: '박찬형',
+    token:
+      'eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJub29rLWFwaSIsInN1YiI6IjMiLCJqdGkiOiJkN2ZjOGNhZi1kNDAyLTRhZmQtOTIzMC02NDNmMjBhMGNmM2UiLCJpYXQiOjE3ODUyNDU4MTcsImV4cCI6MTc4NzgzNzgxNywidG9rZW5fdHlwZSI6ImFjY2VzcyJ9.KciKQJHQ05Vkd6Hj0-sNbnPzlcyEoFFEULuLcsIDIFQ',
+  },
+  {
+    name: '권기준',
+    token:
+      'eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJub29rLWFwaSIsInN1YiI6IjQiLCJqdGkiOiJjNGQwNGU2Ni0yMTMxLTQwNDMtOGFjNi01MTdhYzliM2I3YjMiLCJpYXQiOjE3ODUyNDU4MTcsImV4cCI6MTc4NzgzNzgxNywidG9rZW5fdHlwZSI6ImFjY2VzcyJ9.3oFARVA4vAYeoedgjBQ8Gr8Pn2bKG5fkEz6VjNGuU4I',
+  },
+  {
+    name: '백도현',
+    token:
+      'eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJub29rLWFwaSIsInN1YiI6IjUiLCJqdGkiOiI3YTNiY2ZhYy0zYjJkLTRiZDYtYmFmOS0xNjA0N2ExNGJjYTUiLCJpYXQiOjE3ODUyNDU4MTcsImV4cCI6MTc4NzgzNzgxNywidG9rZW5fdHlwZSI6ImFjY2VzcyJ9.EqD442BjYxD6J7XrB14KKauZQ7ypty3CBr9RLwwcEgs',
+  },
+  {
+    name: '문지우',
+    token:
+      'eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJub29rLWFwaSIsInN1YiI6IjYiLCJqdGkiOiIwYTQ1YWY3Ny02MWJhLTQwMWQtYWEzYi1lMTgyYzcyMzNlOWIiLCJpYXQiOjE3ODUyNDU4MTcsImV4cCI6MTc4NzgzNzgxNywidG9rZW5fdHlwZSI6ImFjY2VzcyJ9.tGj7oRvzOnK3AoKJFDEwy3Isb9vapX4yvCzujPZBDFc',
+  },
+  {
+    name: '김태임',
+    token:
+      'eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJub29rLWFwaSIsInN1YiI6IjciLCJqdGkiOiIzZDU2NzAzNy05YzZlLTQ0MzYtODk2OS05NTc1ZDY2NThlOGMiLCJpYXQiOjE3ODUyNDU4MTcsImV4cCI6MTc4NzgzNzgxNywidG9rZW5fdHlwZSI6ImFjY2VzcyJ9.0OyuEAmjkd9kGRnGDbODiYlIoSEUfYAlhJk7uLIRS-E',
+  },
+] as const;
+
 function DevTokenForm() {
   const session = useAuthSession();
-  const [accessToken, setAccessToken] = useState('');
-  const [refreshToken, setRefreshToken] = useState('');
+  const [name, setName] = useState<string>(UT_ACCOUNTS[0].name);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const normalizedAccessToken = accessToken.trim();
-    if (!normalizedAccessToken || submitting) return;
+    const account = UT_ACCOUNTS.find((item) => item.name === name);
+    if (!account || submitting) return;
 
     setSubmitting(true);
     setError(null);
     try {
-      await session.establish(normalizedAccessToken, refreshToken.trim() || null);
-      setAccessToken('');
-      setRefreshToken('');
+      await session.establish(account.token, null);
     } catch (cause) {
       setError(errorMessage(cause, '세션을 저장하지 못했습니다.'));
     } finally {
@@ -37,42 +74,21 @@ function DevTokenForm() {
 
   return (
     <form className="flex flex-1 flex-col" onSubmit={submit}>
-      <label className="mb-2 text-b2 font-semibold text-gray-90" htmlFor="dev-access-token">
-        Access Token
+      <label className="mb-2 text-b2 font-semibold text-gray-90" htmlFor="dev-account">
+        테스트 계정
       </label>
-      <Input
-        id="dev-access-token"
-        type="password"
-        value={accessToken}
-        onChange={(event) => setAccessToken(event.target.value)}
-        onClear={() => setAccessToken('')}
-        autoComplete="off"
-        autoCapitalize="none"
-        spellCheck={false}
-        placeholder="Access Token을 입력해주세요"
-      />
-
-      {nativeBridge.isNative ? (
-        <>
-          <label
-            className="mb-2 mt-5 text-b2 font-semibold text-gray-90"
-            htmlFor="dev-refresh-token"
-          >
-            Refresh Token <span className="font-medium text-gray-50">(선택)</span>
-          </label>
-          <Input
-            id="dev-refresh-token"
-            type="password"
-            value={refreshToken}
-            onChange={(event) => setRefreshToken(event.target.value)}
-            onClear={() => setRefreshToken('')}
-            autoComplete="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            placeholder="무기한 토큰이면 비워두세요"
-          />
-        </>
-      ) : null}
+      <select
+        id="dev-account"
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+        className="h-13 w-full rounded-xl border border-gray-20 bg-gray-0 px-4 text-b2 text-gray-90 outline-none focus:border-gray-60"
+      >
+        {UT_ACCOUNTS.map((account) => (
+          <option key={account.name} value={account.name}>
+            {account.name}
+          </option>
+        ))}
+      </select>
 
       {error ? (
         <p role="alert" className="mt-4 text-b2 font-medium text-error">
@@ -81,8 +97,8 @@ function DevTokenForm() {
       ) : null}
 
       <div className="mt-auto pt-8">
-        <Button type="submit" size="lg" fullWidth disabled={!accessToken.trim() || submitting}>
-          {submitting ? '저장 중...' : '이 토큰으로 로그인'}
+        <Button type="submit" size="lg" fullWidth disabled={submitting}>
+          {submitting ? '저장 중...' : '이 계정으로 로그인'}
         </Button>
       </div>
     </form>

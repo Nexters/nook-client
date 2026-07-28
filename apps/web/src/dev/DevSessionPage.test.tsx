@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DevSessionPage } from '@/dev/DevSessionPage';
+import { DevSessionPage, UT_ACCOUNTS } from '@/dev/DevSessionPage';
 
 const establish = vi.fn();
 const bridgeState = vi.hoisted(() => ({ isNative: true }));
@@ -56,44 +56,33 @@ describe('DevSessionPage', () => {
     apiMocks.createPost.mockReset();
   });
 
-  it('Access Token을 Native 세션에 저장한다', async () => {
+  it('기본 선택된 계정의 토큰으로 세션을 시작한다', async () => {
     renderPage();
 
-    fireEvent.change(screen.getByLabelText('Access Token'), {
-      target: { value: '  access-token  ' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '이 토큰으로 로그인' }));
+    fireEvent.click(screen.getByRole('button', { name: '이 계정으로 로그인' }));
 
-    await waitFor(() => expect(establish).toHaveBeenCalledWith('access-token', null));
+    await waitFor(() => expect(establish).toHaveBeenCalledWith(UT_ACCOUNTS[0].token, null));
   });
 
-  it('Refresh Token이 있으면 토큰 쌍을 함께 저장한다', async () => {
+  it('다른 계정을 고르면 그 계정의 토큰을 쓴다', async () => {
     renderPage();
 
-    fireEvent.change(screen.getByLabelText('Access Token'), {
-      target: { value: 'access-token' },
-    });
-    fireEvent.change(screen.getByLabelText(/Refresh Token/), {
-      target: { value: 'refresh-token' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '이 토큰으로 로그인' }));
+    const account = UT_ACCOUNTS[2];
+    fireEvent.change(screen.getByLabelText('테스트 계정'), { target: { value: account.name } });
+    fireEvent.click(screen.getByRole('button', { name: '이 계정으로 로그인' }));
 
-    await waitFor(() => expect(establish).toHaveBeenCalledWith('access-token', 'refresh-token'));
+    await waitFor(() => expect(establish).toHaveBeenCalledWith(account.token, null));
   });
 
-  it('일반 브라우저에서도 Access Token으로 로그인할 수 있다', async () => {
+  it('일반 브라우저에서도 로그인할 수 있다', async () => {
     bridgeState.isNative = false;
     renderPage();
 
     expect(screen.getByText(/localStorage/)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/Refresh Token/)).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Access Token'), {
-      target: { value: 'browser-access-token' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '이 토큰으로 로그인' }));
+    fireEvent.click(screen.getByRole('button', { name: '이 계정으로 로그인' }));
 
-    await waitFor(() => expect(establish).toHaveBeenCalledWith('browser-access-token', null));
+    await waitFor(() => expect(establish).toHaveBeenCalledWith(UT_ACCOUNTS[0].token, null));
   });
 
   it('그룹을 다중 선택하고 메모와 함께 게시글을 생성한다', async () => {

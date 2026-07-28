@@ -32,7 +32,7 @@ class ShareApiClient(private val context: Context) {
     }
 
     suspend fun groups(): List<Group> = withContext(Dispatchers.IO) {
-        val body = protectedRequest("/api/v1/groups")
+        val body = protectedRequest("/groups")
         val values = unwrap(body).getJSONArray("value")
         buildList {
             for (index in 0 until values.length()) {
@@ -44,7 +44,7 @@ class ShareApiClient(private val context: Context) {
 
     suspend fun createGroup(name: String, colorIndex: Int): Group = withContext(Dispatchers.IO) {
         val body = protectedRequest(
-            "/api/v1/groups", "POST",
+            "/groups", "POST",
             JSONObject().put("name", name).put("color", groupColorNames[colorIndex]).toString(),
         )
         val item = unwrap(body).getJSONObject("value")
@@ -54,7 +54,7 @@ class ShareApiClient(private val context: Context) {
     suspend fun savePost(url: String, groupIds: Set<Long>, memo: String) = withContext(Dispatchers.IO) {
         val ids = JSONArray(groupIds)
         protectedRequest(
-            "/api/v1/posts", "POST",
+            "/posts", "POST",
             JSONObject().put("url", url).put("groupIds", ids).put("memo", memo)
                 .put("areGroupIdsPositive", groupIds.all { it > 0 }).toString(),
         )
@@ -79,7 +79,7 @@ class ShareApiClient(private val context: Context) {
                 if (current.revision > failedRevision) return current
                 val token = current.refreshToken ?: run { vault.clear(); return null }
                 val response = request(
-                    "/api/v1/auth/token/refresh", "POST",
+                    "/auth/token/refresh", "POST",
                     JSONObject().put("refreshToken", token).toString(), null,
                 )
                 if (response.first in 400..499) { vault.clear(); return null }
