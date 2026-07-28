@@ -5,7 +5,8 @@ const ORVAL_URL_ORIGIN = 'https://orval.local';
 
 function getApiClientPath(value: string): string {
   const requestUrl = new URL(value, ORVAL_URL_ORIGIN);
-  const configuredBasePath = new URL(env.apiBaseUrl).pathname.replace(/\/$/, '');
+  // base URL 은 절대 주소일 수도, dev 프록시용 상대 경로(`/api/v1`)일 수도 있다.
+  const configuredBasePath = new URL(env.apiBaseUrl, ORVAL_URL_ORIGIN).pathname.replace(/\/$/, '');
   const requestPath = requestUrl.pathname;
 
   if (

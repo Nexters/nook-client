@@ -7,6 +7,7 @@
 
 import { orvalMutator } from '../orval-mutator';
 import type {
+  ApiResponseGroupPostPageResponse,
   ApiResponseGroupResponse,
   ApiResponseListGroupResponse,
   ApiResponsePlaceDetailResponse,
@@ -163,8 +164,8 @@ export const listPosts = async (
   groupId: number,
   params?: ListPostsParams,
   options?: Parameters<typeof orvalMutator>[1],
-): Promise<ApiResponseSavedPostPageResponse> => {
-  return orvalMutator<ApiResponseSavedPostPageResponse>(getListPostsUrl(groupId, params), {
+): Promise<ApiResponseGroupPostPageResponse> => {
+  return orvalMutator<ApiResponseGroupPostPageResponse>(getListPostsUrl(groupId, params), {
     ...options,
     method: 'GET',
   });
@@ -271,7 +272,7 @@ export const getCreatePostUrl = () => {
 };
 
 /**
- * @summary URL로 게시물 생성
+ * @summary URL로 게시물 저장 시작
  */
 export const createPost = async (
   createPostRequest: CreatePostRequest,

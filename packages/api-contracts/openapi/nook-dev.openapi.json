@@ -19,6 +19,43 @@
           }
         }
       },
+      "ApiResponseGroupPostPageResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GroupPostPageResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
       "ApiResponseGroupResponse": {
         "description": "공통 API 응답",
         "properties": {
@@ -450,6 +487,133 @@
         ],
         "type": "object"
       },
+      "GroupPostPageResponse": {
+        "properties": {
+          "hasNext": {
+            "description": "다음 페이지 존재 여부",
+            "type": "boolean"
+          },
+          "items": {
+            "description": "그룹에 저장된 게시물 목록",
+            "items": {
+              "$ref": "#/components/schemas/GroupPostSummaryResponse"
+            },
+            "type": "array"
+          },
+          "ownerNickname": {
+            "description": "그룹 소유자의 닉네임",
+            "type": "string"
+          },
+          "page": {
+            "description": "현재 페이지 번호",
+            "format": "int32",
+            "type": "integer"
+          },
+          "size": {
+            "description": "페이지당 게시물 수",
+            "format": "int32",
+            "type": "integer"
+          },
+          "totalElements": {
+            "description": "전체 게시물 수",
+            "format": "int64",
+            "type": "integer"
+          },
+          "totalPages": {
+            "description": "전체 페이지 수",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hasNext",
+          "items",
+          "ownerNickname",
+          "page",
+          "size",
+          "totalElements",
+          "totalPages"
+        ],
+        "type": "object"
+      },
+      "GroupPostSummaryResponse": {
+        "properties": {
+          "authorIdentifier": {
+            "description": "게시물 작성자 식별자",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "memo": {
+            "description": "사용자 메모",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "placeCount": {
+            "description": "게시물에 연결된 장소 개수",
+            "format": "int64",
+            "type": "integer"
+          },
+          "postId": {
+            "description": "저장 게시물 식별자",
+            "format": "int64",
+            "type": "integer"
+          },
+          "processingStage": {
+            "description": "현재 처리 단계. 모든 처리가 완료되면 null입니다.",
+            "enum": [
+              "CONTENT",
+              "PLACE"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "processingStatus": {
+            "description": "게시물 전체 처리 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
+          "representativeMedia": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SavedPostMediaResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "savedAt": {
+            "description": "게시물 저장 시각",
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": {
+            "description": "게시물 제목",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "placeCount",
+          "postId",
+          "processingStatus",
+          "savedAt"
+        ],
+        "type": "object"
+      },
       "GroupResponse": {
         "properties": {
           "color": {
@@ -780,11 +944,33 @@
             "description": "저장된 게시물 식별자",
             "format": "int64",
             "type": "integer"
+          },
+          "processingStage": {
+            "description": "현재 처리 단계. 모든 처리가 완료되면 null입니다.",
+            "enum": [
+              "CONTENT",
+              "PLACE"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "processingStatus": {
+            "description": "게시물 전체 처리 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
           }
         },
         "required": [
           "placeParsingStatus",
-          "postId"
+          "postId",
+          "processingStatus"
         ],
         "type": "object"
       },
@@ -891,6 +1077,27 @@
             "format": "int64",
             "type": "integer"
           },
+          "processingStage": {
+            "description": "현재 처리 단계. 모든 처리가 완료되면 null입니다.",
+            "enum": [
+              "CONTENT",
+              "PLACE"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "processingStatus": {
+            "description": "게시물 전체 처리 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "publishedAt": {
             "description": "게시물 발행 시각",
             "format": "date-time",
@@ -919,6 +1126,7 @@
           "placeParsingStatus",
           "places",
           "postId",
+          "processingStatus",
           "savedAt"
         ],
         "type": "object"
@@ -1083,6 +1291,27 @@
             "format": "int64",
             "type": "integer"
           },
+          "processingStage": {
+            "description": "현재 처리 단계. 모든 처리가 완료되면 null입니다.",
+            "enum": [
+              "CONTENT",
+              "PLACE"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "processingStatus": {
+            "description": "게시물 전체 처리 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "representativeMedia": {
             "oneOf": [
               {
@@ -1108,6 +1337,7 @@
         },
         "required": [
           "postId",
+          "processingStatus",
           "savedAt"
         ],
         "type": "object"
@@ -1534,7 +1764,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseSavedPostPageResponse"
+                  "$ref": "#/components/schemas/ApiResponseGroupPostPageResponse"
                 }
               }
             },
@@ -1763,7 +1993,7 @@
             "description": "OK"
           }
         },
-        "summary": "URL로 게시물 생성",
+        "summary": "URL로 게시물 저장 시작",
         "tags": [
           "Post"
         ]

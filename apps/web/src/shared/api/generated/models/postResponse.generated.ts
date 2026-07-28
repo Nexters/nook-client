@@ -5,10 +5,19 @@
  * OpenAPI spec version: v1
  */
 import type { PostResponsePlaceParsingStatus } from './postResponsePlaceParsingStatus.generated';
+import type { PostResponseProcessingStage } from './postResponseProcessingStage.generated';
+import type { PostResponseProcessingStatus } from './postResponseProcessingStatus.generated';
 
 export interface PostResponse {
   /** 게시물 장소 파싱 상태 */
   placeParsingStatus: PostResponsePlaceParsingStatus;
   /** 저장된 게시물 식별자 */
   postId: number;
+  /**
+   * 현재 처리 단계. 모든 처리가 완료되면 null입니다.
+   * @nullable
+   */
+  processingStage?: PostResponseProcessingStage;
+  /** 게시물 전체 처리 상태 */
+  processingStatus: PostResponseProcessingStatus;
 }

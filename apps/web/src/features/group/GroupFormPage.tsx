@@ -11,8 +11,7 @@ import {
   Input,
   Popup,
 } from '@/shared/ui';
-// TODO(api): 그룹 생성/수정/삭제 API 연동 시 목데이터 대신 mutation 으로 교체한다.
-import { getMockGroup } from './mock/groups';
+import { useCreateGroup, useDeleteGroup, useGroups, useUpdateGroup } from './queries';
 
 /** 시안의 카운터 표기(`0/20`) 기준. */
 const NAME_MAX_LENGTH = 20;
@@ -32,22 +31,49 @@ export function GroupFormPage({ mode }: GroupFormPageProps) {
   useHideBottomMenu();
 
   const editing = mode === 'edit';
-  const group = editing ? getMockGroup(groupId) : undefined;
+  const { data: groups } = useGroups();
+  const group = editing ? groups?.find((item) => String(item.id) === groupId) : undefined;
 
-  const [name, setName] = useState(group?.name ?? '');
-  const [color, setColor] = useState<GroupColor>(group?.color ?? GROUP_COLORS[0]);
+  // 편집 시 초기값은 목록 응답에서 온다. 사용자가 아직 건드리지 않은 필드는 undefined 로 두고
+  // 서버 값을 그대로 비추므로, 응답이 늦게 도착해도 폼이 빈 채로 굳지 않는다.
+  const [editedName, setName] = useState<string>();
+  const [editedColor, setColor] = useState<GroupColor>();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const canSubmit = name.trim().length > 0;
+  const name = editedName ?? group?.name ?? '';
+  const color = editedColor ?? group?.color ?? GROUP_COLORS[0];
+
+  const createGroup = useCreateGroup();
+  const updateGroup = useUpdateGroup();
+  const deleteGroup = useDeleteGroup();
+
+  const submitting = createGroup.isPending || updateGroup.isPending;
+  const canSubmit = name.trim().length > 0 && !submitting;
+  const requestError = createGroup.error ?? updateGroup.error ?? deleteGroup.error;
 
   const handleSubmit = () => {
-    // TODO(api): 생성/수정 요청 후 응답 id 로 이동한다. 지금은 화면 흐름만 확인한다.
-    navigate(editing && groupId ? `/group/${groupId}` : '/group', { replace: true });
+    if (editing) {
+      if (!group) return;
+
+      updateGroup.mutate(
+        { groupId: group.id, name: name.trim(), color },
+        { onSuccess: () => navigate(`/group/${group.id}`, { replace: true }) },
+      );
+      return;
+    }
+
+    createGroup.mutate(
+      { name: name.trim(), color },
+      { onSuccess: () => navigate('/group', { replace: true }) },
+    );
   };
 
   const handleDelete = () => {
-    // TODO(api): 삭제 요청 후 목록으로 이동한다.
-    navigate('/group', { replace: true });
+    if (!group) return;
+
+    deleteGroup.mutate(group.id, {
+      onSuccess: () => navigate('/group', { replace: true }),
+    });
   };
 
   return (
@@ -98,6 +124,12 @@ export function GroupFormPage({ mode }: GroupFormPageProps) {
           >
             그룹 삭제
           </button>
+        ) : null}
+        {/* ApiClientError 의 메시지는 사용자에게 그대로 보여줄 수 있는 한국어다. */}
+        {requestError ? (
+          <p role="alert" className="text-b3 text-error">
+            {requestError.message}
+          </p>
         ) : null}
         <Button size="lg" fullWidth disabled={!canSubmit} onClick={handleSubmit}>
           {editing ? '저장하기' : '그룹 만들기'}

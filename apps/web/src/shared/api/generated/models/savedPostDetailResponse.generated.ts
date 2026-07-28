@@ -5,6 +5,8 @@
  * OpenAPI spec version: v1
  */
 import type { SavedPostDetailResponsePlaceParsingStatus } from './savedPostDetailResponsePlaceParsingStatus.generated';
+import type { SavedPostDetailResponseProcessingStage } from './savedPostDetailResponseProcessingStage.generated';
+import type { SavedPostDetailResponseProcessingStatus } from './savedPostDetailResponseProcessingStatus.generated';
 import type { SavedPostMediaResponse } from './savedPostMediaResponse.generated';
 import type { SavedPostPlaceResponse } from './savedPostPlaceResponse.generated';
 
@@ -41,6 +43,13 @@ export interface SavedPostDetailResponse {
   places: SavedPostPlaceResponse[];
   /** 저장 게시물 식별자 */
   postId: number;
+  /**
+   * 현재 처리 단계. 모든 처리가 완료되면 null입니다.
+   * @nullable
+   */
+  processingStage?: SavedPostDetailResponseProcessingStage;
+  /** 게시물 전체 처리 상태 */
+  processingStatus: SavedPostDetailResponseProcessingStatus;
   /**
    * 게시물 발행 시각
    * @nullable
