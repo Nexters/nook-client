@@ -97,7 +97,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-// Thumbnail/Avatar 확인용 mock 이미지. 네트워크 없이(Capacitor 오프라인) 뜨도록
+// Thumbnail/Avatar 확인용 mock 이미지. 네트워크 없이(WebView 오프라인) 뜨도록
 // 외부 URL 대신 인라인 data URI 를 쓴다.
 const SAMPLE_IMAGE =
   'data:image/svg+xml;utf8,' +
