@@ -152,7 +152,14 @@ export function PostDetailPage() {
 
       {viewerOpen ? <PostImageViewer images={images} onClose={() => setViewerOpen(false)} /> : null}
 
-      <PlaceDirectInputDrawer open={directInputOpen} onOpenChange={setDirectInputOpen} />
+      <PlaceDirectInputDrawer
+        open={directInputOpen}
+        onOpenChange={setDirectInputOpen}
+        // TODO(task-4): 확정한 장소를 연관 장소(manualPlaces) 목록에 추가하는 로직을 붙인다.
+        // 지금은 드로어를 닫기만 한다 — PlaceDirectInputDrawer 의 문서화된 계약대로
+        // "추가하기"를 누르면 호출부가 스스로 드로어를 닫는다.
+        onPlaceConfirmed={() => setDirectInputOpen(false)}
+      />
 
       {showRelatedPlacesErrorToast ? (
         <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
