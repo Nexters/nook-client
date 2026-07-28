@@ -43,7 +43,6 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import com.nook.app.share.model.Group
-import com.nook.app.share.model.previewGroups
 import com.nook.app.share.ui.CollapsibleByIme
 import com.nook.app.share.ui.ColorPalette
 import com.nook.app.share.ui.CreateGroupRow
@@ -61,7 +60,7 @@ private const val SCROLL_REGION_DP = 280
 @Composable
 fun ShareScreen(
     groups: List<Group>,
-    onSave: (Set<String>, String) -> Unit,
+    onSave: (Set<Long>, String) -> Unit,
     onCreateGroup: (String, Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -161,10 +160,10 @@ private fun SheetHandle(onDrag: (Float) -> Unit, onDragEnd: () -> Unit) {
 private fun SelectGroupContent(
     groups: List<Group>,
     panelFraction: Float,
-    onSave: (Set<String>, String) -> Unit,
+    onSave: (Set<Long>, String) -> Unit,
     onCreateGroup: () -> Unit,
 ) {
-    val selected = remember { mutableStateListOf<String>() }
+    val selected = remember { mutableStateListOf<Long>() }
     var memo by remember { mutableStateOf("") }
 
     // 키보드가 열리면 핸들 + 인풋만 남기고, 그룹 리스트는 키보드 인셋에 맞춰 실시간 접힘
@@ -286,7 +285,7 @@ private fun CreateGroupHeader(onBack: () -> Unit) {
 @Composable
 private fun ShareScreenPreview() {
     ShareScreen(
-        groups = previewGroups,
+        groups = emptyList(),
         onSave = { _, _ -> },
         onCreateGroup = { _, _ -> },
         onDismiss = {},

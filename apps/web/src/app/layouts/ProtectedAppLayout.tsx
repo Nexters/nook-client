@@ -1,12 +1,17 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import { bottomMenuItems } from '@/app/navigation';
+import { useAuthSession } from '@/features/auth/session/AuthSessionProvider';
 import { BottomMenu } from '@/shared/ui';
 
 function AuthRouteBoundary({ children }: { children: ReactNode }) {
-  // 전역 인증이 붙으면 여기서 세션 조회 후 로그인 라우트로 redirect 한다.
+  const session = useAuthSession();
+  if (session.status === 'bootstrapping') return null;
+  if (session.status === 'anonymous' && window.ReactNativeWebView) {
+    return <Navigate to="/login" replace />;
+  }
   return children;
 }
 

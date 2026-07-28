@@ -21,6 +21,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const variant = resolveVariant();
   // dev 와 운영 앱을 같은 기기에 동시 설치할 수 있도록 식별자를 분리한다.
   const appId = `com.nook.app${SUFFIX[variant]}`;
+  const sessionAccessGroup = `$(AppIdentifierPrefix)group.${appId}`;
+
+  if (
+    variant === 'production' &&
+    (process.env.EXPO_PUBLIC_UT_ACCESS_TOKEN || process.env.EXPO_PUBLIC_UT_REFRESH_TOKEN)
+  ) {
+    throw new Error('production 빌드에는 UT 토큰을 주입할 수 없습니다.');
+  }
 
   const kakaoAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY;
   // 미설정이면 kakaoundefined:// 스킴이 조용히 생성되므로 여기서 끊는다.
@@ -47,11 +55,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         // WebView(WKWebView) 내 지도 화면의 navigator.geolocation 호출용.
         NSLocationWhenInUseUsageDescription:
           '내 주변 장소를 지도에 표시하기 위해 위치 정보를 사용해요.',
+        NookSessionAccessGroup: sessionAccessGroup,
+        NookApiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
+        NookAppGroup: `group.${appId}`,
       },
       entitlements: {
         ...config.ios?.entitlements,
         // 공유 확장 ↔ 본앱 데이터 전달 통로. 앱 식별자와 함께 움직여야 한다.
         'com.apple.security.application-groups': [`group.${appId}`],
+        'keychain-access-groups': [sessionAccessGroup],
       },
     },
     android: {
