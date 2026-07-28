@@ -41,6 +41,7 @@ docs/                        # 아키텍처 결정 기록 / 브리지 문서
 
 - pnpm 워크스페이스: `apps/*` + `packages/*` (web·mobile·계약을 한 락으로 관리).
 - 웹↔셸 통신은 `packages/bridge-contracts` 의 `{ v, type, payload }` postMessage 프로토콜. 상세는 `docs/native-bridge.md`.
+- API 계층과 플랫폼별 인증·생성 코드 경계는 `docs/[NOOK-55] 01.API_통신_구조.md`를 따른다.
 - 공용 아이콘은 `packages/icons/src`의 SVG를 기준으로 플랫폼 코드를 생성한다. 상세는 `docs/icons.md`.
 - `@/` 는 web 의 `src/` alias (Vite·tsc·Vitest 공통).
 
@@ -50,7 +51,7 @@ docs/                        # 아키텍처 결정 기록 / 브리지 문서
 
 ```bash
 pnpm install
-cp apps/web/.env.example apps/web/.env.local   # BE 주소 (미설정 시 localhost:8080 폴백)
+cp apps/web/.env.example apps/web/.env.local   # BE 주소 필수
 
 pnpm web:dev               # http://localhost:5173
 pnpm web:build             # tsc --noEmit + vite build → apps/web/dist/
