@@ -71,7 +71,10 @@ describe('PlaceDirectInputDrawer', () => {
       target: { value: '앤미' },
     });
     fireEvent.click(screen.getByText('앤미'));
-    fireEvent.click(screen.getByRole('button', { name: '추가하기' }));
+    // Drawer(vaul→Radix Dialog)가 열려 있으면 Radix 가 이 형제 버튼을 aria-hidden 처리한다
+    // (컴포넌트 주석 참고) — 실제 브라우저에서는 pointer-events-auto 덕에 눌리지만, RTL 의
+    // 기본 getByRole 은 접근성 트리에서 숨겨진 요소를 제외하므로 hidden:true 로 포함시킨다.
+    fireEvent.click(screen.getByRole('button', { name: '추가하기', hidden: true }));
 
     expect(onPlaceConfirmed).toHaveBeenCalledWith(expect.objectContaining({ id: 'search-1' }));
   });
