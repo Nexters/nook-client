@@ -17,6 +17,7 @@ export interface PlaceDirectInputDrawerProps {
  */
 function PlaceDirectInputDrawer({ open, onOpenChange }: PlaceDirectInputDrawerProps) {
   const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
   const results = searchMockPlaces(query);
 
   return (
@@ -29,15 +30,19 @@ function PlaceDirectInputDrawer({ open, onOpenChange }: PlaceDirectInputDrawerPr
     >
       <DrawerContent className="px-4 pb-11">
         <DrawerTitle className="sr-only">장소 직접 입력</DrawerTitle>
-        <div className="flex h-11 w-full items-center gap-2 rounded-lg border border-gray-30 px-3">
+        {/* 앞에 돋보기 아이콘 슬롯이 필요해 공용 `Input` (@/shared/ui) 을 못 쓰고 직접 구현한다 —
+            대신 포커스 보더/클리어 버튼 동작은 `Input` 과 동일하게 맞춘다. */}
+        <div className="flex h-11 w-full items-center gap-2 rounded-lg border border-gray-30 px-3 transition-colors focus-within:border-gray-100">
           <Icon18MagnifyingGlass className="shrink-0" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             placeholder="장소명을 입력해주세요"
             className="min-w-0 flex-1 bg-transparent text-b2 font-medium text-gray-100 outline-none placeholder:text-gray-50"
           />
-          {query.length > 0 ? (
+          {focused && query.length > 0 ? (
             <button
               type="button"
               aria-label="입력 지우기"

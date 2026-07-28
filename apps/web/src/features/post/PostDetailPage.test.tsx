@@ -24,6 +24,26 @@ async function renderPost(postId: string) {
 }
 
 describe('게시물 상세', () => {
+  it('연관 장소를 불러오는 동안 로딩 문구를 보여주고 배너는 숨긴다', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
+          <MemoryRouter initialEntries={['/post/post-1']}>
+            <Routes>
+              <Route path="/post/:postId" element={<PostDetailPage />} />
+            </Routes>
+          </MemoryRouter>
+        </BottomMenuVisibilityProvider>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText('연관 장소를 찾는 중…')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /직접 추가/ })).not.toBeInTheDocument();
+
+    await waitFor(() => expect(screen.queryByText('연관 장소를 찾는 중…')).not.toBeInTheDocument());
+  });
+
   it('연관 장소가 있으면 섹션과 장소 행을 렌더한다', async () => {
     await renderPost('post-1');
 

@@ -30,7 +30,9 @@ export function useRelatedPlaces(postId: string | undefined): RelatedPlacesState
   const query = useQuery({
     queryKey: ['post', postId, 'place-parsing'],
     // TODO(api): BE 연결 시 `fetchPlaceParsing(postId)`(../api.ts) 로 교체한다.
+    // `enabled` 가 이미 postId 가 정의된 경우에만 실행되도록 막고 있어 실제 호출로 바꿔도 항상 string 이 넘어간다.
     queryFn: () => getMockPlaceParsing(postId),
+    enabled: postId !== undefined,
     refetchInterval: (current) =>
       current.state.data?.placeParsingStatus === 'PENDING' ? PARSING_POLL_INTERVAL_MS : false,
   });

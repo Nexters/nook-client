@@ -44,6 +44,6 @@ function unwrap<T>(envelope: ApiEnvelope<T>, path: string): T {
 
 /** `GET /api/v1/posts/{postId}/place-parsing` — 게시물 연관 장소 파싱 결과 조회. */
 export async function fetchPlaceParsing(postId: string): Promise<PlaceParsingResult> {
-  const path = `/api/v1/posts/${postId}/place-parsing`;
+  const path = `/api/v1/posts/${encodeURIComponent(postId)}/place-parsing`;
   return unwrap(await apiFetch<ApiEnvelope<PlaceParsingResult>>(path), path);
 }
