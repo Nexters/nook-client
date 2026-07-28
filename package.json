@@ -3,17 +3,23 @@
   "private": true,
   "packageManager": "pnpm@9.15.9",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18.0"
   },
   "scripts": {
     "web:dev": "pnpm --filter web dev",
     "web:build": "pnpm --filter web build",
+    "api:fetch": "pnpm --filter @nook/api-contracts openapi:fetch",
+    "api:generate": "pnpm --filter @nook/api-contracts generate",
+    "api:refresh": "pnpm --filter @nook/api-contracts refresh",
+    "api:check": "pnpm --filter @nook/api-contracts check",
+    "api:check:remote": "pnpm --filter @nook/api-contracts check:remote",
     "icons:generate": "pnpm --filter @nook/icons generate",
     "icons:check": "pnpm --filter @nook/icons check",
     "typecheck": "pnpm icons:check && pnpm -r typecheck",
     "test": "pnpm -r --if-present test",
     "lint": "biome check .",
     "lint:ci": "biome ci .",
+    "check": "pnpm api:check && pnpm lint:ci && pnpm typecheck && pnpm test",
     "format": "biome format --write .",
     "prepare": "husky"
   },
