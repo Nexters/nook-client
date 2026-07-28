@@ -10,7 +10,7 @@
           },
           "errorCode": {
             "description": "안정적인 오류 코드",
-            "example": "GROUP_NAME_DUPLICATED",
+            "example": "GROUP_NOT_FOUND",
             "type": "string"
           },
           "reason": {
