@@ -2,6 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import type * as React from 'react';
 import emptyThumbnailSm from '@/assets/images/60_Thumbnail.svg';
 import emptyThumbnailLg from '@/assets/images/ex_Thumbnail.png';
+import { Icon16ExclamationCircle } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -46,12 +47,18 @@ export interface ThumbnailProps
   alt?: string;
   /** 넘기면 딤 위에 `+N` 을 얹는다 (시안 Property 1=Plus). */
   overflowCount?: number;
+  /** 넘기면 딤 위에 로딩 스피너를 얹는다 — 콘텐츠가 아직 처리 중이라 비어 있는 카드용. */
+  loading?: boolean;
+  /** 넘기면 딤 위에 실패 표시를 얹는다 — 처리(크롤링·파싱)가 실패해 비어 있는 카드용. */
+  failed?: boolean;
 }
 
 function Thumbnail({
   src,
   alt = '',
   overflowCount,
+  loading = false,
+  failed = false,
   size = 'lg',
   className,
   ...props
@@ -66,6 +73,27 @@ function Thumbnail({
       {overflowCount !== undefined ? (
         <span className="absolute inset-0 flex items-center justify-center bg-black/50 font-mono text-e2 text-gray-0">
           +{overflowCount}
+        </span>
+      ) : null}
+      {loading ? (
+        <span
+          role="status"
+          aria-label="처리 중"
+          className="absolute inset-0 flex items-center justify-center bg-gray-0/70"
+        >
+          <span
+            aria-hidden="true"
+            className="size-6 animate-spin rounded-full border-2 border-gray-30 border-t-gray-90"
+          />
+        </span>
+      ) : null}
+      {failed ? (
+        <span
+          role="status"
+          aria-label="처리 실패"
+          className="absolute inset-0 flex items-center justify-center bg-gray-0/80"
+        >
+          <Icon16ExclamationCircle />
         </span>
       ) : null}
     </div>

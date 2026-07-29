@@ -80,6 +80,15 @@ function toGroupPost(dto: GroupPostSummaryResponse): GroupPost {
     placeCount: dto.placeCount,
     thumbnails: dto.representativeMedia ? [dto.representativeMedia.url] : [],
     authorHandle: dto.authorIdentifier ?? undefined,
+    // 저장 직후엔 BE 가 본문/장소를 비동기로 처리한다 — 끝나기 전엔(혹은 실패하면) 위
+    // 필드들이 비어 있는 게 정상이라, 그대로 두면 "제목 없는 게시물·0 Places"로 보인다.
+    // 카드가 로딩 스피너/실패 표시를 보여줄 수 있게 처리 상태만 따로 알려준다.
+    processingState:
+      dto.processingStatus === 'PENDING' || dto.processingStatus === 'PROCESSING'
+        ? 'processing'
+        : dto.processingStatus === 'FAILED'
+          ? 'failed'
+          : undefined,
   };
 }
 
