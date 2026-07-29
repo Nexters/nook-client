@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.util.Log
 import android.util.Patterns
 import android.view.WindowManager
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.view.WindowCompat
@@ -19,6 +18,13 @@ import com.nook.app.share.model.Group
 import kotlinx.coroutines.launch
 
 class ShareActivity : ComponentActivity() {
+    private lateinit var api: ShareApiClient
+    private var sharedUrl: String? = null
+    private var groups by mutableStateOf<List<Group>>(emptyList())
+    private var feedback by mutableStateOf<ShareFeedbackState?>(null)
+    private var feedbackAction: () -> Unit = {}
+    private var feedbackId = 0L
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -33,71 +39,96 @@ class ShareActivity : ComponentActivity() {
             if (intent?.action == Intent.ACTION_SEND) {
                 intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString().orEmpty()
             } else ""
-        val sharedUrl = firstSharedUrl(sharedText)
+        sharedUrl = firstSharedUrl(sharedText)
 
-        var groups by mutableStateOf<List<Group>>(emptyList())
-        val api = ShareApiClient(applicationContext)
-        if (!api.hasSession()) {
-            showLoginRequiredAndFinish()
-            return
-        }
-
-        lifecycleScope.launch {
-            runCatching { api.groups() }
-                .onSuccess { groups = it }
-                .onFailure { error ->
-                    Log.e(TAG, "그룹 조회 실패", error)
-                    if (error is ShareAuthenticationRequiredException) {
-                        showLoginRequiredAndFinish()
-                    } else {
-                        Toast.makeText(this@ShareActivity, "그룹을 불러오지 못했습니다.", Toast.LENGTH_SHORT).show()
-                    }
-                }
-        }
+        api = ShareApiClient(applicationContext)
+        if (!api.hasSession()) showFeedback(ShareFeedbackKind.Login, ::openContainingApp)
 
         setContent {
             ShareScreen(
                 groups = groups,
+                feedback = feedback,
                 onSave = { selected, memo, onResult ->
-                    lifecycleScope.launch {
-                        runCatching {
-                            val url = requireNotNull(sharedUrl) { "공유할 링크가 없습니다" }
-                            api.savePost(url, selected, memo)
-                        }.onSuccess {
-                            onResult(true)
-                            finish()
-                        }.onFailure { error ->
-                            Log.e(TAG, "게시글 저장 실패", error)
-                            if (error is ShareAuthenticationRequiredException) {
-                                showLoginRequiredAndFinish()
-                            } else {
-                                Toast.makeText(this@ShareActivity, "게시글을 저장하지 못했습니다.", Toast.LENGTH_SHORT).show()
-                            }
-                            onResult(false)
-                        }
-                    }
+                    savePost(selected, memo, onResult)
                 },
                 onCreateGroup = { name, colorIndex, onResult ->
-                    lifecycleScope.launch {
-                        runCatching { api.createGroup(name, colorIndex) }
-                            .onSuccess {
-                                groups = groups + it
-                                onResult(true)
-                            }
-                            .onFailure { error ->
-                                Log.e(TAG, "그룹 생성 실패", error)
-                                if (error is ShareAuthenticationRequiredException) {
-                                    showLoginRequiredAndFinish()
-                                } else {
-                                    Toast.makeText(this@ShareActivity, "그룹을 만들지 못했습니다.", Toast.LENGTH_SHORT).show()
-                                }
-                                onResult(false)
-                            }
-                    }
+                    createGroup(name, colorIndex, onResult)
                 },
+                onFeedbackAction = { feedbackAction() },
                 onDismiss = { finish() },
             )
         }
+
+        if (api.hasSession()) loadGroups()
+    }
+
+    private fun loadGroups() {
+        lifecycleScope.launch {
+            runCatching { api.groups() }
+                .onSuccess {
+                    groups = it
+                    feedback = null
+                }
+                .onFailure { error ->
+                    Log.e(TAG, "그룹 조회 실패", error)
+                    handleFailure(error, ::loadGroups)
+                }
+        }
+    }
+
+    private fun savePost(
+        selected: Set<Long>,
+        memo: String,
+        onResult: ((Boolean) -> Unit)? = null,
+    ) {
+        lifecycleScope.launch {
+            runCatching {
+                val url = sharedUrl ?: throw SharePrivatePostException()
+                api.savePost(url, selected, memo)
+            }.onSuccess {
+                onResult?.invoke(true)
+                showFeedback(ShareFeedbackKind.Success, ::openContainingApp)
+            }.onFailure { error ->
+                Log.e(TAG, "게시글 저장 실패", error)
+                onResult?.invoke(false)
+                handleFailure(error) { savePost(selected, memo) }
+            }
+        }
+    }
+
+    private fun createGroup(
+        name: String,
+        colorIndex: Int,
+        onResult: ((Boolean) -> Unit)? = null,
+    ) {
+        lifecycleScope.launch {
+            runCatching { api.createGroup(name, colorIndex) }
+                .onSuccess {
+                    groups = groups + it
+                    feedback = null
+                    onResult?.invoke(true)
+                }
+                .onFailure { error ->
+                    Log.e(TAG, "그룹 생성 실패", error)
+                    onResult?.invoke(false)
+                    handleFailure(error) { createGroup(name, colorIndex) }
+                }
+        }
+    }
+
+    private fun handleFailure(error: Throwable, retry: () -> Unit) {
+        when (error) {
+            is ShareAuthenticationRequiredException ->
+                showFeedback(ShareFeedbackKind.Login, ::openContainingApp)
+            is SharePrivatePostException ->
+                showFeedback(ShareFeedbackKind.PrivatePost) { finish() }
+            else -> showFeedback(ShareFeedbackKind.Network, retry)
+        }
+    }
+
+    private fun showFeedback(kind: ShareFeedbackKind, action: () -> Unit) {
+        feedbackAction = action
+        feedback = ShareFeedbackState(kind, ++feedbackId)
     }
 
     private fun firstSharedUrl(text: String): String? {
@@ -110,8 +141,11 @@ class ShareActivity : ComponentActivity() {
         return null
     }
 
-    private fun showLoginRequiredAndFinish() {
-        Toast.makeText(this, "로그인이 필요합니다.", Toast.LENGTH_SHORT).show()
+    private fun openContainingApp() {
+        packageManager.getLaunchIntentForPackage(packageName)?.let { launchIntent ->
+            launchIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            startActivity(launchIntent)
+        }
         finish()
     }
 

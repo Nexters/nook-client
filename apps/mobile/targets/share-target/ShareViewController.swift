@@ -52,27 +52,28 @@ class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear
+        loadGroups()
+    }
+
+    @MainActor
+    private func loadGroups() {
+        guard let api else {
+            presentFeedback(.network) { [weak self] in self?.loadGroups() }
+            return
+        }
+        guard api.hasSession() else {
+            presentFeedback(.login) { [weak self] in self?.openContainingApp() }
+            return
+        }
 
         Task { [weak self] in
             guard let self else { return }
-            guard let api = self.api else {
-                self.presentFeedback("공유 기능 설정을 확인해주세요.", completesRequest: true)
-                return
-            }
-            guard api.hasSession() else {
-                self.presentFeedback("로그인이 필요합니다.", completesRequest: true)
-                return
-            }
-
             do {
                 let groups = try await api.groups()
-                await MainActor.run { self.mountScreen(groups: groups) }
+                self.mountScreen(groups: groups)
             } catch {
-                print("[NookShare] 그룹 조회 실패: \(error)")
-                self.presentFeedback(
-                    self.isAuthenticationError(error) ? "로그인이 필요합니다." : "그룹을 불러오지 못했습니다.",
-                    completesRequest: true
-                )
+                shareLogger.error("그룹 조회 실패: \(String(describing: error), privacy: .public)")
+                self.handleFailure(error) { [weak self] in self?.loadGroups() }
             }
         }
     }
@@ -86,52 +87,79 @@ class ShareViewController: UIViewController {
                     finishSaving(false)
                     return
                 }
-                self.extractTexts { texts in
-                    Task {
-                        do {
-                            guard let url = self.firstSharedURL(in: texts), let api = self.api else {
-                                throw ShareApiError.configuration
-                            }
-                            try await api.save(url: url, groupIds: groups, memo: memo)
-                            await MainActor.run {
-                                finishSaving(true)
-                                self.complete()
-                            }
-                        } catch {
-                            shareLogger.error("게시글 저장 실패: \(String(describing: error), privacy: .public)")
-                            await MainActor.run {
-                                finishSaving(false)
-                                self.presentFeedback(
-                                    self.isAuthenticationError(error)
-                                        ? "로그인이 필요합니다."
-                                        : "게시글을 저장하지 못했습니다.",
-                                    completesRequest: self.isAuthenticationError(error)
-                                )
-                            }
-                        }
-                    }
-                }
+                self.savePost(groups: groups, memo: memo, finishSaving: finishSaving)
             },
             onCreateGroup: { [weak self] name, colorIndex in
-                guard let self else { return }
-                Task {
-                    do {
-                        guard let api = self.api else { throw ShareApiError.configuration }
-                        let created = try await api.createGroup(name: name, colorIndex: colorIndex)
-                        await MainActor.run { self.replaceScreen(groups: groups + [created]) }
-                    } catch {
-                        print("[NookShare] 그룹 생성 실패: \(error)")
-                        self.presentFeedback(
-                            self.isAuthenticationError(error) ? "로그인이 필요합니다." : "그룹을 만들지 못했습니다.",
-                            completesRequest: self.isAuthenticationError(error)
-                        )
-                    }
-                }
+                self?.createGroup(name: name, colorIndex: colorIndex, existingGroups: groups)
             },
             onDismiss: { [weak self] in self?.complete() }
         )
 
-        let host = UIHostingController(rootView: screen)
+        setRoot(screen)
+    }
+
+    @MainActor
+    private func savePost(
+        groups: Set<Int64>,
+        memo: String,
+        finishSaving: ((Bool) -> Void)? = nil
+    ) {
+        extractTexts { [weak self] texts in
+            guard let self else {
+                finishSaving?(false)
+                return
+            }
+            Task { [weak self] in
+                guard let self else { return }
+                do {
+                    guard let url = self.firstSharedURL(in: texts) else {
+                        throw ShareApiError.privatePost
+                    }
+                    guard let api = self.api else { throw ShareApiError.configuration }
+                    try await api.save(url: url, groupIds: groups, memo: memo)
+                    await MainActor.run {
+                        finishSaving?(true)
+                        self.presentFeedback(.success) { [weak self] in self?.openContainingApp() }
+                    }
+                } catch {
+                    shareLogger.error("게시글 저장 실패: \(String(describing: error), privacy: .public)")
+                    await MainActor.run {
+                        finishSaving?(false)
+                        self.handleFailure(error) { [weak self] in
+                            self?.savePost(groups: groups, memo: memo)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func createGroup(name: String, colorIndex: Int, existingGroups: [Group]) {
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                guard let api = self.api else { throw ShareApiError.configuration }
+                let created = try await api.createGroup(name: name, colorIndex: colorIndex)
+                self.replaceScreen(groups: existingGroups + [created])
+            } catch {
+                shareLogger.error("그룹 생성 실패: \(String(describing: error), privacy: .public)")
+                self.handleFailure(error) { [weak self] in
+                    self?.createGroup(name: name, colorIndex: colorIndex, existingGroups: existingGroups)
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func setRoot<Content: View>(_ root: Content) {
+        children.forEach { child in
+            child.willMove(toParent: nil)
+            child.view.removeFromSuperview()
+            child.removeFromParent()
+        }
+
+        let host = UIHostingController(rootView: root)
         host.view.backgroundColor = .clear
         addChild(host)
         view.addSubview(host.view)
@@ -149,9 +177,6 @@ class ShareViewController: UIViewController {
     }
 
     private func replaceScreen(groups: [Group]) {
-        children.forEach { child in
-            child.willMove(toParent: nil); child.view.removeFromSuperview(); child.removeFromParent()
-        }
         mountScreen(groups: groups)
     }
 
@@ -257,13 +282,35 @@ class ShareViewController: UIViewController {
     }
 
     @MainActor
-    private func presentFeedback(_ message: String, completesRequest: Bool) {
-        guard presentedViewController == nil else { return }
-        let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "확인", style: .default) { [weak self] _ in
-            if completesRequest { self?.complete() }
-        })
-        present(alert, animated: true)
+    private func handleFailure(_ error: Error, retry: @escaping () -> Void) {
+        if isAuthenticationError(error) {
+            presentFeedback(.login) { [weak self] in self?.openContainingApp() }
+        } else if case ShareApiError.privatePost = error {
+            presentFeedback(.privatePost) { [weak self] in self?.complete() }
+        } else {
+            presentFeedback(.network, onAction: retry)
+        }
+    }
+
+    @MainActor
+    private func presentFeedback(_ kind: ShareFeedbackKind, onAction: @escaping () -> Void) {
+        setRoot(ShareFeedbackOverlay(kind: kind, onAction: onAction))
+    }
+
+    @MainActor
+    private func openContainingApp() {
+        guard let extensionBundleID = Bundle.main.bundleIdentifier else {
+            complete()
+            return
+        }
+        let appBundleID = extensionBundleID.replacingOccurrences(of: ".ShareExtension", with: "")
+        guard let url = URL(string: "\(appBundleID)://") else {
+            complete()
+            return
+        }
+        extensionContext?.open(url) { [weak self] _ in
+            DispatchQueue.main.async { self?.complete() }
+        }
     }
 
     // SwiftUI 가 시트를 내리는 동안 딤도 같이 걷어내고, 끝나면 화면을 감춘 뒤 종료한다.

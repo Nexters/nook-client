@@ -24,6 +24,7 @@ import org.json.JSONObject
 
 internal data class ShareSession(val accessToken: String, val refreshToken: String?, val revision: Int)
 internal class ShareAuthenticationRequiredException : IllegalStateException("로그인이 필요합니다")
+internal class SharePrivatePostException : IllegalStateException("비공개 게시물은 저장할 수 없습니다")
 
 class ShareApiClient(private val context: Context) {
     private val vault = ShareSessionVault(context)
@@ -57,10 +58,11 @@ class ShareApiClient(private val context: Context) {
 
     suspend fun savePost(url: String, groupIds: Set<Long>, memo: String) = withContext(Dispatchers.IO) {
         val ids = JSONArray(groupIds)
-        protectedRequest(
+        val response = protectedRequest(
             "/posts", "POST",
             JSONObject().put("url", url).put("groupIds", ids).put("memo", memo).toString(),
         )
+        ensureSuccessEnvelope(response)
         Unit
     }
 
@@ -112,15 +114,39 @@ class ShareApiClient(private val context: Context) {
     }
 
     private fun requireSuccess(response: Pair<Int, String>): String {
-        if (response.first !in 200..299) throw IllegalStateException("API 요청 실패 (${response.first})")
+        if (response.first !in 200..299) throw mappedFailure(response.second, response.first)
         return response.second
     }
 
     // JSONObject.NULL 대신 wrapper를 써 array/object 결과를 같은 코드로 처리한다.
     private fun unwrap(body: String): JSONObject {
         val envelope = JSONObject(body)
-        if (envelope.getString("resultType") != "SUCCESS" || !envelope.has("success")) throw IllegalStateException("API 실패 응답")
+        if (envelope.getString("resultType") != "SUCCESS") throw mappedFailure(body)
+        if (!envelope.has("success")) throw IllegalStateException("API 성공 본문 누락")
         return JSONObject().put("value", envelope.get("success"))
+    }
+
+    private fun ensureSuccessEnvelope(body: String) {
+        val envelope = JSONObject(body)
+        if (envelope.getString("resultType") != "SUCCESS") throw mappedFailure(body)
+    }
+
+    private fun mappedFailure(body: String, status: Int? = null): IllegalStateException {
+        val error = runCatching { JSONObject(body).optJSONObject("error") }.getOrNull()
+        val code = error?.optString("errorCode").orEmpty().uppercase()
+        val reason = error?.optString("reason").orEmpty()
+        if (
+            status == 403 ||
+            code.contains("PRIVATE") ||
+            code.contains("NOT_ACCESSIBLE") ||
+            code.contains("ACCESS_DENIED") ||
+            code.contains("CONTENT_UNAVAILABLE") ||
+            reason.contains("비공개") ||
+            reason.contains("접근할 수 없")
+        ) {
+            return SharePrivatePostException()
+        }
+        return IllegalStateException(status?.let { "API 요청 실패 ($it)" } ?: "API 실패 응답")
     }
 
     private companion object {

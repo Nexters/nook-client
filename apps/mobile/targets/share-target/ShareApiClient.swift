@@ -5,12 +5,18 @@ import Security
 
 private let shareApiLogger = Logger(subsystem: "com.nook.app.share", category: "ShareAPI")
 
-private struct ApiEnvelope<T: Decodable>: Decodable { let resultType: String; let success: T? }
+private struct ApiFailure: Decodable { let errorCode: String?; let reason: String? }
+private struct ApiEnvelope<T: Decodable>: Decodable {
+    let resultType: String
+    let success: T?
+    let error: ApiFailure?
+}
+private struct ApiStatusEnvelope: Decodable { let resultType: String; let error: ApiFailure? }
 private struct TokenPair: Codable { let accessToken: String; let refreshToken: String }
 private struct SessionRecord: Codable { let schemaVersion: Int; let accessToken: String; let refreshToken: String?; let revision: Int }
 private struct ServerGroup: Decodable { let id: Int64; let name: String; let color: String }
 
-enum ShareApiError: Error { case noSession, invalidResponse, http(Int), configuration }
+enum ShareApiError: Error { case noSession, invalidResponse, http(Int), configuration, privatePost }
 
 final class ShareApiClient {
     // API 버전 경로(/api/v1)까지 포함한 값이다. 웹의 VITE_API_BASE_URL 과 같은 규칙.
@@ -52,21 +58,23 @@ final class ShareApiClient {
         let body = try JSONSerialization.data(withJSONObject: [
             "url": url, "groupIds": Array(groupIds), "memo": memo,
         ])
-        _ = try await protectedRequest(path: "/posts", method: "POST", body: body)
+        let data = try await protectedRequest(path: "/posts", method: "POST", body: body)
+        let envelope = try decoder.decode(ApiStatusEnvelope.self, from: data)
+        guard envelope.resultType == "SUCCESS" else { throw mappedError(envelope.error) }
     }
 
     private func protectedRequest(path: String, method: String = "GET", body: Data? = nil) async throws -> Data {
         guard let record = try session.read() else { throw ShareApiError.noSession }
         let first = try await request(path: path, method: method, body: body, token: record.accessToken)
         if first.0 != 401 {
-            guard (200..<300).contains(first.0) else { throw ShareApiError.http(first.0) }
+            guard (200..<300).contains(first.0) else { throw httpError(status: first.0, data: first.1) }
             return first.1
         }
         guard let refreshed = try await refresh(failedRevision: record.revision) else { throw ShareApiError.noSession }
         let retry = try await request(path: path, method: method, body: body, token: refreshed.accessToken)
         guard (200..<300).contains(retry.0) else {
             if retry.0 == 401 { try session.clear() }
-            throw ShareApiError.http(retry.0)
+            throw httpError(status: retry.0, data: retry.1)
         }
         return retry.1
     }
@@ -112,8 +120,31 @@ final class ShareApiClient {
 
     private func unwrap<T>(_ type: ApiEnvelope<T>.Type, _ data: Data) throws -> T where T: Decodable {
         let envelope = try decoder.decode(type, from: data)
-        guard envelope.resultType == "SUCCESS", let value = envelope.success else { throw ShareApiError.invalidResponse }
+        guard envelope.resultType == "SUCCESS" else { throw mappedError(envelope.error) }
+        guard let value = envelope.success else { throw ShareApiError.invalidResponse }
         return value
+    }
+
+    private func httpError(status: Int, data: Data) -> ShareApiError {
+        if status == 401 { return .http(status) }
+        let failure = try? decoder.decode(ApiStatusEnvelope.self, from: data).error
+        return mappedError(failure, fallbackStatus: status)
+    }
+
+    private func mappedError(_ failure: ApiFailure?, fallbackStatus: Int? = nil) -> ShareApiError {
+        let code = failure?.errorCode?.uppercased() ?? ""
+        let reason = failure?.reason ?? ""
+        if fallbackStatus == 403 ||
+            code.contains("PRIVATE") ||
+            code.contains("NOT_ACCESSIBLE") ||
+            code.contains("ACCESS_DENIED") ||
+            code.contains("CONTENT_UNAVAILABLE") ||
+            reason.contains("비공개") ||
+            reason.contains("접근할 수 없") {
+            return .privatePost
+        }
+        if let fallbackStatus { return .http(fallbackStatus) }
+        return .invalidResponse
     }
 
     private func lockFileURL() throws -> URL {

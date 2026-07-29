@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -33,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -57,11 +59,26 @@ import com.nook.app.share.ui.suit
 // 새 그룹 생성 행 + 그룹 4개까지 노출(56*5=280), 초과 시 스크롤. 새 그룹 생성 행도 스크롤에 포함.
 private const val SCROLL_REGION_DP = 280
 
+enum class ShareFeedbackKind(
+    val icon: NookIconName,
+    val message: String,
+    val actionTitle: String,
+) {
+    Login(NookIconName.Icon44Error, "로그인 해주세요", "로그인"),
+    Network(NookIconName.Icon44Fail, "네트워크가 원활하지 않아요", "다시하기"),
+    PrivatePost(NookIconName.Icon44Lock, "비공개 게시물은 저장할 수 없어요", "확인"),
+    Success(NookIconName.Icon44Success, "공유 완료!", "앱에서 보기"),
+}
+
+data class ShareFeedbackState(val kind: ShareFeedbackKind, val id: Long)
+
 @Composable
 fun ShareScreen(
     groups: List<Group>,
+    feedback: ShareFeedbackState?,
     onSave: (Set<Long>, String, (Boolean) -> Unit) -> Unit,
     onCreateGroup: (String, Int, (Boolean) -> Unit) -> Unit,
+    onFeedbackAction: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var showCreate by remember { mutableStateOf(false) }
@@ -79,50 +96,121 @@ fun ShareScreen(
                 .noRippleClick(onDismiss),
         )
 
-        Column(
-            Modifier
-                .align(Alignment.BottomCenter)
-                .offset { IntOffset(0, offsetY.value.roundToInt()) }
-                .fillMaxWidth()
-                .background(Color.White)
-                // 시트 내부 터치는 여기서 소비 → dim(뒷배경)으로 새서 닫히는 것 방지
-                .noRippleClick {}
-                .navigationBarsPadding()
-                .imePadding(),
-        ) {
-            SheetHandle(
-                onDrag = { delta ->
-                    scope.launch { offsetY.snapTo((offsetY.value + delta).coerceAtLeast(0f)) }
-                },
-                onDragEnd = {
-                    if (offsetY.value > dismissThreshold) {
-                        scope.launch {
-                            offsetY.animateTo(2000f)
-                            onDismiss()
-                        }
-                    } else {
-                        scope.launch { offsetY.animateTo(0f) }
-                    }
-                },
-            )
-            if (showCreate) {
-                CreateGroupContent(
-                    panelFraction,
-                    onCreateGroup = { name, colorIndex ->
-                        onCreateGroup(name, colorIndex) { created ->
-                            if (created) showCreate = false
+        if (feedback == null) {
+            Column(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset { IntOffset(0, offsetY.value.roundToInt()) }
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    // 시트 내부 터치는 여기서 소비 → dim(뒷배경)으로 새서 닫히는 것 방지
+                    .noRippleClick {}
+                    .navigationBarsPadding()
+                    .imePadding(),
+            ) {
+                SheetHandle(
+                    onDrag = { delta ->
+                        scope.launch { offsetY.snapTo((offsetY.value + delta).coerceAtLeast(0f)) }
+                    },
+                    onDragEnd = {
+                        if (offsetY.value > dismissThreshold) {
+                            scope.launch {
+                                offsetY.animateTo(2000f)
+                                onDismiss()
+                            }
+                        } else {
+                            scope.launch { offsetY.animateTo(0f) }
                         }
                     },
-                    onBack = { showCreate = false },
                 )
-            } else {
-                SelectGroupContent(
-                    groups,
-                    panelFraction,
-                    onSave,
-                    onCreateGroup = { showCreate = true },
-                )
+                if (showCreate) {
+                    CreateGroupContent(
+                        panelFraction,
+                        onCreateGroup = { name, colorIndex ->
+                            onCreateGroup(name, colorIndex) { created ->
+                                if (created) showCreate = false
+                            }
+                        },
+                        onBack = { showCreate = false },
+                    )
+                } else {
+                    SelectGroupContent(
+                        groups,
+                        panelFraction,
+                        onSave,
+                        onCreateGroup = { showCreate = true },
+                    )
+                }
             }
+        } else {
+            ShareFeedbackToast(
+                feedback = feedback,
+                onAction = onFeedbackAction,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 24.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShareFeedbackToast(
+    feedback: ShareFeedbackState,
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val kind = feedback.kind
+    var isActing by remember(feedback.id) { mutableStateOf(false) }
+
+    Row(
+        modifier
+            .widthIn(max = 343.dp)
+            .fillMaxWidth()
+            .height(60.dp)
+            .shadow(8.dp, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        NookIcon(
+            name = kind.icon,
+            modifier = Modifier.size(44.dp),
+        )
+
+        Text(
+            kind.message,
+            modifier = Modifier
+                .padding(start = 4.dp)
+                .weight(1f),
+            color = Color(0xFF1F1F1F),
+            maxLines = 1,
+            style = suit(14, FontWeight.SemiBold),
+        )
+
+        Box(
+            modifier = Modifier
+                .padding(start = 8.dp)
+                .height(36.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFF1F1F1F))
+                .noRippleClick {
+                    if (!isActing) {
+                        isActing = true
+                        onAction()
+                    }
+                }
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                kind.actionTitle,
+                color = Color.White,
+                maxLines = 1,
+                style = suit(14, FontWeight.SemiBold),
+            )
         }
     }
 }
@@ -298,8 +386,10 @@ private fun CreateGroupHeader(onBack: () -> Unit) {
 private fun ShareScreenPreview() {
     ShareScreen(
         groups = emptyList(),
+        feedback = ShareFeedbackState(ShareFeedbackKind.Network, 1),
         onSave = { _, _, _ -> },
         onCreateGroup = { _, _, _ -> },
+        onFeedbackAction = {},
         onDismiss = {},
     )
 }
