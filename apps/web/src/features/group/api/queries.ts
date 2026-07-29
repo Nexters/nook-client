@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createGroup, deleteGroup, fetchGroupPosts, fetchGroups, updateGroup } from './api';
+import { createGroup, deleteGroup, fetchGroupPosts, fetchGroups, updateGroup } from '.';
 
 export const groupQueryKeys = {
   list: ['groups'] as const,

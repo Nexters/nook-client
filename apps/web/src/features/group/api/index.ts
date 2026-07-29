@@ -10,7 +10,7 @@ import {
   update as updateGroupEndpoint,
 } from '@/shared/api';
 import type { GroupColor } from '@/shared/ui';
-import type { Group, GroupPost } from './types';
+import type { Group, GroupPost } from '../types';
 
 /**
  * 서버 색상 코드 ↔ 디자인 토큰 색상.
