@@ -60,8 +60,8 @@ private const val SCROLL_REGION_DP = 280
 @Composable
 fun ShareScreen(
     groups: List<Group>,
-    onSave: (Set<Long>, String) -> Unit,
-    onCreateGroup: (String, Int) -> Unit,
+    onSave: (Set<Long>, String, (Boolean) -> Unit) -> Unit,
+    onCreateGroup: (String, Int, (Boolean) -> Unit) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var showCreate by remember { mutableStateOf(false) }
@@ -106,7 +106,15 @@ fun ShareScreen(
                 },
             )
             if (showCreate) {
-                CreateGroupContent(panelFraction, onCreateGroup, onBack = { showCreate = false })
+                CreateGroupContent(
+                    panelFraction,
+                    onCreateGroup = { name, colorIndex ->
+                        onCreateGroup(name, colorIndex) { created ->
+                            if (created) showCreate = false
+                        }
+                    },
+                    onBack = { showCreate = false },
+                )
             } else {
                 SelectGroupContent(
                     groups,
@@ -160,11 +168,12 @@ private fun SheetHandle(onDrag: (Float) -> Unit, onDragEnd: () -> Unit) {
 private fun SelectGroupContent(
     groups: List<Group>,
     panelFraction: Float,
-    onSave: (Set<Long>, String) -> Unit,
+    onSave: (Set<Long>, String, (Boolean) -> Unit) -> Unit,
     onCreateGroup: () -> Unit,
 ) {
     val selected = remember { mutableStateListOf<Long>() }
     var memo by remember { mutableStateOf("") }
+    var isSaving by remember { mutableStateOf(false) }
 
     // 키보드가 열리면 핸들 + 인풋만 남기고, 그룹 리스트는 키보드 인셋에 맞춰 실시간 접힘
     CollapsibleByIme(panelFraction) {
@@ -200,14 +209,17 @@ private fun SelectGroupContent(
 
     CollapsibleByIme(panelFraction) {
         SheetButton(
-            "저장하기",
+            if (isSaving) "저장 중..." else "저장하기",
             primary = true,
-            enabled = selected.isNotEmpty(),
+            enabled = selected.isNotEmpty() && !isSaving,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
         ) {
-            onSave(selected.toSet(), memo)
+            isSaving = true
+            onSave(selected.toSet(), memo) { succeeded ->
+                if (!succeeded) isSaving = false
+            }
         }
     }
 }
@@ -286,8 +298,8 @@ private fun CreateGroupHeader(onBack: () -> Unit) {
 private fun ShareScreenPreview() {
     ShareScreen(
         groups = emptyList(),
-        onSave = { _, _ -> },
-        onCreateGroup = { _, _ -> },
+        onSave = { _, _, _ -> },
+        onCreateGroup = { _, _, _ -> },
         onDismiss = {},
     )
 }

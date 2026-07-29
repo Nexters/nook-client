@@ -1,6 +1,9 @@
 import Darwin
 import Foundation
+import OSLog
 import Security
+
+private let shareApiLogger = Logger(subsystem: "com.nook.app.share", category: "ShareAPI")
 
 private struct ApiEnvelope<T: Decodable>: Decodable { let resultType: String; let success: T? }
 private struct TokenPair: Codable { let accessToken: String; let refreshToken: String }
@@ -16,9 +19,16 @@ final class ShareApiClient {
     private let decoder = JSONDecoder()
 
     init?() {
-        guard let value = Bundle.main.object(forInfoDictionaryKey: "NookApiBaseUrl") as? String,
+        // Share Extension의 Info.plist는 apple-targets가 사용자 정의 키를 자동 병합하지 않는다.
+        // 같은 앱 번들에 포함된 본앱의 Info.plist를 원본으로 사용해 환경별 API 설정을 공유한다.
+        guard let value = Self.apiBaseURL(),
               !value.isEmpty, URL(string: value) != nil else { return nil }
         baseURL = value.hasSuffix("/") ? String(value.dropLast()) : value
+    }
+
+    func hasSession() -> Bool {
+        do { return try session.read() != nil }
+        catch { return false }
     }
 
     func groups() async throws -> [Group] {
@@ -28,7 +38,11 @@ final class ShareApiClient {
     }
 
     func createGroup(name: String, colorIndex: Int) async throws -> Group {
-        let body = try JSONSerialization.data(withJSONObject: ["name": name, "color": groupColorNames[colorIndex]])
+        guard groupColorNames.indices.contains(colorIndex) else { throw ShareApiError.configuration }
+        let body = try JSONSerialization.data(withJSONObject: [
+            "name": name.trimmingCharacters(in: .whitespacesAndNewlines),
+            "color": groupColorNames[colorIndex],
+        ])
         let data = try await protectedRequest(path: "/groups", method: "POST", body: body)
         let result = try unwrap(ApiEnvelope<ServerGroup>.self, data)
         return Group(id: result.id, name: result.name, color: groupColor(result.color))
@@ -37,7 +51,6 @@ final class ShareApiClient {
     func save(url: String, groupIds: Set<Int64>, memo: String) async throws {
         let body = try JSONSerialization.data(withJSONObject: [
             "url": url, "groupIds": Array(groupIds), "memo": memo,
-            "areGroupIdsPositive": groupIds.allSatisfy { $0 > 0 },
         ])
         _ = try await protectedRequest(path: "/posts", method: "POST", body: body)
     }
@@ -85,6 +98,15 @@ final class ShareApiClient {
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw ShareApiError.invalidResponse }
+        shareApiLogger.notice(
+            "\(method, privacy: .public) \(path, privacy: .public) -> \(http.statusCode, privacy: .public)"
+        )
+#if DEBUG
+        if path != "/auth/token/refresh" {
+            let responseBody = String(data: data, encoding: .utf8) ?? "<binary>"
+            shareApiLogger.notice("response: \(responseBody, privacy: .public)")
+        }
+#endif
         return (http.statusCode, data)
     }
 
@@ -100,6 +122,19 @@ final class ShareApiClient {
             throw ShareApiError.configuration
         }
         return root.appendingPathComponent("session-refresh.lock")
+    }
+
+    private static func apiBaseURL() -> String? {
+        if let value = Bundle.main.object(forInfoDictionaryKey: "NookApiBaseUrl") as? String,
+           !value.isEmpty {
+            return value
+        }
+
+        let containingAppURL = Bundle.main.bundleURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        return Bundle(url: containingAppURL)?
+            .object(forInfoDictionaryKey: "NookApiBaseUrl") as? String
     }
 }
 
