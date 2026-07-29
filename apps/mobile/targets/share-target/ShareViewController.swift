@@ -5,6 +5,15 @@ import OSLog
 
 private let shareLogger = Logger(subsystem: "com.nook.app.share", category: "ShareExtension")
 
+private typealias OpenURLCompletion = @convention(block) (Bool) -> Void
+private typealias OpenURLImplementation = @convention(c) (
+    AnyObject,
+    Selector,
+    NSURL,
+    NSDictionary,
+    OpenURLCompletion?
+) -> Void
+
 class ShareViewController: UIViewController {
 
     private let api = ShareApiClient()
@@ -62,7 +71,7 @@ class ShareViewController: UIViewController {
             return
         }
         guard api.hasSession() else {
-            presentFeedback(.login) { [weak self] in self?.openContainingApp() }
+            presentFeedback(.login) { [weak self] in self?.openContainingApp(path: "login") }
             return
         }
 
@@ -116,10 +125,12 @@ class ShareViewController: UIViewController {
                         throw ShareApiError.privatePost
                     }
                     guard let api = self.api else { throw ShareApiError.configuration }
-                    try await api.save(url: url, groupIds: groups, memo: memo)
+                    let postId = try await api.save(url: url, groupIds: groups, memo: memo)
                     await MainActor.run {
                         finishSaving?(true)
-                        self.presentFeedback(.success) { [weak self] in self?.openContainingApp() }
+                        self.presentFeedback(.success) { [weak self] in
+                            self?.openContainingApp(path: "post/\(postId)")
+                        }
                     }
                 } catch {
                     shareLogger.error("게시글 저장 실패: \(String(describing: error), privacy: .public)")
@@ -284,7 +295,7 @@ class ShareViewController: UIViewController {
     @MainActor
     private func handleFailure(_ error: Error, retry: @escaping () -> Void) {
         if isAuthenticationError(error) {
-            presentFeedback(.login) { [weak self] in self?.openContainingApp() }
+            presentFeedback(.login) { [weak self] in self?.openContainingApp(path: "login") }
         } else if case ShareApiError.privatePost = error {
             presentFeedback(.privatePost) { [weak self] in self?.complete() }
         } else {
@@ -298,19 +309,76 @@ class ShareViewController: UIViewController {
     }
 
     @MainActor
-    private func openContainingApp() {
+    private func openContainingApp(path: String) {
         guard let extensionBundleID = Bundle.main.bundleIdentifier else {
             complete()
             return
         }
         let appBundleID = extensionBundleID.replacingOccurrences(of: ".ShareExtension", with: "")
-        guard let url = URL(string: "\(appBundleID)://") else {
+        guard let url = URL(string: "\(appBundleID)://\(path)") else {
             complete()
             return
         }
-        extensionContext?.open(url) { [weak self] _ in
-            DispatchQueue.main.async { self?.complete() }
+
+        // Share Extension에서는 공식 open이 보통 false를 반환한다. 공식 경로를 먼저
+        // 시도하고, 실패한 경우에만 responder chain에서 UIApplication 런타임 객체를
+        // 찾아 동일한 URL을 연다. 후자는 Apple이 지원하지 않는 호환성 우회 경로다.
+        extensionContext?.open(url) { [weak self] opened in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                if opened {
+                    shareLogger.notice("본앱 열기 성공 (extensionContext)")
+                    self.complete()
+                    return
+                }
+
+                shareLogger.notice("extensionContext 본앱 열기 실패; responder chain 우회 시도")
+                guard self.openContainingAppViaResponderChain(url) else {
+                    shareLogger.error("responder chain에서 UIApplication.open을 찾지 못함")
+                    self.complete()
+                    return
+                }
+
+                // UIKit이 completion handler를 호출하지 않는 iOS 조합에서도 공유 화면이
+                // 멈추지 않도록 안전하게 종료한다.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+                    guard let self, !self.isCompleting else { return }
+                    shareLogger.error("UIApplication.open completion 미수신; 공유 화면 종료")
+                    self.complete()
+                }
+            }
         }
+    }
+
+    @MainActor
+    private func openContainingAppViaResponderChain(_ url: URL) -> Bool {
+        let selector = NSSelectorFromString("openURL:options:completionHandler:")
+        guard let applicationClass = NSClassFromString("UIApplication") else { return false }
+
+        var responder: UIResponder? = self
+        while let current = responder {
+            responder = current.next
+            guard current.isKind(of: applicationClass), current.responds(to: selector) else {
+                continue
+            }
+
+            let completion: OpenURLCompletion = { [weak self] opened in
+                DispatchQueue.main.async {
+                    if opened {
+                        shareLogger.notice("본앱 열기 성공 (UIApplication.open 우회)")
+                    } else {
+                        shareLogger.error("본앱 열기 실패 (UIApplication.open 우회)")
+                    }
+                    self?.complete()
+                }
+            }
+            let implementation = current.method(for: selector)
+            let openURL = unsafeBitCast(implementation, to: OpenURLImplementation.self)
+            openURL(current, selector, url as NSURL, [:] as NSDictionary, completion)
+            return true
+        }
+
+        return false
     }
 
     // SwiftUI 가 시트를 내리는 동안 딤도 같이 걷어내고, 끝나면 화면을 감춘 뒤 종료한다.

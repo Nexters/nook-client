@@ -15,6 +15,7 @@ private struct ApiStatusEnvelope: Decodable { let resultType: String; let error:
 private struct TokenPair: Codable { let accessToken: String; let refreshToken: String }
 private struct SessionRecord: Codable { let schemaVersion: Int; let accessToken: String; let refreshToken: String?; let revision: Int }
 private struct ServerGroup: Decodable { let id: Int64; let name: String; let color: String }
+private struct SavedPost: Decodable { let postId: Int64 }
 
 enum ShareApiError: Error { case noSession, invalidResponse, http(Int), configuration, privatePost }
 
@@ -54,13 +55,12 @@ final class ShareApiClient {
         return Group(id: result.id, name: result.name, color: groupColor(result.color))
     }
 
-    func save(url: String, groupIds: Set<Int64>, memo: String) async throws {
+    func save(url: String, groupIds: Set<Int64>, memo: String) async throws -> Int64 {
         let body = try JSONSerialization.data(withJSONObject: [
             "url": url, "groupIds": Array(groupIds), "memo": memo,
         ])
         let data = try await protectedRequest(path: "/posts", method: "POST", body: body)
-        let envelope = try decoder.decode(ApiStatusEnvelope.self, from: data)
-        guard envelope.resultType == "SUCCESS" else { throw mappedError(envelope.error) }
+        return try unwrap(ApiEnvelope<SavedPost>.self, data).postId
     }
 
     private func protectedRequest(path: String, method: String = "GET", body: Data? = nil) async throws -> Data {

@@ -42,7 +42,9 @@ class ShareActivity : ComponentActivity() {
         sharedUrl = firstSharedUrl(sharedText)
 
         api = ShareApiClient(applicationContext)
-        if (!api.hasSession()) showFeedback(ShareFeedbackKind.Login, ::openContainingApp)
+        if (!api.hasSession()) {
+            showFeedback(ShareFeedbackKind.Login) { openContainingApp("login") }
+        }
 
         setContent {
             ShareScreen(
@@ -85,9 +87,9 @@ class ShareActivity : ComponentActivity() {
             runCatching {
                 val url = sharedUrl ?: throw SharePrivatePostException()
                 api.savePost(url, selected, memo)
-            }.onSuccess {
+            }.onSuccess { postId ->
                 onResult?.invoke(true)
-                showFeedback(ShareFeedbackKind.Success, ::openContainingApp)
+                showFeedback(ShareFeedbackKind.Success) { openContainingApp("post/$postId") }
             }.onFailure { error ->
                 Log.e(TAG, "게시글 저장 실패", error)
                 onResult?.invoke(false)
@@ -119,7 +121,7 @@ class ShareActivity : ComponentActivity() {
     private fun handleFailure(error: Throwable, retry: () -> Unit) {
         when (error) {
             is ShareAuthenticationRequiredException ->
-                showFeedback(ShareFeedbackKind.Login, ::openContainingApp)
+                showFeedback(ShareFeedbackKind.Login) { openContainingApp("login") }
             is SharePrivatePostException ->
                 showFeedback(ShareFeedbackKind.PrivatePost) { finish() }
             else -> showFeedback(ShareFeedbackKind.Network, retry)
@@ -141,8 +143,9 @@ class ShareActivity : ComponentActivity() {
         return null
     }
 
-    private fun openContainingApp() {
+    private fun openContainingApp(path: String) {
         packageManager.getLaunchIntentForPackage(packageName)?.let { launchIntent ->
+            launchIntent.data = Uri.parse("$packageName://$path")
             launchIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(launchIntent)
         }

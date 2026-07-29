@@ -56,14 +56,13 @@ class ShareApiClient(private val context: Context) {
         Group(item.getLong("id"), item.getString("name"), groupColor(item.getString("color")))
     }
 
-    suspend fun savePost(url: String, groupIds: Set<Long>, memo: String) = withContext(Dispatchers.IO) {
+    suspend fun savePost(url: String, groupIds: Set<Long>, memo: String): Long = withContext(Dispatchers.IO) {
         val ids = JSONArray(groupIds)
         val response = protectedRequest(
             "/posts", "POST",
             JSONObject().put("url", url).put("groupIds", ids).put("memo", memo).toString(),
         )
-        ensureSuccessEnvelope(response)
-        Unit
+        unwrap(response).getJSONObject("value").getLong("postId")
     }
 
     private fun protectedRequest(path: String, method: String = "GET", body: String? = null): String {
@@ -124,11 +123,6 @@ class ShareApiClient(private val context: Context) {
         if (envelope.getString("resultType") != "SUCCESS") throw mappedFailure(body)
         if (!envelope.has("success")) throw IllegalStateException("API 성공 본문 누락")
         return JSONObject().put("value", envelope.get("success"))
-    }
-
-    private fun ensureSuccessEnvelope(body: String) {
-        val envelope = JSONObject(body)
-        if (envelope.getString("resultType") != "SUCCESS") throw mappedFailure(body)
     }
 
     private fun mappedFailure(body: String, status: Int? = null): IllegalStateException {
