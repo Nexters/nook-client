@@ -60,8 +60,8 @@ function GroupCard({ group, onClick, className }: GroupCardProps) {
           ))}
         </div>
       ) : (
-        // 빈 그룹은 시안 `Thumbnail/98_Group > Empty` — 사진 폴백(ex_Thumbnail)이 아니라
-        // 60_Thumbnail 도형이다. size="sm" 이 그 애셋을 고르고, 박스 크기만 98px 로 덮는다.
+        // 빈 그룹은 시안 `Thumbnail/98_Group > Empty` — 60_Thumbnail 도형이다.
+        // size="sm" 이 그 애셋을 고르고, 박스 크기만 98px 로 덮는다.
         <Thumbnail size="sm" className="size-[98px]" />
       )}
     </Comp>
