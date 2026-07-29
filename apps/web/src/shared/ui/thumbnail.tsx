@@ -1,7 +1,7 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import type * as React from 'react';
 import emptyThumbnailSm from '@/assets/images/60_Thumbnail.svg';
-import emptyThumbnailLg from '@/assets/images/ex_Thumbnail.png';
+import { Icon16ExclamationCircle } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -30,14 +30,12 @@ const thumbnailVariants = cva(
 );
 
 /**
- * src 가 없을 때 채울 기본 이미지. 크기별로 애셋이 따로 있다 —
- * sm 은 64px 전용 도형(`60_Thumbnail`), lg 는 큰 칸에서 도형이 늘어나 보이지 않도록
- * 사진 애셋(`ex_Thumbnail`)을 쓴다.
+ * src 가 없을 때 sm 에서만 채우는 기본 도형(`60_Thumbnail`) — `GroupCard`의 빈 그룹
+ * 칸(Figma `Thumbnail/98_Group > Empty`) 전용이다. lg 는 이미지 없이 컨테이너의
+ * 회색 배경(`bg-gray-10`)만 보여준다 — 실제 목데이터 스크린샷을 폴백으로 박아두면
+ * 썸네일이 없는 진짜 게시물에도 그 가짜 사진이 그대로 노출돼버린다.
  */
-const EMPTY_IMAGE = {
-  lg: emptyThumbnailLg,
-  sm: emptyThumbnailSm,
-} as const;
+const EMPTY_IMAGE_SM = emptyThumbnailSm;
 
 export interface ThumbnailProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'>,
@@ -46,26 +44,53 @@ export interface ThumbnailProps
   alt?: string;
   /** 넘기면 딤 위에 `+N` 을 얹는다 (시안 Property 1=Plus). */
   overflowCount?: number;
+  /** 넘기면 딤 위에 로딩 스피너를 얹는다 — 콘텐츠가 아직 처리 중이라 비어 있는 카드용. */
+  loading?: boolean;
+  /** 넘기면 딤 위에 실패 표시를 얹는다 — 처리(크롤링·파싱)가 실패해 비어 있는 카드용. */
+  failed?: boolean;
 }
 
 function Thumbnail({
   src,
   alt = '',
   overflowCount,
+  loading = false,
+  failed = false,
   size = 'lg',
   className,
   ...props
 }: ThumbnailProps) {
+  const resolvedSrc = src ?? (size === 'sm' ? EMPTY_IMAGE_SM : undefined);
+
   return (
     <div data-slot="thumbnail" className={cn(thumbnailVariants({ size }), className)} {...props}>
-      <img
-        src={src ?? EMPTY_IMAGE[size ?? 'lg']}
-        alt={src ? alt : ''}
-        className="size-full object-cover"
-      />
+      {resolvedSrc ? (
+        <img src={resolvedSrc} alt={src ? alt : ''} className="size-full object-cover" />
+      ) : null}
       {overflowCount !== undefined ? (
         <span className="absolute inset-0 flex items-center justify-center bg-black/50 font-mono text-e2 text-gray-0">
           +{overflowCount}
+        </span>
+      ) : null}
+      {loading ? (
+        <span
+          role="status"
+          aria-label="처리 중"
+          className="absolute inset-0 flex items-center justify-center bg-gray-0/70"
+        >
+          <span
+            aria-hidden="true"
+            className="size-6 animate-spin rounded-full border-2 border-gray-30 border-t-gray-90"
+          />
+        </span>
+      ) : null}
+      {failed ? (
+        <span
+          role="status"
+          aria-label="처리 실패"
+          className="absolute inset-0 flex items-center justify-center bg-gray-0/80"
+        >
+          <Icon16ExclamationCircle />
         </span>
       ) : null}
     </div>

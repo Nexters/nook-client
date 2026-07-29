@@ -3,9 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { Icon32Edit } from '@/shared/icons/NookIcons';
 import { BackButton, Badge, COLOR_BG_CLASS, Header, ShareButton } from '@/shared/ui';
+import { useGroupPosts, useGroups } from './api/queries';
 import { CollectionCard } from './components/CollectionCard';
 import { GroupEmpty } from './components/GroupEmpty';
-import { useGroupPosts, useGroups } from './queries';
 
 /** Figma `그룹 > 그룹 상세` (기본 / 빈 그룹). */
 export function GroupDetailPage() {

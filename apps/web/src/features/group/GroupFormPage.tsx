@@ -11,7 +11,7 @@ import {
   Input,
   Popup,
 } from '@/shared/ui';
-import { useCreateGroup, useDeleteGroup, useGroups, useUpdateGroup } from './queries';
+import { useCreateGroup, useDeleteGroup, useGroups, useUpdateGroup } from './api/queries';
 
 /** 시안의 카운터 표기(`0/20`) 기준. */
 const NAME_MAX_LENGTH = 20;

@@ -24,6 +24,8 @@ export interface CollectionCardProps {
 function CollectionCard({ group, onClick, className }: CollectionCardProps) {
   const Comp = onClick ? 'button' : 'div';
   const cover = group.thumbnails?.[0];
+  const isProcessing = group.processingState === 'processing';
+  const isFailed = group.processingState === 'failed';
 
   return (
     <Comp
@@ -36,18 +38,32 @@ function CollectionCard({ group, onClick, className }: CollectionCardProps) {
       )}
     >
       {/* 시안 208px 고정 높이. size variant 로는 안 맞아 높이만 덮는다. */}
-      <Thumbnail src={cover} alt="" className="h-52 w-full" />
+      <Thumbnail
+        src={cover}
+        alt=""
+        loading={isProcessing}
+        failed={isFailed}
+        className="h-52 w-full"
+      />
       <div className="flex w-full flex-col">
-        <p className="truncate text-b3 font-semibold text-gray-90">{group.name}</p>
-        <div className="flex items-center gap-1">
-          {group.authorHandle ? (
-            <>
-              <span className="truncate font-mono text-e2 text-gray-60">{group.authorHandle}</span>
-              <span className="size-0.5 shrink-0 rounded-full bg-gray-60" aria-hidden="true" />
-            </>
-          ) : null}
-          <span className="shrink-0 font-mono text-e2 text-gray-60">{group.placeCount} Places</span>
-        </div>
+        <p className="truncate text-b3 font-semibold text-gray-90">
+          {isProcessing ? '처리 중…' : isFailed ? '처리 실패' : group.name}
+        </p>
+        {isProcessing || isFailed ? null : (
+          <div className="flex items-center gap-1">
+            {group.authorHandle ? (
+              <>
+                <span className="truncate font-mono text-e2 text-gray-60">
+                  {group.authorHandle}
+                </span>
+                <span className="size-0.5 shrink-0 rounded-full bg-gray-60" aria-hidden="true" />
+              </>
+            ) : null}
+            <span className="shrink-0 font-mono text-e2 text-gray-60">
+              {group.placeCount} Places
+            </span>
+          </div>
+        )}
       </div>
     </Comp>
   );
