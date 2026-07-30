@@ -912,6 +912,29 @@
         ],
         "type": "object"
       },
+      "PlacePostGroupResponse": {
+        "properties": {
+          "color": {
+            "description": "그룹 색상 코드",
+            "type": "string"
+          },
+          "id": {
+            "description": "그룹 식별자",
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "description": "그룹명",
+            "type": "string"
+          }
+        },
+        "required": [
+          "color",
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "PlacePostMediaResponse": {
         "properties": {
           "type": {
@@ -982,6 +1005,13 @@
               "null"
             ]
           },
+          "groups": {
+            "description": "게시물이 속한 그룹 목록",
+            "items": {
+              "$ref": "#/components/schemas/PlacePostGroupResponse"
+            },
+            "type": "array"
+          },
           "memo": {
             "description": "사용자 메모",
             "type": [
@@ -1018,6 +1048,7 @@
           }
         },
         "required": [
+          "groups",
           "postId",
           "savedAt"
         ],
@@ -1378,6 +1409,13 @@
             "description": "게시물 원본 URL",
             "type": "string"
           },
+          "groups": {
+            "description": "게시물이 속한 그룹 목록",
+            "items": {
+              "$ref": "#/components/schemas/SavedPostGroupResponse"
+            },
+            "type": "array"
+          },
           "hashtags": {
             "description": "게시물 해시태그 목록",
             "items": {
@@ -1472,6 +1510,7 @@
         },
         "required": [
           "canonicalUrl",
+          "groups",
           "hashtags",
           "media",
           "placeParsingStatus",
@@ -1479,6 +1518,29 @@
           "postId",
           "processingStatus",
           "savedAt"
+        ],
+        "type": "object"
+      },
+      "SavedPostGroupResponse": {
+        "properties": {
+          "color": {
+            "description": "그룹 색상 코드",
+            "type": "string"
+          },
+          "id": {
+            "description": "그룹 식별자",
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "description": "그룹명",
+            "type": "string"
+          }
+        },
+        "required": [
+          "color",
+          "id",
+          "name"
         ],
         "type": "object"
       },

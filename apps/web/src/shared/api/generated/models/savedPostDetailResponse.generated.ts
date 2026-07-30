@@ -7,6 +7,7 @@
 import type { SavedPostDetailResponsePlaceParsingStatus } from './savedPostDetailResponsePlaceParsingStatus.generated';
 import type { SavedPostDetailResponseProcessingStage } from './savedPostDetailResponseProcessingStage.generated';
 import type { SavedPostDetailResponseProcessingStatus } from './savedPostDetailResponseProcessingStatus.generated';
+import type { SavedPostGroupResponse } from './savedPostGroupResponse.generated';
 import type { SavedPostMediaResponse } from './savedPostMediaResponse.generated';
 import type { SavedPostPlaceResponse } from './savedPostPlaceResponse.generated';
 
@@ -23,6 +24,8 @@ export interface SavedPostDetailResponse {
   body?: string | null;
   /** 게시물 원본 URL */
   canonicalUrl: string;
+  /** 게시물이 속한 그룹 목록 */
+  groups: SavedPostGroupResponse[];
   /** 게시물 해시태그 목록 */
   hashtags: string[];
   /** 게시물 미디어 목록 */
