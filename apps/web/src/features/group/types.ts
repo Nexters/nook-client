@@ -28,6 +28,12 @@ export interface CollectionSummary {
   placeCount: number;
   thumbnails?: string[];
   authorHandle?: string;
+  /**
+   * 저장 직후 BE 가 아직 처리(본문 크롤링·장소 파싱) 중이거나(`processing`) 처리에
+   * 실패해서(`failed`) name/placeCount 가 비어 있을 수 있다는 표시. 공개 그룹(`Group`)엔
+   * 처리 개념이 없어 항상 undefined다.
+   */
+  processingState?: 'processing' | 'failed';
 }
 
 /** 그룹에 저장된 게시물 — 그룹 상세 그리드의 한 칸. */

@@ -1,34 +1,12 @@
-import type { PlacePinColor } from '@/features/map/components/PlacePin';
 import type { Coordinates } from '@/shared/lib/geolocation';
-
-/** 실제 이미지 API 연동 전까지 쓰는 회색 플레이스홀더(140x175, gray-20). */
-const SAVED_POST_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="140" height="175"><rect width="140" height="175" fill="#e4e6e9"/></svg>',
-)}`;
-
-export type SavedPost = {
-  id: string;
-  excerpt: string;
-  author: string;
-  /** 원본 계정 표기 (예: "@nook.official on instagram") */
-  authorHandle: string;
-  images: string[];
-  originalUrl: string;
-};
 
 export type MockPlace = {
   id: string;
   name: string;
   category: string;
-  region: string;
   address: string;
-  tags: string[];
-  hours: string;
-  memo: string;
-  savedPosts: SavedPost[];
   lat: number;
   lng: number;
-  color: PlacePinColor;
 };
 
 type MockPlaceOffset = Omit<MockPlace, 'lat' | 'lng'> & {
@@ -38,45 +16,17 @@ type MockPlaceOffset = Omit<MockPlace, 'lat' | 'lng'> & {
 };
 
 /**
- * 지도 스파이크/뼈대 검증용 목데이터. API 스펙 확정 전까지 임시로 사용한다.
- * 절대 좌표 대신 현재 위치 기준 오프셋으로 두어, 실기기/브라우저의 실제 위치가
- * 어디든 핀들이 화면 안에 보이도록 한다 (`getMockPlaces` 참고).
+ * "연관 장소" 섹션 전용 목데이터 — `GET /places/{placeId}`가 아직 연관 장소를 내려주지
+ * 않아(연관 게시물만 내려준다) 실제 연동 전까지 이 자리만 임시로 채운다(백엔드에 필드
+ * 추가를 요청해둔 상태). 그래서 여기서 나온 항목은 클릭해도 아무 동작이 없다 — 실제
+ * 장소 id 체계와 무관한 표시 전용 데이터다.
  */
 const MOCK_PLACE_OFFSETS: MockPlaceOffset[] = [
   {
     id: '1',
     name: '하우스 오브 와일드',
     category: '카페',
-    region: '서울',
     address: '서울 성동구 서울숲 4길 12',
-    tags: ['조용한', '뷰 맛집'],
-    hours: '10:00 - 20:00',
-    memo: '창가 자리가 좋다',
-    savedPosts: [
-      {
-        id: 'p1',
-        excerpt: '조용히 작업하기 좋은 공간, 창밖 뷰가 예쁘다.',
-        author: 'by Nook',
-        authorHandle: '@nook.official on instagram',
-        images: [
-          SAVED_POST_IMAGE,
-          SAVED_POST_IMAGE,
-          SAVED_POST_IMAGE,
-          SAVED_POST_IMAGE,
-          SAVED_POST_IMAGE,
-        ],
-        originalUrl: 'https://www.instagram.com/p/mock-1-p1/',
-      },
-      {
-        id: 'p2',
-        excerpt: '드립커피 향이 좋았다. 다음엔 디저트도 먹어보고 싶다.',
-        author: 'by Nook',
-        authorHandle: '@nook.official on instagram',
-        images: [SAVED_POST_IMAGE],
-        originalUrl: 'https://www.instagram.com/p/mock-1-p2/',
-      },
-    ],
-    color: 'yellow',
     latOffset: 0.0006,
     lngOffset: -0.0009,
   },
@@ -84,30 +34,7 @@ const MOCK_PLACE_OFFSETS: MockPlaceOffset[] = [
     id: '2',
     name: '퍼머넌트해비탯',
     category: '카페',
-    region: '서울',
     address: '서울 성동구 서울숲 7길 9 4층',
-    tags: ['정갈한', '혼밥', '친절한'],
-    hours: '11:00 - 19:30',
-    memo: '',
-    savedPosts: [
-      {
-        id: 'p1',
-        excerpt: '북적이는 성수에서 여유로운 카페를 찾고 있다면 망설임 없이 추천.',
-        author: 'by Purr',
-        authorHandle: '@nook.official on instagram',
-        images: [SAVED_POST_IMAGE, SAVED_POST_IMAGE, SAVED_POST_IMAGE],
-        originalUrl: 'https://www.instagram.com/p/mock-2-p1/',
-      },
-      {
-        id: 'p2',
-        excerpt: '라떼가 부드럽고 자리 간격이 넓어서 오래 앉아있기 좋았다.',
-        author: 'by Purr',
-        authorHandle: '@nook.official on instagram',
-        images: [SAVED_POST_IMAGE],
-        originalUrl: 'https://www.instagram.com/p/mock-2-p2/',
-      },
-    ],
-    color: 'red',
     latOffset: 0.0022,
     lngOffset: 0.0006,
   },
@@ -115,22 +42,7 @@ const MOCK_PLACE_OFFSETS: MockPlaceOffset[] = [
     id: '3',
     name: '세터커피',
     category: '카페',
-    region: '서울',
     address: '서울 성동구 성수이로20길 33',
-    tags: ['작업하기 좋은', '넓은'],
-    hours: '09:00 - 21:00',
-    memo: '콘센트 자리 확인하기',
-    savedPosts: [
-      {
-        id: 'p1',
-        excerpt: '테이블이 넓고 콘센트가 많아 노트북 작업하기 좋다.',
-        author: 'by Nook',
-        authorHandle: '@nook.official on instagram',
-        images: [SAVED_POST_IMAGE],
-        originalUrl: 'https://www.instagram.com/p/mock-3-p1/',
-      },
-    ],
-    color: 'purple',
     latOffset: -0.0023,
     lngOffset: 0.0017,
   },
@@ -138,37 +50,14 @@ const MOCK_PLACE_OFFSETS: MockPlaceOffset[] = [
     id: '4',
     name: '비터앤츠',
     category: '베이커리',
-    region: '서울',
     address: '서울 성동구 뚝섬로1길 5',
-    tags: ['달콤한', '아침 일찍'],
-    hours: '08:00 - 18:00',
-    memo: '소금빵이 맛있다',
-    savedPosts: [
-      {
-        id: 'p1',
-        excerpt: '오전 일찍 가야 원하는 빵을 다 살 수 있다.',
-        author: 'by Nook',
-        authorHandle: '@nook.official on instagram',
-        images: [SAVED_POST_IMAGE, SAVED_POST_IMAGE],
-        originalUrl: 'https://www.instagram.com/p/mock-4-p1/',
-      },
-      {
-        id: 'p2',
-        excerpt: '소금빵과 크루아상이 특히 인기.',
-        author: 'by Nook',
-        authorHandle: '@nook.official on instagram',
-        images: [SAVED_POST_IMAGE],
-        originalUrl: 'https://www.instagram.com/p/mock-4-p2/',
-      },
-    ],
-    color: 'sky',
     latOffset: 0.0032,
     lngOffset: -0.0007,
   },
 ];
 
 /**
- * 목데이터 오프셋을 실제 중심 좌표(현재 위치 또는 폴백) 기준으로 환산한다.
+ * 목데이터 오프셋을 실제 중심 좌표(선택된 장소 좌표) 기준으로 환산한다.
  */
 export function getMockPlaces(center: Coordinates): MockPlace[] {
   return MOCK_PLACE_OFFSETS.map(({ latOffset, lngOffset, ...place }) => ({
