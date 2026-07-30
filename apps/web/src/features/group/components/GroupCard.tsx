@@ -20,8 +20,9 @@ export interface GroupCardProps {
 function GroupCard({ group, onClick, className }: GroupCardProps) {
   const thumbnails = group.thumbnails ?? [];
   const visible = thumbnails.slice(0, VISIBLE_THUMBNAILS);
-  // 마지막 칸에 접어 넣을 나머지 장수 (시안의 `Thumbnail/98_Group > Plus`)
-  const overflow = thumbnails.length - VISIBLE_THUMBNAILS;
+  // 마지막 칸에 접어 넣을 나머지 게시물 수 (시안의 `Thumbnail/98_Group > Plus`).
+  // 서버는 썸네일을 몇 장만 내려주므로 URL 개수가 아니라 전체 개수에서 뺀다.
+  const overflow = group.placeCount - VISIBLE_THUMBNAILS;
 
   const Comp = onClick ? 'button' : 'div';
 
@@ -43,25 +44,26 @@ function GroupCard({ group, onClick, className }: GroupCardProps) {
         <Badge variant="number">{group.placeCount}</Badge>
       </div>
 
-      {visible.length > 0 ? (
-        <div className="flex items-center gap-2">
-          {visible.map((src, index) => (
+      {/* 썸네일은 카드 폭을 3등분해 늘어난다 — 화면이 넓어져도 왼쪽에 몰리지 않게.
+          장수가 3보다 적어도 칸 크기는 그대로라 카드끼리 줄이 맞는다. */}
+      <div className="grid w-full grid-cols-3 gap-2">
+        {visible.length > 0 ? (
+          visible.map((src, index) => (
             <Thumbnail
+              size="fluid"
               // URL 은 중복될 수 있고 이 목록은 재정렬되지 않으므로 위치를 key 로 쓴다.
               // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
               key={index}
               src={src}
               alt=""
-              // 마지막 칸에만 나머지 장수를 얹는다.
-              overflowCount={
-                overflow > 0 && index === VISIBLE_THUMBNAILS - 1 ? overflow : undefined
-              }
+              // 실제로 그려진 마지막 칸에만 나머지 수를 얹는다.
+              overflowCount={overflow > 0 && index === visible.length - 1 ? overflow : undefined}
             />
-          ))}
-        </div>
-      ) : (
-        <Thumbnail />
-      )}
+          ))
+        ) : (
+          <Thumbnail size="fluid" />
+        )}
+      </div>
     </Comp>
   );
 }
