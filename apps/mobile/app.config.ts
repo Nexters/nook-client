@@ -23,13 +23,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const appId = `com.nook.app${SUFFIX[variant]}`;
   const sessionAccessGroup = `$(AppIdentifierPrefix)group.${appId}`;
 
-  if (
-    variant === 'production' &&
-    (process.env.EXPO_PUBLIC_UT_ACCESS_TOKEN || process.env.EXPO_PUBLIC_UT_REFRESH_TOKEN)
-  ) {
-    throw new Error('production 빌드에는 UT 토큰을 주입할 수 없습니다.');
-  }
-
   const kakaoAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY;
   // 미설정이면 kakaoundefined:// 스킴이 조용히 생성되므로 여기서 끊는다.
   if (!kakaoAppKey) {

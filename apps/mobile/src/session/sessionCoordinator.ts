@@ -16,12 +16,7 @@ let generation = 0;
 let refreshPromise: Promise<StoredSession | null> | null = null;
 
 export async function restoreSession(): Promise<StoredSession | null> {
-  const stored = await NookSession.getSession();
-  if (stored) return stored;
-
-  const accessToken = process.env.EXPO_PUBLIC_UT_ACCESS_TOKEN;
-  if (!__DEV__ || !accessToken) return null;
-  return NookSession.setSession(accessToken, process.env.EXPO_PUBLIC_UT_REFRESH_TOKEN ?? null);
+  return NookSession.getSession();
 }
 
 export async function establishSession(
