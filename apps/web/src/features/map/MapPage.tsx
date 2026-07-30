@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
-import nookLogo from '@/assets/logo/Vector.svg';
+import headerLogo from '@/assets/logo/header_logo.svg';
 import { MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
@@ -123,7 +123,8 @@ export function MapPage() {
           뿐이라 pointer-events 를 꺼서 그 아래 지도 팬/줌을 막지 않는다. */}
       <Header
         variant="transparent"
-        left={<img src={nookLogo} alt="nook" className="h-[22px] w-[50px]" />}
+        // Figma Header/54 (94:3986) — 마스코트+워드마크 로고, 84x32 원본 비율 그대로.
+        left={<img src={headerLogo} alt="nook" className="h-8 w-[84px]" />}
         className="pointer-events-none absolute inset-x-0 top-[env(safe-area-inset-top)] z-10"
       />
       {snap === PEEK_SNAP_POINT && <RecenterButton onClick={() => mapRef.current?.recenter()} />}

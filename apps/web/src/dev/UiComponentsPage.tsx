@@ -2,7 +2,7 @@ import { type ReactNode, useState } from 'react';
 import mySelected from '@/assets/icons/32_my_selected.svg';
 import myUnselected from '@/assets/icons/32_my_unselected.svg';
 import errorCharacter from '@/assets/images/44_error.svg';
-import logo from '@/assets/logo/Vector.svg';
+import logo from '@/assets/logo/header_logo.svg';
 import type { Group } from '@/features/group';
 import { CollectionCard, GroupCard, GroupCreateRow, GroupSelectRow } from '@/features/group';
 import { MyMenuRow, MyMenuSection } from '@/features/my';
@@ -73,9 +73,9 @@ function IconImg({ src, className = 'size-6' }: { src: string; className?: strin
   return <img src={src} alt="" className={className} />;
 }
 
-/** 시안 `Header/54` 의 50x22 로고 */
+/** 시안 `Header/54` (94:3986) 의 84x32 로고 */
 function LogoMark() {
-  return <img src={logo} alt="nook" className="h-[22px] w-[50px]" />;
+  return <img src={logo} alt="nook" className="h-8 w-[84px]" />;
 }
 
 // ── 페이지 내부 레이아웃 헬퍼 (공용 컴포넌트 아님, 이 페이지 전용) ──

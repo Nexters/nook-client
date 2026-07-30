@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import nookLogo from '@/assets/logo/Vector.svg';
+import headerLogo from '@/assets/logo/header_logo.svg';
 import { FloatingButton, Header } from '@/shared/ui';
 import { useGroups } from './api/queries';
 import { GroupCard } from './components/GroupCard';
@@ -20,7 +20,7 @@ export function GroupPage() {
       <Header
         variant="gray"
         className="shrink-0"
-        left={<img src={nookLogo} alt="nook" className="h-[22px] w-[50px]" />}
+        left={<img src={headerLogo} alt="nook" className="h-8 w-[84px]" />}
       />
 
       <div

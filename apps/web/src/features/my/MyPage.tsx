@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
-import nookLogo from '@/assets/logo/Vector.svg';
+import headerLogo from '@/assets/logo/header_logo.svg';
 import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
 import {
@@ -105,7 +105,7 @@ export function MyPage() {
       >
         <Header
           variant="gray"
-          left={<img src={nookLogo} alt="nook" className="h-[22px] w-[50px]" />}
+          left={<img src={headerLogo} alt="nook" className="h-8 w-[84px]" />}
         />
 
         <button
