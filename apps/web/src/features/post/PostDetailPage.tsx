@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import type { Place } from '@/features/place';
 import { cn } from '@/shared/lib/utils';
@@ -30,6 +30,8 @@ export function PostDetailPage() {
   const { postId: postIdParam } = useParams();
   const postId = postIdParam ? Number(postIdParam) : undefined;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const enteredFromShare = searchParams.get('entry') === 'share';
   useHideBottomMenu();
 
   const postDetailState = usePostDetail(postId);
@@ -40,6 +42,19 @@ export function PostDetailPage() {
   const relatedPlacesState = useRelatedPlaces(postId);
   const [directInputOpen, setDirectInputOpen] = useState(false);
   const [showRelatedPlacesErrorToast, setShowRelatedPlacesErrorToast] = useState(false);
+  const firstRelatedPlaceId =
+    relatedPlacesState.status === 'success' ? relatedPlacesState.places[0]?.id : undefined;
+  const shareEntryBackTarget = firstRelatedPlaceId
+    ? `/map?placeId=${encodeURIComponent(firstRelatedPlaceId)}`
+    : '/map';
+
+  function handleBack() {
+    if (enteredFromShare) {
+      navigate(shareEntryBackTarget, { replace: true });
+      return;
+    }
+    navigate(-1);
+  }
 
   // "직접 추가"로 확정한 장소 — 파싱 상태와 무관하게 항상 연관 장소에 보여준다.
   const [manualPlaces, setManualPlaces] = useState<Place[]>([]);
@@ -101,7 +116,7 @@ export function PostDetailPage() {
   if (postDetailState.status !== 'success') {
     return (
       <main className="min-h-dvh bg-gray-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <Header left={<BackButton />} />
+        <Header left={<BackButton onClick={handleBack} />} />
         {postDetailState.status === 'loading' ? (
           <PostDetailLoadingView />
         ) : (
@@ -125,7 +140,7 @@ export function PostDetailPage() {
         className="min-h-0 flex-1 overflow-y-auto"
         style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
       >
-        <Header left={<BackButton />} />
+        <Header left={<BackButton onClick={handleBack} />} />
 
         {images.length > 0 ? (
           <Carousel>

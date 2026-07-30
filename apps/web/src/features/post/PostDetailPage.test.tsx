@@ -117,16 +117,21 @@ function MapRouteProbe() {
   return <p data-testid="map-route-probe">{location.pathname + location.search}</p>;
 }
 
-function renderRoute(initialPath: string) {
+function GroupRouteProbe() {
+  return <p>그룹 상세 화면</p>;
+}
+
+function renderRoute(initialPath: string, initialEntries = [initialPath]) {
   // 전역 queryClient(retry: 1) 대신 재시도 없는 클라이언트 — 에러 케이스 테스트가 느려지지 않게.
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
-        <MemoryRouter initialEntries={[initialPath]}>
+        <MemoryRouter initialEntries={initialEntries}>
           <Routes>
             <Route path="/post/:postId" element={<PostDetailPage />} />
             <Route path="/map" element={<MapRouteProbe />} />
+            <Route path="/group/:groupId" element={<GroupRouteProbe />} />
           </Routes>
         </MemoryRouter>
       </BottomMenuVisibilityProvider>
@@ -134,8 +139,8 @@ function renderRoute(initialPath: string) {
   );
 }
 
-async function renderPost(postId: number) {
-  renderRoute(`/post/${postId}`);
+async function renderPost(postId: number, search = '', initialEntries?: string[]) {
+  renderRoute(`/post/${postId}${search}`, initialEntries);
   // 게시물 상세와 연관 장소 모두 별도 API 로 비동기 로드된다 — 둘 다 정착할 때까지 기다린다.
   await waitFor(() =>
     expect(screen.queryByRole('status', { name: '게시물 불러오는 중' })).not.toBeInTheDocument(),
@@ -180,6 +185,30 @@ describe('게시물 상세', () => {
     renderRoute('/post/999');
 
     await waitFor(() => expect(screen.getByText('게시물을 찾을 수 없어요')).toBeInTheDocument());
+  });
+
+  it('공유하기로 진입하면 뒤로가기 시 첫 번째 연관 장소가 선택된 지도로 이동한다', async () => {
+    await renderPost(1, '?entry=share');
+
+    fireEvent.click(screen.getByRole('button', { name: '뒤로 가기' }));
+
+    expect(screen.getByTestId('map-route-probe')).toHaveTextContent('/map?placeId=101');
+  });
+
+  it('공유하기로 진입한 게시물에 연관 장소가 없으면 기본 지도로 이동한다', async () => {
+    await renderPost(2, '?entry=share');
+
+    fireEvent.click(screen.getByRole('button', { name: '뒤로 가기' }));
+
+    expect(screen.getByTestId('map-route-probe')).toHaveTextContent('/map');
+  });
+
+  it('일반 화면 이동으로 진입하면 기존 히스토리로 돌아간다', async () => {
+    await renderPost(1, '', ['/group/7', '/post/1']);
+
+    fireEvent.click(screen.getByRole('button', { name: '뒤로 가기' }));
+
+    expect(screen.getByText('그룹 상세 화면')).toBeInTheDocument();
   });
 
   it('연관 장소를 불러오는 동안 로딩 문구를 보여주고 배너는 숨긴다', async () => {

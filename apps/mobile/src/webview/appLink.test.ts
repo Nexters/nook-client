@@ -22,7 +22,7 @@ describe('resolveAppLinkWebUrl', () => {
     'com.nook.app://post/42',
     'kr.com.nook.app.dev://post/42',
   ])('게시글 딥링크를 웹 상세 화면으로 변환한다: %s', (value) => {
-    expect(resolveAppLinkWebUrl(value, WEB_URL)).toBe(`${WEB_URL}/post/42`);
+    expect(resolveAppLinkWebUrl(value, WEB_URL)).toBe(`${WEB_URL}/post/42?entry=share`);
   });
 
   it.each([
