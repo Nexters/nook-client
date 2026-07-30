@@ -73,10 +73,17 @@ export function MapPage() {
   // 장소가 선택되면(핀 클릭·연관 장소 클릭 등) 상세 응답의 좌표로 지도를 재센터링해
   // 선택된 장소가 항상 지도 정가운데 오도록 한다. 상세 응답이 오기 전엔 좌표를 몰라
   // 기다렸다가 이동한다.
+  //
+  // `location.status`도 의존성에 넣어야 한다 — `MapView`는 위치 확인이 끝나기 전엔
+  // 아예 마운트되지 않는데(아래 loading 분기), 장소 상세가 위치보다 먼저 응답하면
+  // (딥링크로 들어온 경우 특히 그렇다) `mapRef.current`가 아직 null이라 이 effect가
+  // 아무 일도 못 하고 끝나버린다. 그러면 이후 지도가 마운트돼도 placeDetailQuery.data
+  // 는 이미 같은 값이라 effect가 다시 실행되지 않는다 — 위치가 resolved 로 바뀌는
+  // 순간을 트리거로 한 번 더 태워서 그 경우를 잡는다.
   useEffect(() => {
-    if (!placeDetailQuery.data) return;
+    if (location.status === 'loading' || !placeDetailQuery.data) return;
     mapRef.current?.panTo({ lat: placeDetailQuery.data.lat, lng: placeDetailQuery.data.lng });
-  }, [placeDetailQuery.data]);
+  }, [location.status, placeDetailQuery.data]);
 
   if (location.status === 'loading') {
     return (
