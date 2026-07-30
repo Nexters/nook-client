@@ -1,6 +1,11 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import { ProtectedAppLayout } from '@/app/layouts/ProtectedAppLayout';
 import { LoginPage } from '@/features/auth/LoginPage';
+import {
+  AuthEntryRedirect,
+  RedirectAuthenticated,
+  RequireAuth,
+} from '@/features/auth/session/AuthRouteGuards';
 import { GroupDetailPage } from '@/features/group/GroupDetailPage';
 import { GroupFormPage } from '@/features/group/GroupFormPage';
 import { GroupPage } from '@/features/group/GroupPage';
@@ -39,14 +44,22 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/login" replace />,
+        element: <AuthEntryRedirect />,
       },
       {
         path: 'login',
-        element: <LoginPage />,
+        element: (
+          <RedirectAuthenticated>
+            <LoginPage />
+          </RedirectAuthenticated>
+        ),
       },
       {
-        element: <ProtectedAppLayout />,
+        element: (
+          <RequireAuth>
+            <ProtectedAppLayout />
+          </RequireAuth>
+        ),
         children: [
           {
             path: 'map',

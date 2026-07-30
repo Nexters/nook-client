@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
-import headerLogo from '@/assets/logo/header_logo.svg';
+import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
@@ -9,7 +9,6 @@ import { DETAIL_PAGE_SNAP_POINT, PEEK_SNAP_POINT } from '@/features/map/constant
 import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
 import type { MapBounds } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
-import { Header } from '@/shared/ui';
 import { useMapPins, usePlaceDetail, useRecentPlaces } from './api/queries';
 
 const FALLBACK_CENTER = { lat: 37.5729, lng: 126.9762 }; // 위치 못 가져왔을 때 광화문 인근 폴백
@@ -105,38 +104,32 @@ export function MapPage() {
   }
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden">
-      <MapView
-        ref={mapRef}
-        pins={pins}
-        currentLocation={location.coords}
-        initialCenter={location.coords ?? undefined}
-        selectedPlaceId={selectedPlaceId}
-        // 선택 장소로의 이동은 명령이 아니라 선언 — 상세 응답의 좌표를 그대로 내려주면
-        // 지도가 늦게 마운트되든(스크립트 Suspense) 상세가 늦게 오든 MapView 가 알아서
-        // 준비되는 시점에 이동한다. 선택이 풀리면 undefined 가 되어 이동하지 않는다.
-        panTarget={selectedPlace ? { lat: selectedPlace.lat, lng: selectedPlace.lng } : undefined}
-        onPlaceClick={handlePlaceClick}
-        onBoundsChanged={setBounds}
-      />
-      {/* Figma `Header/54 > Logo_Transparency` — 지도 위에 얹는 로고 헤더. 시각 요소일
-          뿐이라 pointer-events 를 꺼서 그 아래 지도 팬/줌을 막지 않는다. */}
-      <Header
-        variant="transparent"
-        // Figma Header/54 (94:3986) — 마스코트+워드마크 로고, 84x32 원본 비율 그대로.
-        left={<img src={headerLogo} alt="nook" className="h-8 w-[84px]" />}
-        className="pointer-events-none absolute inset-x-0 top-[env(safe-area-inset-top)] z-10"
-      />
-      {snap === PEEK_SNAP_POINT && <RecenterButton onClick={() => mapRef.current?.recenter()} />}
-      <PlaceSheet
-        recentPlaces={recentPlacesQuery.data ?? []}
-        selectedPlace={placeDetailQuery.data ?? null}
-        isPlaceDetailPending={selectedPlaceId !== null && placeDetailQuery.isPending}
-        isPlaceDetailError={selectedPlaceId !== null && placeDetailQuery.isError}
-        snap={snap}
-        onSnapChange={handleSnapChange}
-        onSelectPlace={handlePlaceClick}
-      />
-    </div>
+    <MainTabPageLayout variant="transparent">
+      <div className="relative h-full w-full overflow-hidden">
+        <MapView
+          ref={mapRef}
+          pins={pins}
+          currentLocation={location.coords}
+          initialCenter={location.coords ?? undefined}
+          selectedPlaceId={selectedPlaceId}
+          // 선택 장소로의 이동은 명령이 아니라 선언 — 상세 응답의 좌표를 그대로 내려주면
+          // 지도가 늦게 마운트되든(스크립트 Suspense) 상세가 늦게 오든 MapView 가 알아서
+          // 준비되는 시점에 이동한다. 선택이 풀리면 undefined 가 되어 이동하지 않는다.
+          panTarget={selectedPlace ? { lat: selectedPlace.lat, lng: selectedPlace.lng } : undefined}
+          onPlaceClick={handlePlaceClick}
+          onBoundsChanged={setBounds}
+        />
+        {snap === PEEK_SNAP_POINT && <RecenterButton onClick={() => mapRef.current?.recenter()} />}
+        <PlaceSheet
+          recentPlaces={recentPlacesQuery.data ?? []}
+          selectedPlace={placeDetailQuery.data ?? null}
+          isPlaceDetailPending={selectedPlaceId !== null && placeDetailQuery.isPending}
+          isPlaceDetailError={selectedPlaceId !== null && placeDetailQuery.isError}
+          snap={snap}
+          onSnapChange={handleSnapChange}
+          onSelectPlace={handlePlaceClick}
+        />
+      </div>
+    </MainTabPageLayout>
   );
 }

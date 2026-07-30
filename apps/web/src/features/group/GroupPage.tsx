@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import headerLogo from '@/assets/logo/header_logo.svg';
-import { FloatingButton, Header } from '@/shared/ui';
+import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
+import { FloatingButton } from '@/shared/ui';
 import { useGroups } from './api/queries';
 import { GroupCard } from './components/GroupCard';
 import { GroupEmpty } from './components/GroupEmpty';
@@ -11,46 +11,39 @@ export function GroupPage() {
   const { data: groups, isPending, isError } = useGroups();
 
   return (
-    // 뷰포트 높이에 고정한다 — 하단 탭바(fixed)와 FAB(fixed)는 화면이 작아져도 제자리를
-    // 지키고, 넘치는 내용은 아래 목록 영역 안에서만 스크롤된다.
-    <main
-      className="flex h-dvh flex-col overflow-hidden bg-gray-10"
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
-    >
-      <Header
-        variant="gray"
-        className="shrink-0"
-        left={<img src={headerLogo} alt="nook" className="h-8 w-[84px]" />}
-      />
+    <MainTabPageLayout>
+      {/* 뷰포트 높이에 고정한다 — 하단 탭바(fixed)와 FAB(fixed)는 화면이 작아져도
+          제자리를 지키고, 넘치는 내용은 아래 목록 영역 안에서만 스크롤된다. */}
+      <main className="flex h-full flex-col overflow-hidden bg-gray-10">
+        <div
+          className="min-h-0 flex-1 overflow-y-auto px-4"
+          // 하단 탭바(60px) + FAB 가 마지막 카드를 가리지 않도록 스크롤 끝에 여백을 둔다.
+          style={{ paddingBottom: 'calc(7.5rem + env(safe-area-inset-bottom))' }}
+        >
+          {/* 로딩 중에는 빈 상태 문구가 잠깐 스쳐 지나가지 않도록 아무것도 그리지 않는다. */}
+          {isPending ? null : isError ? (
+            <GroupEmpty message="그룹을 불러오지 못했어요" />
+          ) : groups.length === 0 ? (
+            <GroupEmpty message="아직 생성한 그룹이 없어요" />
+          ) : (
+            <div className="flex flex-col gap-2">
+              {groups.map((group) => (
+                <GroupCard
+                  key={group.id}
+                  group={group}
+                  onClick={() => navigate(`/group/${group.id}`)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
-      <div
-        className="min-h-0 flex-1 overflow-y-auto px-4"
-        // 하단 탭바(60px) + FAB 가 마지막 카드를 가리지 않도록 스크롤 끝에 여백을 둔다.
-        style={{ paddingBottom: 'calc(7.5rem + env(safe-area-inset-bottom))' }}
-      >
-        {/* 로딩 중에는 빈 상태 문구가 잠깐 스쳐 지나가지 않도록 아무것도 그리지 않는다. */}
-        {isPending ? null : isError ? (
-          <GroupEmpty message="그룹을 불러오지 못했어요" />
-        ) : groups.length === 0 ? (
-          <GroupEmpty message="아직 생성한 그룹이 없어요" />
-        ) : (
-          <div className="flex flex-col gap-2">
-            {groups.map((group) => (
-              <GroupCard
-                key={group.id}
-                group={group}
-                onClick={() => navigate(`/group/${group.id}`)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <FloatingButton
-        aboveBottomMenu
-        aria-label="새 그룹 만들기"
-        onClick={() => navigate('/group/new')}
-      />
-    </main>
+        <FloatingButton
+          aboveBottomMenu
+          aria-label="새 그룹 만들기"
+          onClick={() => navigate('/group/new')}
+        />
+      </main>
+    </MainTabPageLayout>
   );
 }
