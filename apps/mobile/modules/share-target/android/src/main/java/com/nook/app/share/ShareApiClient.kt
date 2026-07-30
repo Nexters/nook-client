@@ -3,6 +3,7 @@ package com.nook.app.share
 import android.content.Context
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import android.util.Log
 import com.nook.app.share.model.Group
 import com.nook.app.share.model.groupColor
 import com.nook.app.share.model.groupColorNames
@@ -22,6 +23,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 internal data class ShareSession(val accessToken: String, val refreshToken: String?, val revision: Int)
+internal class ShareAuthenticationRequiredException : IllegalStateException("로그인이 필요합니다")
+internal class SharePrivatePostException : IllegalStateException("비공개 게시물은 저장할 수 없습니다")
 
 class ShareApiClient(private val context: Context) {
     private val vault = ShareSessionVault(context)
@@ -30,6 +33,8 @@ class ShareApiClient(private val context: Context) {
         if (id == 0) throw IllegalStateException("Native API Base URL 미설정")
         context.getString(id).trimEnd('/')
     }
+
+    fun hasSession(): Boolean = vault.read() != null
 
     suspend fun groups(): List<Group> = withContext(Dispatchers.IO) {
         val body = protectedRequest("/groups")
@@ -45,29 +50,30 @@ class ShareApiClient(private val context: Context) {
     suspend fun createGroup(name: String, colorIndex: Int): Group = withContext(Dispatchers.IO) {
         val body = protectedRequest(
             "/groups", "POST",
-            JSONObject().put("name", name).put("color", groupColorNames[colorIndex]).toString(),
+            JSONObject().put("name", name.trim()).put("color", groupColorNames[colorIndex]).toString(),
         )
         val item = unwrap(body).getJSONObject("value")
         Group(item.getLong("id"), item.getString("name"), groupColor(item.getString("color")))
     }
 
-    suspend fun savePost(url: String, groupIds: Set<Long>, memo: String) = withContext(Dispatchers.IO) {
+    suspend fun savePost(url: String, groupIds: Set<Long>, memo: String): Long = withContext(Dispatchers.IO) {
         val ids = JSONArray(groupIds)
-        protectedRequest(
+        val response = protectedRequest(
             "/posts", "POST",
             JSONObject().put("url", url).put("groupIds", ids).put("memo", memo)
                 .put("areGroupIdsPositive", groupIds.all { it > 0 }).toString(),
         )
-        Unit
+        unwrap(response).getJSONObject("value").getLong("postId")
     }
 
     private fun protectedRequest(path: String, method: String = "GET", body: String? = null): String {
-        val initial = vault.read() ?: throw IllegalStateException("로그인이 필요합니다")
+        val initial = vault.read() ?: throw ShareAuthenticationRequiredException()
         var response = request(path, method, body, initial.accessToken)
         if (response.first != 401) return requireSuccess(response)
-        val refreshed = refresh(initial.revision) ?: throw IllegalStateException("로그인이 필요합니다")
+        val refreshed = refresh(initial.revision) ?: throw ShareAuthenticationRequiredException()
         response = request(path, method, body, refreshed.accessToken)
         if (response.first == 401) vault.clear()
+        if (response.first == 401) throw ShareAuthenticationRequiredException()
         return requireSuccess(response)
     }
 
@@ -102,20 +108,44 @@ class ShareApiClient(private val context: Context) {
             }
             val status = connection.responseCode
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+            Log.d(TAG, "$method $path -> $status")
             status to (stream?.bufferedReader()?.use { it.readText() } ?: "")
         } finally { connection.disconnect() }
     }
 
     private fun requireSuccess(response: Pair<Int, String>): String {
-        if (response.first !in 200..299) throw IllegalStateException("API 요청 실패 (${response.first})")
+        if (response.first !in 200..299) throw mappedFailure(response.second, response.first)
         return response.second
     }
 
     // JSONObject.NULL 대신 wrapper를 써 array/object 결과를 같은 코드로 처리한다.
     private fun unwrap(body: String): JSONObject {
         val envelope = JSONObject(body)
-        if (envelope.getString("resultType") != "SUCCESS" || !envelope.has("success")) throw IllegalStateException("API 실패 응답")
+        if (envelope.getString("resultType") != "SUCCESS") throw mappedFailure(body)
+        if (!envelope.has("success")) throw IllegalStateException("API 성공 본문 누락")
         return JSONObject().put("value", envelope.get("success"))
+    }
+
+    private fun mappedFailure(body: String, status: Int? = null): IllegalStateException {
+        val error = runCatching { JSONObject(body).optJSONObject("error") }.getOrNull()
+        val code = error?.optString("errorCode").orEmpty().uppercase()
+        val reason = error?.optString("reason").orEmpty()
+        if (
+            status == 403 ||
+            code.contains("PRIVATE") ||
+            code.contains("NOT_ACCESSIBLE") ||
+            code.contains("ACCESS_DENIED") ||
+            code.contains("CONTENT_UNAVAILABLE") ||
+            reason.contains("비공개") ||
+            reason.contains("접근할 수 없")
+        ) {
+            return SharePrivatePostException()
+        }
+        return IllegalStateException(status?.let { "API 요청 실패 ($it)" } ?: "API 실패 응답")
+    }
+
+    private companion object {
+        const val TAG = "NookShare"
     }
 }
 

@@ -99,6 +99,7 @@ struct InputField: View {
     let placeholder: String
     var focused: FocusState<Bool>.Binding
     var maxLength: Int = 25
+    @State private var isActivated = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -108,13 +109,19 @@ struct InputField: View {
                         .suit(16, .medium)
                         .foregroundColor(Color(hex: 0x99A0AC))
                 }
-                TextField("", text: $text)
-                    .font(.suit(16, .medium))
-                    .foregroundColor(Color(hex: 0x1F1F1F))
-                    .focused(focused)
-                    .onChange(of: text) { value in
-                        if value.count > maxLength { text = String(value.prefix(maxLength)) }
-                    }
+                if isActivated {
+                    TextField("", text: $text)
+                        .font(.suit(16, .medium))
+                        .foregroundColor(Color(hex: 0x1F1F1F))
+                        .focused(focused)
+                        .onChange(of: text) { value in
+                            if value.count > maxLength { text = String(value.prefix(maxLength)) }
+                        }
+                } else if !text.isEmpty {
+                    Text(text)
+                        .font(.suit(16, .medium))
+                        .foregroundColor(Color(hex: 0x1F1F1F))
+                }
             }
             if focused.wrappedValue && !text.isEmpty {
                 NookIcon(name: .icon24Delete)
@@ -133,6 +140,20 @@ struct InputField: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(focused.wrappedValue ? Color(hex: 0x1F1F1F) : Color(hex: 0xCACED4), lineWidth: 1)
         )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !isActivated else { return }
+            isActivated = true
+            DispatchQueue.main.async { focused.wrappedValue = true }
+        }
+        .onAppear {
+            isActivated = false
+            focused.wrappedValue = false
+        }
+        .onDisappear {
+            isActivated = false
+            focused.wrappedValue = false
+        }
     }
 }
 

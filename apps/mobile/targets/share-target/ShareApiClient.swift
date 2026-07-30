@@ -1,13 +1,23 @@
 import Darwin
 import Foundation
+import OSLog
 import Security
 
-private struct ApiEnvelope<T: Decodable>: Decodable { let resultType: String; let success: T? }
+private let shareApiLogger = Logger(subsystem: "com.nook.app.share", category: "ShareAPI")
+
+private struct ApiFailure: Decodable { let errorCode: String?; let reason: String? }
+private struct ApiEnvelope<T: Decodable>: Decodable {
+    let resultType: String
+    let success: T?
+    let error: ApiFailure?
+}
+private struct ApiStatusEnvelope: Decodable { let resultType: String; let error: ApiFailure? }
 private struct TokenPair: Codable { let accessToken: String; let refreshToken: String }
 private struct SessionRecord: Codable { let schemaVersion: Int; let accessToken: String; let refreshToken: String?; let revision: Int }
 private struct ServerGroup: Decodable { let id: Int64; let name: String; let color: String }
+private struct SavedPost: Decodable { let postId: Int64 }
 
-enum ShareApiError: Error { case noSession, invalidResponse, http(Int), configuration }
+enum ShareApiError: Error { case noSession, invalidResponse, http(Int), configuration, privatePost }
 
 final class ShareApiClient {
     // API 버전 경로(/api/v1)까지 포함한 값이다. 웹의 VITE_API_BASE_URL 과 같은 규칙.
@@ -16,9 +26,16 @@ final class ShareApiClient {
     private let decoder = JSONDecoder()
 
     init?() {
-        guard let value = Bundle.main.object(forInfoDictionaryKey: "NookApiBaseUrl") as? String,
+        // Share Extension의 Info.plist는 apple-targets가 사용자 정의 키를 자동 병합하지 않는다.
+        // 같은 앱 번들에 포함된 본앱의 Info.plist를 원본으로 사용해 환경별 API 설정을 공유한다.
+        guard let value = Self.apiBaseURL(),
               !value.isEmpty, URL(string: value) != nil else { return nil }
         baseURL = value.hasSuffix("/") ? String(value.dropLast()) : value
+    }
+
+    func hasSession() -> Bool {
+        do { return try session.read() != nil }
+        catch { return false }
     }
 
     func groups() async throws -> [Group] {
@@ -28,32 +45,37 @@ final class ShareApiClient {
     }
 
     func createGroup(name: String, colorIndex: Int) async throws -> Group {
-        let body = try JSONSerialization.data(withJSONObject: ["name": name, "color": groupColorNames[colorIndex]])
+        guard groupColorNames.indices.contains(colorIndex) else { throw ShareApiError.configuration }
+        let body = try JSONSerialization.data(withJSONObject: [
+            "name": name.trimmingCharacters(in: .whitespacesAndNewlines),
+            "color": groupColorNames[colorIndex],
+        ])
         let data = try await protectedRequest(path: "/groups", method: "POST", body: body)
         let result = try unwrap(ApiEnvelope<ServerGroup>.self, data)
         return Group(id: result.id, name: result.name, color: groupColor(result.color))
     }
 
-    func save(url: String, groupIds: Set<Int64>, memo: String) async throws {
+    func save(url: String, groupIds: Set<Int64>, memo: String) async throws -> Int64 {
         let body = try JSONSerialization.data(withJSONObject: [
             "url": url, "groupIds": Array(groupIds), "memo": memo,
             "areGroupIdsPositive": groupIds.allSatisfy { $0 > 0 },
         ])
-        _ = try await protectedRequest(path: "/posts", method: "POST", body: body)
+        let data = try await protectedRequest(path: "/posts", method: "POST", body: body)
+        return try unwrap(ApiEnvelope<SavedPost>.self, data).postId
     }
 
     private func protectedRequest(path: String, method: String = "GET", body: Data? = nil) async throws -> Data {
         guard let record = try session.read() else { throw ShareApiError.noSession }
         let first = try await request(path: path, method: method, body: body, token: record.accessToken)
         if first.0 != 401 {
-            guard (200..<300).contains(first.0) else { throw ShareApiError.http(first.0) }
+            guard (200..<300).contains(first.0) else { throw httpError(status: first.0, data: first.1) }
             return first.1
         }
         guard let refreshed = try await refresh(failedRevision: record.revision) else { throw ShareApiError.noSession }
         let retry = try await request(path: path, method: method, body: body, token: refreshed.accessToken)
         guard (200..<300).contains(retry.0) else {
             if retry.0 == 401 { try session.clear() }
-            throw ShareApiError.http(retry.0)
+            throw httpError(status: retry.0, data: retry.1)
         }
         return retry.1
     }
@@ -85,13 +107,45 @@ final class ShareApiClient {
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw ShareApiError.invalidResponse }
+        shareApiLogger.notice(
+            "\(method, privacy: .public) \(path, privacy: .public) -> \(http.statusCode, privacy: .public)"
+        )
+#if DEBUG
+        if path != "/auth/token/refresh" {
+            let responseBody = String(data: data, encoding: .utf8) ?? "<binary>"
+            shareApiLogger.notice("response: \(responseBody, privacy: .public)")
+        }
+#endif
         return (http.statusCode, data)
     }
 
     private func unwrap<T>(_ type: ApiEnvelope<T>.Type, _ data: Data) throws -> T where T: Decodable {
         let envelope = try decoder.decode(type, from: data)
-        guard envelope.resultType == "SUCCESS", let value = envelope.success else { throw ShareApiError.invalidResponse }
+        guard envelope.resultType == "SUCCESS" else { throw mappedError(envelope.error) }
+        guard let value = envelope.success else { throw ShareApiError.invalidResponse }
         return value
+    }
+
+    private func httpError(status: Int, data: Data) -> ShareApiError {
+        if status == 401 { return .http(status) }
+        let failure = try? decoder.decode(ApiStatusEnvelope.self, from: data).error
+        return mappedError(failure, fallbackStatus: status)
+    }
+
+    private func mappedError(_ failure: ApiFailure?, fallbackStatus: Int? = nil) -> ShareApiError {
+        let code = failure?.errorCode?.uppercased() ?? ""
+        let reason = failure?.reason ?? ""
+        if fallbackStatus == 403 ||
+            code.contains("PRIVATE") ||
+            code.contains("NOT_ACCESSIBLE") ||
+            code.contains("ACCESS_DENIED") ||
+            code.contains("CONTENT_UNAVAILABLE") ||
+            reason.contains("비공개") ||
+            reason.contains("접근할 수 없") {
+            return .privatePost
+        }
+        if let fallbackStatus { return .http(fallbackStatus) }
+        return .invalidResponse
     }
 
     private func lockFileURL() throws -> URL {
@@ -100,6 +154,19 @@ final class ShareApiClient {
             throw ShareApiError.configuration
         }
         return root.appendingPathComponent("session-refresh.lock")
+    }
+
+    private static func apiBaseURL() -> String? {
+        if let value = Bundle.main.object(forInfoDictionaryKey: "NookApiBaseUrl") as? String,
+           !value.isEmpty {
+            return value
+        }
+
+        let containingAppURL = Bundle.main.bundleURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        return Bundle(url: containingAppURL)?
+            .object(forInfoDictionaryKey: "NookApiBaseUrl") as? String
     }
 }
 

@@ -13,6 +13,7 @@ export default function App() {
     onMessage,
     onShouldStartLoadWithRequest,
     webUrl,
+    webViewKey,
     webViewRef,
   } = useWebViewBridge();
 
@@ -22,6 +23,7 @@ export default function App() {
         <StatusBar style="dark" />
         {bootstrapped ? (
           <WebView
+            key={webViewKey}
             ref={webViewRef}
             source={{ uri: webUrl }}
             injectedJavaScriptBeforeContentLoaded={injectedJavaScript}

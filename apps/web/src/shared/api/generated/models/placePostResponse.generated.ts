@@ -4,6 +4,7 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { PlacePostGroupResponse } from './placePostGroupResponse.generated';
 import type { PlacePostMediaResponse } from './placePostMediaResponse.generated';
 
 export interface PlacePostResponse {
@@ -12,6 +13,8 @@ export interface PlacePostResponse {
    * @nullable
    */
   authorIdentifier?: string | null;
+  /** 게시물이 속한 그룹 목록 */
+  groups: PlacePostGroupResponse[];
   /**
    * 사용자 메모
    * @nullable

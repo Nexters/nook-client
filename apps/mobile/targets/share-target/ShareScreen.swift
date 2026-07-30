@@ -8,7 +8,7 @@ private let dismissDuration: TimeInterval = 0.22
 
 struct ShareScreen: View {
     let groups: [Group]
-    let onSave: (Set<Int64>, String) -> Void
+    let onSave: (Set<Int64>, String, @escaping (Bool) -> Void) -> Void
     let onCreateGroup: (String, Int) -> Void
     let onDismiss: () -> Void
 
@@ -75,11 +75,12 @@ struct ShareScreen: View {
 private struct SelectGroupContent: View {
     let groups: [Group]
     let panelFraction: CGFloat
-    let onSave: (Set<Int64>, String) -> Void
+    let onSave: (Set<Int64>, String, @escaping (Bool) -> Void) -> Void
     let onNewGroup: () -> Void
 
     @State private var selected: Set<Int64> = []
     @State private var memo: String = ""
+    @State private var isSaving = false
     @FocusState private var memoFocused: Bool
 
     var body: some View {
@@ -106,10 +107,19 @@ private struct SelectGroupContent: View {
         InputField(text: $memo, placeholder: "추가로 메모하고 싶은 내용이 있나요?", focused: $memoFocused)
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
+            .onAppear { memoFocused = false }
 
         CollapsibleByKeyboard(fraction: panelFraction) {
-            SheetButton(text: "저장하기", primary: true, enabled: !selected.isEmpty) {
-                onSave(selected, memo)
+            SheetButton(
+                text: isSaving ? "저장 중..." : "저장하기",
+                primary: true,
+                enabled: !selected.isEmpty && !isSaving
+            ) {
+                isSaving = true
+                memoFocused = false
+                onSave(selected, memo) { succeeded in
+                    if !succeeded { isSaving = false }
+                }
             }
                 .padding(16)
         }
@@ -133,6 +143,7 @@ private struct CreateGroupContent: View {
         InputField(text: $name, placeholder: "새 그룹명을 입력해주세요", focused: $nameFocused)
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
+            .onAppear { nameFocused = false }
 
         ColorPalette(selectedIndex: selectedColor) { selectedColor = $0 }
 

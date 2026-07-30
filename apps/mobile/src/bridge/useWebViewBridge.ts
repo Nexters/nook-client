@@ -8,6 +8,7 @@ import {
   refreshSession,
   restoreSession,
 } from '../session/sessionCoordinator';
+import { resolveAppLinkWebUrl } from '../webview/appLink';
 import {
   decideNavigation,
   isOpenableExternalUrl,
@@ -35,10 +36,39 @@ function openExternal(url: string): void {
 export function useWebViewBridge() {
   const webViewRef = useRef<WebView>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
+  const [webTarget, setWebTarget] = useState({ url: WEB_URL, revision: 0 });
+
+  const applyAppLink = useCallback((appLink: string) => {
+    const url = resolveAppLinkWebUrl(appLink, WEB_URL);
+    if (!url) return false;
+
+    // 같은 화면 딥링크를 다시 받아도 현재 WebView 내부 위치와 무관하게 확실히 이동한다.
+    setWebTarget((current) => ({ url, revision: current.revision + 1 }));
+    return true;
+  }, []);
 
   useEffect(() => {
-    restoreSession().finally(() => setBootstrapped(true));
-  }, []);
+    let active = true;
+    let receivedRuntimeLink = false;
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      receivedRuntimeLink = true;
+      applyAppLink(url);
+    });
+
+    void Promise.all([
+      Linking.getInitialURL().catch(() => null),
+      restoreSession().catch(() => null),
+    ]).then(([initialUrl]) => {
+      if (!active) return;
+      if (!receivedRuntimeLink && initialUrl) applyAppLink(initialUrl);
+      setBootstrapped(true);
+    });
+
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, [applyAppLink]);
 
   const send = useCallback((message: object) => {
     const json = JSON.stringify(message).replaceAll('\\', '\\\\').replaceAll("'", "\\'");
@@ -123,7 +153,8 @@ export function useWebViewBridge() {
     bootstrapped,
     onMessage,
     onShouldStartLoadWithRequest,
-    webUrl: WEB_URL,
+    webUrl: webTarget.url,
+    webViewKey: webTarget.revision,
     webViewRef,
   } as const;
 }

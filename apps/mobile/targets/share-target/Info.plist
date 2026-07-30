@@ -18,6 +18,10 @@
   <string>$(MARKETING_VERSION)</string>
   <key>CFBundleVersion</key>
   <string>$(CURRENT_PROJECT_VERSION)</string>
+  <key>NookAppGroup</key>
+  <string>group.$(PRODUCT_BUNDLE_IDENTIFIER:base)</string>
+  <key>NookSessionAccessGroup</key>
+  <string>$(AppIdentifierPrefix)group.$(PRODUCT_BUNDLE_IDENTIFIER:base)</string>
   <key>UIAppFonts</key>
   <array>
     <string>suit_regular.ttf</string>

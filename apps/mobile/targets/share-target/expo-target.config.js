@@ -11,9 +11,4 @@ module.exports = (config) => ({
       config.ios.entitlements?.['com.apple.security.application-groups'] ?? [],
     'keychain-access-groups': config.ios.entitlements?.['keychain-access-groups'] ?? [],
   },
-  info: {
-    NookSessionAccessGroup: config.ios.infoPlist?.NookSessionAccessGroup ?? '',
-    NookApiBaseUrl: config.ios.infoPlist?.NookApiBaseUrl ?? '',
-    NookAppGroup: config.ios.infoPlist?.NookAppGroup ?? '',
-  },
 });
