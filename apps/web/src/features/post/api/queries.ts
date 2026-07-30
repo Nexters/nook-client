@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { mapQueryKeys } from '@/features/map/api/queries';
 import type { Place } from '@/features/place';
 import type { ParsedPlace, PostDetail } from '../types';
-import { fetchPlaceParsing, fetchPostDetail, updatePostMemo } from '.';
+import { fetchPlaceParsing, fetchPostDetail, updatePlaceBookmark, updatePostMemo } from '.';
 
 export const postQueryKeys = {
   detail: (postId: number) => ['posts', postId] as const,
@@ -102,6 +103,27 @@ export function useUpdatePostMemo(postId: number | undefined) {
     onSuccess: () => {
       if (postId === undefined) return;
       queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(postId) });
+    },
+  });
+}
+
+/**
+ * 연관 장소 북마크 토글. 성공하면 파싱 쿼리를 무효화해 별 표시가 서버 상태를 다시
+ * 따르게 하고(낙관적 갱신 없음), 지도 화면도 이 장소의 북마크 상태로 그려지므로
+ * (핀 목록은 북마크된 장소만 조회) 지도 쿼리들도 함께 무효화한다.
+ */
+export function useUpdatePlaceBookmark(postId: number | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ placeId, bookmarked }: { placeId: number; bookmarked: boolean }) =>
+      updatePlaceBookmark(placeId, bookmarked),
+    onSuccess: (_data, { placeId }) => {
+      if (postId !== undefined) {
+        queryClient.invalidateQueries({ queryKey: postQueryKeys.placeParsing(postId) });
+      }
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll });
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.detail(placeId) });
     },
   });
 }

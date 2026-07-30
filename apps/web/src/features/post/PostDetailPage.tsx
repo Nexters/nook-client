@@ -4,7 +4,12 @@ import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import type { Place } from '@/features/place';
 import { cn } from '@/shared/lib/utils';
 import { BackButton, Carousel, Header, Snackbar } from '@/shared/ui';
-import { usePostDetail, useRelatedPlaces, useUpdatePostMemo } from './api/queries';
+import {
+  usePostDetail,
+  useRelatedPlaces,
+  useUpdatePlaceBookmark,
+  useUpdatePostMemo,
+} from './api/queries';
 import { MemoSheet } from './components/MemoSheet';
 import { OriginalPostLink } from './components/OriginalPostLink';
 import { PlaceDirectInputDrawer } from './components/PlaceDirectInputDrawer';
@@ -34,15 +39,23 @@ export function PostDetailPage() {
   const [directInputOpen, setDirectInputOpen] = useState(false);
   const [showRelatedPlacesErrorToast, setShowRelatedPlacesErrorToast] = useState(false);
 
-  // TODO(api): 즐겨찾기 토글은 북마크 API 연동 후 서버 상태를 따르게 바꾼다.
-  // 파싱 응답의 bookmarked 초기값 위에 사용자가 토글한 값만 덮어쓴다.
-  const [bookmarkOverrides, setBookmarkOverrides] = useState<Record<string, boolean>>({});
-
-  const toggleBookmark = (placeId: string, next: boolean) =>
-    setBookmarkOverrides((prev) => ({ ...prev, [placeId]: next }));
-
   // "직접 추가"로 확정한 장소 — 파싱 상태와 무관하게 항상 연관 장소에 보여준다.
   const [manualPlaces, setManualPlaces] = useState<Place[]>([]);
+
+  // 직접 추가한 장소 전용 로컬 북마크 상태. 파싱된 장소는 서버 상태
+  // (`bookmarkedPlaceIds` + 토글 시 북마크 API)를 따르지만, 직접 추가 장소는 아직
+  // 서버에 연결(connectPlace)되지 않은 목 검색 결과라(id 가 'search-1' 등 가짜) 북마크
+  // API 를 부를 수 없다 — TODO(api): 장소 직접 연결 연동 때 이 상태도 함께 걷어낸다.
+  const [bookmarkOverrides, setBookmarkOverrides] = useState<Record<string, boolean>>({});
+  const updateBookmarkMutation = useUpdatePlaceBookmark(postId);
+
+  const toggleBookmark = (placeId: string, next: boolean) => {
+    if (manualPlaces.some((place) => place.id === placeId)) {
+      setBookmarkOverrides((prev) => ({ ...prev, [placeId]: next }));
+      return;
+    }
+    updateBookmarkMutation.mutate({ placeId: Number(placeId), bookmarked: next });
+  };
 
   function handlePlaceConfirmed(place: Place) {
     // TODO(api): 장소 연결은 실제로는 서버에 저장해야 한다. 지금은 화면 상태(manualPlaces)만 갱신해 새로고침/재방문 시 사라진다.
