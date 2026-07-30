@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { useAppShellContainer } from '@/app/providers';
 import emptySavedPlacesIllustration from '@/assets/illustrations/empty-saved-places.svg';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
@@ -40,11 +41,14 @@ export function PlaceSheet({
   onSelectPlace: (id: number) => void;
 }) {
   const shellContainer = useAppShellContainer();
+  // BottomMenu 를 숨기는 조건은 MapPage(선택된 장소 유무)가 정하고, 여기선 그 결과값만
+  // 그대로 읽는다 — 나중에 숨기는 이유가 늘어나도 이 시트 레이아웃은 자동으로 따라간다.
+  const { hidden: bottomMenuHidden } = useBottomMenuVisibility();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const isFull = snap === FULL_SNAP_POINT;
   const hasSelection = selectedPlace !== null || isPlaceDetailPending || isPlaceDetailError;
-  const layoutClassNames = getPlaceSheetLayoutClassNames(hasSelection);
+  const layoutClassNames = getPlaceSheetLayoutClassNames(bottomMenuHidden);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: isFull/selectedPlace.id 는 본문에서 값을 쓰지 않는 트리거 전용 의존성
   useEffect(() => {
@@ -65,7 +69,8 @@ export function PlaceSheet({
       <DrawerContent
         overlay={false}
         showHandle={!isFull || !isScrolled}
-        className={cn('overflow-hidden', layoutClassNames.drawer)}
+        style={layoutClassNames.drawer.style}
+        className={cn('overflow-hidden', layoutClassNames.drawer.className)}
       >
         <div
           ref={scrollRef}
@@ -73,7 +78,11 @@ export function PlaceSheet({
             if (!isFull) return;
             setIsScrolled(e.currentTarget.scrollTop > SCROLL_HIDE_HANDLE_THRESHOLD);
           }}
-          className={cn('flex flex-col gap-3 overflow-y-auto px-4', layoutClassNames.scroller)}
+          style={layoutClassNames.scroller.style}
+          className={cn(
+            'flex flex-col gap-3 overflow-y-auto px-4',
+            layoutClassNames.scroller.className,
+          )}
         >
           {hasSelection ? (
             isPlaceDetailError ? (
