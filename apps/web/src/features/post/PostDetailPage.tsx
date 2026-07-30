@@ -17,11 +17,6 @@ import { PostImageViewer } from './components/PostImageViewer';
 import { PostInfo } from './components/PostInfo';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
 
-// TODO(post): "연관 장소" 섹션 잠시 숨김(기획 요청, 2026-07-30) — 아래 플래그를 true로
-// 되돌리면 "직접 추가" 배너를 포함해 다시 노출된다. 관련해서 skip 해둔 테스트는
-// PostDetailPage.test.tsx 상단 주석 참고.
-const SHOW_RELATED_PLACES = false;
-
 /**
  * Figma `그룹 > 게시물 상세` (연관 장소 O / X, 메모 최대글자수, 이미지 확대 뷰)
  * + `메모하기` 바텀시트.
@@ -186,16 +181,14 @@ export function PostDetailPage() {
           ) : null}
         </div>
 
-        {SHOW_RELATED_PLACES && (
-          <RelatedPlacesSection
-            state={relatedPlacesState}
-            manualPlaces={manualPlaces}
-            bookmarkedPlaceIds={bookmarkedPlaceIds}
-            onBookmarkedChange={toggleBookmark}
-            onDirectAddClick={() => setDirectInputOpen(true)}
-            onPlaceClick={handleRelatedPlaceClick}
-          />
-        )}
+        <RelatedPlacesSection
+          state={relatedPlacesState}
+          manualPlaces={manualPlaces}
+          bookmarkedPlaceIds={bookmarkedPlaceIds}
+          onBookmarkedChange={toggleBookmark}
+          onDirectAddClick={() => setDirectInputOpen(true)}
+          onPlaceClick={handleRelatedPlaceClick}
+        />
       </div>
 
       <MemoSheet
