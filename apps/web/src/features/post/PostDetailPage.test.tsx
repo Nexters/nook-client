@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   fetchPostDetail: vi.fn(),
   fetchPlaceParsing: vi.fn(),
   updatePostMemo: vi.fn(),
+  updatePlaceBookmark: vi.fn(),
 }));
 
 vi.mock('@/features/post/api', () => mocks);
@@ -147,6 +148,7 @@ describe('게시물 상세', () => {
         : Promise.reject(new Error(`알 수 없는 게시물: ${postId}`));
     });
     mocks.updatePostMemo.mockResolvedValue(undefined);
+    mocks.updatePlaceBookmark.mockResolvedValue(undefined);
   });
 
   it('게시물 상세를 불러오는 동안 로딩 문구를 보여준다', async () => {
@@ -214,7 +216,18 @@ describe('게시물 상세', () => {
     expect(screen.getAllByRole('button', { name: '뒤로 가기' })).toHaveLength(2);
   });
 
-  it('연관 장소의 즐겨찾기를 토글한다', async () => {
+  it('연관 장소의 즐겨찾기를 토글하면 북마크 API 를 부르고 재조회된 서버 상태를 따른다', async () => {
+    // 서버 흉내: 북마크 변경이 저장됐다가 다음 파싱 재조회에 반영된다.
+    const places = PLACES.map((place) => ({ ...place }));
+    mocks.fetchPlaceParsing.mockImplementation(() =>
+      Promise.resolve({ ...PLACE_PARSING[1], places: places.map((place) => ({ ...place })) }),
+    );
+    mocks.updatePlaceBookmark.mockImplementation((placeId: number, next: boolean) => {
+      const target = places.find((place) => place.id === placeId);
+      if (target) target.bookmarked = next;
+      return Promise.resolve();
+    });
+
     await renderPost(1);
 
     // 시안: 앞의 두 곳은 저장됨, 세 번째는 아님
@@ -224,7 +237,10 @@ describe('게시물 상세', () => {
     expect(unsaved).toHaveAttribute('aria-pressed', 'false');
 
     fireEvent.click(unsaved);
-    expect(unsaved).toHaveAttribute('aria-pressed', 'true');
+
+    await waitFor(() => expect(mocks.updatePlaceBookmark).toHaveBeenCalledWith(103, true));
+    // 성공 시 파싱 쿼리가 무효화·재조회되어 별 표시가 서버 상태를 따라 켜진다.
+    await waitFor(() => expect(unsaved).toHaveAttribute('aria-pressed', 'true'));
   });
 
   it('본문은 접혀 있고 더보기로 펼친다', async () => {

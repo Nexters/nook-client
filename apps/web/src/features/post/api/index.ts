@@ -4,6 +4,7 @@ import {
   type PlaceResponse,
   type SavedPostDetailResponse,
   unwrapApiResponse,
+  updateBookmark,
   updateMemo,
 } from '@/shared/api';
 import type { GroupColor } from '@/shared/ui';
@@ -82,4 +83,13 @@ export async function fetchPlaceParsing(postId: number): Promise<PlaceParsingRes
 export async function updatePostMemo(postId: number, memo: string): Promise<void> {
   const trimmed = memo.trim();
   await updateMemo(postId, { memo: trimmed.length > 0 ? trimmed : null }, { auth: 'required' });
+}
+
+/**
+ * `PATCH /api/v1/places/{placeId}/bookmark` — 연관 장소 북마크 변경.
+ * 장소 도메인 엔드포인트지만(`features/map/api` 와 동일 호출) 각 feature 가 자기
+ * 진입점을 소유한다 — 테스트가 feature api 모듈 단위로 모킹하는 컨벤션 때문이다.
+ */
+export async function updatePlaceBookmark(placeId: number, bookmarked: boolean): Promise<void> {
+  await updateBookmark(placeId, { bookmarked }, { auth: 'required' });
 }
