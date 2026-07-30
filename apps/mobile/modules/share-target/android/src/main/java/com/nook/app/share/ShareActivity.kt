@@ -145,6 +145,9 @@ class ShareActivity : ComponentActivity() {
 
     private fun openContainingApp(path: String) {
         packageManager.getLaunchIntentForPackage(packageName)?.let { launchIntent ->
+            // getLaunchIntentForPackage는 ACTION_MAIN을 반환한다. React Native Linking은
+            // ACTION_VIEW 인텐트만 URL로 전달하므로 액션을 명시적으로 바꾼다.
+            launchIntent.action = Intent.ACTION_VIEW
             launchIntent.data = Uri.parse("$packageName://$path")
             launchIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             startActivity(launchIntent)
