@@ -1,6 +1,6 @@
 import { URL } from 'react-native-url-polyfill';
 
-const APP_SCHEMES = new Set(['com.nook.app:', 'com.nook.app.dev:']);
+const APP_SCHEMES = new Set(['com.nook.app:', 'com.nook.app.dev:', 'kr.com.nook.app.dev:']);
 const POST_ID = /^\d+$/;
 
 function parseUrl(value: string): URL | null {
