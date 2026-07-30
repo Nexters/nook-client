@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import nookLogo from '@/assets/logo/Vector.svg';
+import nookLogo from '@/assets/logo/header_logo.svg';
 import { env } from '@/shared/config/env';
 import { cn } from '@/shared/lib/utils';
 import { Header } from '@/shared/ui';
@@ -39,7 +39,7 @@ export function MainTabPageLayout({ children, variant = 'gray' }: MainTabPageLay
     }, 2_000);
   };
 
-  const logo = <img src={nookLogo} alt="nook" className="h-[22px] w-[50px]" />;
+  const logo = <img src={nookLogo} alt="nook" className="h-[32px] w-[84px]" />;
 
   return (
     <div
