@@ -1,5 +1,7 @@
-import type { ReactNode } from 'react';
-import headerLogo from '@/assets/logo/header_logo.svg';
+import { type ReactNode, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import nookLogo from '@/assets/logo/Vector.svg';
+import { env } from '@/shared/config/env';
 import { cn } from '@/shared/lib/utils';
 import { Header } from '@/shared/ui';
 
@@ -11,6 +13,33 @@ interface MainTabPageLayoutProps {
 /** map/group/my 최상위 탭 화면이 공유하는 safe area와 로고 헤더 레이아웃. */
 export function MainTabPageLayout({ children, variant = 'gray' }: MainTabPageLayoutProps) {
   const overlay = variant === 'transparent';
+  const navigate = useNavigate();
+  const logoTapCount = useRef(0);
+  const logoTapResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (logoTapResetTimer.current) clearTimeout(logoTapResetTimer.current);
+    },
+    [],
+  );
+
+  const handleLogoTap = () => {
+    if (logoTapResetTimer.current) clearTimeout(logoTapResetTimer.current);
+
+    logoTapCount.current += 1;
+    if (logoTapCount.current === 5) {
+      logoTapCount.current = 0;
+      navigate('/dev/ut');
+      return;
+    }
+
+    logoTapResetTimer.current = setTimeout(() => {
+      logoTapCount.current = 0;
+    }, 2_000);
+  };
+
+  const logo = <img src={nookLogo} alt="nook" className="h-[22px] w-[50px]" />;
 
   return (
     <div
@@ -22,7 +51,20 @@ export function MainTabPageLayout({ children, variant = 'gray' }: MainTabPageLay
     >
       <Header
         variant={variant}
-        left={<img src={headerLogo} alt="nook" className="h-8 w-[84px]" />}
+        left={
+          env.enableDevRoutes ? (
+            <button
+              type="button"
+              aria-label="UT 테스트 도구 열기"
+              className="pointer-events-auto flex h-11 items-center"
+              onClick={handleLogoTap}
+            >
+              {logo}
+            </button>
+          ) : (
+            logo
+          )
+        }
         className={cn(
           'z-10 shrink-0',
           overlay && 'pointer-events-none absolute inset-x-0 top-[env(safe-area-inset-top)]',

@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type SyntheticEvent, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuthSession } from '@/features/auth/session/AuthSessionProvider';
 import { nativeBridge } from '@/native-bridge';
 import { createPost, list as listGroups } from '@/shared/api/generated/endpoints.generated';
 import { unwrapApiResponse } from '@/shared/api/response';
+import { Icon16ArrowRight } from '@/shared/icons/NookIcons';
 import { Button, Input } from '@/shared/ui';
 
 function errorMessage(cause: unknown, fallback: string) {
@@ -289,7 +291,15 @@ export function DevSessionPage() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-[450px] flex-col bg-gray-0 px-4 py-8">
       <header className="mb-8">
-        <p className="mb-2 text-b3 font-semibold text-gray-50">DEVELOPMENT ONLY</p>
+        <div className="mb-2 flex items-center justify-between gap-4">
+          <p className="text-b3 font-semibold text-gray-50">DEVELOPMENT ONLY</p>
+          <Button asChild size="sm" variant="secondary">
+            <Link to="/">
+              앱으로 이동
+              <Icon16ArrowRight aria-hidden="true" />
+            </Link>
+          </Button>
+        </div>
         <h1 className="text-h2 font-bold text-gray-100">UT 테스트 도구</h1>
         <p className="mt-3 text-b2 leading-6 text-gray-60">
           {nativeBridge.isNative

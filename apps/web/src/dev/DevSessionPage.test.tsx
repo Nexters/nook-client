@@ -40,6 +40,7 @@ function renderPage() {
       <MemoryRouter initialEntries={['/dev/ut']}>
         <Routes>
           <Route path="/dev/ut" element={<DevSessionPage />} />
+          <Route path="/" element={<p>앱 진입점</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -83,6 +84,14 @@ describe('DevSessionPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '이 계정으로 로그인' }));
 
     await waitFor(() => expect(establish).toHaveBeenCalledWith(UT_ACCOUNTS[0].token, null));
+  });
+
+  it('앱 진입점으로 돌아간다', () => {
+    renderPage();
+
+    fireEvent.click(screen.getByRole('link', { name: '앱으로 이동' }));
+
+    expect(screen.getByText('앱 진입점')).toBeInTheDocument();
   });
 
   it('그룹을 다중 선택하고 메모와 함께 게시글을 생성한다', async () => {

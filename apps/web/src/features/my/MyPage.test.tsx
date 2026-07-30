@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import { MyPage } from '@/features/my/MyPage';
@@ -6,9 +7,11 @@ import { MyPage } from '@/features/my/MyPage';
 function renderMyPage() {
   const setHidden = vi.fn();
   render(
-    <BottomMenuVisibilityProvider value={{ hidden: false, setHidden }}>
-      <MyPage />
-    </BottomMenuVisibilityProvider>,
+    <MemoryRouter>
+      <BottomMenuVisibilityProvider value={{ hidden: false, setHidden }}>
+        <MyPage />
+      </BottomMenuVisibilityProvider>
+    </MemoryRouter>,
   );
   return { setHidden };
 }
