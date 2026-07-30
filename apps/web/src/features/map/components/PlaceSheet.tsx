@@ -4,7 +4,7 @@ import emptySavedPlacesIllustration from '@/assets/illustrations/empty-saved-pla
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { getPlaceSheetLayoutClassNames } from '@/features/map/components/place-sheet-layout';
 import { BROWSE_SNAP_POINTS, DETAIL_SNAP_POINTS, FULL_SNAP_POINT } from '@/features/map/constants';
-import type { MockPlace } from '@/features/map/mock/places';
+import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
 import { cn } from '@/shared/lib/utils';
 import { Drawer, DrawerContent } from '@/shared/ui';
@@ -22,23 +22,29 @@ function EmptySavedPlaces() {
 }
 
 export function PlaceSheet({
-  places,
+  recentPlaces,
   selectedPlace,
+  isPlaceDetailPending,
+  isPlaceDetailError,
   snap,
   onSnapChange,
   onSelectPlace,
 }: {
-  places: MockPlace[];
-  selectedPlace: MockPlace | null;
+  recentPlaces: RecentPlace[];
+  selectedPlace: PlaceDetailModel | null;
+  /** true 인 동안은 상세를 아직 못 받았지만(선택은 됐지만) 상세 레이아웃으로는 이미 전환해야 한다. */
+  isPlaceDetailPending: boolean;
+  isPlaceDetailError: boolean;
   snap: number | string | null;
   onSnapChange: (snap: number | string | null) => void;
-  onSelectPlace: (id: string) => void;
+  onSelectPlace: (id: number) => void;
 }) {
   const shellContainer = useAppShellContainer();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const isFull = snap === FULL_SNAP_POINT;
-  const layoutClassNames = getPlaceSheetLayoutClassNames(selectedPlace !== null);
+  const hasSelection = selectedPlace !== null || isPlaceDetailPending || isPlaceDetailError;
+  const layoutClassNames = getPlaceSheetLayoutClassNames(hasSelection);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: isFull/selectedPlace.id 는 본문에서 값을 쓰지 않는 트리거 전용 의존성
   useEffect(() => {
@@ -51,7 +57,7 @@ export function PlaceSheet({
       open
       dismissible={false}
       modal={false}
-      snapPoints={selectedPlace ? DETAIL_SNAP_POINTS : BROWSE_SNAP_POINTS}
+      snapPoints={hasSelection ? DETAIL_SNAP_POINTS : BROWSE_SNAP_POINTS}
       activeSnapPoint={snap}
       setActiveSnapPoint={onSnapChange}
       container={shellContainer}
@@ -69,29 +75,29 @@ export function PlaceSheet({
           }}
           className={cn('flex flex-col gap-3 overflow-y-auto px-4', layoutClassNames.scroller)}
         >
-          {selectedPlace ? (
-            <PlaceDetail
-              key={selectedPlace.id}
-              place={selectedPlace}
-              places={places}
-              expanded={isFull}
-              onSelectPlace={onSelectPlace}
-            />
+          {hasSelection ? (
+            isPlaceDetailError ? (
+              <p className="pt-10 text-center text-b2 text-gray-60">장소를 불러오지 못했어요</p>
+            ) : selectedPlace ? (
+              <PlaceDetail key={selectedPlace.id} place={selectedPlace} expanded={isFull} />
+            ) : // isPlaceDetailPending — 아직 상세 응답 전이라 아무것도 그리지 않는다
+            // (GroupPage 와 같은 정책: 로딩 문구가 잠깐 스쳐 지나가지 않게 한다).
+            null
           ) : (
             <>
               <p className="text-b1 font-medium text-gray-90">최근 저장한 공간</p>
-              {places.length === 0 ? (
+              {recentPlaces.length === 0 ? (
                 <EmptySavedPlaces />
               ) : (
                 <div className="grid grid-cols-2 justify-items-center gap-2">
-                  {places.map((place) => (
+                  {recentPlaces.map((place) => (
                     <PlaceCard
                       key={place.id}
                       place={{
-                        id: place.id,
+                        id: String(place.id),
                         name: place.name,
-                        category: place.category,
-                        region: place.region,
+                        category: place.category ?? '',
+                        thumbnail: place.thumbnail,
                       }}
                       onClick={() => onSelectPlace(place.id)}
                     />

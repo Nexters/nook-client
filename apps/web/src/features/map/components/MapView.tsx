@@ -3,7 +3,7 @@ import { useImperativeHandle, useRef } from 'react';
 import { Container as MapDiv, NaverMap, useNavermaps } from 'react-naver-maps';
 import { CurrentLocationDot } from '@/features/map/components/CurrentLocationDot';
 import { PlacePin } from '@/features/map/components/PlacePin';
-import type { MockPlace } from '@/features/map/mock/places';
+import type { MapBounds, MapPin } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
 
 const FALLBACK_CENTER = { lat: 37.5729, lng: 126.9762 }; // 위치 못 가져왔을 때 광화문 인근 폴백
@@ -24,18 +24,21 @@ export type MapViewHandle = {
  * 재센터링은 `ref.recenter()` 로 명령형 호출한다(naver.maps.Map 인스턴스에 직접 명령).
  */
 export function MapView({
-  places,
+  pins,
   currentLocation,
   initialCenter,
   selectedPlaceId,
   onPlaceClick,
+  onBoundsChanged,
   ref,
 }: {
-  places: MockPlace[];
+  pins: MapPin[];
   currentLocation: Coordinates | null;
   initialCenter?: Coordinates;
-  selectedPlaceId?: string | null;
-  onPlaceClick?: (id: string) => void;
+  selectedPlaceId?: number | null;
+  onPlaceClick?: (id: number) => void;
+  /** 지도가 멈춘(idle) 시점의 실제 뷰포트 경계 — 팬/줌이 끝날 때만 넘어온다(최초 마운트 포함). */
+  onBoundsChanged?: (bounds: MapBounds) => void;
   ref?: Ref<MapViewHandle>;
 }) {
   const navermaps = useNavermaps();
@@ -61,16 +64,27 @@ export function MapView({
         ref={mapRef}
         defaultCenter={new navermaps.LatLng(center.lat, center.lng)}
         defaultZoom={DEFAULT_ZOOM}
+        onIdle={() => {
+          const map = mapRef.current;
+          if (!map || !onBoundsChanged) return;
+          // 이 지도는 경위도 좌표계만 쓰므로 런타임엔 항상 LatLngBounds다(PointBounds 는
+          // 픽셀 좌표계 지도 전용). naver 타입 선언은 둘의 유니온(Bounds)만 노출한다.
+          const bounds = map.getBounds() as naver.maps.LatLngBounds;
+          onBoundsChanged({
+            north: bounds.north(),
+            south: bounds.south(),
+            east: bounds.east(),
+            west: bounds.west(),
+          });
+        }}
       >
-        {places.map((place) => (
+        {pins.map((pin) => (
           <PlacePin
-            key={place.id}
-            lat={place.lat}
-            lng={place.lng}
-            name={place.name}
-            color={place.color}
-            selected={place.id === selectedPlaceId}
-            onClick={() => onPlaceClick?.(place.id)}
+            key={pin.id}
+            lat={pin.lat}
+            lng={pin.lng}
+            selected={pin.id === selectedPlaceId}
+            onClick={() => onPlaceClick?.(pin.id)}
           />
         ))}
         {currentLocation && (
