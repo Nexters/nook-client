@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
-import nookLogo from '@/assets/logo/Vector.svg';
+import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
 import {
@@ -96,71 +96,65 @@ export function MyPage() {
 
   return (
     <>
-      <main
-        className="min-h-dvh bg-gray-10"
-        style={{
-          paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: 'calc(3.75rem + env(safe-area-inset-bottom))',
-        }}
-      >
-        <Header
-          variant="gray"
-          left={<img src={nookLogo} alt="nook" className="h-[22px] w-[50px]" />}
-        />
-
-        <button
-          type="button"
-          onClick={openProfileEditor}
-          className="mx-4 flex h-25 w-[calc(100%-2rem)] items-center gap-4 rounded-sm bg-gray-0 px-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset"
+      <MainTabPageLayout>
+        <main
+          className="h-full overflow-y-auto bg-gray-10"
+          style={{ paddingBottom: 'calc(3.75rem + env(safe-area-inset-bottom))' }}
         >
-          <Avatar size="sm" alt="프로필 이미지" />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-b1 font-semibold text-gray-100">{nickname}</span>
-            <span className="mt-1 block font-mono text-e2 text-gray-60">
-              Group {USER.groupCount} · Save {USER.savedPlaceCount}
+          <button
+            type="button"
+            onClick={openProfileEditor}
+            className="mx-4 flex h-25 w-[calc(100%-2rem)] items-center gap-4 rounded-sm bg-gray-0 px-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset"
+          >
+            <Avatar size="sm" alt="프로필 이미지" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-b1 font-semibold text-gray-100">{nickname}</span>
+              <span className="mt-1 block font-mono text-e2 text-gray-60">
+                Group {USER.groupCount} · Save {USER.savedPlaceCount}
+              </span>
             </span>
-          </span>
-          <span aria-hidden="true" className="text-gray-40">
-            <Icon16ArrowRight />
-          </span>
-        </button>
-
-        <div className="mt-6 flex flex-col gap-5 px-4">
-          <MyMenuSection title="계정 정보">
-            <MyMenuRow
-              icon={<Icon16User />}
-              label="로그인 정보"
-              value={USER.loginProvider}
-              onClick={() => {}}
-            />
-          </MyMenuSection>
-
-          <MyMenuSection title="앱 정보">
-            <MyMenuRow icon={<Icon16Version />} label="버전 정보" badge="최신버전" value="v1.0" />
-            <MyMenuRow icon={<Icon16Info />} label="개인정보 처리방침" onClick={() => {}} />
-            <MyMenuRow icon={<Icon16Paper />} label="이용약관" onClick={() => {}} />
-            <MyMenuRow icon={<Icon16Chat />} label="문의하기" onClick={() => {}} />
-          </MyMenuSection>
-        </div>
-
-        <div className="flex h-14 items-center justify-center px-4 text-b2 font-semibold">
-          <button
-            type="button"
-            onClick={() => setDialog('logout')}
-            className="flex-1 text-gray-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-          >
-            로그아웃
+            <span aria-hidden="true" className="text-gray-40">
+              <Icon16ArrowRight />
+            </span>
           </button>
-          <span aria-hidden="true" className="h-6 w-px bg-gray-20" />
-          <button
-            type="button"
-            onClick={() => setDialog('withdraw')}
-            className="flex-1 text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
-          >
-            탈퇴하기
-          </button>
-        </div>
-      </main>
+
+          <div className="mt-6 flex flex-col gap-5 px-4">
+            <MyMenuSection title="계정 정보">
+              <MyMenuRow
+                icon={<Icon16User />}
+                label="로그인 정보"
+                value={USER.loginProvider}
+                onClick={() => {}}
+              />
+            </MyMenuSection>
+
+            <MyMenuSection title="앱 정보">
+              <MyMenuRow icon={<Icon16Version />} label="버전 정보" badge="최신버전" value="v1.0" />
+              <MyMenuRow icon={<Icon16Info />} label="개인정보 처리방침" onClick={() => {}} />
+              <MyMenuRow icon={<Icon16Paper />} label="이용약관" onClick={() => {}} />
+              <MyMenuRow icon={<Icon16Chat />} label="문의하기" onClick={() => {}} />
+            </MyMenuSection>
+          </div>
+
+          <div className="flex h-14 items-center justify-center px-4 text-b2 font-semibold">
+            <button
+              type="button"
+              onClick={() => setDialog('logout')}
+              className="flex-1 text-gray-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+            >
+              로그아웃
+            </button>
+            <span aria-hidden="true" className="h-6 w-px bg-gray-20" />
+            <button
+              type="button"
+              onClick={() => setDialog('withdraw')}
+              className="flex-1 text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
+            >
+              탈퇴하기
+            </button>
+          </div>
+        </main>
+      </MainTabPageLayout>
 
       <Popup
         open={dialog === 'logout'}
