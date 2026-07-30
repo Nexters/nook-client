@@ -1,6 +1,4 @@
 import { type ReactNode, useState } from 'react';
-import mySelected from '@/assets/icons/32_my_selected.svg';
-import myUnselected from '@/assets/icons/32_my_unselected.svg';
 import logo from '@/assets/logo/header_logo.svg';
 import type { Group } from '@/features/group';
 import { CollectionCard, GroupCard, GroupCreateRow, GroupSelectRow } from '@/features/group';
@@ -20,6 +18,8 @@ import {
   Icon32GroupUnselected,
   Icon32MapSelected,
   Icon32MapUnselected,
+  Icon32MySelected,
+  Icon32MyUnselected,
   Icon40Location,
   Icon44Error,
 } from '@/shared/icons/NookIcons';
@@ -65,13 +65,6 @@ import {
  * - 상태가 필요한 컴포넌트는 이 페이지 내부 로컬 state 로만 제어.
  * - API/서버/도메인 store 는 연결하지 않는다 (필요 데이터는 mock).
  */
-
-// ── 아이콘/이미지: src/assets 의 실제 시안 애셋을 그대로 쓴다. 애셋에 색이 박혀
-//    있어(gray-40/60/100 등) currentColor 로 다시 칠하지 않는다. selected/unselected
-//    처럼 색이 바뀌는 건 시안이 파일을 따로 주므로 파일을 교체해 표현한다. ──
-function IconImg({ src, className = 'size-6' }: { src: string; className?: string }) {
-  return <img src={src} alt="" className={className} />;
-}
 
 /** 시안 `Header/54` (94:3986) 의 84x32 로고 */
 function LogoMark() {
@@ -208,8 +201,8 @@ const NAV_ITEMS: BottomMenuItem[] = [
   {
     to: '/dev/ui/my',
     label: 'my',
-    icon: <IconImg src={myUnselected} className="size-8" />,
-    activeIcon: <IconImg src={mySelected} className="size-8" />,
+    icon: <Icon32MyUnselected />,
+    activeIcon: <Icon32MySelected />,
   },
 ];
 

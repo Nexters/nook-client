@@ -1,3 +1,5 @@
+import type { GroupColor } from '@/shared/ui';
+
 /** 지도 뷰포트 경계 — `GetMapPlacesParams`(북쪽/남쪽/동쪽/서쪽 위경도)에 대응한다. */
 export interface MapBounds {
   north: number;
@@ -7,13 +9,16 @@ export interface MapBounds {
 }
 
 /**
- * 지도 핀 하나 — `MapPlaceResponse`가 좌표만 내려주므로 이름/카테고리는 없다.
- * 상세 정보는 클릭 시 `usePlaceDetail`로 따로 가져온다.
+ * 지도 핀 하나 — `MapPlaceResponse` 기준. 이름과 대표 그룹 색상까지 내려오므로
+ * 핀 단계에서 이름표와 색을 그린다. 나머지 상세는 클릭 시 `usePlaceDetail`로 가져온다.
  */
 export interface MapPin {
   id: number;
   lat: number;
   lng: number;
+  name: string;
+  /** 장소를 저장한 대표 그룹의 색상. */
+  color: GroupColor;
 }
 
 /** `PlaceSheet` 목록 모드("최근 저장한 공간")에 쓰는 카드 한 건. */

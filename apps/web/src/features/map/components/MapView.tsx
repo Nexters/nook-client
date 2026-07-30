@@ -121,6 +121,8 @@ export function MapView({
             key={pin.id}
             lat={pin.lat}
             lng={pin.lng}
+            name={pin.name}
+            color={pin.color}
             selected={pin.id === selectedPlaceId}
             onClick={() => onPlaceClick?.(pin.id)}
           />

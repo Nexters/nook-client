@@ -1,4 +1,5 @@
 import {
+  type CreateGroupRequestColor,
   getMapPlaces as getMapPlacesEndpoint,
   getDetail as getPlaceDetailEndpoint,
   getRecentPlaces as getRecentPlacesEndpoint,
@@ -8,10 +9,32 @@ import {
   unwrapApiResponse,
   updateBookmark as updateBookmarkEndpoint,
 } from '@/shared/api';
+import type { GroupColor } from '@/shared/ui';
 import type { MapBounds, MapPin, PlaceDetail, PlaceDetailPost, RecentPlace } from '../types';
 
+/**
+ * 서버 색상 코드 ↔ 디자인 토큰 색상. `features/group/api`·`features/post/api`의 매핑과
+ * 동일한 서버 enum이라 값도 그대로 맞춘다 — 각 feature가 자기 진입점을 소유하는 컨벤션.
+ */
+const SERVER_TO_UI_COLOR = {
+  YELLOW: 'yellow',
+  CORAL: 'red',
+  PINK: 'pink',
+  PURPLE: 'purple',
+  BLUE: 'blue',
+  MINT: 'sky',
+  GREEN: 'green',
+  GRAY: 'cement',
+} as const satisfies Record<CreateGroupRequestColor, GroupColor>;
+
 function toMapPin(dto: MapPlaceResponse): MapPin {
-  return { id: dto.id, lat: dto.latitude, lng: dto.longitude };
+  return {
+    id: dto.id,
+    lat: dto.latitude,
+    lng: dto.longitude,
+    name: dto.name,
+    color: SERVER_TO_UI_COLOR[dto.color as CreateGroupRequestColor] ?? 'cement',
+  };
 }
 
 /** 지도 뷰포트(bbox) 안의 북마크 장소 핀. `MapView`의 `onIdle`이 넘긴 실제 뷰포트 경계로 조회한다. */
