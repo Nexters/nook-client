@@ -38,6 +38,7 @@ function toGroup(dto: GroupResponse): Group {
     name: dto.name,
     color: SERVER_TO_UI_COLOR[dto.color as CreateGroupRequestColor] ?? 'cement',
     placeCount: dto.postCount,
+    thumbnails: dto.thumbnailUrls,
   };
 }
 

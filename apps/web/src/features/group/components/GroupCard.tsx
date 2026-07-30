@@ -20,8 +20,9 @@ export interface GroupCardProps {
 function GroupCard({ group, onClick, className }: GroupCardProps) {
   const thumbnails = group.thumbnails ?? [];
   const visible = thumbnails.slice(0, VISIBLE_THUMBNAILS);
-  // 마지막 칸에 접어 넣을 나머지 장수 (시안의 `Thumbnail/98_Group > Plus`)
-  const overflow = thumbnails.length - VISIBLE_THUMBNAILS;
+  // 마지막 칸에 접어 넣을 나머지 게시물 수 (시안의 `Thumbnail/98_Group > Plus`).
+  // 서버는 썸네일을 몇 장만 내려주므로 URL 개수가 아니라 전체 개수에서 뺀다.
+  const overflow = group.placeCount - VISIBLE_THUMBNAILS;
 
   const Comp = onClick ? 'button' : 'div';
 
@@ -52,10 +53,8 @@ function GroupCard({ group, onClick, className }: GroupCardProps) {
               key={index}
               src={src}
               alt=""
-              // 마지막 칸에만 나머지 장수를 얹는다.
-              overflowCount={
-                overflow > 0 && index === VISIBLE_THUMBNAILS - 1 ? overflow : undefined
-              }
+              // 실제로 그려진 마지막 칸에만 나머지 수를 얹는다.
+              overflowCount={overflow > 0 && index === visible.length - 1 ? overflow : undefined}
             />
           ))}
         </div>
