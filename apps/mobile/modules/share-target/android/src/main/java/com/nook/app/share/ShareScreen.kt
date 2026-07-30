@@ -148,6 +148,7 @@ fun ShareScreen(
                 onAction = onFeedbackAction,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 24.dp),
             )
