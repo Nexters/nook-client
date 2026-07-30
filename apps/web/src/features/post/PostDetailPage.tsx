@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import type { Place } from '@/features/place';
 import { cn } from '@/shared/lib/utils';
@@ -17,6 +17,11 @@ import { PostImageViewer } from './components/PostImageViewer';
 import { PostInfo } from './components/PostInfo';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
 
+// TODO(post): "연관 장소" 섹션 잠시 숨김(기획 요청, 2026-07-30) — 아래 플래그를 true로
+// 되돌리면 "직접 추가" 배너를 포함해 다시 노출된다. 관련해서 skip 해둔 테스트는
+// PostDetailPage.test.tsx 상단 주석 참고.
+const SHOW_RELATED_PLACES = false;
+
 /**
  * Figma `그룹 > 게시물 상세` (연관 장소 O / X, 메모 최대글자수, 이미지 확대 뷰)
  * + `메모하기` 바텀시트.
@@ -28,6 +33,7 @@ export function PostDetailPage() {
   // 라우트 파라미터는 항상 string, 서버는 number — 경계 변환은 여기 한 곳에서만 한다.
   const { postId: postIdParam } = useParams();
   const postId = postIdParam ? Number(postIdParam) : undefined;
+  const navigate = useNavigate();
   useHideBottomMenu();
 
   const postDetailState = usePostDetail(postId);
@@ -56,6 +62,14 @@ export function PostDetailPage() {
     }
     updateBookmarkMutation.mutate({ placeId: Number(placeId), bookmarked: next });
   };
+
+  // 직접 추가한 장소(가짜 id, 예: 'search-1')는 아직 지도 쪽 실제 장소와 연결돼 있지
+  // 않으니 이동하지 않는다 — 파싱된 실제 장소(숫자 id)만 지도의 선택된 장소 뷰로 넘긴다.
+  function handleRelatedPlaceClick(placeId: string) {
+    const numericPlaceId = Number(placeId);
+    if (!Number.isFinite(numericPlaceId)) return;
+    navigate(`/map?placeId=${numericPlaceId}`);
+  }
 
   function handlePlaceConfirmed(place: Place) {
     // TODO(api): 장소 연결은 실제로는 서버에 저장해야 한다. 지금은 화면 상태(manualPlaces)만 갱신해 새로고침/재방문 시 사라진다.
@@ -172,13 +186,16 @@ export function PostDetailPage() {
           ) : null}
         </div>
 
-        <RelatedPlacesSection
-          state={relatedPlacesState}
-          manualPlaces={manualPlaces}
-          bookmarkedPlaceIds={bookmarkedPlaceIds}
-          onBookmarkedChange={toggleBookmark}
-          onDirectAddClick={() => setDirectInputOpen(true)}
-        />
+        {SHOW_RELATED_PLACES && (
+          <RelatedPlacesSection
+            state={relatedPlacesState}
+            manualPlaces={manualPlaces}
+            bookmarkedPlaceIds={bookmarkedPlaceIds}
+            onBookmarkedChange={toggleBookmark}
+            onDirectAddClick={() => setDirectInputOpen(true)}
+            onPlaceClick={handleRelatedPlaceClick}
+          />
+        )}
       </div>
 
       <MemoSheet

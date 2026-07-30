@@ -10,6 +10,8 @@ export interface RelatedPlacesSectionProps {
   bookmarkedPlaceIds: string[];
   onBookmarkedChange: (placeId: string, next: boolean) => void;
   onDirectAddClick: () => void;
+  /** 장소 행을 누르면 그 장소 id 로 호출된다 — 지도 화면의 선택된 장소 뷰로 넘길 때 쓴다. */
+  onPlaceClick?: (placeId: string) => void;
 }
 
 /**
@@ -26,6 +28,7 @@ function RelatedPlacesSection({
   bookmarkedPlaceIds,
   onBookmarkedChange,
   onDirectAddClick,
+  onPlaceClick,
 }: RelatedPlacesSectionProps) {
   const parsedPlaces = state.status === 'success' ? state.places : [];
   const places = [...parsedPlaces, ...manualPlaces];
@@ -49,6 +52,7 @@ function RelatedPlacesSection({
                 place={place}
                 bookmarked={bookmarkedPlaceIds.includes(place.id)}
                 onBookmarkedChange={(next) => onBookmarkedChange(place.id, next)}
+                onClick={onPlaceClick ? () => onPlaceClick(place.id) : undefined}
               />
             ))}
           </div>

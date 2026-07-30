@@ -3,6 +3,7 @@ import { useImperativeHandle, useRef } from 'react';
 import { Container as MapDiv, NaverMap, useNavermaps } from 'react-naver-maps';
 import { CurrentLocationDot } from '@/features/map/components/CurrentLocationDot';
 import { PlacePin } from '@/features/map/components/PlacePin';
+import { SELECTED_PLACE_VERTICAL_RATIO } from '@/features/map/constants';
 import type { MapBounds, MapPin } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
 
@@ -59,7 +60,15 @@ export function MapView({
       panTo: (coords) => {
         const map = mapRef.current;
         if (!map) return;
-        map.panTo(new navermaps.LatLng(coords.lat, coords.lng));
+        const target = new navermaps.LatLng(coords.lat, coords.lng);
+        // 그냥 target 을 중심으로 잡으면 화면 정중앙(드로어 경계 부근)에 와서 가려지므로,
+        // target 이 SELECTED_PLACE_VERTICAL_RATIO 높이에 보이도록 중심 좌표를 그만큼
+        // 아래로 옮겨 잡는다(픽셀 오프셋 계산은 지도 투영(projection)에 위임한다).
+        const projection = map.getProjection();
+        const verticalShiftPx = map.getSize().height * (SELECTED_PLACE_VERTICAL_RATIO - 0.5);
+        const targetOffset = projection.fromCoordToOffset(target);
+        const shiftedOffset = new navermaps.Point(targetOffset.x, targetOffset.y + verticalShiftPx);
+        map.panTo(projection.fromOffsetToCoord(shiftedOffset));
       },
     }),
     [navermaps, center.lat, center.lng],

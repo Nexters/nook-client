@@ -68,6 +68,9 @@ function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
 // TODO(map): "연관 장소" 섹션은 잠시 숨긴다 — `GET /places/{placeId}`가 아직 연관 장소를
 // 내려주지 않아(연관 게시물만 내려준다) 전량 목데이터였다(실제 장소 id 체계와 무관해
 // 클릭 동작도 없었다). 백엔드에 필드 추가되면 아래 주석을 걷어내고 실제 데이터로 교체한다.
+// 되살릴 때 장소 행 클릭은 `PlaceRow`의 `onClick`으로 받아서, `PlaceSheet`가 이미 갖고
+// 있는 `onSelectPlace`(MapPage.handlePlaceClick과 동일)를 그대로 이 컴포넌트까지
+// 내려 호출하면 된다 — 같은 지도 화면 안에서 선택 장소만 바뀌므로 라우팅은 필요 없다.
 //
 // function RelatedPlacesSection({ place }: { place: PlaceDetailModel }) {
 //   const center = { lat: place.lat, lng: place.lng };
