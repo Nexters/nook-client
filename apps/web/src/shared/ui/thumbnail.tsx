@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import type * as React from 'react';
-import emptyThumbnailSm from '@/assets/images/60_Thumbnail.svg';
+import emptyThumbnailLg from '@/assets/images/98_Group.svg';
 import { Icon16ExclamationCircle } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 
@@ -29,13 +29,8 @@ const thumbnailVariants = cva(
   },
 );
 
-/**
- * src 가 없을 때 sm 에서만 채우는 기본 도형(`60_Thumbnail`) — `GroupCard`의 빈 그룹
- * 칸(Figma `Thumbnail/98_Group > Empty`) 전용이다. lg 는 이미지 없이 컨테이너의
- * 회색 배경(`bg-gray-10`)만 보여준다 — 실제 목데이터 스크린샷을 폴백으로 박아두면
- * 썸네일이 없는 진짜 게시물에도 그 가짜 사진이 그대로 노출돼버린다.
- */
-const EMPTY_IMAGE_SM = emptyThumbnailSm;
+/** src 가 없을 때 lg 썸네일을 채우는 기본 도형. */
+const EMPTY_IMAGE_LG = emptyThumbnailLg;
 
 export interface ThumbnailProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'>,
@@ -60,7 +55,7 @@ function Thumbnail({
   className,
   ...props
 }: ThumbnailProps) {
-  const resolvedSrc = src ?? (size === 'sm' ? EMPTY_IMAGE_SM : undefined);
+  const resolvedSrc = src ?? (size === 'sm' ? undefined : EMPTY_IMAGE_LG);
 
   return (
     <div data-slot="thumbnail" className={cn(thumbnailVariants({ size }), className)} {...props}>

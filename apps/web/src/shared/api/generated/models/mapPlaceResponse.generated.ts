@@ -6,10 +6,14 @@
  */
 
 export interface MapPlaceResponse {
+  /** 대표 그룹 색상 코드 */
+  color: string;
   /** 장소 식별자 */
   id: number;
   /** 장소 위도 */
   latitude: number;
   /** 장소 경도 */
   longitude: number;
+  /** 장소명 */
+  name: string;
 }

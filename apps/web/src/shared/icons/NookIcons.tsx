@@ -631,6 +631,58 @@ export function Icon32MapUnselected({ size, width, height, ...props }: NookIconP
   );
 }
 
+export function Icon32MySelected({ size, width, height, ...props }: NookIconProps) {
+  const renderedWidth = width ?? size ?? 32;
+  const renderedHeight = height ?? (size === undefined ? 32 : size * 1);
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      width={renderedWidth}
+      height={renderedHeight}
+      fill="none"
+      role="presentation"
+      aria-hidden="true"
+      {...props}
+    >
+      <circle
+        cx="16"
+        cy="16"
+        r="13.25"
+        fill="#E4E6E9"
+        stroke="#1F1F1F"
+        strokeWidth="1.5"
+        strokeLinecap="butt"
+      />
+      <path
+        d="M24 18.5883V18.1179H23.5294V17.6473H23.0588V13.412H22.5881V12.4707H22.1175V10.1177H21.6469V9.64729H19.2941V9.17667H17.8822V8.70605H14.1175V9.17667H12.7057V9.64729H10.3528V10.1177H9.88222V12.4707H9.4116V13.412H8.94098V17.6473H8.47036V18.1179H8V19.0589H8.47036V19.5295H9.88222V20.0001H10.3528V20.4707H10.8235V20.9414H11.2941V21.412H11.7647V22.3532H12.2353V22.8236H12.7057V23.2942H14.5881V22.8236H15.0588V22.3532H16.941V22.8236H17.4116V23.2942H19.2941V22.8236H19.7647V22.3532H20.2353V21.412H20.7059V20.9414H21.1763V20.4707H21.6469V20.0001H22.1175V19.5295H23.5294V19.0589H24V18.5883ZM13.6469 15.2942H14.5881V17.1767H13.6469V15.2942ZM17.8822 17.1767H17.4116V15.2942H18.3528V17.1767H17.8822Z"
+        fill="#B5BBC3"
+      />
+    </svg>
+  );
+}
+
+export function Icon32MyUnselected({ size, width, height, ...props }: NookIconProps) {
+  const renderedWidth = width ?? size ?? 32;
+  const renderedHeight = height ?? (size === undefined ? 32 : size * 1);
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      width={renderedWidth}
+      height={renderedHeight}
+      fill="none"
+      role="presentation"
+      aria-hidden="true"
+      {...props}
+    >
+      <circle cx="16" cy="16" r="14" fill="#E4E6E9" />
+      <path
+        d="M24 18.5883V18.1179H23.5294V17.6473H23.0588V13.412H22.5881V12.4707H22.1175V10.1177H21.6469V9.64729H19.2941V9.17667H17.8822V8.70605H14.1175V9.17667H12.7057V9.64729H10.3528V10.1177H9.88222V12.4707H9.4116V13.412H8.94098V17.6473H8.47036V18.1179H8V19.0589H8.47036V19.5295H9.88222V20.0001H10.3528V20.4707H10.8235V20.9414H11.2941V21.412H11.7647V22.3532H12.2353V22.8236H12.7057V23.2942H14.5881V22.8236H15.0588V22.3532H16.941V22.8236H17.4116V23.2942H19.2941V22.8236H19.7647V22.3532H20.2353V21.412H20.7059V20.9414H21.1763V20.4707H21.6469V20.0001H22.1175V19.5295H23.5294V19.0589H24V18.5883ZM13.6469 15.2942H14.5881V17.1767H13.6469V15.2942ZM17.8822 17.1767H17.4116V15.2942H18.3528V17.1767H17.8822Z"
+        fill="#B5BBC3"
+      />
+    </svg>
+  );
+}
+
 export function Icon32StarOff({ size, width, height, ...props }: NookIconProps) {
   const renderedWidth = width ?? size ?? 32;
   const renderedHeight = height ?? (size === undefined ? 32 : size * 1);

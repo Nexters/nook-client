@@ -14,4 +14,6 @@ export interface GroupResponse {
   name: string;
   /** 그룹에 포함된 저장 게시물 수 */
   postCount: number;
+  /** 이미지가 있는 최신 저장 게시물의 대표 이미지 URL 목록. 최신순으로 최대 3개입니다. */
+  thumbnailUrls: string[];
 }
