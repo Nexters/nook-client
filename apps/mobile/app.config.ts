@@ -26,6 +26,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const variant = resolveVariant();
   // dev 와 운영 앱을 같은 기기에 동시 설치할 수 있도록 식별자를 분리한다.
   const iosAppId = IOS_APP_ID[variant];
+  const androidAppId = ANDROID_APP_ID[variant];
   const sessionAccessGroup = `$(AppIdentifierPrefix)group.${iosAppId}`;
 
   const kakaoAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY;
@@ -38,6 +39,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: variant === 'production' ? 'nook' : `nook (${variant})`,
     slug: 'nook',
+    // iOS와 Android의 운영 식별자가 다르므로 양쪽 딥링크 스킴을 모두 등록한다.
+    // Share Extension은 iOS 본앱 식별자를 스킴으로 사용해 본앱을 연다.
+    scheme: [...new Set([iosAppId, androidAppId])],
     plugins: [
       ...(config.plugins ?? []),
       '@bacons/apple-targets',
@@ -66,7 +70,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     android: {
       ...config.android,
-      package: ANDROID_APP_ID[variant],
+      package: androidAppId,
       // WebView geolocationEnabled 로 navigator.geolocation 을 쓰려면 필요하다.
       permissions: [
         ...(config.android?.permissions ?? []),
