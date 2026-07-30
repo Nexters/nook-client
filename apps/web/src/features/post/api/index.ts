@@ -1,23 +1,44 @@
 import {
+  type CreateGroupRequestColor,
   findPlaceParsing,
   getSavedPostDetail,
   type PlaceResponse,
   type SavedPostDetailResponse,
+  type SavedPostGroupResponse,
   unwrapApiResponse,
   updateBookmark,
   updateMemo,
 } from '@/shared/api';
 import type { GroupColor } from '@/shared/ui';
-import type { ParsedPlace, PlaceParsingResult, PostDetail } from '../types';
+import type { ParsedPlace, PlaceParsingResult, PostDetail, PostGroup } from '../types';
 
 /**
  * 게시물 도메인 BE 호출. 응답은 공통 envelope(`resultType`/`success`/`error`)로
  * 감싸져 오므로 `unwrapApiResponse` 로 풀어 features 코드에는 성공 페이로드만 흘려보낸다.
  */
 
-// TODO(api): SavedPostDetailResponse 에 그룹 필드가 아직 없다 — BE 에 필드 추가 요청 예정
-// (요청 문구는 작업 완료 보고에 정리). 그 전까지는 화면이 비어 보이지 않도록 고정 값으로 채운다.
-const MOCK_GROUP: { name: string; color: GroupColor } = { name: '카페', color: 'yellow' };
+/**
+ * 서버 색상 코드 ↔ 디자인 토큰 색상. `features/group/api`의 매핑과 동일한 서버 enum이라
+ * 값도 그대로 맞춘다 — 각 feature가 자기 진입점을 소유하는 컨벤션이라 여기서 다시 둔다.
+ */
+const SERVER_TO_UI_COLOR = {
+  YELLOW: 'yellow',
+  CORAL: 'red',
+  PINK: 'pink',
+  PURPLE: 'purple',
+  BLUE: 'blue',
+  MINT: 'sky',
+  GREEN: 'green',
+  GRAY: 'cement',
+} as const satisfies Record<CreateGroupRequestColor, GroupColor>;
+
+function toPostGroup(dto: SavedPostGroupResponse): PostGroup {
+  return {
+    id: dto.id,
+    name: dto.name,
+    color: SERVER_TO_UI_COLOR[dto.color as CreateGroupRequestColor] ?? 'cement',
+  };
+}
 
 /** 서버 DTO → 화면 모델. `media` 는 순서(`sequence`)대로 정렬하고 이미지만 쓴다(영상은 시안 미정). */
 function toPostDetail(dto: SavedPostDetailResponse): PostDetail {
@@ -28,8 +49,7 @@ function toPostDetail(dto: SavedPostDetailResponse): PostDetail {
 
   return {
     processingStatus: dto.processingStatus,
-    groupName: MOCK_GROUP.name,
-    groupColor: MOCK_GROUP.color,
+    groups: dto.groups.map(toPostGroup),
     // 처리 중엔 title 이 비어 있을 수 있다 — group 의 게시물 카드와 동일한 fallback 규칙.
     title: dto.title || dto.memo || '제목 없는 게시물',
     memo: dto.memo ?? undefined,

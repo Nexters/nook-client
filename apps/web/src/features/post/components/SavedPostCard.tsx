@@ -1,6 +1,7 @@
 import * as React from 'react';
+import type { PostGroup } from '@/features/post/types';
 import { cn } from '@/shared/lib/utils';
-import { Carousel, type GroupColor, GroupTag } from '@/shared/ui';
+import { Carousel, GroupTag } from '@/shared/ui';
 import type { Post } from '../types';
 import { OriginalPostLink } from './OriginalPostLink';
 
@@ -16,21 +17,14 @@ import { OriginalPostLink } from './OriginalPostLink';
  */
 export interface SavedPostCardProps {
   post: Post;
-  /** 이 게시물이 저장된 그룹 (표시용 이름/색만 받는다) */
-  groupName: string;
-  groupColor: GroupColor;
+  /** 이 게시물이 저장된 그룹들 (표시용 이름/색만 받는다). 여러 그룹에 저장될 수 있다. */
+  groups: PostGroup[];
   /** 카드 상단 제목 */
   title?: string;
   className?: string;
 }
 
-function SavedPostCard({
-  post,
-  groupName,
-  groupColor,
-  title = '저장된 게시물',
-  className,
-}: SavedPostCardProps) {
+function SavedPostCard({ post, groups, title = '저장된 게시물', className }: SavedPostCardProps) {
   const [expanded, setExpanded] = React.useState(false);
   const images = post.images ?? [];
 
@@ -40,8 +34,12 @@ function SavedPostCard({
         <h2 className="text-b1 font-semibold text-gray-100">{title}</h2>
       </div>
 
-      <div className="flex w-full items-center gap-2 pb-3">
-        <GroupTag color={groupColor}>{groupName}</GroupTag>
+      <div className="flex w-full flex-wrap items-center gap-2 pb-3">
+        {groups.map((group) => (
+          <GroupTag key={group.id} color={group.color}>
+            {group.name}
+          </GroupTag>
+        ))}
         {post.sharedBy ? (
           <span className="truncate font-mono text-e2 text-gray-60">{post.sharedBy}</span>
         ) : null}

@@ -26,10 +26,14 @@ export function PlacePin({
         onClick={onClick}
         aria-pressed={selected}
         aria-label="저장된 장소"
-        className={`h-4 w-4 rounded-sm ${PIN_DOT_CLASS} ${
-          selected ? 'ring-2 ring-blue ring-offset-2' : ''
+        className={`relative h-4 w-4 ${PIN_DOT_CLASS} ${
+          selected ? 'z-10 ring-2 ring-blue ring-offset-2' : ''
         }`}
-      ></button>
+      >
+        {/* Figma 94:3999/94:4000 — 사각형 가운데가 뚫린 것처럼 보이도록 16px 정사각 안에
+            4px 흰 정사각을 중앙(6,6)에 얹는다. border-radius 는 쓰지 않는다. */}
+        <span className="absolute top-1.5 left-1.5 h-1 w-1 bg-gray-0" />
+      </button>
     </CustomOverlay>
   );
 }

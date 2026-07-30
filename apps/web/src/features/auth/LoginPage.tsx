@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import nookLogo from '@/assets/logo/Vector.svg';
+import headerLogo from '@/assets/logo/header_logo.svg';
 import { OnboardingCarousel } from '@/features/auth/components/OnboardingCarousel';
 import {
   AppleIcon,
@@ -22,7 +22,7 @@ export function LoginPage() {
       }}
     >
       <header>
-        <img src={nookLogo} alt="nook" className="h-[22px] w-[50px]" />
+        <img src={headerLogo} alt="nook" className="h-8 w-[84px]" />
       </header>
 
       <div

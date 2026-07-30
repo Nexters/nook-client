@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import type { Place } from '@/features/place';
 import { cn } from '@/shared/lib/utils';
@@ -28,6 +28,7 @@ export function PostDetailPage() {
   // 라우트 파라미터는 항상 string, 서버는 number — 경계 변환은 여기 한 곳에서만 한다.
   const { postId: postIdParam } = useParams();
   const postId = postIdParam ? Number(postIdParam) : undefined;
+  const navigate = useNavigate();
   useHideBottomMenu();
 
   const postDetailState = usePostDetail(postId);
@@ -56,6 +57,14 @@ export function PostDetailPage() {
     }
     updateBookmarkMutation.mutate({ placeId: Number(placeId), bookmarked: next });
   };
+
+  // 직접 추가한 장소(가짜 id, 예: 'search-1')는 아직 지도 쪽 실제 장소와 연결돼 있지
+  // 않으니 이동하지 않는다 — 파싱된 실제 장소(숫자 id)만 지도의 선택된 장소 뷰로 넘긴다.
+  function handleRelatedPlaceClick(placeId: string) {
+    const numericPlaceId = Number(placeId);
+    if (!Number.isFinite(numericPlaceId)) return;
+    navigate(`/map?placeId=${numericPlaceId}`);
+  }
 
   function handlePlaceConfirmed(place: Place) {
     // TODO(api): 장소 연결은 실제로는 서버에 저장해야 한다. 지금은 화면 상태(manualPlaces)만 갱신해 새로고침/재방문 시 사라진다.
@@ -99,7 +108,7 @@ export function PostDetailPage() {
     );
   }
 
-  const { post, title, groupName, groupColor, memo } = postDetailState.detail;
+  const { post, title, groups, memo } = postDetailState.detail;
   const images = post.images ?? [];
 
   return (
@@ -161,8 +170,7 @@ export function PostDetailPage() {
           ) : null}
 
           <PostInfo
-            groupName={groupName}
-            groupColor={groupColor}
+            groups={groups}
             memo={memo}
             onMemoEdit={() => setMemoOpen(true)}
             className="pt-2"
@@ -179,6 +187,7 @@ export function PostDetailPage() {
           bookmarkedPlaceIds={bookmarkedPlaceIds}
           onBookmarkedChange={toggleBookmark}
           onDirectAddClick={() => setDirectInputOpen(true)}
+          onPlaceClick={handleRelatedPlaceClick}
         />
       </div>
 
