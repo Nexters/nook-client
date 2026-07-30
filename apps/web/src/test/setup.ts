@@ -24,3 +24,34 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
     disconnect() {}
   };
 }
+
+// lottie-web 이 로드 시점에 canvas 지원 여부를 확인하는데, jsdom 의 getContext 는 항상
+// null 을 반환해 그 확인 코드가 그대로 죽는다 — 2d 컨텍스트를 흉내낸 no-op 스텁으로 우회한다.
+if (typeof HTMLCanvasElement !== 'undefined') {
+  HTMLCanvasElement.prototype.getContext = (() => ({
+    fillRect: () => {},
+    clearRect: () => {},
+    getImageData: () => ({ data: [] }),
+    putImageData: () => {},
+    createImageData: () => [],
+    setTransform: () => {},
+    drawImage: () => {},
+    save: () => {},
+    restore: () => {},
+    beginPath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    closePath: () => {},
+    stroke: () => {},
+    translate: () => {},
+    scale: () => {},
+    rotate: () => {},
+    arc: () => {},
+    fill: () => {},
+    measureText: () => ({ width: 0 }),
+    transform: () => {},
+    rect: () => {},
+    clip: () => {},
+    // biome-ignore lint/suspicious/noExplicitAny: jsdom 이 CanvasRenderingContext2D 를 지원하지 않아 실제 타입을 만들 수 없다.
+  })) as any;
+}
