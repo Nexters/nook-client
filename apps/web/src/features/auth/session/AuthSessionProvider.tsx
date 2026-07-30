@@ -1,5 +1,13 @@
 import type { SessionStatus } from '@nook/bridge-contracts';
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { queryClient } from '@/app/queryClient';
 import { nativeBridge } from '@/native-bridge';
 import { apiClient } from '@/shared/api/http';
@@ -83,6 +91,13 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionState>(restoreDevWebSession);
   currentSession = session;
 
+  const resetToAnonymous = useCallback(async () => {
+    currentSession = anonymousSession;
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    setSession(anonymousSession);
+  }, []);
+
   useEffect(() => {
     if (!nativeBridge.isNative) return;
     let active = true;
@@ -96,36 +111,46 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
     });
     const unsubscribe = nativeBridge.on((message) => {
       if (message.type === 'SESSION_CLEARED') {
-        void queryClient.cancelQueries();
-        queryClient.clear();
-        setSession({ status: 'anonymous', accessToken: null, revision: 0 });
+        void resetToAnonymous();
       }
     });
     return () => {
       active = false;
       unsubscribe();
     };
-  }, []);
+  }, [resetToAnonymous]);
 
   useEffect(() => {
     // 401 응답 이후에만 쓰이므로 effect 로 충분하다. revision 은 호출 시점 값을 읽는다.
     apiClient.setSessionRefresher(
       nativeBridge.isNative
         ? async () => {
-            const result = await nativeBridge.requestSession(
-              'SESSION_REFRESH',
-              currentSession.revision,
-            );
-            setSession({
-              status: result.status,
-              accessToken: result.accessToken ?? null,
-              revision: result.revision ?? 0,
-            });
-            return result.accessToken ?? null;
+            try {
+              const result = await nativeBridge.requestSession(
+                'SESSION_REFRESH',
+                currentSession.revision,
+              );
+              if (result.status !== 'authenticated' || !result.accessToken) {
+                await resetToAnonymous();
+                return null;
+              }
+
+              const refreshedSession: SessionState = {
+                status: 'authenticated',
+                accessToken: result.accessToken,
+                revision: result.revision ?? 0,
+              };
+              currentSession = refreshedSession;
+              setSession(refreshedSession);
+              return refreshedSession.accessToken;
+            } catch (error) {
+              await resetToAnonymous();
+              throw error;
+            }
           }
         : undefined,
     );
-  }, []);
+  }, [resetToAnonymous]);
 
   const value = useMemo<SessionContextValue>(
     () => ({
@@ -162,12 +187,10 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
       clear: async () => {
         if (nativeBridge.isNative) await nativeBridge.requestSession('SESSION_CLEAR');
         else clearDevWebSession();
-        await queryClient.cancelQueries();
-        queryClient.clear();
-        setSession(anonymousSession);
+        await resetToAnonymous();
       },
     }),
-    [session],
+    [resetToAnonymous, session],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

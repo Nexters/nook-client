@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
-import nookLogo from '@/assets/logo/Vector.svg';
+import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
@@ -8,7 +8,6 @@ import { DETAIL_PAGE_SNAP_POINT, PEEK_SNAP_POINT } from '@/features/map/constant
 import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
 import type { MapBounds } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
-import { Header } from '@/shared/ui';
 import { useMapPins, usePlaceDetail, useRecentPlaces } from './api/queries';
 
 const FALLBACK_CENTER = { lat: 37.5729, lng: 126.9762 }; // 위치 못 가져왔을 때 광화문 인근 폴백
@@ -71,33 +70,28 @@ export function MapPage() {
   }
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden">
-      <MapView
-        ref={mapRef}
-        pins={pinsQuery.data ?? []}
-        currentLocation={location.coords}
-        initialCenter={location.coords ?? undefined}
-        selectedPlaceId={selectedPlaceId}
-        onPlaceClick={handlePlaceClick}
-        onBoundsChanged={setBounds}
-      />
-      {/* Figma `Header/54 > Logo_Transparency` — 지도 위에 얹는 로고 헤더. 시각 요소일
-          뿐이라 pointer-events 를 꺼서 그 아래 지도 팬/줌을 막지 않는다. */}
-      <Header
-        variant="transparent"
-        left={<img src={nookLogo} alt="nook" className="h-[22px] w-[50px]" />}
-        className="pointer-events-none absolute inset-x-0 top-[env(safe-area-inset-top)] z-10"
-      />
-      {snap === PEEK_SNAP_POINT && <RecenterButton onClick={() => mapRef.current?.recenter()} />}
-      <PlaceSheet
-        recentPlaces={recentPlacesQuery.data ?? []}
-        selectedPlace={placeDetailQuery.data ?? null}
-        isPlaceDetailPending={selectedPlaceId !== null && placeDetailQuery.isPending}
-        isPlaceDetailError={selectedPlaceId !== null && placeDetailQuery.isError}
-        snap={snap}
-        onSnapChange={handleSnapChange}
-        onSelectPlace={handlePlaceClick}
-      />
-    </div>
+    <MainTabPageLayout variant="transparent">
+      <div className="relative h-full w-full overflow-hidden">
+        <MapView
+          ref={mapRef}
+          pins={pinsQuery.data ?? []}
+          currentLocation={location.coords}
+          initialCenter={location.coords ?? undefined}
+          selectedPlaceId={selectedPlaceId}
+          onPlaceClick={handlePlaceClick}
+          onBoundsChanged={setBounds}
+        />
+        {snap === PEEK_SNAP_POINT && <RecenterButton onClick={() => mapRef.current?.recenter()} />}
+        <PlaceSheet
+          recentPlaces={recentPlacesQuery.data ?? []}
+          selectedPlace={placeDetailQuery.data ?? null}
+          isPlaceDetailPending={selectedPlaceId !== null && placeDetailQuery.isPending}
+          isPlaceDetailError={selectedPlaceId !== null && placeDetailQuery.isError}
+          snap={snap}
+          onSnapChange={handleSnapChange}
+          onSelectPlace={handlePlaceClick}
+        />
+      </div>
+    </MainTabPageLayout>
   );
 }
