@@ -99,7 +99,7 @@ export function PostDetailPage() {
     );
   }
 
-  const { post, title, groupName, groupColor, memo } = postDetailState.detail;
+  const { post, title, groups, memo } = postDetailState.detail;
   const images = post.images ?? [];
 
   return (
@@ -161,8 +161,7 @@ export function PostDetailPage() {
           ) : null}
 
           <PostInfo
-            groupName={groupName}
-            groupColor={groupColor}
+            groups={groups}
             memo={memo}
             onMemoEdit={() => setMemoOpen(true)}
             className="pt-2"

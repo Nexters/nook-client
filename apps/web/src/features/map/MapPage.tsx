@@ -49,6 +49,14 @@ export function MapPage() {
     return () => setBottomMenuHidden(false);
   }, [selectedPlaceId, setBottomMenuHidden]);
 
+  // 장소가 선택되면(핀 클릭·연관 장소 클릭 등) 상세 응답의 좌표로 지도를 재센터링해
+  // 선택된 장소가 항상 지도 정가운데 오도록 한다. 상세 응답이 오기 전엔 좌표를 몰라
+  // 기다렸다가 이동한다.
+  useEffect(() => {
+    if (!placeDetailQuery.data) return;
+    mapRef.current?.panTo({ lat: placeDetailQuery.data.lat, lng: placeDetailQuery.data.lng });
+  }, [placeDetailQuery.data]);
+
   if (location.status === 'loading') {
     return (
       <div className="flex h-dvh w-full items-center justify-center">

@@ -22,8 +22,7 @@ const POSTS: Record<number, PostDetail> = {
   1: {
     processingStatus: 'COMPLETED',
     title: '지금 가기 좋은 초록뷰 카페',
-    groupName: '카페',
-    groupColor: 'yellow',
+    groups: [{ id: 1, name: '카페', color: 'yellow' }],
     memo: '지우랑 가면 좋겠다',
     post: {
       id: '1',
@@ -37,8 +36,7 @@ const POSTS: Record<number, PostDetail> = {
   2: {
     processingStatus: 'COMPLETED',
     title: '몰래 가려고 저장해둔 서울 카페',
-    groupName: '카페',
-    groupColor: 'yellow',
+    groups: [{ id: 1, name: '카페', color: 'yellow' }],
     post: {
       id: '2',
       authorHandle: '@nook.official on instagram',
@@ -51,8 +49,7 @@ const POSTS: Record<number, PostDetail> = {
   3: {
     processingStatus: 'COMPLETED',
     title: '위치 태그 없이 올라온 카페 사진',
-    groupName: '카페',
-    groupColor: 'yellow',
+    groups: [{ id: 1, name: '카페', color: 'yellow' }],
     post: {
       id: '3',
       authorHandle: '@nook.official on instagram',

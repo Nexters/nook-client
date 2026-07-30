@@ -1,27 +1,17 @@
 import { useQueries } from '@tanstack/react-query';
-import { getDistanceKm, getMockPlaces } from '@/features/map/mock/places';
 import type { PlaceDetail as PlaceDetailModel, PlaceDetailPost } from '@/features/map/types';
-import { PlaceInfo, PlaceRow } from '@/features/place';
+import { PlaceInfo } from '@/features/place';
 import type { Post } from '@/features/post';
 import { SavedPostCard } from '@/features/post';
 import { fetchPostDetail } from '@/features/post/api';
 import { postQueryKeys } from '@/features/post/api/queries';
 import { Icon32StarOff, Icon32StarOn } from '@/shared/icons/NookIcons';
-import type { GroupColor } from '@/shared/ui';
 import { useUpdatePlaceBookmark } from '../api/queries';
-
-/** 상세 화면에 보여줄 연관 장소 최대 개수 (Figma 시안 기준 3개). */
-const MAX_RELATED_PLACES = 3;
 
 /** 대표 이미지가 없는 게시물 카드에 쓰는 회색 플레이스홀더(140x175, gray-20). */
 const SAVED_POST_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="140" height="175"><rect width="140" height="175" fill="#e4e6e9"/></svg>',
 )}`;
-
-// TODO(api): PlacePostResponse 에 그룹 정보(이름/색)와 원본 URL 이 아직 없다 — BE 에 필드
-// 추가 요청 예정. 그 전까지 그룹 태그는 게시물 상세(features/post/api)와 같은 고정 값으로
-// 채우고, 원본 링크 행은 값이 없어 렌더되지 않는다.
-const MOCK_GROUP: { name: string; color: GroupColor } = { name: '카페', color: 'yellow' };
 
 /**
  * 지점 정보/저장된 게시물/연관 장소 섹션 사이 구분선(Figma 14:1873).
@@ -36,11 +26,12 @@ function SectionDivider() {
  * 이 장소에 연결된 저장 게시물 — 목데이터 시절과 같은 `SavedPostCard` 를 그대로 쓴다.
  *
  * `PlacePostResponse`(장소 상세 응답)는 제목·작성자·대표 이미지 1장·메모까지만 준다 —
- * 본문 전체·이미지 전체·원본 링크는 없다. 그 값들은 이미 게시물 상세가 갖고 있으므로
+ * 본문 전체·이미지 전체·원본 링크·그룹은 없다. 그 값들은 이미 게시물 상세가 갖고 있으므로
  * (`GET /posts/{postId}`) postId 로 병렬 추가 조회해서 채운다. `postQueryKeys.detail` 을
  * 그대로 재사용해 게시물 상세 페이지와 캐시를 공유한다 — 여기서 한 번 로드해두면 그
  * 게시물 상세로 들어갔을 때 재요청 없이 바로 뜬다(반대 방향도 마찬가지).
- * 상세가 오기 전(또는 실패)엔 장소 상세 응답의 얇은 정보로 채운 카드를 우선 보여준다.
+ * 상세가 오기 전(또는 실패)엔 장소 상세 응답의 얇은 정보로 채운 카드를 우선 보여준다
+ * (그룹 태그는 상세가 올 때까지 비어 있다).
  */
 function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
   const postDetailQueries = useQueries({
@@ -67,57 +58,49 @@ function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
                 // 이미지는 대표 미디어 1장만 내려온다 — 없으면 회색 플레이스홀더로 채운다.
                 images: [placePost.thumbnail ?? SAVED_POST_IMAGE],
               };
-          return (
-            <SavedPostCard
-              key={placePost.id}
-              post={post}
-              groupName={MOCK_GROUP.name}
-              groupColor={MOCK_GROUP.color}
-            />
-          );
+          return <SavedPostCard key={placePost.id} post={post} groups={detail?.groups ?? []} />;
         })}
       </div>
     </>
   );
 }
 
-/**
- * "연관 장소" 섹션 — `GET /places/{placeId}` 가 아직 연관 장소를 내려주지 않아
- * (연관 게시물만 내려준다, 백엔드에 필드 추가 요청해둔 상태) 실제 데이터가 생기기
- * 전까지 목데이터로만 채운다. 그래서 실제 장소 id 체계와 무관해 클릭 동작이 없다.
- */
-function RelatedPlacesSection({ place }: { place: PlaceDetailModel }) {
-  const center = { lat: place.lat, lng: place.lng };
-  const relatedPlaces = getMockPlaces(center)
-    .map((candidate) => ({ place: candidate, distanceKm: getDistanceKm(center, candidate) }))
-    .sort((a, b) => a.distanceKm - b.distanceKm)
-    .slice(0, MAX_RELATED_PLACES);
-
-  if (relatedPlaces.length === 0) return null;
-
-  return (
-    <>
-      <SectionDivider />
-      <div className="flex w-full flex-col gap-4 mt-4">
-        <p className="text-b1 font-semibold text-gray-100">연관 장소</p>
-        <div className="flex flex-col gap-4">
-          {relatedPlaces.map(({ place: relatedPlace, distanceKm }) => (
-            <PlaceRow
-              key={relatedPlace.id}
-              place={{
-                id: relatedPlace.id,
-                name: relatedPlace.name,
-                category: relatedPlace.category,
-                distance: `${distanceKm}km`,
-                address: relatedPlace.address,
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
+// TODO(map): "연관 장소" 섹션은 잠시 숨긴다 — `GET /places/{placeId}`가 아직 연관 장소를
+// 내려주지 않아(연관 게시물만 내려준다) 전량 목데이터였다(실제 장소 id 체계와 무관해
+// 클릭 동작도 없었다). 백엔드에 필드 추가되면 아래 주석을 걷어내고 실제 데이터로 교체한다.
+//
+// function RelatedPlacesSection({ place }: { place: PlaceDetailModel }) {
+//   const center = { lat: place.lat, lng: place.lng };
+//   const relatedPlaces = getMockPlaces(center)
+//     .map((candidate) => ({ place: candidate, distanceKm: getDistanceKm(center, candidate) }))
+//     .sort((a, b) => a.distanceKm - b.distanceKm)
+//     .slice(0, MAX_RELATED_PLACES);
+//
+//   if (relatedPlaces.length === 0) return null;
+//
+//   return (
+//     <>
+//       <SectionDivider />
+//       <div className="flex w-full flex-col gap-4 mt-4">
+//         <p className="text-b1 font-semibold text-gray-100">연관 장소</p>
+//         <div className="flex flex-col gap-4">
+//           {relatedPlaces.map(({ place: relatedPlace, distanceKm }) => (
+//             <PlaceRow
+//               key={relatedPlace.id}
+//               place={{
+//                 id: relatedPlace.id,
+//                 name: relatedPlace.name,
+//                 category: relatedPlace.category,
+//                 distance: `${distanceKm}km`,
+//                 address: relatedPlace.address,
+//               }}
+//             />
+//           ))}
+//         </div>
+//       </div>
+//     </>
+//   );
+// }
 
 /**
  * 지도 핀 클릭 시 드로어에 보여줄 장소 상세.
@@ -162,7 +145,7 @@ export function PlaceDetail({ place, expanded }: { place: PlaceDetailModel; expa
           <PlaceInfo address={place.address} className="mb-4" />
 
           <SavedPostsSection posts={place.posts} />
-          <RelatedPlacesSection place={place} />
+          {/* TODO(map): 연관 장소 섹션 잠시 숨김 — 위 `RelatedPlacesSection` 주석 참고 */}
         </>
       )}
     </div>

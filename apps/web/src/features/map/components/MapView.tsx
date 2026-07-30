@@ -13,6 +13,8 @@ const DEFAULT_ZOOM = 18;
 export type MapViewHandle = {
   /** 지도를 초기 중심 좌표·줌으로 되돌린다(현재 위치 버튼용). */
   recenter: () => void;
+  /** 주어진 좌표가 지도 정중앙에 오도록 이동한다(핀 선택 시 사용). 줌은 바꾸지 않는다. */
+  panTo: (coords: Coordinates) => void;
 };
 
 /**
@@ -53,6 +55,11 @@ export function MapView({
         if (!map) return;
         map.setCenter(new navermaps.LatLng(center.lat, center.lng));
         map.setZoom(DEFAULT_ZOOM);
+      },
+      panTo: (coords) => {
+        const map = mapRef.current;
+        if (!map) return;
+        map.panTo(new navermaps.LatLng(coords.lat, coords.lng));
       },
     }),
     [navermaps, center.lat, center.lng],
