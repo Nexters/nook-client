@@ -1,7 +1,6 @@
 import { type ReactNode, useState } from 'react';
 import mySelected from '@/assets/icons/32_my_selected.svg';
 import myUnselected from '@/assets/icons/32_my_unselected.svg';
-import errorCharacter from '@/assets/images/44_error.svg';
 import logo from '@/assets/logo/header_logo.svg';
 import type { Group } from '@/features/group';
 import { CollectionCard, GroupCard, GroupCreateRow, GroupSelectRow } from '@/features/group';
@@ -22,6 +21,7 @@ import {
   Icon32MapSelected,
   Icon32MapUnselected,
   Icon40Location,
+  Icon44Error,
 } from '@/shared/icons/NookIcons';
 import type { BottomMenuItem, GroupColor } from '@/shared/ui';
 import {
@@ -528,7 +528,7 @@ export function UiComponentsPage() {
         <Row label="Toast — 밝은 배경, 아이콘 슬롯 + 액션">
           <div className="w-full max-w-[343px]">
             <Toast
-              icon={<IconImg src={errorCharacter} className="size-11" />}
+              icon={<Icon44Error />}
               action={
                 <Button size="sm" onClick={() => setLastAction('토스트 로그인')}>
                   로그인
