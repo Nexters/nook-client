@@ -622,6 +622,13 @@ export function UiComponentsPage() {
           <Thumbnail size="sm" src={SAMPLE_IMAGE} alt="샘플 장소 사진" />
           <Thumbnail size="sm" />
         </Row>
+        <Row label="size fluid — 칸 너비를 채운다(3열 그리드 예시)">
+          <div className="grid w-full grid-cols-3 gap-2">
+            <Thumbnail size="fluid" src={SAMPLE_IMAGE} alt="샘플 장소 사진" />
+            <Thumbnail size="fluid" src={SAMPLE_IMAGE} alt="샘플 장소 사진" />
+            <Thumbnail size="fluid" src={SAMPLE_IMAGE} alt="샘플 장소 사진" overflowCount={7} />
+          </div>
+        </Row>
       </Section>
 
       <Section title="Carousel (캐러셀)">

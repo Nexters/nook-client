@@ -21,6 +21,8 @@ const thumbnailVariants = cva(
         lg: 'size-[98px]',
         /** Thumbnail/60_img_x */
         sm: 'size-16',
+        /** 칸 너비를 채우는 정사각형 — 화면 폭에 따라 늘어나는 그리드용. */
+        fluid: 'aspect-square w-full',
       },
     },
     defaultVariants: {
