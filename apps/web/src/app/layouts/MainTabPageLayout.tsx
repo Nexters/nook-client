@@ -22,7 +22,7 @@ export function MainTabPageLayout({ children, variant = 'gray' }: MainTabPageLay
     >
       <Header
         variant={variant}
-        left={<img src={headerLogo} alt="nook" className="h-[22px] w-[50px]" />}
+        left={<img src={headerLogo} alt="nook" className="h-8 w-[84px]" />}
         className={cn(
           'z-10 shrink-0',
           overlay && 'pointer-events-none absolute inset-x-0 top-[env(safe-area-inset-top)]',
