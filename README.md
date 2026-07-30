@@ -93,9 +93,9 @@ env 파일은 **앱별로** 둔다. 루트에는 두지 않는다(Vite·Expo 모
 - `VITE_*` 는 번들에 인라인, `EXPO_PUBLIC_*` 는 앱 번들에 포함된다. **둘 다 공개값만** 넣는다.
 - 앱 식별자는 `APP_VARIANT` 로 갈린다 (`apps/mobile/app.config.ts`). 미설정·오타는 production 으로 떨어진다.
 
-| APP_VARIANT | 앱 ID | App Group |
-| --- | --- | --- |
-| `development` | `com.nook.app.dev` | `group.com.nook.app.dev` |
-| `production`(기본) | `com.nook.app` | `group.com.nook.app` |
+| APP_VARIANT | iOS App ID | Android App ID | App Group |
+| --- | --- | --- | --- |
+| `development` | `com.nook.app.dev` | `com.nook.app.dev` | `group.com.nook.app.dev` |
+| `production`(기본) | `kr.com.nook.app.dev` | `com.nook.app` | `group.kr.com.nook.app.dev` |
 
 variant 별로 ID 가 달라 개발 앱과 운영 앱을 한 기기에 함께 설치할 수 있다. EAS 빌드 프로필은 `apps/mobile/eas.json` 참고.

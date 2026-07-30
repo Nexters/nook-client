@@ -2,9 +2,14 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 type AppVariant = 'development' | 'production';
 
-const SUFFIX: Record<AppVariant, string> = {
-  development: '.dev',
-  production: '',
+const IOS_APP_ID: Record<AppVariant, string> = {
+  development: 'com.nook.app.dev',
+  production: 'kr.com.nook.app.dev',
+};
+
+const ANDROID_APP_ID: Record<AppVariant, string> = {
+  development: 'com.nook.app.dev',
+  production: 'com.nook.app',
 };
 
 // APP_VARIANT 미설정 시 production. 오타·누락으로 엉뚱한 식별자가 만들어지지 않게
@@ -20,8 +25,8 @@ const KOTLIN_VERSION = '2.1.20';
 export default ({ config }: ConfigContext): ExpoConfig => {
   const variant = resolveVariant();
   // dev 와 운영 앱을 같은 기기에 동시 설치할 수 있도록 식별자를 분리한다.
-  const appId = `com.nook.app${SUFFIX[variant]}`;
-  const sessionAccessGroup = `$(AppIdentifierPrefix)group.${appId}`;
+  const iosAppId = IOS_APP_ID[variant];
+  const sessionAccessGroup = `$(AppIdentifierPrefix)group.${iosAppId}`;
 
   const kakaoAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY;
   // 미설정이면 kakaoundefined:// 스킴이 조용히 생성되므로 여기서 끊는다.
@@ -41,7 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       ...config.ios,
       appleTeamId: process.env.APPLE_TEAM_ID,
-      bundleIdentifier: appId,
+      bundleIdentifier: iosAppId,
       infoPlist: {
         ...config.ios?.infoPlist,
         NSLocalNetworkUsageDescription: '개발용 로컬 웹 서버에 연결하기 위해 사용합니다.',
@@ -50,18 +55,18 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           '내 주변 장소를 지도에 표시하기 위해 위치 정보를 사용해요.',
         NookSessionAccessGroup: sessionAccessGroup,
         NookApiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
-        NookAppGroup: `group.${appId}`,
+        NookAppGroup: `group.${iosAppId}`,
       },
       entitlements: {
         ...config.ios?.entitlements,
         // 공유 확장 ↔ 본앱 데이터 전달 통로. 앱 식별자와 함께 움직여야 한다.
-        'com.apple.security.application-groups': [`group.${appId}`],
+        'com.apple.security.application-groups': [`group.${iosAppId}`],
         'keychain-access-groups': [sessionAccessGroup],
       },
     },
     android: {
       ...config.android,
-      package: appId,
+      package: ANDROID_APP_ID[variant],
       // WebView geolocationEnabled 로 navigator.geolocation 을 쓰려면 필요하다.
       permissions: [
         ...(config.android?.permissions ?? []),
