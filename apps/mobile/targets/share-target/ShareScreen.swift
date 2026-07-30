@@ -9,7 +9,7 @@ private let dismissDuration: TimeInterval = 0.22
 struct ShareScreen: View {
     let groups: [Group]
     let onSave: (Set<Int64>, String, @escaping (Bool) -> Void) -> Void
-    let onCreateGroup: (String, Int) -> Void
+    let onCreateGroup: (String, Int, @escaping (Bool) -> Void) -> Void
     let onDismiss: () -> Void
 
     @StateObject private var keyboard = KeyboardMonitor()
@@ -128,11 +128,12 @@ private struct SelectGroupContent: View {
 
 private struct CreateGroupContent: View {
     let panelFraction: CGFloat
-    let onCreateGroup: (String, Int) -> Void
+    let onCreateGroup: (String, Int, @escaping (Bool) -> Void) -> Void
     let onBack: () -> Void
 
     @State private var name: String = ""
     @State private var selectedColor: Int = -1
+    @State private var isCreating = false
     @FocusState private var nameFocused: Bool
 
     var body: some View {
@@ -140,7 +141,7 @@ private struct CreateGroupContent: View {
 
         Spacer().frame(height: 20)
 
-        InputField(text: $name, placeholder: "새 그룹명을 입력해주세요", focused: $nameFocused)
+        InputField(text: $name, placeholder: "새 그룹명을 입력해주세요", focused: $nameFocused, maxLength: 20)
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
             .onAppear { nameFocused = false }
@@ -151,9 +152,13 @@ private struct CreateGroupContent: View {
             SheetButton(
                 text: "그룹 만들기",
                 primary: true,
-                enabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedColor >= 0
+                enabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedColor >= 0 && !isCreating
             ) {
-                onCreateGroup(name, selectedColor)
+                guard !isCreating else { return }
+                isCreating = true
+                onCreateGroup(name, selectedColor) { succeeded in
+                    if !succeeded { isCreating = false }
+                }
             }
             .padding(16)
         }

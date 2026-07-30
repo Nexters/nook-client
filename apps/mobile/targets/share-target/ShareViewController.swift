@@ -98,8 +98,17 @@ class ShareViewController: UIViewController {
                 }
                 self.savePost(groups: groups, memo: memo, finishSaving: finishSaving)
             },
-            onCreateGroup: { [weak self] name, colorIndex in
-                self?.createGroup(name: name, colorIndex: colorIndex, existingGroups: groups)
+            onCreateGroup: { [weak self] name, colorIndex, finishCreating in
+                guard let self else {
+                    finishCreating(false)
+                    return
+                }
+                self.createGroup(
+                    name: name,
+                    colorIndex: colorIndex,
+                    existingGroups: groups,
+                    finishCreating: finishCreating
+                )
             },
             onDismiss: { [weak self] in self?.complete() }
         )
@@ -146,15 +155,22 @@ class ShareViewController: UIViewController {
     }
 
     @MainActor
-    private func createGroup(name: String, colorIndex: Int, existingGroups: [Group]) {
+    private func createGroup(
+        name: String,
+        colorIndex: Int,
+        existingGroups: [Group],
+        finishCreating: ((Bool) -> Void)? = nil
+    ) {
         Task { [weak self] in
             guard let self else { return }
             do {
                 guard let api = self.api else { throw ShareApiError.configuration }
                 let created = try await api.createGroup(name: name, colorIndex: colorIndex)
+                finishCreating?(true)
                 self.replaceScreen(groups: existingGroups + [created])
             } catch {
                 shareLogger.error("그룹 생성 실패: \(String(describing: error), privacy: .public)")
+                finishCreating?(false)
                 self.handleFailure(error) { [weak self] in
                     self?.createGroup(name: name, colorIndex: colorIndex, existingGroups: existingGroups)
                 }

@@ -126,9 +126,10 @@ fun ShareScreen(
                 if (showCreate) {
                     CreateGroupContent(
                         panelFraction,
-                        onCreateGroup = { name, colorIndex ->
+                        onCreateGroup = { name, colorIndex, onResult ->
                             onCreateGroup(name, colorIndex) { created ->
                                 if (created) showCreate = false
+                                onResult(created)
                             }
                         },
                         onBack = { showCreate = false },
@@ -316,11 +317,12 @@ private fun SelectGroupContent(
 @Composable
 private fun CreateGroupContent(
     panelFraction: Float,
-    onCreateGroup: (String, Int) -> Unit,
+    onCreateGroup: (String, Int, (Boolean) -> Unit) -> Unit,
     onBack: () -> Unit,
 ) {
     var newGroupName by remember { mutableStateOf("") }
     var selectedColor by remember { mutableStateOf(-1) }
+    var isCreating by remember { mutableStateOf(false) }
 
     CreateGroupHeader(onBack)
 
@@ -330,6 +332,7 @@ private fun CreateGroupContent(
         value = newGroupName,
         onChange = { newGroupName = it },
         placeholder = "새 그룹명을 입력해주세요",
+        maxLength = 20,
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 16.dp, end = 16.dp)
@@ -349,9 +352,14 @@ private fun CreateGroupContent(
                 "그룹 만들기",
                 primary = true,
                 modifier = Modifier.weight(1f),
-                enabled = newGroupName.isNotBlank() && selectedColor >= 0,
+                enabled = newGroupName.isNotBlank() && selectedColor >= 0 && !isCreating,
             ) {
-                onCreateGroup(newGroupName, selectedColor)
+                if (!isCreating) {
+                    isCreating = true
+                    onCreateGroup(newGroupName, selectedColor) { succeeded ->
+                        if (!succeeded) isCreating = false
+                    }
+                }
             }
         }
     }
