@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import type { PlaceParsingResult, PostDetail } from '@/features/post/types';
@@ -22,8 +22,7 @@ const POSTS: Record<number, PostDetail> = {
   1: {
     processingStatus: 'COMPLETED',
     title: '지금 가기 좋은 초록뷰 카페',
-    groupName: '카페',
-    groupColor: 'yellow',
+    groups: [{ id: 1, name: '카페', color: 'yellow' }],
     memo: '지우랑 가면 좋겠다',
     post: {
       id: '1',
@@ -37,8 +36,7 @@ const POSTS: Record<number, PostDetail> = {
   2: {
     processingStatus: 'COMPLETED',
     title: '몰래 가려고 저장해둔 서울 카페',
-    groupName: '카페',
-    groupColor: 'yellow',
+    groups: [{ id: 1, name: '카페', color: 'yellow' }],
     post: {
       id: '2',
       authorHandle: '@nook.official on instagram',
@@ -51,8 +49,7 @@ const POSTS: Record<number, PostDetail> = {
   3: {
     processingStatus: 'COMPLETED',
     title: '위치 태그 없이 올라온 카페 사진',
-    groupName: '카페',
-    groupColor: 'yellow',
+    groups: [{ id: 1, name: '카페', color: 'yellow' }],
     post: {
       id: '3',
       authorHandle: '@nook.official on instagram',
@@ -114,6 +111,12 @@ const PLACE_PARSING: Record<number, PlaceParsingResult> = {
   },
 };
 
+/** 연관 장소 클릭 시 실제로 어디로 이동했는지 확인하기 위한 `/map` 자리의 더미 화면. */
+function MapRouteProbe() {
+  const location = useLocation();
+  return <p data-testid="map-route-probe">{location.pathname + location.search}</p>;
+}
+
 function renderRoute(initialPath: string) {
   // 전역 queryClient(retry: 1) 대신 재시도 없는 클라이언트 — 에러 케이스 테스트가 느려지지 않게.
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -123,6 +126,7 @@ function renderRoute(initialPath: string) {
         <MemoryRouter initialEntries={[initialPath]}>
           <Routes>
             <Route path="/post/:postId" element={<PostDetailPage />} />
+            <Route path="/map" element={<MapRouteProbe />} />
           </Routes>
         </MemoryRouter>
       </BottomMenuVisibilityProvider>
@@ -138,6 +142,10 @@ async function renderPost(postId: number) {
 }
 
 describe('게시물 상세', () => {
+  // "연관 장소" 섹션 자체는 그대로 보이고, 그 안의 "찾는 장소가 없으신가요? 직접 추가"
+  // 배너만 잠시 숨겨져 있다(RelatedPlacesSection.tsx 의 SHOW_DIRECT_ADD_BANNER TODO
+  // 참고). 그 배너가 있어야만 가능한 상호작용을 검증하던 아래 it.skip 들은 플래그가
+  // 다시 켜지면 함께 되살린다.
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.fetchPostDetail.mockImplementation((postId: number) => Promise.resolve(POSTS[postId]));
@@ -190,19 +198,21 @@ describe('게시물 상세', () => {
     expect(screen.getByText('아이소')).toBeInTheDocument();
   });
 
-  it('매칭된 장소가 없으면 목록 없이 직접 추가 배너만 보여준다', async () => {
+  it('매칭된 장소가 없으면 섹션은 보이되 목록도 직접 추가 배너도 없다', async () => {
     await renderPost(2);
 
     expect(screen.getByRole('heading', { name: '연관 장소' })).toBeInTheDocument();
     expect(screen.queryByText('아이소')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /직접 추가/ })).toBeInTheDocument();
+    // "직접 추가" 배너는 잠시 숨겨져 있다(RelatedPlacesSection.tsx SHOW_DIRECT_ADD_BANNER).
+    expect(screen.queryByRole('button', { name: /직접 추가/ })).not.toBeInTheDocument();
   });
 
   it('연관 장소 파싱이 실패하면 에러 스낵바를 보여준다', async () => {
     await renderPost(3);
 
     expect(screen.getByRole('heading', { name: '연관 장소' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /직접 추가/ })).toBeInTheDocument();
+    // "직접 추가" 배너는 잠시 숨겨져 있어 검증하지 않는다 — 이 스낵바는 그 배너와
+    // 무관하게 PostDetailPage 가 독립적으로 띄운다.
     expect(screen.getByText('위치를 찾지 못 했어요')).toBeInTheDocument();
   });
 
@@ -243,6 +253,14 @@ describe('게시물 상세', () => {
     await waitFor(() => expect(unsaved).toHaveAttribute('aria-pressed', 'true'));
   });
 
+  it('연관 장소를 누르면 지도의 선택된 장소 뷰로 이동한다', async () => {
+    await renderPost(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /아이소 카페/ }));
+
+    expect(await screen.findByTestId('map-route-probe')).toHaveTextContent('/map?placeId=101');
+  });
+
   it('본문은 접혀 있고 더보기로 펼친다', async () => {
     await renderPost(1);
 
@@ -262,7 +280,7 @@ describe('게시물 상세', () => {
     await waitFor(() => expect(mocks.updatePostMemo).toHaveBeenCalledWith(1, '다음엔 지우랑'));
   });
 
-  it('직접 추가 배너를 누르면 장소 검색 드로어가 열린다', async () => {
+  it.skip('직접 추가 배너를 누르면 장소 검색 드로어가 열린다', async () => {
     await renderPost(1);
 
     fireEvent.click(screen.getByRole('button', { name: /직접 추가/ }));
@@ -270,7 +288,7 @@ describe('게시물 상세', () => {
     expect(screen.getByPlaceholderText('장소명을 입력해주세요')).toBeInTheDocument();
   });
 
-  it('드로어에 검색어를 입력하면 이름이 일치하는 장소 목록이 뜬다', async () => {
+  it.skip('드로어에 검색어를 입력하면 이름이 일치하는 장소 목록이 뜬다', async () => {
     await renderPost(1);
 
     fireEvent.click(screen.getByRole('button', { name: /직접 추가/ }));
@@ -281,7 +299,7 @@ describe('게시물 상세', () => {
     expect(screen.getByText('앤미용실')).toBeInTheDocument();
   });
 
-  it('검색 결과에서 장소를 확정하면 연관 장소에 연결되고 드로어가 닫힌다', async () => {
+  it.skip('검색 결과에서 장소를 확정하면 연관 장소에 연결되고 드로어가 닫힌다', async () => {
     await renderPost(3); // 파싱 실패 케이스 — 직접 추가가 실제로 필요한 시나리오
 
     fireEvent.click(screen.getByRole('button', { name: /직접 추가/ }));

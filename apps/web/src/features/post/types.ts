@@ -27,16 +27,23 @@ export interface Post {
  */
 export type PostProcessingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
+/** 게시물이 속한 그룹 하나 — `SavedPostGroupResponse`를 옮긴 형태. */
+export interface PostGroup {
+  id: number;
+  name: string;
+  color: GroupColor;
+}
+
 /**
  * 게시물 상세가 한 화면에 필요로 하는 묶음 — 게시물 + 저장된 그룹.
  * `features/post/api` 가 서버 응답(`SavedPostDetailResponse`)을 이 형태로 변환해 넘긴다.
+ * 게시물이 여러 그룹에 저장될 수 있어 `groups`는 배열이다.
  */
 export interface PostDetail {
   post: Post;
   processingStatus: PostProcessingStatus;
   title: string;
-  groupName: string;
-  groupColor: GroupColor;
+  groups: PostGroup[];
   memo?: string;
 }
 

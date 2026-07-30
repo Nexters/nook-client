@@ -2,7 +2,7 @@ import { type ReactNode, useState } from 'react';
 import mySelected from '@/assets/icons/32_my_selected.svg';
 import myUnselected from '@/assets/icons/32_my_unselected.svg';
 import errorCharacter from '@/assets/images/44_error.svg';
-import logo from '@/assets/logo/Vector.svg';
+import logo from '@/assets/logo/header_logo.svg';
 import type { Group } from '@/features/group';
 import { CollectionCard, GroupCard, GroupCreateRow, GroupSelectRow } from '@/features/group';
 import { MyMenuRow, MyMenuSection } from '@/features/my';
@@ -73,9 +73,9 @@ function IconImg({ src, className = 'size-6' }: { src: string; className?: strin
   return <img src={src} alt="" className={className} />;
 }
 
-/** 시안 `Header/54` 의 50x22 로고 */
+/** 시안 `Header/54` (94:3986) 의 84x32 로고 */
 function LogoMark() {
-  return <img src={logo} alt="nook" className="h-[22px] w-[50px]" />;
+  return <img src={logo} alt="nook" className="h-8 w-[84px]" />;
 }
 
 // ── 페이지 내부 레이아웃 헬퍼 (공용 컴포넌트 아님, 이 페이지 전용) ──
@@ -809,7 +809,7 @@ export function UiComponentsPage() {
 
       <Section title="post — SavedPostCard (저장된 게시물)">
         <div className="mx-auto w-full max-w-[375px] rounded-lg border border-gray-20">
-          <SavedPostCard post={MOCK_POST} groupName="밥집" groupColor="purple" />
+          <SavedPostCard post={MOCK_POST} groups={[{ id: 1, name: '밥집', color: 'purple' }]} />
         </div>
         <p className="text-b3 text-gray-50">
           이미지 줄은 공용 Carousel(scroll-snap)이고, 본문은 2줄로 접힙니다. "더보기"로 펼칩니다.
@@ -833,21 +833,21 @@ export function UiComponentsPage() {
         <Row label="PostInfo — 게시물 정보 (메모 O / 메모 X)">
           <div className="flex w-full max-w-[343px] flex-col gap-4">
             <PostInfo
-              groupName="카페"
-              groupColor="yellow"
+              groups={[{ id: 1, name: '카페', color: 'yellow' }]}
               memo="지우랑 가면 좋겠다"
               onMemoChange={(next) => setLastAction(`게시물 메모: ${next}`)}
             />
             <PostInfo
-              groupName="밥집"
-              groupColor="purple"
+              groups={[
+                { id: 1, name: '밥집', color: 'purple' },
+                { id: 2, name: '카페', color: 'yellow' },
+              ]}
               memo={postMemo}
               onMemoChange={setPostMemo}
             />
             {/* onMemoEdit — 인라인 편집 대신 외부 편집기(게시물 상세의 메모 시트)를 여는 형태 */}
             <PostInfo
-              groupName="카페"
-              groupColor="yellow"
+              groups={[{ id: 1, name: '카페', color: 'yellow' }]}
               memo="지우랑 가면 좋겠다"
               onMemoEdit={() => setLastAction('메모 편집 시트 열기')}
             />
