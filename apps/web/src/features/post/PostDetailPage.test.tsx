@@ -137,7 +137,9 @@ function renderRoute(initialPath: string) {
 async function renderPost(postId: number) {
   renderRoute(`/post/${postId}`);
   // 게시물 상세와 연관 장소 모두 별도 API 로 비동기 로드된다 — 둘 다 정착할 때까지 기다린다.
-  await waitFor(() => expect(screen.queryByText('불러오는 중…')).not.toBeInTheDocument());
+  await waitFor(() =>
+    expect(screen.queryByRole('status', { name: '게시물 불러오는 중' })).not.toBeInTheDocument(),
+  );
   await waitFor(() => expect(screen.queryByText('연관 장소를 찾는 중…')).not.toBeInTheDocument());
 }
 
@@ -165,9 +167,11 @@ describe('게시물 상세', () => {
     );
     renderRoute('/post/1');
 
-    expect(screen.getByText('불러오는 중…')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: '게시물 불러오는 중' })).toBeInTheDocument();
 
-    await waitFor(() => expect(screen.queryByText('불러오는 중…')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole('status', { name: '게시물 불러오는 중' })).not.toBeInTheDocument(),
+    );
     expect(screen.getByRole('heading', { name: '지금 가기 좋은 초록뷰 카페' })).toBeInTheDocument();
   });
 

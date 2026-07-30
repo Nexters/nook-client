@@ -13,6 +13,7 @@ import {
 import { MemoSheet } from './components/MemoSheet';
 import { OriginalPostLink } from './components/OriginalPostLink';
 import { PlaceDirectInputDrawer } from './components/PlaceDirectInputDrawer';
+import { PostDetailLoadingView } from './components/PostDetailLoadingView';
 import { PostImageViewer } from './components/PostImageViewer';
 import { PostInfo } from './components/PostInfo';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
@@ -101,9 +102,13 @@ export function PostDetailPage() {
     return (
       <main className="min-h-dvh bg-gray-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <Header left={<BackButton />} />
-        <p className="px-4 pt-20 text-center text-b2 font-medium text-gray-60">
-          {postDetailState.status === 'loading' ? '불러오는 중…' : '게시물을 찾을 수 없어요'}
-        </p>
+        {postDetailState.status === 'loading' ? (
+          <PostDetailLoadingView />
+        ) : (
+          <p className="px-4 pt-20 text-center text-b2 font-medium text-gray-60">
+            게시물을 찾을 수 없어요
+          </p>
+        )}
       </main>
     );
   }
