@@ -58,6 +58,19 @@ export function MapPage() {
   const recentPlacesQuery = useRecentPlaces();
   const placeDetailQuery = usePlaceDetail(selectedPlaceId);
 
+  // 선택된 장소의 핀은 bbox 조회를 기다리지 않고 상세 응답으로 바로 그린다.
+  // bbox 조회(/places/map)는 (1) 초기엔 현재 위치 기준이라 멀리 있는 선택 장소가
+  // 빠져 있고, (2) 팬이 끝나 idle 이 발화해야 재조회되며, (3) 애초에 북마크된
+  // 장소만 내려줘서 북마크 안 된 연관 장소는 영영 안 내려온다 — 선택돼 있는 동안은
+  // 상세 응답의 좌표로 핀을 보장한다. 지도 이동(panTarget)과 같은 데이터 소스라
+  // 핀과 이동이 항상 같이 일어난다.
+  const bboxPins = pinsQuery.data ?? [];
+  const selectedPlace = selectedPlaceId !== null ? (placeDetailQuery.data ?? null) : null;
+  const pins =
+    selectedPlace && !bboxPins.some((pin) => pin.id === selectedPlace.id)
+      ? [...bboxPins, { id: selectedPlace.id, lat: selectedPlace.lat, lng: selectedPlace.lng }]
+      : bboxPins;
+
   useEffect(() => {
     setBottomMenuHidden(selectedPlaceId !== null);
     return () => setBottomMenuHidden(false);
@@ -69,21 +82,6 @@ export function MapPage() {
   useEffect(() => {
     if (initialPlaceId !== null) setSearchParams({}, { replace: true });
   }, []);
-
-  // 장소가 선택되면(핀 클릭·연관 장소 클릭 등) 상세 응답의 좌표로 지도를 재센터링해
-  // 선택된 장소가 항상 지도 정가운데 오도록 한다. 상세 응답이 오기 전엔 좌표를 몰라
-  // 기다렸다가 이동한다.
-  //
-  // `location.status`도 의존성에 넣어야 한다 — `MapView`는 위치 확인이 끝나기 전엔
-  // 아예 마운트되지 않는데(아래 loading 분기), 장소 상세가 위치보다 먼저 응답하면
-  // (딥링크로 들어온 경우 특히 그렇다) `mapRef.current`가 아직 null이라 이 effect가
-  // 아무 일도 못 하고 끝나버린다. 그러면 이후 지도가 마운트돼도 placeDetailQuery.data
-  // 는 이미 같은 값이라 effect가 다시 실행되지 않는다 — 위치가 resolved 로 바뀌는
-  // 순간을 트리거로 한 번 더 태워서 그 경우를 잡는다.
-  useEffect(() => {
-    if (location.status === 'loading' || !placeDetailQuery.data) return;
-    mapRef.current?.panTo({ lat: placeDetailQuery.data.lat, lng: placeDetailQuery.data.lng });
-  }, [location.status, placeDetailQuery.data]);
 
   if (location.status === 'loading') {
     return (
@@ -110,10 +108,14 @@ export function MapPage() {
     <div className="relative h-dvh w-full overflow-hidden">
       <MapView
         ref={mapRef}
-        pins={pinsQuery.data ?? []}
+        pins={pins}
         currentLocation={location.coords}
         initialCenter={location.coords ?? undefined}
         selectedPlaceId={selectedPlaceId}
+        // 선택 장소로의 이동은 명령이 아니라 선언 — 상세 응답의 좌표를 그대로 내려주면
+        // 지도가 늦게 마운트되든(스크립트 Suspense) 상세가 늦게 오든 MapView 가 알아서
+        // 준비되는 시점에 이동한다. 선택이 풀리면 undefined 가 되어 이동하지 않는다.
+        panTarget={selectedPlace ? { lat: selectedPlace.lat, lng: selectedPlace.lng } : undefined}
         onPlaceClick={handlePlaceClick}
         onBoundsChanged={setBounds}
       />

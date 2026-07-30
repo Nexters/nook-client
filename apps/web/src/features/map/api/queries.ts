@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { MapBounds } from '../types';
 import { fetchMapPins, fetchPlaceDetail, fetchRecentPlaces, updatePlaceBookmark } from '.';
 
@@ -14,6 +14,10 @@ export function useMapPins(bounds: MapBounds) {
   return useQuery({
     queryKey: mapQueryKeys.pins(bounds),
     queryFn: () => fetchMapPins(bounds),
+    // bbox 가 바뀔 때마다 쿼리 키가 통째로 바뀐다 — placeholder 없이는 새 응답이 올
+    // 때까지 data 가 undefined 로 떨어져, 팬/줌 때마다 화면의 핀이 전부 사라졌다가
+    // 다시 찍힌다. 직전 bbox 의 핀을 유지해 그 깜빡임을 없앤다.
+    placeholderData: keepPreviousData,
   });
 }
 
