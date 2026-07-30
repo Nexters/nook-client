@@ -4,15 +4,18 @@ import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import type { Place } from '@/features/place';
 import { cn } from '@/shared/lib/utils';
 import { BackButton, Carousel, Header, Snackbar } from '@/shared/ui';
+import {
+  usePostDetail,
+  useRelatedPlaces,
+  useUpdatePlaceBookmark,
+  useUpdatePostMemo,
+} from './api/queries';
 import { MemoSheet } from './components/MemoSheet';
 import { OriginalPostLink } from './components/OriginalPostLink';
 import { PlaceDirectInputDrawer } from './components/PlaceDirectInputDrawer';
 import { PostImageViewer } from './components/PostImageViewer';
 import { PostInfo } from './components/PostInfo';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
-import { useRelatedPlaces } from './hooks/useRelatedPlaces';
-// TODO(api): 게시물 상세 API 연동 시 목데이터 대신 TanStack Query 훅으로 교체한다.
-import { getMockPostDetail } from './mock/posts';
 
 /**
  * Figma `그룹 > 게시물 상세` (연관 장소 O / X, 메모 최대글자수, 이미지 확대 뷰)
@@ -22,12 +25,13 @@ import { getMockPostDetail } from './mock/posts';
  * 열림 상태를 여기서 소유한다.
  */
 export function PostDetailPage() {
-  const { postId } = useParams();
+  // 라우트 파라미터는 항상 string, 서버는 number — 경계 변환은 여기 한 곳에서만 한다.
+  const { postId: postIdParam } = useParams();
+  const postId = postIdParam ? Number(postIdParam) : undefined;
   useHideBottomMenu();
 
-  const detail = getMockPostDetail(postId);
-  // TODO(api): 메모 저장은 PATCH 후 서버 값을 따르게 바꾼다. 지금은 화면 상태만 갱신한다.
-  const [memo, setMemo] = useState(detail?.memo ?? '');
+  const postDetailState = usePostDetail(postId);
+  const updateMemoMutation = useUpdatePostMemo(postId);
   const [memoOpen, setMemoOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -35,15 +39,23 @@ export function PostDetailPage() {
   const [directInputOpen, setDirectInputOpen] = useState(false);
   const [showRelatedPlacesErrorToast, setShowRelatedPlacesErrorToast] = useState(false);
 
-  // TODO(api): 즐겨찾기 토글은 북마크 API 연동 후 서버 상태를 따르게 바꾼다.
-  // 파싱 응답의 bookmarked 초기값 위에 사용자가 토글한 값만 덮어쓴다.
-  const [bookmarkOverrides, setBookmarkOverrides] = useState<Record<string, boolean>>({});
-
-  const toggleBookmark = (placeId: string, next: boolean) =>
-    setBookmarkOverrides((prev) => ({ ...prev, [placeId]: next }));
-
   // "직접 추가"로 확정한 장소 — 파싱 상태와 무관하게 항상 연관 장소에 보여준다.
   const [manualPlaces, setManualPlaces] = useState<Place[]>([]);
+
+  // 직접 추가한 장소 전용 로컬 북마크 상태. 파싱된 장소는 서버 상태
+  // (`bookmarkedPlaceIds` + 토글 시 북마크 API)를 따르지만, 직접 추가 장소는 아직
+  // 서버에 연결(connectPlace)되지 않은 목 검색 결과라(id 가 'search-1' 등 가짜) 북마크
+  // API 를 부를 수 없다 — TODO(api): 장소 직접 연결 연동 때 이 상태도 함께 걷어낸다.
+  const [bookmarkOverrides, setBookmarkOverrides] = useState<Record<string, boolean>>({});
+  const updateBookmarkMutation = useUpdatePlaceBookmark(postId);
+
+  const toggleBookmark = (placeId: string, next: boolean) => {
+    if (manualPlaces.some((place) => place.id === placeId)) {
+      setBookmarkOverrides((prev) => ({ ...prev, [placeId]: next }));
+      return;
+    }
+    updateBookmarkMutation.mutate({ placeId: Number(placeId), bookmarked: next });
+  };
 
   function handlePlaceConfirmed(place: Place) {
     // TODO(api): 장소 연결은 실제로는 서버에 저장해야 한다. 지금은 화면 상태(manualPlaces)만 갱신해 새로고침/재방문 시 사라진다.
@@ -76,18 +88,18 @@ export function PostDetailPage() {
     return () => clearTimeout(timer);
   }, [relatedPlacesState.status]);
 
-  if (!detail) {
+  if (postDetailState.status !== 'success') {
     return (
       <main className="min-h-dvh bg-gray-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <Header left={<BackButton />} />
         <p className="px-4 pt-20 text-center text-b2 font-medium text-gray-60">
-          게시물을 찾을 수 없어요
+          {postDetailState.status === 'loading' ? '불러오는 중…' : '게시물을 찾을 수 없어요'}
         </p>
       </main>
     );
   }
 
-  const { post, title, groupName, groupColor } = detail;
+  const { post, title, groupName, groupColor, memo } = postDetailState.detail;
   const images = post.images ?? [];
 
   return (
@@ -170,7 +182,12 @@ export function PostDetailPage() {
         />
       </div>
 
-      <MemoSheet open={memoOpen} onOpenChange={setMemoOpen} memo={memo} onSave={setMemo} />
+      <MemoSheet
+        open={memoOpen}
+        onOpenChange={setMemoOpen}
+        memo={memo}
+        onSave={(next) => updateMemoMutation.mutate(next)}
+      />
 
       {viewerOpen ? <PostImageViewer images={images} onClose={() => setViewerOpen(false)} /> : null}
 

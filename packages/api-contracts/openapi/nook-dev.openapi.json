@@ -19,6 +19,43 @@
           }
         }
       },
+      "ApiResponseConnectedPlaceResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ConnectedPlaceResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
       "ApiResponseGroupPostPageResponse": {
         "description": "공통 API 응답",
         "properties": {
@@ -130,6 +167,43 @@
         ],
         "type": "object"
       },
+      "ApiResponseListMapPlaceResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "description": "성공 응답 본문",
+            "items": {
+              "$ref": "#/components/schemas/MapPlaceResponse"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
       "ApiResponsePlaceDetailResponse": {
         "description": "공통 API 응답",
         "properties": {
@@ -155,6 +229,43 @@
             "oneOf": [
               {
                 "$ref": "#/components/schemas/PlaceDetailResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
+      "ApiResponsePlaceSearchSliceResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlaceSearchSliceResponse"
               },
               {
                 "type": "null"
@@ -229,6 +340,43 @@
             "oneOf": [
               {
                 "$ref": "#/components/schemas/PostResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
+      "ApiResponseRecentPlaceSliceResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RecentPlaceSliceResponse"
               },
               {
                 "type": "null"
@@ -417,6 +565,33 @@
         },
         "required": [
           "resultType"
+        ],
+        "type": "object"
+      },
+      "ConnectedPlaceResponse": {
+        "properties": {
+          "placeId": {
+            "description": "연결된 장소 식별자",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "placeId"
+        ],
+        "type": "object"
+      },
+      "ConnectPostPlaceRequest": {
+        "properties": {
+          "selectionToken": {
+            "description": "장소 검색 응답에서 받은 만료형 선택 토큰",
+            "maxLength": 4096,
+            "minLength": 0,
+            "type": "string"
+          }
+        },
+        "required": [
+          "selectionToken"
         ],
         "type": "object"
       },
@@ -644,6 +819,29 @@
           "id",
           "name",
           "postCount"
+        ],
+        "type": "object"
+      },
+      "MapPlaceResponse": {
+        "properties": {
+          "id": {
+            "description": "장소 식별자",
+            "format": "int64",
+            "type": "integer"
+          },
+          "latitude": {
+            "description": "장소 위도",
+            "type": "number"
+          },
+          "longitude": {
+            "description": "장소 경도",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "latitude",
+          "longitude"
         ],
         "type": "object"
       },
@@ -887,6 +1085,85 @@
         ],
         "type": "object"
       },
+      "PlaceSearchResponse": {
+        "properties": {
+          "address": {
+            "description": "장소 주소",
+            "type": "string"
+          },
+          "category": {
+            "description": "장소 카테고리",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "distanceMeters": {
+            "description": "검색 기준 좌표와의 거리(m)",
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "latitude": {
+            "description": "장소 위도",
+            "type": "number"
+          },
+          "longitude": {
+            "description": "장소 경도",
+            "type": "number"
+          },
+          "name": {
+            "description": "장소명",
+            "type": "string"
+          },
+          "selectionToken": {
+            "description": "게시물 연결 시 사용할 만료형 장소 선택 토큰",
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "latitude",
+          "longitude",
+          "name",
+          "selectionToken"
+        ],
+        "type": "object"
+      },
+      "PlaceSearchSliceResponse": {
+        "properties": {
+          "hasNext": {
+            "description": "다음 페이지 존재 여부",
+            "type": "boolean"
+          },
+          "items": {
+            "description": "장소 검색 결과",
+            "items": {
+              "$ref": "#/components/schemas/PlaceSearchResponse"
+            },
+            "type": "array"
+          },
+          "page": {
+            "description": "현재 페이지 번호. 0부터 시작",
+            "format": "int32",
+            "type": "integer"
+          },
+          "size": {
+            "description": "페이지당 장소 수",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hasNext",
+          "items",
+          "page",
+          "size"
+        ],
+        "type": "object"
+      },
       "PostPlaceParsingResponse": {
         "properties": {
           "failureReason": {
@@ -971,6 +1248,80 @@
           "placeParsingStatus",
           "postId",
           "processingStatus"
+        ],
+        "type": "object"
+      },
+      "RecentPlaceResponse": {
+        "properties": {
+          "address": {
+            "description": "장소 주소",
+            "type": "string"
+          },
+          "category": {
+            "description": "장소 카테고리",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "description": "장소 식별자",
+            "format": "int64",
+            "type": "integer"
+          },
+          "latitude": {
+            "description": "장소 위도",
+            "type": "number"
+          },
+          "longitude": {
+            "description": "장소 경도",
+            "type": "number"
+          },
+          "name": {
+            "description": "장소명",
+            "type": "string"
+          },
+          "thumbnailUrl": {
+            "description": "최근 연관 저장 게시물 대표 이미지 URL",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "id",
+          "latitude",
+          "longitude",
+          "name"
+        ],
+        "type": "object"
+      },
+      "RecentPlaceSliceResponse": {
+        "properties": {
+          "hasNext": {
+            "description": "다음 목록 존재 여부",
+            "type": "boolean"
+          },
+          "items": {
+            "description": "최근 저장 공간 목록",
+            "items": {
+              "$ref": "#/components/schemas/RecentPlaceResponse"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "description": "다음 목록 조회 cursor",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "hasNext",
+          "items"
         ],
         "type": "object"
       },
@@ -1922,6 +2273,198 @@
         ]
       }
     },
+    "/api/v1/places/map": {
+      "get": {
+        "operationId": "getMapPlaces",
+        "parameters": [
+          {
+            "description": "지도 북쪽 경계 위도",
+            "in": "query",
+            "name": "northLatitude",
+            "required": true,
+            "schema": {
+              "maximum": 90,
+              "minimum": -90,
+              "type": "number"
+            }
+          },
+          {
+            "description": "지도 서쪽 경계 경도",
+            "in": "query",
+            "name": "westLongitude",
+            "required": true,
+            "schema": {
+              "maximum": 180,
+              "minimum": -180,
+              "type": "number"
+            }
+          },
+          {
+            "description": "지도 남쪽 경계 위도",
+            "in": "query",
+            "name": "southLatitude",
+            "required": true,
+            "schema": {
+              "maximum": 90,
+              "minimum": -90,
+              "type": "number"
+            }
+          },
+          {
+            "description": "지도 동쪽 경계 경도",
+            "in": "query",
+            "name": "eastLongitude",
+            "required": true,
+            "schema": {
+              "maximum": 180,
+              "minimum": -180,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListMapPlaceResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "지도 영역의 북마크 장소 조회",
+        "tags": [
+          "Place"
+        ]
+      }
+    },
+    "/api/v1/places/recent": {
+      "get": {
+        "operationId": "getRecentPlaces",
+        "parameters": [
+          {
+            "description": "다음 목록 조회 cursor",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "조회할 공간 수",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRecentPlaceSliceResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "최근 저장 공간 조회",
+        "tags": [
+          "Place"
+        ]
+      }
+    },
+    "/api/v1/places/search": {
+      "get": {
+        "operationId": "searchPlaces",
+        "parameters": [
+          {
+            "description": "검색할 장소명 또는 장소명과 지역",
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "조회할 페이지 번호. 0부터 시작합니다.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "maximum": 44,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "페이지당 장소 수",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 15,
+              "format": "int32",
+              "maximum": 15,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "거리 계산 기준 위도",
+            "in": "query",
+            "name": "latitude",
+            "required": false,
+            "schema": {
+              "maximum": 90,
+              "minimum": -90,
+              "type": "number"
+            }
+          },
+          {
+            "description": "거리 계산 기준 경도",
+            "in": "query",
+            "name": "longitude",
+            "required": false,
+            "schema": {
+              "maximum": 180,
+              "minimum": -180,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponsePlaceSearchSliceResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "직접 연결할 장소 검색",
+        "tags": [
+          "Place"
+        ]
+      }
+    },
     "/api/v1/posts": {
       "get": {
         "operationId": "listSavedPosts",
@@ -2150,6 +2693,50 @@
           }
         },
         "summary": "게시물 장소 파싱 결과 조회",
+        "tags": [
+          "Post"
+        ]
+      }
+    },
+    "/api/v1/posts/{postId}/places": {
+      "post": {
+        "operationId": "connectPlace",
+        "parameters": [
+          {
+            "description": "장소를 연결할 저장 게시물 식별자",
+            "in": "path",
+            "name": "postId",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectPostPlaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseConnectedPlaceResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "저장 게시물에 장소 직접 연결",
         "tags": [
           "Post"
         ]

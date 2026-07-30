@@ -58,6 +58,7 @@ final class ShareApiClient {
     func save(url: String, groupIds: Set<Int64>, memo: String) async throws -> Int64 {
         let body = try JSONSerialization.data(withJSONObject: [
             "url": url, "groupIds": Array(groupIds), "memo": memo,
+            "areGroupIdsPositive": groupIds.allSatisfy { $0 > 0 },
         ])
         let data = try await protectedRequest(path: "/posts", method: "POST", body: body)
         return try unwrap(ApiEnvelope<SavedPost>.self, data).postId

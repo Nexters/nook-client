@@ -1,7 +1,7 @@
 import type { Place } from '@/features/place';
 import { PlaceRow } from '@/features/place';
 import { Icon16ExclamationCircle } from '@/shared/icons/NookIcons';
-import type { RelatedPlacesState } from '../hooks/useRelatedPlaces';
+import type { RelatedPlacesState } from '../api/queries';
 
 export interface RelatedPlacesSectionProps {
   state: RelatedPlacesState;

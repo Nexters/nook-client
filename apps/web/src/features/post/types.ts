@@ -1,3 +1,5 @@
+import type { GroupColor } from '@/shared/ui';
+
 /**
  * 저장된 게시물 — 사용자가 외부(인스타그램 등)에서 공유해 들여온 원본 글.
  * 표시에 필요한 최소 형태만 둔다.
@@ -16,4 +18,48 @@ export interface Post {
   originalUrl?: string;
   /** 목록·안내 띠에서 쓰는 대표 이미지 */
   thumbnail?: string;
+}
+
+/**
+ * 게시물 저장 직후 BE 가 비동기로 돌리는 처리 상태(본문 크롤링 → 장소 파싱).
+ * PENDING/PROCESSING 동안은 title/media 가 비어 있을 수 있다 — 화면은 이 값을 보고
+ * COMPLETED 전까지 로딩으로 취급한다(`features/post/api/queries.ts`).
+ */
+export type PostProcessingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+/**
+ * 게시물 상세가 한 화면에 필요로 하는 묶음 — 게시물 + 저장된 그룹.
+ * `features/post/api` 가 서버 응답(`SavedPostDetailResponse`)을 이 형태로 변환해 넘긴다.
+ */
+export interface PostDetail {
+  post: Post;
+  processingStatus: PostProcessingStatus;
+  title: string;
+  groupName: string;
+  groupColor: GroupColor;
+  memo?: string;
+}
+
+/** 게시물 장소 파싱 상태. `PENDING`/`PROCESSING` 동안 폴링한다. */
+export type PlaceParsingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+/** 파싱된 장소 하나 — 서버 `PlaceResponse` 를 그대로 옮긴 형태(변환 불필요). */
+export interface ParsedPlace {
+  id: number;
+  provider: string;
+  externalPlaceId: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  category?: string;
+  phoneNumber: string | null;
+  bookmarked: boolean;
+}
+
+export interface PlaceParsingResult {
+  postId: number;
+  placeParsingStatus: PlaceParsingStatus;
+  failureReason: string | null;
+  places: ParsedPlace[];
 }

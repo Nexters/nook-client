@@ -7,24 +7,32 @@
 
 import { orvalMutator } from '../orval-mutator';
 import type {
+  ApiResponseConnectedPlaceResponse,
   ApiResponseGroupPostPageResponse,
   ApiResponseGroupResponse,
   ApiResponseListGroupResponse,
+  ApiResponseListMapPlaceResponse,
   ApiResponsePlaceDetailResponse,
+  ApiResponsePlaceSearchSliceResponse,
   ApiResponsePostPlaceParsingResponse,
   ApiResponsePostResponse,
+  ApiResponseRecentPlaceSliceResponse,
   ApiResponseSavedPostDetailResponse,
   ApiResponseSavedPostPageResponse,
   ApiResponseSocialAuthResponse,
   ApiResponseTokenResponse,
   ApiResponseUnit,
+  ConnectPostPlaceRequest,
   CreateGroupRequest,
   CreatePostRequest,
   GetDetailParams,
+  GetMapPlacesParams,
+  GetRecentPlacesParams,
   ListPostsParams,
   ListSavedPostsParams,
   RefreshTokenRequest,
   ReplaceSavedPostGroupsRequest,
+  SearchPlacesParams,
   SignupMemberRequest,
   SocialAuthRequest,
   UpdateGroupRequest,
@@ -240,6 +248,93 @@ export const updateBookmark = async (
   });
 };
 
+export const getGetMapPlacesUrl = (params: GetMapPlacesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/places/map?${stringifiedParams}`
+    : `/api/v1/places/map`;
+};
+
+/**
+ * @summary 지도 영역의 북마크 장소 조회
+ */
+export const getMapPlaces = async (
+  params: GetMapPlacesParams,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseListMapPlaceResponse> => {
+  return orvalMutator<ApiResponseListMapPlaceResponse>(getGetMapPlacesUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetRecentPlacesUrl = (params?: GetRecentPlacesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/places/recent?${stringifiedParams}`
+    : `/api/v1/places/recent`;
+};
+
+/**
+ * @summary 최근 저장 공간 조회
+ */
+export const getRecentPlaces = async (
+  params?: GetRecentPlacesParams,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseRecentPlaceSliceResponse> => {
+  return orvalMutator<ApiResponseRecentPlaceSliceResponse>(getGetRecentPlacesUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getSearchPlacesUrl = (params: SearchPlacesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/places/search?${stringifiedParams}`
+    : `/api/v1/places/search`;
+};
+
+/**
+ * @summary 직접 연결할 장소 검색
+ */
+export const searchPlaces = async (
+  params: SearchPlacesParams,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponsePlaceSearchSliceResponse> => {
+  return orvalMutator<ApiResponsePlaceSearchSliceResponse>(getSearchPlacesUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
 export const getListSavedPostsUrl = (params?: ListSavedPostsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -357,5 +452,25 @@ export const findPlaceParsing = async (
   return orvalMutator<ApiResponsePostPlaceParsingResponse>(getFindPlaceParsingUrl(postId), {
     ...options,
     method: 'GET',
+  });
+};
+
+export const getConnectPlaceUrl = (postId: number) => {
+  return `/api/v1/posts/${postId}/places`;
+};
+
+/**
+ * @summary 저장 게시물에 장소 직접 연결
+ */
+export const connectPlace = async (
+  postId: number,
+  connectPostPlaceRequest: ConnectPostPlaceRequest,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseConnectedPlaceResponse> => {
+  return orvalMutator<ApiResponseConnectedPlaceResponse>(getConnectPlaceUrl(postId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(connectPostPlaceRequest),
   });
 };

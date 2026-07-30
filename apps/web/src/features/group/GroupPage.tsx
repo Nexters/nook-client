@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import nookLogo from '@/assets/logo/Vector.svg';
 import { FloatingButton, Header } from '@/shared/ui';
+import { useGroups } from './api/queries';
 import { GroupCard } from './components/GroupCard';
 import { GroupEmpty } from './components/GroupEmpty';
-import { useGroups } from './queries';
 
 /** Figma `그룹 > 홈 - 그룹` (그룹 없음 / 빈 그룹 / 그룹 여러개). */
 export function GroupPage() {

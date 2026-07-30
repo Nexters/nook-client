@@ -60,7 +60,8 @@ class ShareApiClient(private val context: Context) {
         val ids = JSONArray(groupIds)
         val response = protectedRequest(
             "/posts", "POST",
-            JSONObject().put("url", url).put("groupIds", ids).put("memo", memo).toString(),
+            JSONObject().put("url", url).put("groupIds", ids).put("memo", memo)
+                .put("areGroupIdsPositive", groupIds.all { it > 0 }).toString(),
         )
         unwrap(response).getJSONObject("value").getLong("postId")
     }
