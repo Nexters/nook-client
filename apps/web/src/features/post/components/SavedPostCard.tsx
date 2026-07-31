@@ -21,10 +21,18 @@ export interface SavedPostCardProps {
   groups: PostGroup[];
   /** 카드 상단 제목 */
   title?: string;
+  /** 넘기면 그룹 태그가 버튼이 된다 — 게시물 상세와 같이 그 그룹 상세로 보낼 때 쓴다. */
+  onGroupClick?: (groupId: number) => void;
   className?: string;
 }
 
-function SavedPostCard({ post, groups, title = '저장된 게시물', className }: SavedPostCardProps) {
+function SavedPostCard({
+  post,
+  groups,
+  title = '저장된 게시물',
+  onGroupClick,
+  className,
+}: SavedPostCardProps) {
   const [expanded, setExpanded] = React.useState(false);
   const images = post.images ?? [];
 
@@ -36,7 +44,11 @@ function SavedPostCard({ post, groups, title = '저장된 게시물', className 
 
       <div className="flex w-full flex-wrap items-center gap-2 pb-3">
         {groups.map((group) => (
-          <GroupTag key={group.id} color={group.color}>
+          <GroupTag
+            key={group.id}
+            color={group.color}
+            onClick={onGroupClick ? () => onGroupClick(group.id) : undefined}
+          >
             {group.name}
           </GroupTag>
         ))}

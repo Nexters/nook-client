@@ -1,4 +1,5 @@
 import { useQueries } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import type { PlaceDetail as PlaceDetailModel, PlaceDetailPost } from '@/features/map/types';
 import { PlaceInfo, PlaceRow } from '@/features/place';
 import type { Post } from '@/features/post';
@@ -44,6 +45,7 @@ function usePostDetails(posts: PlaceDetailPost[]) {
 
 function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
   const postDetailQueries = usePostDetails(posts);
+  const navigate = useNavigate();
 
   if (posts.length === 0) return null;
 
@@ -62,7 +64,14 @@ function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
                 // 이미지는 대표 미디어 1장만 내려온다 — 없으면 회색 플레이스홀더로 채운다.
                 images: [placePost.thumbnail ?? SAVED_POST_IMAGE],
               };
-          return <SavedPostCard key={placePost.id} post={post} groups={detail?.groups ?? []} />;
+          return (
+            <SavedPostCard
+              key={placePost.id}
+              post={post}
+              groups={detail?.groups ?? []}
+              onGroupClick={(groupId) => navigate(`/group/${groupId}`)}
+            />
+          );
         })}
       </div>
     </>
