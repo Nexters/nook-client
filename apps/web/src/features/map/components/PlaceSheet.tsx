@@ -101,7 +101,12 @@ export function PlaceSheet({
             isPlaceDetailError ? (
               <p className="pt-10 text-center text-b2 text-gray-60">장소를 불러오지 못했어요</p>
             ) : selectedPlace ? (
-              <PlaceDetail key={selectedPlace.id} place={selectedPlace} expanded={isFull} />
+              <PlaceDetail
+                key={selectedPlace.id}
+                place={selectedPlace}
+                expanded={isFull}
+                onSelectPlace={onSelectPlace}
+              />
             ) : // isPlaceDetailPending — 아직 상세 응답 전이라 아무것도 그리지 않는다
             // (GroupPage 와 같은 정책: 로딩 문구가 잠깐 스쳐 지나가지 않게 한다).
             null

@@ -69,6 +69,9 @@ export function MapView({
     setMap(instance);
   }, []);
 
+  // 현재 위치 버튼을 누른 횟수 — 값이 바뀔 때마다 위치 마커의 파장이 다시 재생된다.
+  const [recenterCount, setRecenterCount] = useState(0);
+
   useImperativeHandle(
     ref,
     () => ({
@@ -77,6 +80,7 @@ export function MapView({
         if (!currentMap) return;
         currentMap.setCenter(new navermaps.LatLng(center.lat, center.lng));
         currentMap.setZoom(DEFAULT_ZOOM);
+        setRecenterCount((prev) => prev + 1);
       },
     }),
     [navermaps, center.lat, center.lng],
@@ -134,7 +138,11 @@ export function MapView({
           />
         ))}
         {currentLocation && (
-          <CurrentLocationDot lat={currentLocation.lat} lng={currentLocation.lng} />
+          <CurrentLocationDot
+            lat={currentLocation.lat}
+            lng={currentLocation.lng}
+            rippleKey={recenterCount}
+          />
         )}
       </NaverMap>
     </MapDiv>

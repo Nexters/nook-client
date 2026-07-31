@@ -45,6 +45,8 @@ export interface PostDetail {
   title: string;
   groups: PostGroup[];
   memo?: string;
+  /** 게시물에서 파싱된 연관 장소. 파싱 전이면 비어 있다. */
+  places: ParsedPlace[];
 }
 
 /** 게시물 장소 파싱 상태. `PENDING`/`PROCESSING` 동안 폴링한다. */

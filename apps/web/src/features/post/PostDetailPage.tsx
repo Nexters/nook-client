@@ -206,6 +206,7 @@ export function PostDetailPage() {
             groups={groups}
             memo={memo}
             onMemoEdit={() => setMemoOpen(true)}
+            onGroupClick={(groupId) => navigate(`/group/${groupId}`)}
             className="pt-2"
           />
 

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { Icon32Edit } from '@/shared/icons/NookIcons';
-import { BackButton, Badge, COLOR_BG_CLASS, Header, ShareButton } from '@/shared/ui';
+import { BackButton, Badge, COLOR_BG_CLASS, Header } from '@/shared/ui';
 import { useGroupPosts, useGroups } from './api/queries';
 import { CollectionCard } from './components/CollectionCard';
 import { GroupEmpty } from './components/GroupEmpty';
@@ -52,8 +52,9 @@ export function GroupDetailPage() {
         paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))',
       }}
     >
-      {/* TODO(api): 공유는 링크 스펙 확정 후 native share 로 연결한다. */}
-      <Header left={<BackButton />} right={<ShareButton />} />
+      {/* TODO(api): 공유 버튼은 아직 동작이 없어 숨긴다 — 링크 스펙 확정 후
+          `right={<ShareButton />}` 로 되살리고 native share 에 연결한다. */}
+      <Header left={<BackButton />} />
 
       <div className="flex flex-col gap-1 border-gray-20 border-b px-4 pb-4">
         <div className="flex items-center gap-2">
@@ -66,7 +67,7 @@ export function GroupDetailPage() {
             onClick={() => navigate(`/group/${group.id}/edit`)}
             className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
           >
-            <Icon32Edit size={28} />
+            <Icon32Edit />
           </button>
         </div>
         {data?.ownerNickname ? (

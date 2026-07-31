@@ -19,6 +19,8 @@ export interface PostInfoProps {
   onMemoChange?: (memo: string) => void;
   /** 넘기면 인라인 편집 대신 이 콜백을 부른다 (게시물 상세의 `메모하기` 바텀시트). */
   onMemoEdit?: () => void;
+  /** 넘기면 그룹 태그가 버튼이 된다 — 게시물 상세에서 그 그룹 상세로 이동한다. */
+  onGroupClick?: (groupId: number) => void;
   className?: string;
 }
 
@@ -26,7 +28,14 @@ function RowIcon({ children }: { children: React.ReactNode }) {
   return <span className="size-4 shrink-0">{children}</span>;
 }
 
-function PostInfo({ groups, memo, onMemoChange, onMemoEdit, className }: PostInfoProps) {
+function PostInfo({
+  groups,
+  memo,
+  onMemoChange,
+  onMemoEdit,
+  onGroupClick,
+  className,
+}: PostInfoProps) {
   return (
     <div className={cn('flex w-full flex-col gap-1', className)}>
       {groups.length > 0 && (
@@ -36,7 +45,12 @@ function PostInfo({ groups, memo, onMemoChange, onMemoEdit, className }: PostInf
           </RowIcon>
           <div className="flex min-w-0 flex-wrap items-center gap-1">
             {groups.map((group) => (
-              <GroupTag key={group.id} size="sm" color={group.color}>
+              <GroupTag
+                key={group.id}
+                size="sm"
+                color={group.color}
+                onClick={onGroupClick ? () => onGroupClick(group.id) : undefined}
+              >
                 {group.name}
               </GroupTag>
             ))}

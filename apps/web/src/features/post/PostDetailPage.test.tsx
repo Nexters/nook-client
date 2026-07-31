@@ -21,6 +21,7 @@ const { PostDetailPage } = await import('@/features/post/PostDetailPage');
 const POSTS: Record<number, PostDetail> = {
   1: {
     processingStatus: 'COMPLETED',
+    places: [],
     title: '지금 가기 좋은 초록뷰 카페',
     groups: [{ id: 1, name: '카페', color: 'yellow' }],
     memo: '지우랑 가면 좋겠다',
@@ -35,6 +36,7 @@ const POSTS: Record<number, PostDetail> = {
   // 시안 `연관 장소 X` — 파싱은 성공했지만 연결된 장소가 없는 게시물.
   2: {
     processingStatus: 'COMPLETED',
+    places: [],
     title: '몰래 가려고 저장해둔 서울 카페',
     groups: [{ id: 1, name: '카페', color: 'yellow' }],
     post: {
@@ -48,6 +50,7 @@ const POSTS: Record<number, PostDetail> = {
   // 시안 `게시물 상세_직접 입력` 실패 케이스 — 연관 장소 파싱 자체가 실패하는 게시물.
   3: {
     processingStatus: 'COMPLETED',
+    places: [],
     title: '위치 태그 없이 올라온 카페 사진',
     groups: [{ id: 1, name: '카페', color: 'yellow' }],
     post: {
@@ -207,6 +210,22 @@ describe('게시물 상세', () => {
     await renderPost(1, '', ['/group/7', '/post/1']);
 
     fireEvent.click(screen.getByRole('button', { name: '뒤로 가기' }));
+
+    expect(screen.getByText('그룹 상세 화면')).toBeInTheDocument();
+  });
+
+  it('저장된 그룹을 모두 태그 버튼으로 보여주고, 누르면 그 그룹 상세로 이동한다', async () => {
+    mocks.fetchPostDetail.mockResolvedValue({
+      ...POSTS[1],
+      groups: [
+        { id: 1, name: '카페', color: 'yellow' },
+        { id: 2, name: '밥집', color: 'green' },
+      ],
+    });
+    await renderPost(1);
+
+    expect(screen.getByRole('button', { name: '카페' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '밥집' }));
 
     expect(screen.getByText('그룹 상세 화면')).toBeInTheDocument();
   });

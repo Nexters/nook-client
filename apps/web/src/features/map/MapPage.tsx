@@ -130,7 +130,11 @@ export function MapPage() {
           onPlaceClick={handlePlaceClick}
           onBoundsChanged={setBounds}
         />
-        {snap === PEEK_SNAP_POINT && <RecenterButton onClick={() => mapRef.current?.recenter()} />}
+        {/* 핀을 눌러 상세(detailPage)까지 올라오는 동안은 드로어를 따라 함께 올라온다.
+            그보다 더 펼친 스냅(mid/full)에서는 드로어가 자리를 덮으므로 렌더하지 않는다. */}
+        {typeof snap === 'number' && snap <= DETAIL_PAGE_SNAP_POINT && (
+          <RecenterButton snapPoint={snap} onClick={() => mapRef.current?.recenter()} />
+        )}
         <PlaceSheet
           recentPlaces={recentPlacesQuery.data ?? []}
           selectedPlace={placeDetailQuery.data ?? null}
