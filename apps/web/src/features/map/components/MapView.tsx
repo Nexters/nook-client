@@ -34,6 +34,7 @@ export function MapView({
   currentLocation,
   initialCenter,
   selectedPlaceId,
+  selectedThumbnail,
   panTarget,
   onPlaceClick,
   onBoundsChanged,
@@ -43,6 +44,12 @@ export function MapView({
   currentLocation: Coordinates | null;
   initialCenter?: Coordinates;
   selectedPlaceId?: number | null;
+  /**
+   * 선택된 장소의 대표 사진(`GET /places/{placeId}` 의 `thumbnailUrl`). 있으면 그 핀만
+   * 사진 말풍선으로 그린다. 핀 목록 조회(bbox)가 아니라 상세 응답이 출처라 pin 이 아닌
+   * 별도 prop 으로 받는다 — 선택된 핀 하나에만 해당하는 값이다.
+   */
+  selectedThumbnail?: string;
   /**
    * 지도가 보여줘야 할 선택 장소 좌표. 값이 있으면 그 좌표가 드로어에 가려지지 않는
    * 화면 위쪽 영역 정가운데(`SELECTED_PLACE_VERTICAL_RATIO`)에 오도록 이동한다.
@@ -132,6 +139,7 @@ export function MapView({
             lng={pin.lng}
             name={pin.name}
             color={pin.color}
+            thumbnail={pin.id === selectedPlaceId ? selectedThumbnail : undefined}
             selected={pin.id === selectedPlaceId}
             showLabel={zoom >= PIN_LABEL_MIN_ZOOM}
             onClick={() => onPlaceClick?.(pin.id)}
