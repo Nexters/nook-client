@@ -105,7 +105,7 @@ export async function fetchPostDetail(postId: number): Promise<PostDetail> {
   return toPostDetail(dto);
 }
 
-/** 서버 응답을 그대로 옮긴다 — category 만 null → undefined 로 좁힌다. */
+/** 서버 응답을 그대로 옮긴다 — category·thumbnailUrl 만 null → undefined 로 좁힌다. */
 function toParsedPlace(dto: PlaceResponse): ParsedPlace {
   return {
     id: dto.id,
@@ -118,6 +118,7 @@ function toParsedPlace(dto: PlaceResponse): ParsedPlace {
     category: dto.category ?? undefined,
     phoneNumber: dto.phoneNumber ?? null,
     bookmarked: dto.bookmarked,
+    thumbnail: dto.thumbnailUrl ?? undefined,
   };
 }
 

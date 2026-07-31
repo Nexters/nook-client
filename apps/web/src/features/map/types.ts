@@ -50,5 +50,7 @@ export interface PlaceDetail {
   lat: number;
   lng: number;
   bookmarked: boolean;
+  /** 장소 대표 썸네일. 없으면 회색 플레이스홀더로 렌더된다. */
+  thumbnail?: string;
   posts: PlaceDetailPost[];
 }
