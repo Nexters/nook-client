@@ -22,7 +22,7 @@ export interface RecentPlaceResponse {
   /** 장소명 */
   name: string;
   /**
-   * 최근 연관 저장 게시물 대표 이미지 URL
+   * 장소 대표 썸네일 URL
    * @nullable
    */
   thumbnailUrl?: string | null;
