@@ -31,8 +31,8 @@ function PlaceCard({ place, onClick, className }: PlaceCardProps) {
         className,
       )}
     >
-      {/* 시안은 208px 고정 높이. size variant 로는 안 맞아 높이만 덮는다. */}
-      <Thumbnail src={place.thumbnail} alt="" className="h-52 w-full" />
+      {/* 시안 167x208. 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
+      <Thumbnail src={place.thumbnail} alt="" className="aspect-[167/208] h-auto w-full" />
       <div className="flex w-full flex-col gap-0.5 p-1">
         <p className="line-clamp-2 text-b2 font-semibold text-gray-90">{place.name}</p>
         <p className="truncate text-b3 font-medium text-gray-60">
