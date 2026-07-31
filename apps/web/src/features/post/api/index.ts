@@ -53,6 +53,8 @@ function toPostDetail(dto: SavedPostDetailResponse): PostDetail {
     // 처리 중엔 title 이 비어 있을 수 있다 — group 의 게시물 카드와 동일한 fallback 규칙.
     title: dto.title || dto.memo || '제목 없는 게시물',
     memo: dto.memo ?? undefined,
+    // `SavedPostPlaceResponse` 는 `PlaceResponse` + sequence 라 같은 변환을 쓴다.
+    places: dto.places.map(toParsedPlace),
     post: {
       id: String(dto.postId),
       authorHandle: dto.authorIdentifier ?? '',

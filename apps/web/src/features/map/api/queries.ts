@@ -51,6 +51,9 @@ export function useUpdatePlaceBookmark() {
     onSuccess: (_data, { placeId }) => {
       queryClient.invalidateQueries({ queryKey: mapQueryKeys.detail(placeId) });
       queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll });
+      // 연관 장소의 별 표시는 게시물 상세 응답(`postQueryKeys.detail` = ['posts', postId])의
+      // places 에서 온다 — post → map 방향 import 가 이미 있어 순환을 피해 접두사를 직접 쓴다.
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
   });
 }

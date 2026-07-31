@@ -1,6 +1,6 @@
 import { useQueries } from '@tanstack/react-query';
 import type { PlaceDetail as PlaceDetailModel, PlaceDetailPost } from '@/features/map/types';
-import { PlaceInfo } from '@/features/place';
+import { PlaceInfo, PlaceRow } from '@/features/place';
 import type { Post } from '@/features/post';
 import { SavedPostCard } from '@/features/post';
 import { fetchPostDetail } from '@/features/post/api';
@@ -33,13 +33,17 @@ function SectionDivider() {
  * 상세가 오기 전(또는 실패)엔 장소 상세 응답의 얇은 정보로 채운 카드를 우선 보여준다
  * (그룹 태그는 상세가 올 때까지 비어 있다).
  */
-function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
-  const postDetailQueries = useQueries({
+function usePostDetails(posts: PlaceDetailPost[]) {
+  return useQueries({
     queries: posts.map((post) => ({
       queryKey: postQueryKeys.detail(post.id),
       queryFn: () => fetchPostDetail(post.id),
     })),
   });
+}
+
+function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
+  const postDetailQueries = usePostDetails(posts);
 
   if (posts.length === 0) return null;
 
@@ -65,45 +69,63 @@ function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
   );
 }
 
-// TODO(map): "연관 장소" 섹션은 잠시 숨긴다 — `GET /places/{placeId}`가 아직 연관 장소를
-// 내려주지 않아(연관 게시물만 내려준다) 전량 목데이터였다(실제 장소 id 체계와 무관해
-// 클릭 동작도 없었다). 백엔드에 필드 추가되면 아래 주석을 걷어내고 실제 데이터로 교체한다.
-// 되살릴 때 장소 행 클릭은 `PlaceRow`의 `onClick`으로 받아서, `PlaceSheet`가 이미 갖고
-// 있는 `onSelectPlace`(MapPage.handlePlaceClick과 동일)를 그대로 이 컴포넌트까지
-// 내려 호출하면 된다 — 같은 지도 화면 안에서 선택 장소만 바뀌므로 라우팅은 필요 없다.
-//
-// function RelatedPlacesSection({ place }: { place: PlaceDetailModel }) {
-//   const center = { lat: place.lat, lng: place.lng };
-//   const relatedPlaces = getMockPlaces(center)
-//     .map((candidate) => ({ place: candidate, distanceKm: getDistanceKm(center, candidate) }))
-//     .sort((a, b) => a.distanceKm - b.distanceKm)
-//     .slice(0, MAX_RELATED_PLACES);
-//
-//   if (relatedPlaces.length === 0) return null;
-//
-//   return (
-//     <>
-//       <SectionDivider />
-//       <div className="flex w-full flex-col gap-4 mt-4">
-//         <p className="text-b1 font-semibold text-gray-100">연관 장소</p>
-//         <div className="flex flex-col gap-4">
-//           {relatedPlaces.map(({ place: relatedPlace, distanceKm }) => (
-//             <PlaceRow
-//               key={relatedPlace.id}
-//               place={{
-//                 id: relatedPlace.id,
-//                 name: relatedPlace.name,
-//                 category: relatedPlace.category,
-//                 distance: `${distanceKm}km`,
-//                 address: relatedPlace.address,
-//               }}
-//             />
-//           ))}
-//         </div>
-//       </div>
-//     </>
-//   );
-// }
+/**
+ * "연관 장소" — 게시물 상세 페이지의 같은 이름 섹션과 같은 내용이다.
+ * `GET /places/{placeId}`(장소 상세)엔 연관 장소가 없지만, 이 장소에 저장된 게시물의
+ * 상세(`GET /posts/{postId}`, 위 `SavedPostsSection`이 이미 쓰는 그 응답)에 파싱된
+ * 장소 목록이 들어 있다 — 그 장소들에서 지금 보고 있는 장소만 빼고 보여준다.
+ */
+function RelatedPlacesSection({
+  place,
+  onSelectPlace,
+}: {
+  place: PlaceDetailModel;
+  onSelectPlace?: (placeId: number) => void;
+}) {
+  // 위 섹션과 같은 쿼리 키라 요청은 한 번만 나간다(캐시 공유).
+  const postDetailQueries = usePostDetails(place.posts);
+  const updateBookmark = useUpdatePlaceBookmark();
+
+  // 여러 게시물이 같은 장소를 가리킬 수 있어 id 로 중복을 제거한다.
+  const relatedPlaces = [
+    ...new Map(
+      postDetailQueries
+        .flatMap((query) => query.data?.places ?? [])
+        .filter((related) => related.id !== place.id)
+        .map((related) => [related.id, related]),
+    ).values(),
+  ];
+
+  if (relatedPlaces.length === 0) return null;
+
+  return (
+    <>
+      <SectionDivider />
+      <div className="mt-4 flex w-full flex-col gap-4 pb-2">
+        <p className="text-b1 font-semibold text-gray-100">연관 장소</p>
+        <div className="flex flex-col gap-4">
+          {relatedPlaces.map((related) => (
+            <PlaceRow
+              key={related.id}
+              place={{
+                id: String(related.id),
+                name: related.name,
+                category: related.category ?? '',
+                address: related.address,
+              }}
+              bookmarked={related.bookmarked}
+              onBookmarkedChange={(next) =>
+                updateBookmark.mutate({ placeId: related.id, bookmarked: next })
+              }
+              // 같은 지도 화면 안에서 선택 장소만 바뀌므로 라우팅은 필요 없다.
+              onClick={onSelectPlace ? () => onSelectPlace(related.id) : undefined}
+            />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
 
 /**
  * 지도 핀 클릭 시 드로어에 보여줄 장소 상세.
@@ -113,7 +135,16 @@ function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
  * 서버 응답(`PlaceDetailResponse`)엔 영업시간/태그/장소 메모가 없어 목데이터 시절과
  * 달리 이 정보들은 아예 보여주지 않는다 — 실제로 없는 값을 지어내지 않는다.
  */
-export function PlaceDetail({ place, expanded }: { place: PlaceDetailModel; expanded: boolean }) {
+export function PlaceDetail({
+  place,
+  expanded,
+  onSelectPlace,
+}: {
+  place: PlaceDetailModel;
+  expanded: boolean;
+  /** 연관 장소 행을 눌렀을 때 그 장소로 선택을 옮긴다. */
+  onSelectPlace?: (placeId: number) => void;
+}) {
   const updateBookmark = useUpdatePlaceBookmark();
 
   return (
@@ -148,7 +179,7 @@ export function PlaceDetail({ place, expanded }: { place: PlaceDetailModel; expa
           <PlaceInfo address={place.address} className="mb-4" />
 
           <SavedPostsSection posts={place.posts} />
-          {/* TODO(map): 연관 장소 섹션 잠시 숨김 — 위 `RelatedPlacesSection` 주석 참고 */}
+          <RelatedPlacesSection place={place} onSelectPlace={onSelectPlace} />
         </>
       )}
     </div>
