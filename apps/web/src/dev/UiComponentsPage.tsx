@@ -571,6 +571,11 @@ export function UiComponentsPage() {
             밥집
           </GroupTag>
         </Row>
+        <Row label="onClick 을 주면 button 으로 렌더된다 (모양은 동일)">
+          <GroupTag color="blue" onClick={() => setLastAction('그룹 태그 클릭')}>
+            눌러보기
+          </GroupTag>
+        </Row>
       </Section>
 
       <Section title="Chips (Chip_GroupColor)">

@@ -214,6 +214,22 @@ describe('게시물 상세', () => {
     expect(screen.getByText('그룹 상세 화면')).toBeInTheDocument();
   });
 
+  it('저장된 그룹을 모두 태그 버튼으로 보여주고, 누르면 그 그룹 상세로 이동한다', async () => {
+    mocks.fetchPostDetail.mockResolvedValue({
+      ...POSTS[1],
+      groups: [
+        { id: 1, name: '카페', color: 'yellow' },
+        { id: 2, name: '밥집', color: 'green' },
+      ],
+    });
+    await renderPost(1);
+
+    expect(screen.getByRole('button', { name: '카페' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '밥집' }));
+
+    expect(screen.getByText('그룹 상세 화면')).toBeInTheDocument();
+  });
+
   it('연관 장소를 불러오는 동안 로딩 문구를 보여주고 배너는 숨긴다', async () => {
     mocks.fetchPlaceParsing.mockImplementation(
       () => new Promise((resolve) => setTimeout(() => resolve(PLACE_PARSING[1]), 50)),
