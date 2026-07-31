@@ -25,6 +25,8 @@ function readNaverMapClientId(): string {
 export const env = {
   apiBaseUrl: readApiBaseUrl(),
   naverMapClientId: readNaverMapClientId(),
+  posthogKey: import.meta.env.VITE_PUBLIC_POSTHOG_KEY ?? '',
+  posthogHost: import.meta.env.VITE_PUBLIC_POSTHOG_HOST ?? '',
   isDev: import.meta.env.DEV,
   enableDevRoutes: import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_ROUTES === 'true',
 } as const;
