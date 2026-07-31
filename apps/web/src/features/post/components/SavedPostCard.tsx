@@ -37,7 +37,8 @@ function SavedPostCard({
   const images = post.images ?? [];
 
   return (
-    <div className={cn('flex w-full flex-col overflow-hidden bg-gray-0 pb-1', className)}>
+    // overflow 를 잘라내지 않는다 — 이미지 줄이 부모 여백 밖으로 나가야 한다(아래 -mx-4).
+    <div className={cn('flex w-full flex-col bg-gray-0 pb-1', className)}>
       <div className="flex w-full items-center justify-between pt-4 pb-3">
         <h2 className="text-b1 font-semibold text-gray-100">{title}</h2>
       </div>
@@ -59,13 +60,22 @@ function SavedPostCard({
 
       {images.length > 0 ? (
         <div className="w-full pb-3">
-          <Carousel indicator={false}>
+          {/* 스크롤 영역만 부모의 좌우 16px 여백 밖으로 뺀다 — 넘기는 중인 이미지는 화면
+              끝까지 이어지고, 첫/마지막 이미지의 여백은 ml-4/mr-4 가 대신 만든다
+              (게시물 상세의 이미지 캐러셀과 같은 방식).
+              `w-auto` 는 Carousel 기본 `w-full` 을 덮는다 — width 가 고정이면 음수 마진이
+              폭을 넓히지 못하고 왼쪽으로 밀리기만 한다. */}
+          <Carousel indicator={false} className="-mx-4 w-auto">
             {images.map((src, index) => (
               <div
                 // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
                 // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
                 key={index}
-                className="h-[175px] w-35 overflow-hidden rounded-sm"
+                className={cn(
+                  'h-[175px] w-35 overflow-hidden rounded-sm',
+                  index === 0 && 'ml-4',
+                  index === images.length - 1 && 'mr-4',
+                )}
               >
                 <img src={src} alt="" className="size-full object-cover" />
               </div>
