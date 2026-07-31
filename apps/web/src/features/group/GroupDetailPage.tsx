@@ -17,6 +17,10 @@ export function GroupDetailPage() {
   const { data: groups, isPending } = useGroups();
   const group = groups?.find((item) => String(item.id) === groupId);
 
+  // 게시물 상세의 그룹 태그로도 들어올 수 있어 히스토리가 계속 깊어진다 — 뒤로가기는
+  // 히스토리를 되짚지 않고 항상 그룹 목록으로 나가고, 이 화면 자리를 목록으로 바꿔치운다.
+  const backToGroupList = () => navigate('/group', { replace: true });
+
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useGroupPosts(group?.id);
   const posts = data?.posts;
 
@@ -38,7 +42,7 @@ export function GroupDetailPage() {
   if (!group) {
     return (
       <main className="min-h-dvh bg-gray-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <Header left={<BackButton />} />
+        <Header left={<BackButton onClick={backToGroupList} />} />
         <GroupEmpty message="그룹을 찾을 수 없어요" />
       </main>
     );
@@ -54,7 +58,7 @@ export function GroupDetailPage() {
     >
       {/* TODO(api): 공유 버튼은 아직 동작이 없어 숨긴다 — 링크 스펙 확정 후
           `right={<ShareButton />}` 로 되살리고 native share 에 연결한다. */}
-      <Header left={<BackButton />} />
+      <Header left={<BackButton onClick={backToGroupList} />} />
 
       <div className="flex flex-col gap-1 border-gray-20 border-b px-4 pb-4">
         <div className="flex items-center gap-2">
