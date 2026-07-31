@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
+import { cn } from '@/shared/lib/utils';
 import {
   BackButton,
   Button,
@@ -15,6 +16,9 @@ import { useCreateGroup, useDeleteGroup, useGroups, useUpdateGroup } from './api
 
 /** 시안의 카운터 표기(`0/20`) 기준. */
 const NAME_MAX_LENGTH = 20;
+
+/** 아래에서 올라오고/내려가는 전환 시간. 아래 `duration-300` 과 같은 값이어야 한다. */
+const SLIDE_DURATION_MS = 300;
 
 export interface GroupFormPageProps {
   /** `create` = Figma `새 그룹 생성`, `edit` = Figma `그룹 편집` */
@@ -40,6 +44,25 @@ export function GroupFormPage({ mode }: GroupFormPageProps) {
   const [editedColor, setColor] = useState<GroupColor>();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  // 생성 화면만 시트처럼 아래에서 올라온다(편집은 기존대로 바로 뜬다).
+  // 첫 페인트는 화면 밖에서 시작해야 전환이 걸리므로 다음 프레임에 올린다.
+  const [slidIn, setSlidIn] = useState(editing);
+  const closeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setSlidIn(true));
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(closeTimer.current);
+    };
+  }, []);
+
+  /** 생성 완료 — 화면이 아래로 내려간 뒤에 이동한다. */
+  const slideOutAndNavigate = (to: string) => {
+    setSlidIn(false);
+    closeTimer.current = setTimeout(() => navigate(to, { replace: true }), SLIDE_DURATION_MS);
+  };
+
   const name = editedName ?? group?.name ?? '';
   const color = editedColor ?? group?.color ?? GROUP_COLORS[0];
 
@@ -64,7 +87,7 @@ export function GroupFormPage({ mode }: GroupFormPageProps) {
 
     createGroup.mutate(
       { name: name.trim(), color },
-      { onSuccess: () => navigate('/group', { replace: true }) },
+      { onSuccess: () => slideOutAndNavigate('/group') },
     );
   };
 
@@ -78,7 +101,12 @@ export function GroupFormPage({ mode }: GroupFormPageProps) {
 
   return (
     <main
-      className="flex min-h-dvh flex-col bg-gray-0"
+      // 슬라이드 동안 문서가 아래로 늘어나지 않도록 뷰포트에 고정한다(내용이 넘치면 안에서 스크롤).
+      className={cn(
+        'fixed inset-0 flex flex-col overflow-y-auto bg-gray-0',
+        'transition-transform duration-300 ease-out motion-reduce:transition-none',
+        slidIn ? 'translate-y-0' : 'translate-y-full',
+      )}
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       <Header left={<BackButton />} title={editing ? '그룹 편집' : '새 그룹 생성'} />
