@@ -32,4 +32,9 @@ export interface PlaceResponse {
   phoneNumber?: string | null;
   /** 장소 provider */
   provider: string;
+  /**
+   * 장소 대표 썸네일 URL
+   * @nullable
+   */
+  thumbnailUrl?: string | null;
 }

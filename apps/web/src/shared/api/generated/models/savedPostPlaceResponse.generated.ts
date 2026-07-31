@@ -34,4 +34,9 @@ export interface SavedPostPlaceResponse {
   provider: string;
   /** 게시물 내 장소 순서 */
   sequence: number;
+  /**
+   * 장소 대표 썸네일 URL
+   * @nullable
+   */
+  thumbnailUrl?: string | null;
 }

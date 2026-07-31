@@ -3,7 +3,7 @@ import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'r
 import { Container as MapDiv, NaverMap, useNavermaps } from 'react-naver-maps';
 import { CurrentLocationDot } from '@/features/map/components/CurrentLocationDot';
 import { PlacePin } from '@/features/map/components/PlacePin';
-import { SELECTED_PLACE_VERTICAL_RATIO } from '@/features/map/constants';
+import { PIN_LABEL_MIN_ZOOM, SELECTED_PLACE_VERTICAL_RATIO } from '@/features/map/constants';
 import type { MapBounds, MapPin } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
 
@@ -61,6 +61,9 @@ export function MapView({
   // panTarget 을 적용할 재렌더/재실행이 일어나지 않는다.
   const mapRef = useRef<naver.maps.Map | null>(null);
   const [map, setMap] = useState<naver.maps.Map | null>(null);
+  // 이름표 표시 여부 판단용. 줌 제스처 중간값까지 따라갈 필요는 없어서(이름표가
+  // 깜빡이며 나타났다 사라지는 게 더 어수선하다) idle 시점 값만 쓴다.
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const attachMap = useCallback((instance: naver.maps.Map | null) => {
     mapRef.current = instance;
     setMap(instance);
@@ -104,7 +107,9 @@ export function MapView({
         defaultZoom={DEFAULT_ZOOM}
         onIdle={() => {
           const currentMap = mapRef.current;
-          if (!currentMap || !onBoundsChanged) return;
+          if (!currentMap) return;
+          setZoom(currentMap.getZoom());
+          if (!onBoundsChanged) return;
           // 이 지도는 경위도 좌표계만 쓰므로 런타임엔 항상 LatLngBounds다(PointBounds 는
           // 픽셀 좌표계 지도 전용). naver 타입 선언은 둘의 유니온(Bounds)만 노출한다.
           const bounds = currentMap.getBounds() as naver.maps.LatLngBounds;
@@ -124,6 +129,7 @@ export function MapView({
             name={pin.name}
             color={pin.color}
             selected={pin.id === selectedPlaceId}
+            showLabel={zoom >= PIN_LABEL_MIN_ZOOM}
             onClick={() => onPlaceClick?.(pin.id)}
           />
         ))}

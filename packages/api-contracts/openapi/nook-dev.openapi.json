@@ -857,6 +857,13 @@
           "name": {
             "description": "장소명",
             "type": "string"
+          },
+          "thumbnailUrl": {
+            "description": "장소 대표 썸네일 URL",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -920,6 +927,13 @@
           "provider": {
             "description": "장소 provider",
             "type": "string"
+          },
+          "thumbnailUrl": {
+            "description": "장소 대표 썸네일 URL",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1125,6 +1139,13 @@
           "provider": {
             "description": "장소 provider",
             "type": "string"
+          },
+          "thumbnailUrl": {
+            "description": "장소 대표 썸네일 URL",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -1336,7 +1357,7 @@
             "type": "string"
           },
           "thumbnailUrl": {
-            "description": "최근 연관 저장 게시물 대표 이미지 URL",
+            "description": "장소 대표 썸네일 URL",
             "type": [
               "string",
               "null"
@@ -1691,6 +1712,13 @@
             "description": "게시물 내 장소 순서",
             "format": "int32",
             "type": "integer"
+          },
+          "thumbnailUrl": {
+            "description": "장소 대표 썸네일 URL",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
