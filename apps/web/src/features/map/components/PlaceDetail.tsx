@@ -3,7 +3,7 @@ import type { PlaceDetail as PlaceDetailModel, PlaceDetailPost } from '@/feature
 import { PlaceInfo, PlaceRow } from '@/features/place';
 import type { Post } from '@/features/post';
 import { SavedPostCard } from '@/features/post';
-import { fetchPostDetail } from '@/features/post/api';
+import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
 import { postQueryKeys } from '@/features/post/api/queries';
 import { Icon32StarOff, Icon32StarOn } from '@/shared/icons/NookIcons';
 import { useUpdatePlaceBookmark } from '../api/queries';
@@ -57,7 +57,7 @@ function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
             ? detail.post
             : {
                 id: String(placePost.id),
-                authorHandle: placePost.authorHandle ?? '',
+                authorHandle: formatAuthorHandle(placePost.authorHandle),
                 caption: placePost.memo,
                 // 이미지는 대표 미디어 1장만 내려온다 — 없으면 회색 플레이스홀더로 채운다.
                 images: [placePost.thumbnail ?? SAVED_POST_IMAGE],
