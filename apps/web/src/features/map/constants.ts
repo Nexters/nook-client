@@ -11,8 +11,11 @@ export const DETAIL_PAGE_SNAP_POINT = 0.5;
 export const MID_SNAP_POINT = 0.76;
 export const FULL_SNAP_POINT = 1;
 
-/** 장소 미선택(카드 그리드 탐색) 상태의 스냅. mid 는 이 상태 전용이다. */
-export const BROWSE_SNAP_POINTS = [PEEK_SNAP_POINT, MID_SNAP_POINT];
+/**
+ * 장소 미선택(카드 그리드 탐색) 상태의 스냅. mid 는 이 상태 전용이고,
+ * full(Figma 94:4165)에서는 최근 저장 목록이 전체화면으로 펼쳐진다.
+ */
+export const BROWSE_SNAP_POINTS = [PEEK_SNAP_POINT, MID_SNAP_POINT, FULL_SNAP_POINT];
 
 /**
  * 장소 선택(상세 보기) 상태의 스냅. mid 는 일부러 뺐다 — mid(카드 그리드 높이)는
@@ -20,6 +23,13 @@ export const BROWSE_SNAP_POINTS = [PEEK_SNAP_POINT, MID_SNAP_POINT];
  * detailPage 에서 더 당기면 곧장 full 로 넘어간다.
  */
 export const DETAIL_SNAP_POINTS = [PEEK_SNAP_POINT, DETAIL_PAGE_SNAP_POINT, FULL_SNAP_POINT];
+
+/**
+ * 핀 이름표를 보여주는 최소 줌 레벨(네이버 지도 줌 — 클수록 확대, 기본 18).
+ * 이보다 zoom-out 하면 이름표끼리 겹쳐 지저분해지므로 핀만 남기고 이름표를 숨긴다.
+ * 선택된 핀의 이름표는 줌과 무관하게 항상 보여준다(PlacePin 참고).
+ */
+export const PIN_LABEL_MIN_ZOOM = 16;
 
 /**
  * 장소를 선택해 지도를 재센터링할 때, 선택된 핀이 화면 세로 어느 지점에 와야 하는지

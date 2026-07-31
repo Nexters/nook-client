@@ -16,13 +16,19 @@ import { BOTTOM_MENU_HEIGHT } from '@/shared/ui/bottom-menu';
  * 2. 스크롤 영역(= 드로어 높이를 결정)은 반드시 지금처럼 꽉 채워야 한다 — vaul 은 스냅
  *    translate 를 드로어가 아니라 컨테이너(뷰포트) 높이 기준으로 계산하므로, 드로어가
  *    작아지면 같은 translate 에 통째로 화면 밖으로 밀려나 시트가 사라져 보인다(실측 확인).
- * 3. 대신 vaul 이 mid 스냅에서 드로어를 (100 − MID×100)dvh 만큼 아래로 밀어둔 몫은 하단
+ * 3. 대신 vaul 이 현재 스냅에서 드로어를 (100 − snap×100)dvh 만큼 아래로 밀어둔 몫은 하단
  *    패딩으로 보정한다 — 이게 없으면 그만큼이 스크롤로도 닿지 않는 죽은 영역이 되어
  *    마지막 콘텐츠가 BottomMenu 뒤/화면 밖에 숨는다(`PlaceDirectInputDrawer` 주석 참고).
  *    드로어 밖으로 밀린 몫에서 bottom 오프셋(BottomMenu 높이)만큼은 이미 상쇄되고 그
- *    자리를 BottomMenu 가 도로 가리므로, 패딩은 정확히 (100 − MID×100)dvh + 여유분이다.
+ *    자리를 BottomMenu 가 도로 가리므로, 패딩은 정확히 (100 − snap×100)dvh + 여유분이다.
+ *    밀린 몫이 스냅마다 다르므로(탐색 모드는 mid·full 양쪽에서 스크롤된다) 현재 스냅을
+ *    받아 계산한다 — full(1)에서는 밀린 몫이 없어 여유분만 남는다.
  */
-export function getPlaceSheetLayoutClassNames(bottomMenuHidden: boolean): {
+export function getPlaceSheetLayoutClassNames(
+  bottomMenuHidden: boolean,
+  /** 현재 활성 스냅. vaul 계약상 string(px)일 수도 있지만 이 시트는 비율(number)만 쓴다. */
+  snap: number | string | null,
+): {
   drawer: { className: string; style?: React.CSSProperties };
   scroller: { className: string; style?: React.CSSProperties };
 } {
@@ -33,6 +39,9 @@ export function getPlaceSheetLayoutClassNames(bottomMenuHidden: boolean): {
     };
   }
 
+  // 스냅을 모르는 상태(초기 null 등)에서는 가장 보수적으로 mid 만큼 밀렸다고 본다 —
+  // 패딩이 남으면 스크롤 끝에 여백이 생길 뿐이지만, 모자라면 콘텐츠가 가려진다.
+  const snapRatio = typeof snap === 'number' ? snap : MID_SNAP_POINT;
   const drawerHeight = `calc(100dvh - ${BOTTOM_MENU_HEIGHT})`;
   return {
     drawer: {
@@ -43,7 +52,7 @@ export function getPlaceSheetLayoutClassNames(bottomMenuHidden: boolean): {
       className: '',
       style: {
         height: drawerHeight,
-        paddingBottom: `calc(${100 - MID_SNAP_POINT * 100}dvh + 1.25rem)`,
+        paddingBottom: `calc(${100 - snapRatio * 100}dvh + 1.25rem)`,
       },
     },
   };
