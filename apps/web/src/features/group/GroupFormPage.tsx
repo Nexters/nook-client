@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
+import { capturePostHogEvent } from '@/lib/posthog';
 import { cn } from '@/shared/lib/utils';
 import {
   BackButton,
@@ -80,14 +81,24 @@ export function GroupFormPage({ mode }: GroupFormPageProps) {
 
       updateGroup.mutate(
         { groupId: group.id, name: name.trim(), color },
-        { onSuccess: () => navigate(`/group/${group.id}`, { replace: true }) },
+        {
+          onSuccess: () => {
+            capturePostHogEvent('group_updated', { group_id: group.id, color });
+            navigate(`/group/${group.id}`, { replace: true });
+          },
+        },
       );
       return;
     }
 
     createGroup.mutate(
       { name: name.trim(), color },
-      { onSuccess: () => slideOutAndNavigate('/group') },
+      {
+        onSuccess: () => {
+          capturePostHogEvent('group_created', { color });
+          slideOutAndNavigate('/group');
+        },
+      },
     );
   };
 
@@ -95,7 +106,10 @@ export function GroupFormPage({ mode }: GroupFormPageProps) {
     if (!group) return;
 
     deleteGroup.mutate(group.id, {
-      onSuccess: () => navigate('/group', { replace: true }),
+      onSuccess: () => {
+        capturePostHogEvent('group_deleted', { group_id: group.id });
+        navigate('/group', { replace: true });
+      },
     });
   };
 

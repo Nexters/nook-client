@@ -55,7 +55,10 @@ function DrawerContent({
       <DrawerPrimitive.Content
         data-slot="drawer-content"
         className={cn(
-          'group/drawer-content fixed inset-x-0 bottom-0 z-50 flex h-auto flex-col rounded-t-xl bg-gray-0',
+          // outline-none: Radix FocusScope 가 콘텐츠에 tabIndex=-1 을 달아 두는데,
+          // 모바일 WebKit 은 탭만으로 이 요소에 포커스를 줘서 기본 포커스 링이
+          // 드로어 전체에 그려진다 — 다이얼로그 컨테이너의 포커스 링은 제거한다.
+          'group/drawer-content fixed inset-x-0 bottom-0 z-50 flex h-auto flex-col rounded-t-xl bg-gray-0 outline-none',
           className,
         )}
         {...props}

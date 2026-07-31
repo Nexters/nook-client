@@ -4,7 +4,12 @@ import { useAppShellContainer } from '@/app/providers';
 import emptySavedPlacesIllustration from '@/assets/illustrations/empty-saved-places.svg';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { getPlaceSheetLayoutClassNames } from '@/features/map/components/place-sheet-layout';
-import { BROWSE_SNAP_POINTS, DETAIL_SNAP_POINTS, FULL_SNAP_POINT } from '@/features/map/constants';
+import {
+  BROWSE_SNAP_POINTS,
+  DETAIL_SNAP_POINTS,
+  FULL_SNAP_POINT,
+  MID_SNAP_POINT,
+} from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
 import { cn } from '@/shared/lib/utils';
@@ -48,13 +53,20 @@ export function PlaceSheet({
   const [isScrolled, setIsScrolled] = useState(false);
   const isFull = snap === FULL_SNAP_POINT;
   const hasSelection = selectedPlace !== null || isPlaceDetailPending || isPlaceDetailError;
-  const layoutClassNames = getPlaceSheetLayoutClassNames(bottomMenuHidden);
+  // 내부 스크롤은 목록이 충분히 펼쳐진 스냅에서만 허용한다(탐색: mid 이상=Figma
+  // 94:4075·94:4165, 상세: full). 그 아래 스냅에서는 시트 안 어디를 잡아도 드래그가
+  // 드로어 이동으로만 동작해야 하므로(제스처 주인은 상태마다 하나) overflow 를 잠근다.
+  const canScroll = hasSelection ? isFull : snap === MID_SNAP_POINT || isFull;
+  const layoutClassNames = getPlaceSheetLayoutClassNames(bottomMenuHidden, snap);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: isFull/selectedPlace.id 는 본문에서 값을 쓰지 않는 트리거 전용 의존성
+  // 스크롤이 "불가 → 가능"으로 바뀌는 순간과 보는 장소가 바뀔 때만 맨 위로 되돌린다.
+  // isFull 이 아니라 canScroll 을 트리거로 쓰는 이유: 탐색 모드 mid ↔ full 은 둘 다
+  // 스크롤 가능한 스냅이라, 그 사이를 오갈 때 보던 위치를 잃지 않아야 한다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: canScroll/selectedPlace.id 는 본문에서 값을 쓰지 않는 트리거 전용 의존성
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
     setIsScrolled(false);
-  }, [isFull, selectedPlace?.id]);
+  }, [canScroll, selectedPlace?.id]);
 
   return (
     <Drawer
@@ -80,7 +92,8 @@ export function PlaceSheet({
           }}
           style={layoutClassNames.scroller.style}
           className={cn(
-            'flex flex-col gap-3 overflow-y-auto px-4',
+            'flex flex-col gap-3 px-4',
+            canScroll ? 'overflow-y-auto' : 'overflow-hidden',
             layoutClassNames.scroller.className,
           )}
         >

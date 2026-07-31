@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import type { Place } from '@/features/place';
+import { capturePostHogEvent } from '@/lib/posthog';
 import { cn } from '@/shared/lib/utils';
 import { BackButton, Carousel, Header, Snackbar } from '@/shared/ui';
 import {
@@ -71,7 +72,18 @@ export function PostDetailPage() {
       setBookmarkOverrides((prev) => ({ ...prev, [placeId]: next }));
       return;
     }
-    updateBookmarkMutation.mutate({ placeId: Number(placeId), bookmarked: next });
+    updateBookmarkMutation.mutate(
+      { placeId: Number(placeId), bookmarked: next },
+      {
+        onSuccess: () => {
+          capturePostHogEvent('place_bookmark_updated', {
+            post_id: postId,
+            place_id: Number(placeId),
+            bookmarked: next,
+          });
+        },
+      },
+    );
   };
 
   // 직접 추가한 장소(가짜 id, 예: 'search-1')는 아직 지도 쪽 실제 장소와 연결돼 있지
@@ -89,6 +101,7 @@ export function PostDetailPage() {
     );
     // 시안: 직접 추가한 장소는 항상 파란 북마크(저장됨) 상태로 시작한다.
     setBookmarkOverrides((prev) => ({ ...prev, [place.id]: true }));
+    capturePostHogEvent('place_directly_added', { post_id: postId, place_id: place.id });
     setDirectInputOpen(false);
   }
 
@@ -216,7 +229,11 @@ export function PostDetailPage() {
         open={memoOpen}
         onOpenChange={setMemoOpen}
         memo={memo}
-        onSave={(next) => updateMemoMutation.mutate(next)}
+        onSave={(next) =>
+          updateMemoMutation.mutate(next, {
+            onSuccess: () => capturePostHogEvent('post_memo_saved', { post_id: postId }),
+          })
+        }
       />
 
       {viewerOpen ? <PostImageViewer images={images} onClose={() => setViewerOpen(false)} /> : null}
