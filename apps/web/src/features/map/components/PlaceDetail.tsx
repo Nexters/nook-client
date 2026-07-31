@@ -7,6 +7,7 @@ import { SavedPostCard } from '@/features/post';
 import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
 import { postQueryKeys } from '@/features/post/api/queries';
 import { Icon32StarOff, Icon32StarOn } from '@/shared/icons/NookIcons';
+import { Thumbnail } from '@/shared/ui';
 import { useUpdatePlaceBookmark } from '../api/queries';
 
 /** 대표 이미지가 없는 게시물 카드에 쓰는 회색 플레이스홀더(140x175, gray-20). */
@@ -121,6 +122,7 @@ function RelatedPlacesSection({
                 name: related.name,
                 category: related.category ?? '',
                 address: related.address,
+                thumbnail: related.thumbnail,
               }}
               bookmarked={related.bookmarked}
               onBookmarkedChange={(next) =>
@@ -181,8 +183,12 @@ export function PlaceDetail({
         {!expanded && <p className="text-b2 text-gray-70">{place.address}</p>}
       </div>
 
-      {/* 실제 업체 사진 API 연동 전까지 회색 박스로 대체 */}
-      <div className="h-[212px] w-full rounded-sm border border-gray-20 bg-gray-10" />
+      {/* 장소 대표 사진. 없으면 같은 크기의 회색 박스로 자리만 잡는다. */}
+      {place.thumbnail ? (
+        <Thumbnail src={place.thumbnail} alt="" className="h-[212px] w-full" />
+      ) : (
+        <div className="h-[212px] w-full rounded-sm border border-gray-20 bg-gray-10" />
+      )}
 
       {expanded && (
         <>

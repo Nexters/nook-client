@@ -94,6 +94,7 @@ export async function fetchPlaceDetail(placeId: number): Promise<PlaceDetail> {
     lat: response.latitude,
     lng: response.longitude,
     bookmarked: response.bookmarked,
+    thumbnail: response.thumbnailUrl ?? undefined,
     posts: (response.posts?.items ?? []).map(toPlaceDetailPost),
   };
 }

@@ -64,6 +64,8 @@ export interface ParsedPlace {
   category?: string;
   phoneNumber: string | null;
   bookmarked: boolean;
+  /** 장소 대표 썸네일. 없을 수 있다. */
+  thumbnail?: string;
 }
 
 export interface PlaceParsingResult {

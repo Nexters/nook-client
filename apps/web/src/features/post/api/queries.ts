@@ -51,13 +51,14 @@ export type RelatedPlacesState =
   | { status: 'success'; places: Place[]; bookmarkedPlaceIds: string[] }
   | { status: 'error' };
 
-/** 파싱 응답의 장소를 화면 도메인 `Place` 로 좁힌다 — distance/thumbnail 은 응답에 없어 생략한다(PlaceRow 가 옵셔널 처리). */
+/** 파싱 응답의 장소를 화면 도메인 `Place` 로 좁힌다 — distance 는 응답에 없어 생략한다(PlaceRow 가 옵셔널 처리). */
 function toPlace(parsed: ParsedPlace): Place {
   return {
     id: String(parsed.id),
     name: parsed.name,
     category: parsed.category ?? '',
     address: parsed.address,
+    thumbnail: parsed.thumbnail,
   };
 }
 
