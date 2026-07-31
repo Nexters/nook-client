@@ -74,6 +74,13 @@ describe('PlaceInfo 메모 인라인 편집', () => {
     expect(screen.queryByRole('button', { name: '수정' })).not.toBeInTheDocument();
   });
 
+  it('메모도 없고 편집도 불가하면 메모 줄을 렌더하지 않는다', () => {
+    render(<PlaceInfo address="서울 성동구" />);
+
+    expect(screen.getByText('서울 성동구')).toBeInTheDocument();
+    expect(screen.queryByText('메모를 남겨보세요')).not.toBeInTheDocument();
+  });
+
   it('주소·영업시간이 없으면 그 줄은 렌더하지 않는다', () => {
     const { rerender } = render(
       <PlaceInfo address="서울 성동구" businessStatus="영업중" memo="메모만" />,
