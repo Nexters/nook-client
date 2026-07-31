@@ -168,7 +168,8 @@ export function PlaceDetail({
             {place.bookmarked ? <Icon32StarOn /> : <Icon32StarOff />}
           </button>
         </div>
-        <p className="text-b2 text-gray-70">{place.address}</p>
+        {/* 꽉 찬 스냅에서는 아래 `PlaceInfo` 가 같은 주소를 보여줘서 여기선 뺀다. */}
+        {!expanded && <p className="text-b2 text-gray-70">{place.address}</p>}
       </div>
 
       {/* 실제 업체 사진 API 연동 전까지 회색 박스로 대체 */}
