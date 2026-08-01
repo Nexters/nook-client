@@ -61,10 +61,12 @@ fun InputField(
                     .weight(1f)
                     .onFocusChanged { focused = it.isFocused },
                 decorationBox = { inner ->
-                    if (value.isEmpty()) {
-                        Text(placeholder, style = fieldStyle.copy(color = Color(0xFF99A0AC)))
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                        if (value.isEmpty()) {
+                            Text(placeholder, style = fieldStyle.copy(color = Color(0xFF99A0AC)))
+                        }
+                        inner()
                     }
-                    inner()
                 },
             )
             // Focus + 1자 이상일 때만 노출되는 지우기 버튼
