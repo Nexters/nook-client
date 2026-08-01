@@ -37,25 +37,30 @@ export function GroupDetailPage() {
 
   if (!group) {
     return (
-      <main className="min-h-dvh bg-gray-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <main
+        className="fixed inset-0 flex flex-col bg-gray-0"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <Header left={<BackButton />} />
         <GroupEmpty message="그룹을 찾을 수 없어요" />
       </main>
     );
   }
 
+  // 헤더를 고정하기 위해 페이지를 앱 셸에 붙이고(fixed inset-0 — 셸의
+  // will-change-transform 이 fixed 의 기준을 셸로 잡아준다, GroupFormPage 와 같은
+  // 패턴) 콘텐츠만 내부에서 스크롤한다. sticky 는 셸의 overflow-hidden 때문에
+  // 기준 스크롤포트가 문서가 아닌 셸로 잡혀 동작하지 않는다.
   return (
     <main
-      className="min-h-dvh bg-gray-0"
-      style={{
-        paddingTop: 'env(safe-area-inset-top)',
-        paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))',
-      }}
+      className="fixed inset-0 flex flex-col bg-gray-0"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       {/* TODO(api): 공유 버튼은 아직 동작이 없어 숨긴다 — 링크 스펙 확정 후
           `right={<ShareButton />}` 로 되살리고 native share 에 연결한다. */}
       <Header left={<BackButton />} />
 
+      {/* 그룹 정보(이름·색·편집)도 헤더와 함께 고정 — 스크롤 영역 밖에 둔다. */}
       <div className="flex flex-col gap-1 border-gray-20 border-b px-4 pb-4">
         <div className="flex items-center gap-2">
           <span className={`size-3 shrink-0 ${COLOR_BG_CLASS[group.color]}`} aria-hidden="true" />
@@ -75,21 +80,26 @@ export function GroupDetailPage() {
         ) : null}
       </div>
 
-      {posts?.length === 0 ? (
-        <GroupEmpty message="아직 저장한 게시물이 없어요" />
-      ) : (
-        <div className="grid grid-cols-2 gap-2 px-4 pt-4">
-          {posts?.map((post) => (
-            <CollectionCard
-              key={post.id}
-              group={post}
-              onClick={() => navigate(`/post/${post.id}`)}
-            />
-          ))}
-        </div>
-      )}
-      {/* 다음 페이지 트리거. 마지막 페이지면 관찰 대상이 없어 아무 일도 하지 않는다. */}
-      <div ref={sentinelRef} aria-hidden="true" className="h-1" />
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+      >
+        {posts?.length === 0 ? (
+          <GroupEmpty message="아직 저장한 게시물이 없어요" />
+        ) : (
+          <div className="grid grid-cols-2 gap-2 px-4 pt-4">
+            {posts?.map((post) => (
+              <CollectionCard
+                key={post.id}
+                group={post}
+                onClick={() => navigate(`/post/${post.id}`)}
+              />
+            ))}
+          </div>
+        )}
+        {/* 다음 페이지 트리거. 마지막 페이지면 관찰 대상이 없어 아무 일도 하지 않는다. */}
+        <div ref={sentinelRef} aria-hidden="true" className="h-1" />
+      </div>
     </main>
   );
 }
