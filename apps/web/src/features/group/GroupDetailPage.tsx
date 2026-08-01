@@ -80,21 +80,28 @@ export function GroupDetailPage() {
         ) : null}
       </div>
 
-      {posts?.length === 0 ? (
-        <GroupEmpty message="아직 저장한 게시물이 없어요" />
-      ) : (
-        <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
-          {posts?.map((post) => (
-            <CollectionCard
-              key={post.id}
-              group={post}
-              onClick={() => navigate(`/post/${post.id}`)}
-            />
-          ))}
-        </div>
-      )}
-      {/* 다음 페이지 트리거. 마지막 페이지면 관찰 대상이 없어 아무 일도 하지 않는다. */}
-      <div ref={sentinelRef} aria-hidden="true" className="h-1" />
+      {/* 게시물 그리드만 내부에서 스크롤한다 — 이 래퍼가 없으면 fixed 컨테이너 안에서
+          넘친 콘텐츠를 스크롤할 방법이 없다. */}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+      >
+        {posts?.length === 0 ? (
+          <GroupEmpty message="아직 저장한 게시물이 없어요" />
+        ) : (
+          <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
+            {posts?.map((post) => (
+              <CollectionCard
+                key={post.id}
+                group={post}
+                onClick={() => navigate(`/post/${post.id}`)}
+              />
+            ))}
+          </div>
+        )}
+        {/* 다음 페이지 트리거. 마지막 페이지면 관찰 대상이 없어 아무 일도 하지 않는다. */}
+        <div ref={sentinelRef} aria-hidden="true" className="h-1" />
+      </div>
     </main>
   );
 }
