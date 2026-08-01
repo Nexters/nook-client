@@ -78,7 +78,7 @@ export function GroupDetailPage() {
       {posts?.length === 0 ? (
         <GroupEmpty message="아직 저장한 게시물이 없어요" />
       ) : (
-        <div className="grid grid-cols-2 gap-2 px-4 pt-4">
+        <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
           {posts?.map((post) => (
             <CollectionCard
               key={post.id}
