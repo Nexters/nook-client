@@ -135,7 +135,7 @@ struct InputField: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, minHeight: 52)
+        .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(focused.wrappedValue ? Color(hex: 0x1F1F1F) : Color(hex: 0xCACED4), lineWidth: 1)
