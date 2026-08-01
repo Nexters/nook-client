@@ -4,7 +4,7 @@ import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import type { Place } from '@/features/place';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { cn } from '@/shared/lib/utils';
-import { BackButton, Carousel, Header, Snackbar } from '@/shared/ui';
+import { BackButton, Header, Snackbar } from '@/shared/ui';
 import {
   usePostDetail,
   useRelatedPlaces,
@@ -15,6 +15,7 @@ import { MemoSheet } from './components/MemoSheet';
 import { OriginalPostLink } from './components/OriginalPostLink';
 import { PlaceDirectInputDrawer } from './components/PlaceDirectInputDrawer';
 import { PostDetailLoadingView } from './components/PostDetailLoadingView';
+import { PostImages } from './components/PostImages';
 import { PostImageViewer } from './components/PostImageViewer';
 import { PostInfo } from './components/PostInfo';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
@@ -155,29 +156,7 @@ export function PostDetailPage() {
       >
         <Header left={<BackButton onClick={handleBack} />} />
 
-        {images.length > 0 ? (
-          <Carousel>
-            {images.map((src, index) => (
-              <button
-                // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
-                // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
-                key={index}
-                type="button"
-                aria-label={`${index + 1}번째 이미지 크게 보기`}
-                onClick={() => setViewerOpen(true)}
-                // 좌우 16px 여백은 첫/마지막 슬라이드가 만든다 — 스크롤 컨테이너에 padding 을
-                // 주면 다음 이미지가 화면 끝까지 이어지지 않고 잘린다(시안은 끝까지 이어진다).
-                className={cn(
-                  'h-[300px] w-[281px] overflow-hidden rounded-sm',
-                  index === 0 && 'ml-4',
-                  index === images.length - 1 && 'mr-4',
-                )}
-              >
-                <img src={src} alt="" className="size-full object-cover" />
-              </button>
-            ))}
-          </Carousel>
-        ) : null}
+        <PostImages images={images} onImageClick={() => setViewerOpen(true)} />
 
         <div className="flex flex-col gap-2 px-4 pt-1">
           <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>

@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import { MID_SNAP_POINT } from '@/features/map/constants';
+import { FULL_SNAP_POINT, MID_SNAP_POINT } from '@/features/map/constants';
 import { BOTTOM_MENU_HEIGHT } from '@/shared/ui/bottom-menu';
 
 /**
@@ -23,6 +23,11 @@ import { BOTTOM_MENU_HEIGHT } from '@/shared/ui/bottom-menu';
  *    자리를 BottomMenu 가 도로 가리므로, 패딩은 정확히 (100 − snap×100)dvh + 여유분이다.
  *    밀린 몫이 스냅마다 다르므로(탐색 모드는 mid·full 양쪽에서 스크롤된다) 현재 스냅을
  *    받아 계산한다 — full(1)에서는 밀린 몫이 없어 여유분만 남는다.
+ *
+ * full 스냅(드로어가 화면 최상단까지 올라옴)에서는 노치/상태바가 콘텐츠를 덮으므로 상단
+ * safe-area 만큼 비운다. 단 드로어 높이는 건드리지 않는다(위 2번) — 드로어에 상단 패딩을
+ * 주고 스크롤 영역 높이를 정확히 그만큼 줄여 총 높이를 유지한다. full 이 아닐 땐 시트 위쪽이
+ * 이미 화면 안쪽이라 패딩이 죽은 여백이 되므로 넣지 않는다.
  */
 export function getPlaceSheetLayoutClassNames(
   bottomMenuHidden: boolean,
@@ -32,10 +37,15 @@ export function getPlaceSheetLayoutClassNames(
   drawer: { className: string; style?: React.CSSProperties };
   scroller: { className: string; style?: React.CSSProperties };
 } {
+  const safeAreaTop = snap === FULL_SNAP_POINT ? 'env(safe-area-inset-top)' : '0px';
+
   if (bottomMenuHidden) {
     return {
-      drawer: { className: 'bottom-0 max-h-dvh' },
-      scroller: { className: 'h-dvh pb-[calc(1.25rem+env(safe-area-inset-bottom))]' },
+      drawer: { className: 'bottom-0 max-h-dvh', style: { paddingTop: safeAreaTop } },
+      scroller: {
+        className: 'pb-[calc(1.25rem+env(safe-area-inset-bottom))]',
+        style: { height: `calc(100dvh - ${safeAreaTop})` },
+      },
     };
   }
 
@@ -46,12 +56,12 @@ export function getPlaceSheetLayoutClassNames(
   return {
     drawer: {
       className: '',
-      style: { bottom: BOTTOM_MENU_HEIGHT, maxHeight: drawerHeight },
+      style: { bottom: BOTTOM_MENU_HEIGHT, maxHeight: drawerHeight, paddingTop: safeAreaTop },
     },
     scroller: {
       className: '',
       style: {
-        height: drawerHeight,
+        height: `calc(100dvh - ${BOTTOM_MENU_HEIGHT} - ${safeAreaTop})`,
         paddingBottom: `calc(${100 - snapRatio * 100}dvh + 1.25rem)`,
       },
     },
