@@ -15,7 +15,7 @@ describe('getPlaceSheetLayoutClassNames', () => {
     const layout = getPlaceSheetLayoutClassNames(false, MID_SNAP_POINT);
 
     // 높이를 줄이면 vaul 의 컨테이너 기준 translate 에 드로어가 통째로 화면 밖으로 밀려난다.
-    expect(layout.scroller.style?.height).toBe(`calc(100dvh - ${BOTTOM_MENU_HEIGHT})`);
+    expect(layout.scroller.style?.height).toBe(`calc(100dvh - ${BOTTOM_MENU_HEIGHT} - 0px)`);
     expect(layout.scroller.style?.paddingBottom).toContain(`${100 - MID_SNAP_POINT * 100}dvh`);
   });
 
@@ -36,8 +36,22 @@ describe('getPlaceSheetLayoutClassNames', () => {
 
     expect(layout.drawer.className).toContain('bottom-0');
     expect(layout.drawer.className).toContain('max-h-dvh');
-    expect(layout.drawer.style).toBeUndefined();
-    expect(layout.scroller.className).toContain('h-dvh');
-    expect(layout.scroller.style).toBeUndefined();
+    expect(layout.scroller.style?.height).toBe('calc(100dvh - env(safe-area-inset-top))');
+  });
+
+  it('full 스냅에서는 상단 safe-area 만큼 드로어 패딩을 주고 스크롤 높이를 그만큼 줄인다', () => {
+    const layout = getPlaceSheetLayoutClassNames(false, FULL_SNAP_POINT);
+
+    expect(layout.drawer.style?.paddingTop).toBe('env(safe-area-inset-top)');
+    // 드로어 총 높이(패딩 + 스크롤)는 그대로여야 vaul 스냅 translate 가 어긋나지 않는다.
+    expect(layout.scroller.style?.height).toBe(
+      `calc(100dvh - ${BOTTOM_MENU_HEIGHT} - env(safe-area-inset-top))`,
+    );
+  });
+
+  it('full 이 아닌 스냅에서는 상단 패딩을 주지 않는다', () => {
+    const layout = getPlaceSheetLayoutClassNames(true, MID_SNAP_POINT);
+
+    expect(layout.drawer.style?.paddingTop).toBe('0px');
   });
 });
