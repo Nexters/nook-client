@@ -2,6 +2,7 @@ import { parseWebToNative } from '@nook/bridge-contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, Platform } from 'react-native';
 import type { WebView, WebViewMessageEvent } from 'react-native-webview';
+import { runSocialLogin } from '../auth/socialLogin';
 import {
   clearSession,
   establishSession,
@@ -127,6 +128,17 @@ export function useWebViewBridge() {
             sendResult(message.payload.requestId, session),
           );
           break;
+        case 'SOCIAL_LOGIN': {
+          const { requestId, provider } = message.payload;
+          void runSocialLogin(provider).then((outcome) => {
+            send({
+              v: 1,
+              type: 'SOCIAL_LOGIN_RESULT',
+              payload: { requestId, provider, ...outcome },
+            });
+          });
+          break;
+        }
         case 'SESSION_CLEAR':
           void clearSession().then(() => {
             send({ v: 1, type: 'SESSION_CLEARED', payload: { reason: 'logout' } });

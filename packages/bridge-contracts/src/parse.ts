@@ -1,5 +1,5 @@
-import { BRIDGE_VERSION } from './message';
-import type { NativeToWeb } from './native-to-web';
+import { BRIDGE_VERSION, type SocialProvider } from './message';
+import type { NativeToWeb, SocialCredential, SocialLoginStatus } from './native-to-web';
 import type { WebToNative } from './web-to-native';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -25,6 +25,33 @@ function requestId(payload: Record<string, unknown>): string | null {
     : null;
 }
 
+function isSocialProvider(value: unknown): value is SocialProvider {
+  return value === 'apple' || value === 'kakao';
+}
+
+function isSocialLoginStatus(value: unknown): value is SocialLoginStatus {
+  return value === 'success' || value === 'cancelled' || value === 'error';
+}
+
+function token(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+/** 자격증명은 provider 마다 필드가 달라, 최소 하나라도 있어야 유효한 것으로 본다. */
+function parseSocialCredential(value: unknown): SocialCredential | null {
+  if (!isRecord(value)) return null;
+
+  const credential: SocialCredential = {};
+  const identityToken = token(value.identityToken);
+  const authorizationCode = token(value.authorizationCode);
+  const accessToken = token(value.accessToken);
+  if (identityToken) credential.identityToken = identityToken;
+  if (authorizationCode) credential.authorizationCode = authorizationCode;
+  if (accessToken) credential.accessToken = accessToken;
+
+  return identityToken || authorizationCode || accessToken ? credential : null;
+}
+
 export function parseWebToNative(json: string): WebToNative | null {
   const value = parseRecord(json);
   if (!value || !hasSupportedVersion(value) || !isRecord(value.payload)) {
@@ -40,6 +67,16 @@ export function parseWebToNative(json: string): WebToNative | null {
         : null;
     case 'REQUEST_PUSH_PERMISSION':
       return { v: BRIDGE_VERSION, type: value.type, payload: {} };
+    case 'SOCIAL_LOGIN': {
+      const id = requestId(value.payload);
+      return id && isSocialProvider(value.payload.provider)
+        ? {
+            v: BRIDGE_VERSION,
+            type: value.type,
+            payload: { requestId: id, provider: value.payload.provider },
+          }
+        : null;
+    }
     case 'SESSION_GET':
     case 'SESSION_CLEAR': {
       const id = requestId(value.payload);
@@ -87,6 +124,24 @@ export function parseNativeToWeb(json: string): NativeToWeb | null {
   }
   if (value.type === 'APP_RESUMED') {
     return { v: BRIDGE_VERSION, type: value.type, payload: {} };
+  }
+  if (value.type === 'SOCIAL_LOGIN_RESULT') {
+    const id = requestId(value.payload);
+    const { provider, status } = value.payload;
+    if (!id || !isSocialProvider(provider) || !isSocialLoginStatus(status)) {
+      return null;
+    }
+    if (status !== 'success') {
+      return { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id, provider, status } };
+    }
+    const credential = parseSocialCredential(value.payload.credential);
+    return credential
+      ? {
+          v: BRIDGE_VERSION,
+          type: value.type,
+          payload: { requestId: id, provider, status, credential },
+        }
+      : null;
   }
   if (value.type === 'SESSION_CLEARED') {
     return typeof value.payload.reason === 'string'

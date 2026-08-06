@@ -6,12 +6,15 @@ import {
   KakaoIcon,
   SocialLoginButton,
 } from '@/features/auth/components/SocialLoginButton';
+import { useSocialLogin } from '@/features/auth/useSocialLogin';
+import { nativeBridge } from '@/native-bridge';
 import { env } from '@/shared/config/env';
-// @coldbrow Temporary deactivation for UT
-// import { requestSocialLogin } from '@/features/auth/social-login';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { signIn, pendingProvider, error } = useSocialLogin();
+  // Apple 로그인은 iOS 셸에서만 동작한다 (expo-apple-authentication 이 iOS 전용).
+  const showAppleLogin = nativeBridge.platform === 'ios';
 
   return (
     <main
@@ -42,16 +45,23 @@ export function LoginPage() {
           provider="kakao"
           icon={<KakaoIcon />}
           label="카카오로 시작하기"
-          onClick={() => navigate('/map')}
-          // onClick={() => requestSocialLogin('kakao')}
+          disabled={pendingProvider !== null}
+          onClick={() => void signIn('kakao')}
         />
-        <SocialLoginButton
-          provider="apple"
-          icon={<AppleIcon />}
-          label="Apple로 시작하기"
-          onClick={() => navigate('/map')}
-          // onClick={() => requestSocialLogin('apple')}
-        />
+        {showAppleLogin ? (
+          <SocialLoginButton
+            provider="apple"
+            icon={<AppleIcon />}
+            label="Apple로 시작하기"
+            disabled={pendingProvider !== null}
+            onClick={() => void signIn('apple')}
+          />
+        ) : null}
+        {error ? (
+          <p role="alert" className="mt-1 text-center text-b3 text-error">
+            {error}
+          </p>
+        ) : null}
         {env.enableDevRoutes ? (
           <button
             type="button"

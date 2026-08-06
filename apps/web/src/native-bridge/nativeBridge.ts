@@ -2,6 +2,7 @@ import {
   type NativeToWeb,
   type Platform,
   parseNativeToWeb,
+  type SocialProvider,
   type WebToNative,
 } from '@nook/bridge-contracts';
 
@@ -23,6 +24,7 @@ declare global {
 
 type Handler = (message: NativeToWeb) => void;
 type SessionResult = Extract<NativeToWeb, { type: 'SESSION_RESULT' }>['payload'];
+type SocialLoginResult = Extract<NativeToWeb, { type: 'SOCIAL_LOGIN_RESULT' }>['payload'];
 
 // crypto.randomUUID 는 보안 컨텍스트에서만 존재한다. 실기기가 http://<LAN IP> 의
 // dev 서버를 볼 때는 비보안 컨텍스트라 undefined 다. 요청/응답 짝을 맞추는 용도라
@@ -47,6 +49,7 @@ class NativeBridge {
   private buffer: NativeToWeb[] = [];
   private started = false;
   private pending = new Map<string, (result: SessionResult) => void>();
+  private pendingSocial = new Map<string, (result: SocialLoginResult) => void>();
 
   get isNative(): boolean {
     return !!window.ReactNativeWebView;
@@ -98,10 +101,26 @@ class NativeBridge {
     });
   }
 
+  /** 셸이 provider SDK 를 실행하고 자격증명만 돌려준다. 백엔드 인증은 호출부가 이어서 한다. */
+  requestSocialLogin(provider: SocialProvider): Promise<SocialLoginResult> {
+    const requestId = randomRequestId();
+    return new Promise((resolve) => {
+      this.pendingSocial.set(requestId, resolve);
+      this.send({ v: 1, type: 'SOCIAL_LOGIN', payload: { requestId, provider } });
+    });
+  }
+
   private receive(json: string): void {
     const message = parseNativeToWeb(json);
     if (!message) {
       return;
+    }
+    if (message.type === 'SOCIAL_LOGIN_RESULT') {
+      const resolve = this.pendingSocial.get(message.payload.requestId);
+      if (resolve) {
+        this.pendingSocial.delete(message.payload.requestId);
+        resolve(message.payload);
+      }
     }
     if (message.type === 'SESSION_RESULT') {
       const resolve = this.pending.get(message.payload.requestId);
