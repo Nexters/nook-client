@@ -2656,6 +2656,38 @@
       }
     },
     "/api/v1/posts/{postId}": {
+      "delete": {
+        "operationId": "deleteSavedPost",
+        "parameters": [
+          {
+            "description": "삭제할 저장 게시물 식별자",
+            "in": "path",
+            "name": "postId",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUnit"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "내 저장 게시물 삭제",
+        "tags": [
+          "Post"
+        ]
+      },
       "get": {
         "operationId": "getSavedPostDetail",
         "parameters": [
