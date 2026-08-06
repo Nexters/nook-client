@@ -1,0 +1,12 @@
+{
+  "appIds": {
+    "development": "kr.co.everynook.app.dev",
+    "production": "kr.co.everynook.app"
+  },
+  "kakao": {
+    "nativeAppKey": "6dc7030b89ac43c7a8f9737c7abe5d59"
+  },
+  "android": {
+    "kotlinVersion": "2.1.20"
+  }
+}

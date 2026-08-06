@@ -1,12 +1,7 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import nativePublicConfig from './native-public-config.json';
 
-type AppVariant = 'development' | 'production';
-
-// iOS·Android 공통 식별자. 별도 개발 서버가 없어 현재는 production 만 사용한다.
-const APP_ID: Record<AppVariant, string> = {
-  development: 'kr.co.everynook.app.dev',
-  production: 'kr.co.everynook.app',
-};
+type AppVariant = keyof typeof nativePublicConfig.appIds;
 
 // APP_VARIANT 미설정 시 production. 오타·누락으로 엉뚱한 식별자가 만들어지지 않게
 // 알 수 없는 값도 production 으로 떨어뜨린다.
@@ -14,20 +9,10 @@ function resolveVariant(): AppVariant {
   return process.env.APP_VARIANT === 'development' ? 'development' : 'production';
 }
 
-// react-native/gradle/libs.versions.toml 의 kotlin 과 맞춘다. 카카오 플러그인이
-// 값을 안 주면 android.kotlinVersion 을 1.5.10 으로 덮어써 Compose 모듈이 깨진다.
-const KOTLIN_VERSION = '2.1.20';
-
 export default ({ config }: ConfigContext): ExpoConfig => {
   const variant = resolveVariant();
-  const appId = APP_ID[variant];
+  const appId = nativePublicConfig.appIds[variant];
   const sessionAccessGroup = `$(AppIdentifierPrefix)group.${appId}`;
-
-  const kakaoAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY;
-  // 미설정이면 kakaoundefined:// 스킴이 조용히 생성되므로 여기서 끊는다.
-  if (!kakaoAppKey) {
-    throw new Error('EXPO_PUBLIC_KAKAO_APP_KEY 미설정');
-  }
 
   return {
     ...config,
@@ -39,7 +24,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...(config.plugins ?? []),
       '@bacons/apple-targets',
       'expo-apple-authentication',
-      ['@react-native-seoul/kakao-login', { kakaoAppKey, kotlinVersion: KOTLIN_VERSION }],
+      [
+        '@react-native-seoul/kakao-login',
+        {
+          kakaoAppKey: nativePublicConfig.kakao.nativeAppKey,
+          kotlinVersion: nativePublicConfig.android.kotlinVersion,
+        },
+      ],
     ],
     ios: {
       ...config.ios,
@@ -50,6 +41,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       usesAppleSignIn: true,
       infoPlist: {
         ...config.ios?.infoPlist,
+        // 미설정이면 EAS 가 매 빌드마다 물어보고 그 답을 app config 에 되쓴다. HTTPS 만
+        // 쓰므로 수출 규제 면제 대상이고, 값을 박아두면 App Store Connect 수동 설정도 없다.
+        ITSAppUsesNonExemptEncryption: false,
         NSLocalNetworkUsageDescription: '개발용 로컬 웹 서버에 연결하기 위해 사용합니다.',
         // WebView(WKWebView) 내 지도 화면의 navigator.geolocation 호출용.
         NSLocationWhenInUseUsageDescription:
