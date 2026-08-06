@@ -2,6 +2,7 @@
   "expo": {
     "name": "nook",
     "slug": "nook",
+    "owner": "everynook",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,6 +21,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "63adc1c0-079a-4ba2-99dd-7099b5789d8b"
+      }
     }
   }
 }

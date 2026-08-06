@@ -1,10 +1,20 @@
 {
   "cli": {
-    "version": ">= 12.0.0",
+    "version": ">= 21.6.0",
     "appVersionSource": "remote"
   },
   "build": {
+    "base": {
+      "node": "22.18.0",
+      "env": {
+        "APPLE_TEAM_ID": "TDTGJZTB57",
+        "EXPO_PUBLIC_WEB_URL": "https://www.everynook.co.kr",
+        "EXPO_PUBLIC_API_BASE_URL": "https://api-dev.everynook.co.kr/api/v1",
+        "EXPO_PUBLIC_KAKAO_APP_KEY": "6dc7030b89ac43c7a8f9737c7abe5d59"
+      }
+    },
     "development": {
+      "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
       "environment": "development",
@@ -13,13 +23,23 @@
       }
     },
     "production": {
+      "extends": "base",
+      "distribution": "store",
       "environment": "production",
+      "autoIncrement": true,
       "env": {
         "APP_VARIANT": "production"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleTeamId": "TDTGJZTB57"
+      }
+    }
   }
 }
