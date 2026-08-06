@@ -1,6 +1,7 @@
 import { URL } from 'react-native-url-polyfill';
 
-const APP_SCHEMES = new Set(['com.nook.app:', 'com.nook.app.dev:', 'kr.com.nook.app.dev:']);
+// 번들 식별자가 그대로 딥링크 스킴이 된다 (app.config.ts 의 APP_ID 와 일치해야 함)
+const APP_SCHEMES = new Set(['kr.co.everynook.app:', 'kr.co.everynook.app.dev:']);
 const POST_ID = /^\d+$/;
 
 function parseUrl(value: string): URL | null {

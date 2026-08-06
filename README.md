@@ -93,9 +93,9 @@ env 파일은 **앱별로** 둔다. 루트에는 두지 않는다(Vite·Expo 모
 - `VITE_*` 는 번들에 인라인, `EXPO_PUBLIC_*` 는 앱 번들에 포함된다. **둘 다 공개값만** 넣는다.
 - 앱 식별자는 `APP_VARIANT` 로 갈린다 (`apps/mobile/app.config.ts`). 미설정·오타는 production 으로 떨어진다.
 
-| APP_VARIANT | iOS App ID | Android App ID | App Group |
-| --- | --- | --- | --- |
-| `development` | `com.nook.app.dev` | `com.nook.app.dev` | `group.com.nook.app.dev` |
-| `production`(기본) | `kr.com.nook.app.dev` | `com.nook.app` | `group.kr.com.nook.app.dev` |
+| APP_VARIANT | App ID (iOS·Android 공통) | App Group |
+| --- | --- | --- |
+| `production`(기본) | `kr.co.everynook.app` | `group.kr.co.everynook.app` |
+| `development` | `kr.co.everynook.app.dev` | `group.kr.co.everynook.app.dev` |
 
-variant 별로 ID 가 달라 개발 앱과 운영 앱을 한 기기에 함께 설치할 수 있다. EAS 빌드 프로필은 `apps/mobile/eas.json` 참고.
+별도 개발 서버를 운영하지 않아 현재는 `production` 만 사용한다. Share Extension 은 본앱 식별자 뒤에 `.ShareExtension` 이 붙는다. EAS 빌드 프로필은 `apps/mobile/eas.json` 참고.
