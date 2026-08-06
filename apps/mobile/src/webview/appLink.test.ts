@@ -10,25 +10,25 @@ import { resolveAppLinkWebUrl } from './appLink';
 const WEB_URL = 'https://www.everynook.co.kr';
 
 describe('resolveAppLinkWebUrl', () => {
-  it.each(['com.nook.app.dev://login', 'com.nook.app:///login', 'kr.com.nook.app.dev://login'])(
+  it.each(['kr.co.everynook.app://login', 'kr.co.everynook.app:///login'])(
     '로그인 딥링크를 웹 로그인 화면으로 변환한다: %s',
     (value) => {
       expect(resolveAppLinkWebUrl(value, WEB_URL)).toBe(`${WEB_URL}/login`);
     },
   );
 
-  it.each([
-    'com.nook.app.dev://post/42',
-    'com.nook.app://post/42',
-    'kr.com.nook.app.dev://post/42',
-  ])('게시글 딥링크를 웹 상세 화면으로 변환한다: %s', (value) => {
-    expect(resolveAppLinkWebUrl(value, WEB_URL)).toBe(`${WEB_URL}/post/42?entry=share`);
+  it('게시글 딥링크를 웹 상세 화면으로 변환한다', () => {
+    expect(resolveAppLinkWebUrl('kr.co.everynook.app://post/42', WEB_URL)).toBe(
+      `${WEB_URL}/post/42?entry=share`,
+    );
   });
 
   it.each([
-    'com.nook.app.dev://post/not-a-number',
-    'com.nook.app.dev://group/1',
-    'com.nook.app.dev://post/1?next=https://evil.example',
+    'kr.co.everynook.app://post/not-a-number',
+    'kr.co.everynook.app://group/1',
+    'kr.co.everynook.app://post/1?next=https://evil.example',
+    // 등록되지 않은 스킴(옛 식별자 포함)은 허용하지 않는다
+    'com.nook.app://post/1',
     'https://www.everynook.co.kr/post/1',
   ])('허용하지 않은 딥링크를 거부한다: %s', (value) => {
     expect(resolveAppLinkWebUrl(value, WEB_URL)).toBeNull();

@@ -381,6 +381,23 @@ export const createPost = async (
   });
 };
 
+export const getDeleteSavedPostUrl = (postId: number) => {
+  return `/api/v1/posts/${postId}`;
+};
+
+/**
+ * @summary 내 저장 게시물 삭제
+ */
+export const deleteSavedPost = async (
+  postId: number,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseUnit> => {
+  return orvalMutator<ApiResponseUnit>(getDeleteSavedPostUrl(postId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
 export const getGetSavedPostDetailUrl = (postId: number) => {
   return `/api/v1/posts/${postId}`;
 };
