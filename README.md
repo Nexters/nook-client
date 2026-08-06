@@ -79,6 +79,8 @@ pnpm android                # 에뮬레이터/실기기
 
 > 실기기에서는 dev 서버 대신 `vite preview`(빌드본 서빙)로 확인한다 — dev 서버의 재연결 리로드가 웹뷰 상태를 날린다.
 
+iOS EAS production 빌드와 App Store Connect 제출은 [NOOK-115 배포 가이드](<docs/[NOOK-115] 01.iOS_EAS_빌드_및_App_Store_제출.md>)를 따른다.
+
 ## 환경변수 / 앱 variant
 
 env 파일은 **앱별로** 둔다. 루트에는 두지 않는다(Vite·Expo 모두 각 앱 디렉터리를 기준으로 읽는다).
