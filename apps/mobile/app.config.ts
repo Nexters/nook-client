@@ -50,6 +50,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       usesAppleSignIn: true,
       infoPlist: {
         ...config.ios?.infoPlist,
+        // 미설정이면 EAS 가 매 빌드마다 물어보고, 그 답을 app config 에 되쓰다가 env 없이
+        // 이 파일을 평가해 카카오 키 가드에 걸린다. HTTPS 뿐이라 수출 규제 면제 대상이다.
+        ITSAppUsesNonExemptEncryption: false,
         NSLocalNetworkUsageDescription: '개발용 로컬 웹 서버에 연결하기 위해 사용합니다.',
         // WebView(WKWebView) 내 지도 화면의 navigator.geolocation 호출용.
         NSLocationWhenInUseUsageDescription:
