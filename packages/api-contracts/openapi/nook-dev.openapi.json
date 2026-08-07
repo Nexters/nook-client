@@ -981,6 +981,13 @@
             "description": "장소명",
             "type": "string"
           },
+          "tags": {
+            "description": "장소 대표 태그 목록(최대 4개)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -994,7 +1001,8 @@
           "id",
           "latitude",
           "longitude",
-          "name"
+          "name",
+          "tags"
         ],
         "type": "object"
       },
@@ -1073,12 +1081,36 @@
             "description": "장소명",
             "type": "string"
           },
+          "openingHours": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlaceOpeningHoursResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "openNow": {
+            "description": "현재 영업 여부",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "phoneNumber": {
             "description": "장소 전화번호",
             "type": [
               "string",
               "null"
             ]
+          },
+          "photoUrls": {
+            "description": "장소 사진 URL 목록(최대 6장)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "posts": {
             "$ref": "#/components/schemas/PlacePostPageResponse",
@@ -1087,6 +1119,13 @@
           "provider": {
             "description": "장소 provider",
             "type": "string"
+          },
+          "tags": {
+            "description": "장소 대표 태그 목록(최대 4개)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
@@ -1104,8 +1143,81 @@
           "latitude",
           "longitude",
           "name",
+          "photoUrls",
           "posts",
-          "provider"
+          "provider",
+          "tags"
+        ],
+        "type": "object"
+      },
+      "PlaceOpeningHoursResponse": {
+        "properties": {
+          "periods": {
+            "description": "구조화된 주간 영업 구간",
+            "items": {
+              "$ref": "#/components/schemas/PlaceOpeningPeriodResponse"
+            },
+            "type": "array"
+          },
+          "timeZone": {
+            "description": "IANA 시간대",
+            "type": "string"
+          },
+          "weekdayDescriptions": {
+            "description": "Google이 제공한 현지화된 요일별 영업시간",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "periods",
+          "timeZone",
+          "weekdayDescriptions"
+        ],
+        "type": "object"
+      },
+      "PlaceOpeningPeriodResponse": {
+        "properties": {
+          "close": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PlaceOpeningPointResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "open": {
+            "$ref": "#/components/schemas/PlaceOpeningPointResponse"
+          }
+        },
+        "required": [
+          "open"
+        ],
+        "type": "object"
+      },
+      "PlaceOpeningPointResponse": {
+        "properties": {
+          "day": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "hour": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "minute": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "hour",
+          "minute"
         ],
         "type": "object"
       },
@@ -1300,6 +1412,13 @@
             "description": "장소 provider",
             "type": "string"
           },
+          "tags": {
+            "description": "장소 대표 태그 목록(최대 4개)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -1316,7 +1435,8 @@
           "latitude",
           "longitude",
           "name",
-          "provider"
+          "provider",
+          "tags"
         ],
         "type": "object"
       },
@@ -1516,6 +1636,13 @@
             "description": "장소명",
             "type": "string"
           },
+          "tags": {
+            "description": "장소 대표 태그 목록(최대 4개)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -1529,7 +1656,8 @@
           "id",
           "latitude",
           "longitude",
-          "name"
+          "name",
+          "tags"
         ],
         "type": "object"
       },
@@ -1873,6 +2001,13 @@
             "format": "int32",
             "type": "integer"
           },
+          "tags": {
+            "description": "장소 대표 태그 목록(최대 4개)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -1890,7 +2025,8 @@
           "longitude",
           "name",
           "provider",
-          "sequence"
+          "sequence",
+          "tags"
         ],
         "type": "object"
       },

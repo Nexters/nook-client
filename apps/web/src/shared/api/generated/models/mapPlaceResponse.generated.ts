@@ -16,6 +16,8 @@ export interface MapPlaceResponse {
   longitude: number;
   /** 장소명 */
   name: string;
+  /** 장소 대표 태그 목록(최대 4개) */
+  tags: string[];
   /**
    * 장소 대표 썸네일 URL
    * @nullable
