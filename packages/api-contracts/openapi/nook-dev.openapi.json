@@ -19,6 +19,43 @@
           }
         }
       },
+      "ApiResponseAuthActionResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AuthActionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
       "ApiResponseConnectedPlaceResponse": {
         "description": "공통 API 응답",
         "properties": {
@@ -196,6 +233,80 @@
             "type": [
               "array",
               "null"
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
+      "ApiResponseMemberActionResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MemberActionResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
+      "ApiResponseMemberProfileResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MemberProfileResponse"
+              },
+              {
+                "type": "null"
+              }
             ]
           }
         },
@@ -568,6 +679,18 @@
         ],
         "type": "object"
       },
+      "AuthActionResponse": {
+        "properties": {
+          "completed": {
+            "description": "처리 완료 여부",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "completed"
+        ],
+        "type": "object"
+      },
       "ConnectedPlaceResponse": {
         "properties": {
           "placeId": {
@@ -872,6 +995,43 @@
           "latitude",
           "longitude",
           "name"
+        ],
+        "type": "object"
+      },
+      "MemberActionResponse": {
+        "properties": {
+          "completed": {
+            "description": "처리 완료 여부",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "completed"
+        ],
+        "type": "object"
+      },
+      "MemberProfileResponse": {
+        "properties": {
+          "id": {
+            "description": "회원 식별자",
+            "format": "int64",
+            "type": "integer"
+          },
+          "nickname": {
+            "description": "회원 닉네임",
+            "type": "string"
+          },
+          "profileImageUrl": {
+            "description": "프로필 이미지 URL",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "nickname"
         ],
         "type": "object"
       },
@@ -1806,32 +1966,6 @@
         ],
         "type": "object"
       },
-      "SignupMemberRequest": {
-        "properties": {
-          "nickname": {
-            "description": "회원 닉네임",
-            "example": "누커",
-            "maxLength": 20,
-            "minLength": 2,
-            "type": "string"
-          },
-          "profileImageUrl": {
-            "description": "프로필 이미지 URL",
-            "example": "https://example.com/profile.png",
-            "maxLength": 2048,
-            "minLength": 0,
-            "pattern": "^https://.+",
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "nickname"
-        ],
-        "type": "object"
-      },
       "SocialAuthRequest": {
         "properties": {
           "accessToken": {
@@ -1876,37 +2010,17 @@
       "SocialAuthResponse": {
         "properties": {
           "accessToken": {
-            "description": "서비스 access token. 로그인 완료 상태에서만 내려갑니다.",
-            "type": [
-              "string",
-              "null"
-            ]
+            "description": "서비스 access token",
+            "type": "string"
           },
           "refreshToken": {
-            "description": "서비스 refresh token. 로그인 완료 상태에서만 내려갑니다.",
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "signupToken": {
-            "description": "회원가입에 사용할 임시 token. 회원가입 필요 상태에서만 내려갑니다.",
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "status": {
-            "description": "소셜 인증 결과 상태",
-            "enum": [
-              "SIGNED_IN",
-              "SIGNUP_REQUIRED"
-            ],
+            "description": "서비스 refresh token",
             "type": "string"
           }
         },
         "required": [
-          "status"
+          "accessToken",
+          "refreshToken"
         ],
         "type": "object"
       },
@@ -1959,6 +2073,32 @@
         ],
         "type": "object"
       },
+      "UpdateMemberProfileRequest": {
+        "properties": {
+          "nickname": {
+            "description": "회원 닉네임",
+            "example": "누커",
+            "maxLength": 20,
+            "minLength": 2,
+            "type": "string"
+          },
+          "profileImageUrl": {
+            "description": "프로필 이미지 URL",
+            "example": "https://example.com/profile.png",
+            "maxLength": 2048,
+            "minLength": 0,
+            "pattern": "^https://.+",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "nickname"
+        ],
+        "type": "object"
+      },
       "UpdatePlaceBookmarkRequest": {
         "properties": {
           "bookmarked": {
@@ -2001,6 +2141,27 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAuthActionResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "로그아웃",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/api/v1/auth/social": {
       "post": {
         "operationId": "authenticateSocial",
@@ -2241,25 +2402,52 @@
         ]
       }
     },
-    "/api/v1/members": {
-      "post": {
-        "operationId": "signup",
-        "parameters": [
-          {
-            "description": "소셜 로그인 후 발급받은 signup token",
-            "in": "header",
-            "name": "Authorization",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+    "/api/v1/members/me": {
+      "delete": {
+        "operationId": "withdraw",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberActionResponse"
+                }
+              }
+            },
+            "description": "OK"
           }
-        ],
+        },
+        "summary": "회원 탈퇴",
+        "tags": [
+          "Member"
+        ]
+      },
+      "get": {
+        "operationId": "getMe",
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseMemberProfileResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "내 정보 조회",
+        "tags": [
+          "Member"
+        ]
+      },
+      "patch": {
+        "operationId": "updateMe",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SignupMemberRequest"
+                "$ref": "#/components/schemas/UpdateMemberProfileRequest"
               }
             }
           },
@@ -2270,14 +2458,14 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponseTokenResponse"
+                  "$ref": "#/components/schemas/ApiResponseMemberProfileResponse"
                 }
               }
             },
             "description": "OK"
           }
         },
-        "summary": "회원가입",
+        "summary": "내 정보 수정",
         "tags": [
           "Member"
         ]
