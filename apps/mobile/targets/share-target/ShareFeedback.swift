@@ -38,6 +38,7 @@ struct ShareFeedbackOverlay: View {
     let kind: ShareFeedbackKind
     let onAction: () -> Void
     @State private var isActing = false
+    @State private var isPresented = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -85,6 +86,11 @@ struct ShareFeedbackOverlay: View {
             )
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
+            // 토스트가 화면 아래 밖에서 제자리로 슬라이드해 올라온다
+            .offset(y: isPresented ? 0 : 160)
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.3)) { isPresented = true }
+            }
         }
         .ignoresSafeArea()
     }

@@ -1,6 +1,11 @@
 package com.nook.app.share
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
@@ -144,15 +149,27 @@ fun ShareScreen(
                 }
             }
         } else {
-            ShareFeedbackToast(
-                feedback = feedback,
-                onAction = onFeedbackAction,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 24.dp),
-            )
+            // 새 피드백(id)마다 화면 아래 밖에서 제자리로 슬라이드해 올라온다
+            val toastVisible = remember(feedback.id) {
+                MutableTransitionState(false).apply { targetState = true }
+            }
+            AnimatedVisibility(
+                visibleState = toastVisible,
+                modifier = Modifier.align(Alignment.BottomCenter),
+                enter = slideInVertically(
+                    animationSpec = tween(300, easing = FastOutSlowInEasing),
+                    initialOffsetY = { it },
+                ),
+            ) {
+                ShareFeedbackToast(
+                    feedback = feedback,
+                    onAction = onFeedbackAction,
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 24.dp),
+                )
+            }
         }
     }
 }
