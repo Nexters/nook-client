@@ -5,19 +5,14 @@
  * OpenAPI spec version: v1
  */
 
-export interface SignupMemberRequest {
-  /**
-   * 회원 닉네임
-   * @minLength 2
-   * @maxLength 20
-   */
+export interface MemberProfileResponse {
+  /** 회원 식별자 */
+  id: number;
+  /** 회원 닉네임 */
   nickname: string;
   /**
    * 프로필 이미지 URL
-   * @minLength 0
-   * @maxLength 2048
    * @nullable
-   * @pattern ^https://.+
    */
   profileImageUrl?: string | null;
 }

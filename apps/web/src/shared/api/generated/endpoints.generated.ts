@@ -7,11 +7,14 @@
 
 import { orvalMutator } from '../orval-mutator';
 import type {
+  ApiResponseAuthActionResponse,
   ApiResponseConnectedPlaceResponse,
   ApiResponseGroupPostPageResponse,
   ApiResponseGroupResponse,
   ApiResponseListGroupResponse,
   ApiResponseListMapPlaceResponse,
+  ApiResponseMemberActionResponse,
+  ApiResponseMemberProfileResponse,
   ApiResponsePlaceDetailResponse,
   ApiResponsePlaceSearchSliceResponse,
   ApiResponsePostPlaceParsingResponse,
@@ -33,12 +36,28 @@ import type {
   RefreshTokenRequest,
   ReplaceSavedPostGroupsRequest,
   SearchPlacesParams,
-  SignupMemberRequest,
   SocialAuthRequest,
   UpdateGroupRequest,
+  UpdateMemberProfileRequest,
   UpdatePlaceBookmarkRequest,
   UpdatePostMemoRequest,
 } from './models';
+export const getLogoutUrl = () => {
+  return `/api/v1/auth/logout`;
+};
+
+/**
+ * @summary 로그아웃
+ */
+export const logout = async (
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseAuthActionResponse> => {
+  return orvalMutator<ApiResponseAuthActionResponse>(getLogoutUrl(), {
+    ...options,
+    method: 'POST',
+  });
+};
+
 export const getAuthenticateSocialUrl = () => {
   return `/api/v1/auth/social`;
 };
@@ -179,22 +198,54 @@ export const listPosts = async (
   });
 };
 
-export const getSignupUrl = () => {
-  return `/api/v1/members`;
+export const getWithdrawUrl = () => {
+  return `/api/v1/members/me`;
 };
 
 /**
- * @summary 회원가입
+ * @summary 회원 탈퇴
  */
-export const signup = async (
-  signupMemberRequest: SignupMemberRequest,
+export const withdraw = async (
   options?: Parameters<typeof orvalMutator>[1],
-): Promise<ApiResponseTokenResponse> => {
-  return orvalMutator<ApiResponseTokenResponse>(getSignupUrl(), {
+): Promise<ApiResponseMemberActionResponse> => {
+  return orvalMutator<ApiResponseMemberActionResponse>(getWithdrawUrl(), {
     ...options,
-    method: 'POST',
+    method: 'DELETE',
+  });
+};
+
+export const getGetMeUrl = () => {
+  return `/api/v1/members/me`;
+};
+
+/**
+ * @summary 내 정보 조회
+ */
+export const getMe = async (
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseMemberProfileResponse> => {
+  return orvalMutator<ApiResponseMemberProfileResponse>(getGetMeUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getUpdateMeUrl = () => {
+  return `/api/v1/members/me`;
+};
+
+/**
+ * @summary 내 정보 수정
+ */
+export const updateMe = async (
+  updateMemberProfileRequest: UpdateMemberProfileRequest,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseMemberProfileResponse> => {
+  return orvalMutator<ApiResponseMemberProfileResponse>(getUpdateMeUrl(), {
+    ...options,
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(signupMemberRequest),
+    body: JSON.stringify(updateMemberProfileRequest),
   });
 };
 
