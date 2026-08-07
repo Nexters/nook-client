@@ -32,6 +32,8 @@ export interface PlaceResponse {
   phoneNumber?: string | null;
   /** 장소 provider */
   provider: string;
+  /** 장소 대표 태그 목록(최대 4개) */
+  tags: string[];
   /**
    * 장소 대표 썸네일 URL
    * @nullable
