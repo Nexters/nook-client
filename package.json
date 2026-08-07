@@ -8,6 +8,7 @@
   "scripts": {
     "web:dev": "pnpm --filter web dev",
     "web:build": "pnpm --filter web build",
+    "mobile:start": "pnpm --filter mobile start",
     "api:fetch": "pnpm --filter @nook/api-contracts openapi:fetch",
     "api:generate": "pnpm --filter @nook/api-contracts generate",
     "api:refresh": "pnpm --filter @nook/api-contracts refresh",

@@ -8,6 +8,7 @@
     "@react-native-seoul/kakao-login": "^5.4.2",
     "expo": "~57.0.8",
     "expo-apple-authentication": "~57.0.1",
+    "expo-dev-client": "~57.0.10",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-native": "0.86.0",
@@ -28,6 +29,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "build:device": "eas build --platform ios --profile device",
     "build:ios": "eas build --platform ios --profile production",
     "submit:ios": "eas submit --platform ios --profile production --latest"
   },

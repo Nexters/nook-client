@@ -21,6 +21,15 @@
         "APP_VARIANT": "development"
       }
     },
+    "device": {
+      "extends": "base",
+      "developmentClient": true,
+      "distribution": "internal",
+      "environment": "development",
+      "env": {
+        "APP_VARIANT": "production"
+      }
+    },
     "production": {
       "extends": "base",
       "distribution": "store",
