@@ -4,6 +4,7 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { PlaceOpeningHoursResponse } from './placeOpeningHoursResponse.generated';
 import type { PlacePostPageResponse } from './placePostPageResponse.generated';
 
 export interface PlaceDetailResponse {
@@ -26,15 +27,25 @@ export interface PlaceDetailResponse {
   longitude: number;
   /** 장소명 */
   name: string;
+  openingHours?: PlaceOpeningHoursResponse | null;
+  /**
+   * 현재 영업 여부
+   * @nullable
+   */
+  openNow?: boolean | null;
   /**
    * 장소 전화번호
    * @nullable
    */
   phoneNumber?: string | null;
+  /** 장소 사진 URL 목록(최대 6장) */
+  photoUrls: string[];
   /** 이 장소와 연결된 저장 게시물 페이지 */
   posts: PlacePostPageResponse;
   /** 장소 provider */
   provider: string;
+  /** 장소 대표 태그 목록(최대 4개) */
+  tags: string[];
   /**
    * 장소 대표 썸네일 URL
    * @nullable
