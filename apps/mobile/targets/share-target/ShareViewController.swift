@@ -321,7 +321,13 @@ class ShareViewController: UIViewController {
 
     @MainActor
     private func presentFeedback(_ kind: ShareFeedbackKind, onAction: @escaping () -> Void) {
-        setRoot(ShareFeedbackOverlay(kind: kind, onAction: onAction))
+        setRoot(
+            ShareFeedbackOverlay(
+                kind: kind,
+                onAction: onAction,
+                onDismiss: { [weak self] in self?.complete() }
+            )
+        )
     }
 
     @MainActor

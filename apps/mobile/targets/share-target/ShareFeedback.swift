@@ -37,11 +37,15 @@ enum ShareFeedbackKind {
 struct ShareFeedbackOverlay: View {
     let kind: ShareFeedbackKind
     let onAction: () -> Void
+    let onDismiss: () -> Void
     @State private var isActing = false
+    @State private var isPresented = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onDismiss)
 
             HStack(spacing: 8) {
                 HStack(spacing: 4) {
@@ -85,6 +89,15 @@ struct ShareFeedbackOverlay: View {
             )
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
+            // 토스트가 화면 아래 밖에서 제자리로 슬라이드해 올라온다.
+            // 호스팅 컨트롤러 첫 렌더와 같은 트랜잭션에서 상태를 바꾸면 애니메이션이
+            // 생략되므로 다음 런루프로 미룬다.
+            .offset(y: isPresented ? 0 : 160)
+            .onAppear {
+                DispatchQueue.main.async {
+                    withAnimation(.easeOut(duration: 0.3)) { isPresented = true }
+                }
+            }
         }
         .ignoresSafeArea()
     }
