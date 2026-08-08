@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { fetchMyProfile, requestLogout } from '.';
+import { fetchMyProfile, requestLogout, requestWithdraw } from '.';
 
 export const myQueryKeys = {
   profile: ['my', 'profile'] as const,
@@ -16,5 +16,12 @@ export function useMyProfile() {
 export function useLogout() {
   return useMutation({
     mutationFn: requestLogout,
+  });
+}
+
+/** 계정 삭제만 담당한다. 성공 시에만 호출부가 기기 세션을 지운다 — 실패하면 계정이 남아 있다. */
+export function useWithdraw() {
+  return useMutation({
+    mutationFn: requestWithdraw,
   });
 }

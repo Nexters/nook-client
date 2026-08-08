@@ -19,6 +19,7 @@ const GROUPS: Group[] = [
 const mocks = vi.hoisted(() => ({
   fetchMyProfile: vi.fn(),
   requestLogout: vi.fn(),
+  requestWithdraw: vi.fn(),
   fetchGroups: vi.fn(),
   clearSession: vi.fn(),
   requestImagePick: vi.fn(),
@@ -28,6 +29,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/features/my/api', () => ({
   fetchMyProfile: mocks.fetchMyProfile,
   requestLogout: mocks.requestLogout,
+  requestWithdraw: mocks.requestWithdraw,
 }));
 vi.mock('@/features/group/api', () => ({ fetchGroups: mocks.fetchGroups }));
 vi.mock('@/features/auth/session/AuthSessionProvider', () => ({
@@ -75,6 +77,7 @@ describe('MyPage', () => {
     mocks.fetchMyProfile.mockResolvedValue(PROFILE);
     mocks.fetchGroups.mockResolvedValue(GROUPS);
     mocks.requestLogout.mockResolvedValue(undefined);
+    mocks.requestWithdraw.mockResolvedValue(undefined);
     mocks.clearSession.mockResolvedValue(undefined);
   });
 
@@ -198,11 +201,30 @@ describe('MyPage', () => {
     expect(screen.getByAltText('프로필 이미지')).toHaveAttribute('src', before ?? '');
   });
 
-  it('탈퇴 확인 팝업을 연다', async () => {
+  it('탈퇴를 확인하면 계정 삭제 후 세션을 지운다', async () => {
     renderMyPage();
     await screen.findByText('졸림핑');
 
     fireEvent.click(screen.getByRole('button', { name: '탈퇴하기' }));
-    expect(screen.getByRole('alertdialog')).toHaveTextContent('탈퇴하시겠어요?');
+    const dialog = screen.getByRole('alertdialog');
+    expect(dialog).toHaveTextContent('탈퇴하시겠어요?');
+    fireEvent.click(within(dialog).getByRole('button', { name: '탈퇴하기' }));
+
+    await waitFor(() => expect(mocks.clearSession).toHaveBeenCalled());
+    expect(mocks.requestWithdraw).toHaveBeenCalled();
+  });
+
+  it('탈퇴가 실패하면 세션을 지우지 않고 안내한다', async () => {
+    mocks.requestWithdraw.mockRejectedValue(new Error('server'));
+    renderMyPage();
+    await screen.findByText('졸림핑');
+
+    fireEvent.click(screen.getByRole('button', { name: '탈퇴하기' }));
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', { name: '탈퇴하기' }),
+    );
+
+    expect(await screen.findByText('탈퇴하지 못했어요')).toBeInTheDocument();
+    expect(mocks.clearSession).not.toHaveBeenCalled();
   });
 });

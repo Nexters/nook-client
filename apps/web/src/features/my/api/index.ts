@@ -3,6 +3,7 @@ import {
   getMe as getMeEndpoint,
   logout as logoutEndpoint,
   unwrapApiResponse,
+  withdraw as withdrawEndpoint,
 } from '@/shared/api';
 
 export interface MyProfile {
@@ -25,4 +26,8 @@ export async function fetchMyProfile(): Promise<MyProfile> {
 
 export async function requestLogout(): Promise<void> {
   unwrapApiResponse(await logoutEndpoint({ auth: 'required' }));
+}
+
+export async function requestWithdraw(): Promise<void> {
+  unwrapApiResponse(await withdrawEndpoint({ auth: 'required' }));
 }

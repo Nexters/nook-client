@@ -5,7 +5,7 @@ import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { useAuthSession } from '@/features/auth/session/AuthSessionProvider';
 import { useGroups } from '@/features/group/api/queries';
-import { useLogout, useMyProfile } from '@/features/my/api/queries';
+import { useLogout, useMyProfile, useWithdraw } from '@/features/my/api/queries';
 import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
 import { ProfileImageSheet } from '@/features/my/components/ProfileImageSheet';
@@ -19,7 +19,7 @@ import {
   Icon16Version,
   Icon24Back,
 } from '@/shared/icons/NookIcons';
-import { Avatar, Button, Header, Input, Popup } from '@/shared/ui';
+import { Avatar, Button, Header, Input, Popup, Snackbar } from '@/shared/ui';
 
 type Dialog = 'logout' | 'withdraw' | null;
 
@@ -38,6 +38,8 @@ export function MyPage() {
   const { data: profile, isPending: profilePending, isError: profileError } = useMyProfile();
   const { data: groups } = useGroups();
   const logout = useLogout();
+  const withdraw = useWithdraw();
+  const [showWithdrawError, setShowWithdrawError] = useState(false);
 
   const nickname = nicknameOverride ?? profile?.nickname ?? '';
   const avatarUrl = pickedImageUrl ?? profile?.profileImageUrl ?? undefined;
@@ -64,6 +66,26 @@ export function MyPage() {
     // 세션이 지워지면 RequireAuth 가 로그인 화면으로 보낸다.
     await clearSession();
   };
+
+  const handleWithdraw = async () => {
+    if (withdraw.isPending) return;
+    try {
+      await withdraw.mutateAsync();
+    } catch {
+      // 로그아웃과 달리 실패하면 계정이 남아 있다 — 세션을 지우지 않고 알린다.
+      setDialog(null);
+      setShowWithdrawError(true);
+      return;
+    }
+    setDialog(null);
+    await clearSession();
+  };
+
+  useEffect(() => {
+    if (!showWithdrawError) return;
+    const timer = setTimeout(() => setShowWithdrawError(false), 3000);
+    return () => clearTimeout(timer);
+  }, [showWithdrawError]);
 
   useEffect(() => {
     setBottomMenuHidden(editingProfile);
@@ -236,8 +258,18 @@ export function MyPage() {
         }
         confirmLabel="탈퇴하기"
         variant="warning"
-        onConfirm={() => setDialog(null)}
+        onConfirm={handleWithdraw}
       />
+
+      {showWithdrawError ? (
+        <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+          <Snackbar
+            title="탈퇴하지 못했어요"
+            description="잠시 후 다시 시도해주세요"
+            className="w-full max-w-[343px]"
+          />
+        </div>
+      ) : null}
     </>
   );
 }
