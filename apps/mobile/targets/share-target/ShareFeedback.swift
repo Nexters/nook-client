@@ -37,12 +37,15 @@ enum ShareFeedbackKind {
 struct ShareFeedbackOverlay: View {
     let kind: ShareFeedbackKind
     let onAction: () -> Void
+    let onDismiss: () -> Void
     @State private var isActing = false
     @State private var isPresented = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onDismiss)
 
             HStack(spacing: 8) {
                 HStack(spacing: 4) {
