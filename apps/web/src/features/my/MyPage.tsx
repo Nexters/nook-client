@@ -1,3 +1,4 @@
+import type { ImagePickSource } from '@nook/bridge-contracts';
 import { useEffect, useState } from 'react';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
@@ -6,6 +7,8 @@ import { useGroups } from '@/features/group/api/queries';
 import { useLogout, useMyProfile } from '@/features/my/api/queries';
 import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
+import { ProfileImageSheet } from '@/features/my/components/ProfileImageSheet';
+import { nativeBridge } from '@/native-bridge';
 import {
   Icon16ArrowRight,
   Icon16Chat,
@@ -25,6 +28,9 @@ export function MyPage() {
   const [nicknameOverride, setNicknameOverride] = useState<string | null>(null);
   const [draftNickname, setDraftNickname] = useState<string>('');
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [imageSheetOpen, setImageSheetOpen] = useState(false);
+  // 픽커로 고른 이미지의 data URI. 업로드 API 연결 전까지는 화면 미리보기만 한다.
+  const [pickedImageUrl, setPickedImageUrl] = useState<string | null>(null);
   const { setHidden: setBottomMenuHidden } = useBottomMenuVisibility();
   const { clear: clearSession } = useAuthSession();
   const { data: profile, isPending: profilePending, isError: profileError } = useMyProfile();
@@ -32,7 +38,18 @@ export function MyPage() {
   const logout = useLogout();
 
   const nickname = nicknameOverride ?? profile?.nickname ?? '';
+  const avatarUrl = pickedImageUrl ?? profile?.profileImageUrl ?? undefined;
   const savedPlaceCount = groups?.reduce((sum, group) => sum + group.placeCount, 0) ?? 0;
+
+  const handlePickImage = async (source: ImagePickSource) => {
+    setImageSheetOpen(false);
+    // 셸 밖(개발용 브라우저)에서는 픽커를 열 수 없다.
+    if (!nativeBridge.isNative) return;
+    const result = await nativeBridge.requestImagePick(source);
+    if (result.status === 'success' && result.image) {
+      setPickedImageUrl(`data:${result.image.mimeType};base64,${result.image.base64}`);
+    }
+  };
 
   const handleLogout = async () => {
     if (logout.isPending) return;
@@ -80,9 +97,9 @@ export function MyPage() {
           <div className="flex justify-center">
             <Avatar
               size="lg"
-              src={profile?.profileImageUrl ?? undefined}
+              src={avatarUrl}
               alt="프로필 이미지"
-              onEdit={() => {}}
+              onEdit={() => setImageSheetOpen(true)}
             />
           </div>
 
@@ -111,6 +128,12 @@ export function MyPage() {
             저장하기
           </Button>
         </section>
+
+        <ProfileImageSheet
+          open={imageSheetOpen}
+          onOpenChange={setImageSheetOpen}
+          onSelect={handlePickImage}
+        />
       </main>
     );
   }
@@ -133,7 +156,7 @@ export function MyPage() {
               onClick={openProfileEditor}
               className="mx-4 flex h-25 w-[calc(100%-2rem)] items-center gap-4 rounded-sm bg-gray-0 px-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset"
             >
-              <Avatar size="sm" src={profile?.profileImageUrl ?? undefined} alt="프로필 이미지" />
+              <Avatar size="sm" src={avatarUrl} alt="프로필 이미지" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-b1 font-semibold text-gray-100">
                   {nickname}

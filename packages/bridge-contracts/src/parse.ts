@@ -1,5 +1,11 @@
-import { BRIDGE_VERSION, type SocialProvider } from './message';
-import type { NativeToWeb, SocialCredential, SocialLoginStatus } from './native-to-web';
+import { BRIDGE_VERSION, type ImagePickSource, type SocialProvider } from './message';
+import type {
+  ImagePickStatus,
+  NativeToWeb,
+  PickedImage,
+  SocialCredential,
+  SocialLoginStatus,
+} from './native-to-web';
 import type { WebToNative } from './web-to-native';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -31,6 +37,29 @@ function isSocialProvider(value: unknown): value is SocialProvider {
 
 function isSocialLoginStatus(value: unknown): value is SocialLoginStatus {
   return value === 'success' || value === 'cancelled' || value === 'error';
+}
+
+function isImagePickSource(value: unknown): value is ImagePickSource {
+  return value === 'album' || value === 'camera';
+}
+
+function isImagePickStatus(value: unknown): value is ImagePickStatus {
+  return value === 'success' || value === 'cancelled' || value === 'error';
+}
+
+function parsePickedImage(value: unknown): PickedImage | null {
+  if (!isRecord(value)) return null;
+  const { base64, mimeType, width, height } = value;
+  return typeof base64 === 'string' &&
+    base64.length > 0 &&
+    typeof mimeType === 'string' &&
+    mimeType.length > 0 &&
+    Number.isSafeInteger(width) &&
+    Number(width) > 0 &&
+    Number.isSafeInteger(height) &&
+    Number(height) > 0
+    ? { base64, mimeType, width: Number(width), height: Number(height) }
+    : null;
 }
 
 function token(value: unknown): string | null {
@@ -74,6 +103,16 @@ export function parseWebToNative(json: string): WebToNative | null {
             v: BRIDGE_VERSION,
             type: value.type,
             payload: { requestId: id, provider: value.payload.provider },
+          }
+        : null;
+    }
+    case 'IMAGE_PICK': {
+      const id = requestId(value.payload);
+      return id && isImagePickSource(value.payload.source)
+        ? {
+            v: BRIDGE_VERSION,
+            type: value.type,
+            payload: { requestId: id, source: value.payload.source },
           }
         : null;
     }
@@ -141,6 +180,20 @@ export function parseNativeToWeb(json: string): NativeToWeb | null {
           type: value.type,
           payload: { requestId: id, provider, status, credential },
         }
+      : null;
+  }
+  if (value.type === 'IMAGE_PICK_RESULT') {
+    const id = requestId(value.payload);
+    const { source, status } = value.payload;
+    if (!id || !isImagePickSource(source) || !isImagePickStatus(status)) {
+      return null;
+    }
+    if (status !== 'success') {
+      return { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id, source, status } };
+    }
+    const image = parsePickedImage(value.payload.image);
+    return image
+      ? { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id, source, status, image } }
       : null;
   }
   if (value.type === 'SESSION_CLEARED') {

@@ -372,6 +372,28 @@ export function Icon24Add({ size, width, height, ...props }: NookIconProps) {
   );
 }
 
+export function Icon24Album({ size, width, height, ...props }: NookIconProps) {
+  const renderedWidth = width ?? size ?? 24;
+  const renderedHeight = height ?? (size === undefined ? 24 : size * 1);
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={renderedWidth}
+      height={renderedHeight}
+      fill="none"
+      role="presentation"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M19 3C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H19ZM14.5504 11.1483C14.2609 10.8198 13.7391 10.8198 13.4496 11.1483L10.5983 14.3841L9.0543 12.6321C8.76486 12.3036 8.24314 12.3036 7.95357 12.6321L5.35054 15.5859C4.93949 16.0524 5.27071 16.7857 5.89297 16.7857H18.107C18.7293 16.7857 19.0605 16.0524 18.6495 15.5859L14.5504 11.1483ZM8.5 6.5C7.39543 6.5 6.5 7.39543 6.5 8.5C6.5 9.60457 7.39543 10.5 8.5 10.5C9.60457 10.5 10.5 9.60457 10.5 8.5C10.5 7.39543 9.60457 6.5 8.5 6.5Z"
+        fill="#848B96"
+        fillRule="evenodd"
+      />
+    </svg>
+  );
+}
+
 export function Icon24Back({ size, width, height, ...props }: NookIconProps) {
   const renderedWidth = width ?? size ?? 24;
   const renderedHeight = height ?? (size === undefined ? 24 : size * 1);
@@ -391,6 +413,28 @@ export function Icon24Back({ size, width, height, ...props }: NookIconProps) {
         stroke="#848B96"
         strokeWidth="1.5"
         strokeLinecap="butt"
+      />
+    </svg>
+  );
+}
+
+export function Icon24Camera({ size, width, height, ...props }: NookIconProps) {
+  const renderedWidth = width ?? size ?? 24;
+  const renderedHeight = height ?? (size === undefined ? 24 : size * 1);
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={renderedWidth}
+      height={renderedHeight}
+      fill="none"
+      role="presentation"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M14.7574 4C15.2878 4 15.7965 4.21071 16.1716 4.58579L17.1213 5.53553C17.4089 5.82321 17.7991 5.98484 18.2059 5.98484H19C20.1046 5.98484 21 6.88027 21 7.98484V18C21 19.1046 20.1046 20 19 20H5C3.89543 20 3 19.1046 3 18V7.98484C3 6.88027 3.89543 5.98484 5 5.98484H5.79412C6.20094 5.98484 6.59115 5.82321 6.87879 5.53553L7.82843 4.58579C8.2035 4.21071 8.71221 4 9.24264 4H14.7574ZM12 8.6C9.7356 8.6 7.9 10.4356 7.9 12.7C7.9 14.9644 9.7356 16.8 12 16.8C14.2644 16.8 16.1 14.9644 16.1 12.7C16.1 10.4356 14.2644 8.6 12 8.6ZM12 10.4C13.2703 10.4 14.3 11.4297 14.3 12.7C14.3 13.9703 13.2703 15 12 15C10.7297 15 9.7 13.9703 9.7 12.7C9.7 11.4297 10.7297 10.4 12 10.4Z"
+        fill="#848B96"
+        fillRule="evenodd"
       />
     </svg>
   );

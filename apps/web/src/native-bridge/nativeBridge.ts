@@ -1,4 +1,5 @@
 import {
+  type ImagePickSource,
   type NativeToWeb,
   type Platform,
   parseNativeToWeb,
@@ -25,6 +26,7 @@ declare global {
 type Handler = (message: NativeToWeb) => void;
 type SessionResult = Extract<NativeToWeb, { type: 'SESSION_RESULT' }>['payload'];
 type SocialLoginResult = Extract<NativeToWeb, { type: 'SOCIAL_LOGIN_RESULT' }>['payload'];
+type ImagePickResult = Extract<NativeToWeb, { type: 'IMAGE_PICK_RESULT' }>['payload'];
 
 // crypto.randomUUID 는 보안 컨텍스트에서만 존재한다. 실기기가 http://<LAN IP> 의
 // dev 서버를 볼 때는 비보안 컨텍스트라 undefined 다. 요청/응답 짝을 맞추는 용도라
@@ -50,6 +52,7 @@ class NativeBridge {
   private started = false;
   private pending = new Map<string, (result: SessionResult) => void>();
   private pendingSocial = new Map<string, (result: SocialLoginResult) => void>();
+  private pendingImagePick = new Map<string, (result: ImagePickResult) => void>();
 
   get isNative(): boolean {
     return !!window.ReactNativeWebView;
@@ -110,6 +113,15 @@ class NativeBridge {
     });
   }
 
+  /** 셸이 앨범/카메라를 열어 이미지를 base64 로 돌려준다. 업로드와 저장은 호출부가 이어서 한다. */
+  requestImagePick(source: ImagePickSource): Promise<ImagePickResult> {
+    const requestId = randomRequestId();
+    return new Promise((resolve) => {
+      this.pendingImagePick.set(requestId, resolve);
+      this.send({ v: 1, type: 'IMAGE_PICK', payload: { requestId, source } });
+    });
+  }
+
   private receive(json: string): void {
     const message = parseNativeToWeb(json);
     if (!message) {
@@ -119,6 +131,13 @@ class NativeBridge {
       const resolve = this.pendingSocial.get(message.payload.requestId);
       if (resolve) {
         this.pendingSocial.delete(message.payload.requestId);
+        resolve(message.payload);
+      }
+    }
+    if (message.type === 'IMAGE_PICK_RESULT') {
+      const resolve = this.pendingImagePick.get(message.payload.requestId);
+      if (resolve) {
+        this.pendingImagePick.delete(message.payload.requestId);
         resolve(message.payload);
       }
     }

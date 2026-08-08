@@ -19,6 +19,8 @@ const mocks = vi.hoisted(() => ({
   requestLogout: vi.fn(),
   fetchGroups: vi.fn(),
   clearSession: vi.fn(),
+  requestImagePick: vi.fn(),
+  isNative: true,
 }));
 
 vi.mock('@/features/my/api', () => ({
@@ -34,6 +36,14 @@ vi.mock('@/features/auth/session/AuthSessionProvider', () => ({
     establish: vi.fn(),
     clear: mocks.clearSession,
   }),
+}));
+vi.mock('@/native-bridge', () => ({
+  nativeBridge: {
+    get isNative() {
+      return mocks.isNative;
+    },
+    requestImagePick: mocks.requestImagePick,
+  },
 }));
 
 function renderMyPage() {
@@ -120,6 +130,46 @@ describe('MyPage', () => {
     );
 
     await waitFor(() => expect(mocks.clearSession).toHaveBeenCalled());
+  });
+
+  it('프로필 이미지 시트에서 앨범을 고르면 미리보기를 갱신한다', async () => {
+    mocks.requestImagePick.mockResolvedValue({
+      requestId: 'r1',
+      source: 'album',
+      status: 'success',
+      image: { base64: 'aGk=', mimeType: 'image/png', width: 600, height: 600 },
+    });
+    renderMyPage();
+
+    fireEvent.click(await screen.findByText('졸림핑'));
+    fireEvent.click(screen.getByRole('button', { name: '프로필 이미지 변경' }));
+    expect(screen.getByText('직접 촬영하기')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('앨범에서 선택'));
+    expect(mocks.requestImagePick).toHaveBeenCalledWith('album');
+    await waitFor(() => {
+      expect(screen.getByAltText('프로필 이미지')).toHaveAttribute(
+        'src',
+        'data:image/png;base64,aGk=',
+      );
+    });
+  });
+
+  it('픽커를 취소하면 미리보기를 그대로 둔다', async () => {
+    mocks.requestImagePick.mockResolvedValue({
+      requestId: 'r1',
+      source: 'camera',
+      status: 'cancelled',
+    });
+    renderMyPage();
+
+    fireEvent.click(await screen.findByText('졸림핑'));
+    const before = screen.getByAltText('프로필 이미지').getAttribute('src');
+    fireEvent.click(screen.getByRole('button', { name: '프로필 이미지 변경' }));
+    fireEvent.click(screen.getByText('직접 촬영하기'));
+
+    await waitFor(() => expect(mocks.requestImagePick).toHaveBeenCalledWith('camera'));
+    expect(screen.getByAltText('프로필 이미지')).toHaveAttribute('src', before ?? '');
   });
 
   it('탈퇴 확인 팝업을 연다', async () => {
