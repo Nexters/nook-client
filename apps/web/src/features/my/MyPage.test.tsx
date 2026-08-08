@@ -105,7 +105,7 @@ describe('MyPage', () => {
     await screen.findByText('졸림핑');
 
     fireEvent.click(screen.getByRole('button', { name: /^이용약관$/ }));
-    expect(screen.getByText('서비스 이용약관')).toBeInTheDocument();
+    expect(screen.getByText('NOOK 서비스 이용약관')).toBeInTheDocument();
     expect(screen.getByText('1. 서비스의 범위')).toBeInTheDocument();
   });
 
