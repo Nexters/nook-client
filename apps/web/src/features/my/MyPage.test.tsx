@@ -1,11 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import type { Group } from '@/features/group/types';
 import type { MyProfile } from '@/features/my/api';
 import { MyPage } from '@/features/my/MyPage';
+import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
+import { TermsPage } from '@/features/my/policy/TermsPage';
 
 const PROFILE: MyProfile = { id: 1, nickname: '졸림핑', profileImageUrl: null };
 const GROUPS: Group[] = [
@@ -53,9 +55,13 @@ function renderMyPage() {
   const setHidden = vi.fn();
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/my']}>
         <BottomMenuVisibilityProvider value={{ hidden: false, setHidden }}>
-          <MyPage />
+          <Routes>
+            <Route path="/my" element={<MyPage />} />
+            <Route path="/my/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/my/terms" element={<TermsPage />} />
+          </Routes>
         </BottomMenuVisibilityProvider>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -81,6 +87,26 @@ describe('MyPage', () => {
     expect(screen.getByText('개인정보 처리방침')).toBeInTheDocument();
     expect(screen.getByText('이용약관')).toBeInTheDocument();
     expect(screen.getByText('문의하기')).toBeInTheDocument();
+    // 로그인 정보는 이동할 곳이 없어 눌리지 않는 행이다(화살표 없음).
+    expect(screen.queryByRole('button', { name: /로그인 정보/ })).not.toBeInTheDocument();
+  });
+
+  it('개인정보 처리방침 페이지로 이동한다', async () => {
+    renderMyPage();
+    await screen.findByText('졸림핑');
+
+    fireEvent.click(screen.getByRole('button', { name: /개인정보 처리방침/ }));
+    expect(screen.getByText('개인정보처리방침')).toBeInTheDocument();
+    expect(screen.getByText('1. 수집하는 개인정보 항목')).toBeInTheDocument();
+  });
+
+  it('이용약관 페이지로 이동한다', async () => {
+    renderMyPage();
+    await screen.findByText('졸림핑');
+
+    fireEvent.click(screen.getByRole('button', { name: /^이용약관$/ }));
+    expect(screen.getByText('서비스 이용약관')).toBeInTheDocument();
+    expect(screen.getByText('1. 서비스의 범위')).toBeInTheDocument();
   });
 
   it('내 정보를 불러오지 못하면 안내 문구를 보여준다', async () => {

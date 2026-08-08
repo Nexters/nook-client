@@ -1,5 +1,6 @@
 import type { ImagePickSource } from '@nook/bridge-contracts';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { useAuthSession } from '@/features/auth/session/AuthSessionProvider';
@@ -23,6 +24,7 @@ import { Avatar, Button, Header, Input, Popup } from '@/shared/ui';
 type Dialog = 'logout' | 'withdraw' | null;
 
 export function MyPage() {
+  const navigate = useNavigate();
   const [editingProfile, setEditingProfile] = useState(false);
   // 수정 API 연결 전까지는 저장해도 화면에서만 바뀐다.
   const [nicknameOverride, setNicknameOverride] = useState<string | null>(null);
@@ -174,13 +176,21 @@ export function MyPage() {
           <div className="mt-6 flex flex-col gap-5 px-4">
             <MyMenuSection title="계정 정보">
               {/* 로그인 provider 는 아직 API 가 내려주지 않는다. */}
-              <MyMenuRow icon={<Icon16User />} label="로그인 정보" onClick={() => {}} />
+              <MyMenuRow icon={<Icon16User />} label="로그인 정보" />
             </MyMenuSection>
 
             <MyMenuSection title="앱 정보">
               <MyMenuRow icon={<Icon16Version />} label="버전 정보" badge="최신버전" value="v1.0" />
-              <MyMenuRow icon={<Icon16Info />} label="개인정보 처리방침" onClick={() => {}} />
-              <MyMenuRow icon={<Icon16Paper />} label="이용약관" onClick={() => {}} />
+              <MyMenuRow
+                icon={<Icon16Info />}
+                label="개인정보 처리방침"
+                onClick={() => navigate('/my/privacy')}
+              />
+              <MyMenuRow
+                icon={<Icon16Paper />}
+                label="이용약관"
+                onClick={() => navigate('/my/terms')}
+              />
               <MyMenuRow icon={<Icon16Chat />} label="문의하기" onClick={() => {}} />
             </MyMenuSection>
           </div>
