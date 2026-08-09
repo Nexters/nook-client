@@ -5,18 +5,16 @@
  * OpenAPI spec version: v1
  */
 
-export interface SavedPostPlaceResponse {
+export interface StoredPlaceSearchResponse {
   /** 장소 주소 */
   address: string;
-  /** 사용자의 장소 북마크 여부 */
+  /** 현재 사용자의 저장 여부 */
   bookmarked: boolean;
   /**
    * 장소 카테고리
    * @nullable
    */
   category?: string | null;
-  /** provider의 장소 식별자 */
-  externalPlaceId: string;
   /** 장소 식별자 */
   id: number;
   /** 장소 위도 */
@@ -25,15 +23,6 @@ export interface SavedPostPlaceResponse {
   longitude: number;
   /** 장소명 */
   name: string;
-  /**
-   * 장소 전화번호
-   * @nullable
-   */
-  phoneNumber?: string | null;
-  /** 장소 provider */
-  provider: string;
-  /** 게시물 내 장소 순서 */
-  sequence: number;
   /** 장소 대표 태그 목록(최대 4개) */
   tags: string[];
   /**
