@@ -1,6 +1,6 @@
 import type { ImagePickSource } from '@nook/bridge-contracts';
 import { useAppShellContainer } from '@/app/providers';
-import { Icon24Album, Icon24Camera } from '@/shared/icons/NookIcons';
+import { Icon20Camera, Icon20Picture } from '@/shared/icons/NookIcons';
 import { Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
 
 /**
@@ -14,8 +14,8 @@ export interface ProfileImageSheetProps {
 }
 
 const OPTIONS = [
-  { source: 'album', label: '앨범에서 선택', icon: <Icon24Album /> },
-  { source: 'camera', label: '직접 촬영하기', icon: <Icon24Camera /> },
+  { source: 'album', label: '앨범에서 선택', icon: <Icon20Picture /> },
+  { source: 'camera', label: '직접 촬영하기', icon: <Icon20Camera /> },
 ] as const;
 
 export function ProfileImageSheet({ open, onOpenChange, onSelect }: ProfileImageSheetProps) {
@@ -34,7 +34,7 @@ export function ProfileImageSheet({ open, onOpenChange, onSelect }: ProfileImage
             key={source}
             type="button"
             onClick={() => onSelect(source)}
-            className="flex h-14 items-center gap-3 rounded-sm text-left text-b1 font-medium text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+            className="flex h-14 items-center gap-4 rounded-sm text-left text-b1 font-medium text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
           >
             <span aria-hidden="true">{icon}</span>
             {label}
