@@ -11,6 +11,8 @@ import { GroupFormPage } from '@/features/group/GroupFormPage';
 import { GroupPage } from '@/features/group/GroupPage';
 import { MapPage } from '@/features/map/MapPage';
 import { MyPage } from '@/features/my/MyPage';
+import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
+import { TermsPage } from '@/features/my/policy/TermsPage';
 import { PostDetailPage } from '@/features/post/PostDetailPage';
 import { env } from '@/shared/config/env';
 
@@ -88,6 +90,14 @@ export const router = createBrowserRouter([
           {
             path: 'my',
             element: <MyPage />,
+          },
+          {
+            path: 'my/privacy',
+            element: <PrivacyPolicyPage />,
+          },
+          {
+            path: 'my/terms',
+            element: <TermsPage />,
           },
         ],
       },
