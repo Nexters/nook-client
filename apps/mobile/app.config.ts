@@ -3,6 +3,8 @@ import nativePublicConfig from './native-public-config.json';
 
 type AppVariant = keyof typeof nativePublicConfig.appIds;
 
+const KAKAO_MAVEN_REPOSITORY = 'https://devrepo.kakao.com/nexus/content/groups/public/';
+
 // APP_VARIANT 미설정 시 production. 오타·누락으로 엉뚱한 식별자가 만들어지지 않게
 // 알 수 없는 값도 production 으로 떨어뜨린다.
 function resolveVariant(): AppVariant {
@@ -24,6 +26,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...(config.plugins ?? []),
       '@bacons/apple-targets',
       'expo-apple-authentication',
+      [
+        'expo-build-properties',
+        {
+          android: {
+            extraMavenRepos: [KAKAO_MAVEN_REPOSITORY],
+          },
+        },
+      ],
       [
         'expo-image-picker',
         {
