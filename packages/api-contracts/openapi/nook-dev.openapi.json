@@ -611,6 +611,43 @@
         ],
         "type": "object"
       },
+      "ApiResponseStoredPlaceSearchSliceResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StoredPlaceSearchSliceResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
       "ApiResponseTokenResponse": {
         "description": "공통 API 응답",
         "properties": {
@@ -1035,11 +1072,21 @@
               "string",
               "null"
             ]
+          },
+          "provider": {
+            "description": "가입한 소셜 로그인 provider",
+            "enum": [
+              "KAKAO",
+              "GOOGLE",
+              "APPLE"
+            ],
+            "type": "string"
           }
         },
         "required": [
           "id",
-          "nickname"
+          "nickname",
+          "provider"
         ],
         "type": "object"
       },
@@ -2160,6 +2207,94 @@
         ],
         "type": "object"
       },
+      "StoredPlaceSearchResponse": {
+        "properties": {
+          "address": {
+            "description": "장소 주소",
+            "type": "string"
+          },
+          "bookmarked": {
+            "description": "현재 사용자의 저장 여부",
+            "type": "boolean"
+          },
+          "category": {
+            "description": "장소 카테고리",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "description": "장소 식별자",
+            "format": "int64",
+            "type": "integer"
+          },
+          "latitude": {
+            "description": "장소 위도",
+            "type": "number"
+          },
+          "longitude": {
+            "description": "장소 경도",
+            "type": "number"
+          },
+          "name": {
+            "description": "장소명",
+            "type": "string"
+          },
+          "tags": {
+            "description": "장소 대표 태그 목록(최대 4개)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "thumbnailUrl": {
+            "description": "장소 대표 썸네일 URL",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "bookmarked",
+          "id",
+          "latitude",
+          "longitude",
+          "name",
+          "tags"
+        ],
+        "type": "object"
+      },
+      "StoredPlaceSearchSliceResponse": {
+        "properties": {
+          "hasNext": {
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StoredPlaceSearchResponse"
+            },
+            "type": "array"
+          },
+          "page": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "size": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hasNext",
+          "items",
+          "page",
+          "size"
+        ],
+        "type": "object"
+      },
       "TokenResponse": {
         "properties": {
           "accessToken": {
@@ -2710,6 +2845,65 @@
         ]
       }
     },
+    "/api/v1/places/database/search": {
+      "get": {
+        "operationId": "searchAllStoredPlaces",
+        "parameters": [
+          {
+            "description": "검색할 장소명 또는 주소",
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "description": "조회할 페이지 번호. 0부터 시작합니다.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "페이지당 장소 수",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStoredPlaceSearchSliceResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "DB 전체 장소 검색",
+        "tags": [
+          "Place"
+        ]
+      }
+    },
     "/api/v1/places/map": {
       "get": {
         "operationId": "getMapPlaces",
@@ -2772,6 +2966,65 @@
           }
         },
         "summary": "지도 영역의 북마크 장소 조회",
+        "tags": [
+          "Place"
+        ]
+      }
+    },
+    "/api/v1/places/my/search": {
+      "get": {
+        "operationId": "searchMyStoredPlaces",
+        "parameters": [
+          {
+            "description": "검색할 장소명 또는 주소",
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "description": "조회할 페이지 번호. 0부터 시작합니다.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "페이지당 장소 수",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseStoredPlaceSearchSliceResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "내가 저장한 장소 검색",
         "tags": [
           "Place"
         ]

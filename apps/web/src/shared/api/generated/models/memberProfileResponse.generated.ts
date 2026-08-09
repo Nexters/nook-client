@@ -4,6 +4,7 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { MemberProfileResponseProvider } from './memberProfileResponseProvider.generated';
 
 export interface MemberProfileResponse {
   /** 회원 식별자 */
@@ -15,4 +16,6 @@ export interface MemberProfileResponse {
    * @nullable
    */
   profileImageUrl?: string | null;
+  /** 가입한 소셜 로그인 provider */
+  provider: MemberProfileResponseProvider;
 }
