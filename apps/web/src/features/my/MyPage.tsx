@@ -1,8 +1,15 @@
+import type { ImagePickSource } from '@nook/bridge-contracts';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
+import { useAuthSession } from '@/features/auth/session/AuthSessionProvider';
+import { useGroups } from '@/features/group/api/queries';
+import { useLogout, useMyProfile, useWithdraw } from '@/features/my/api/queries';
 import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
+import { ProfileImageSheet } from '@/features/my/components/ProfileImageSheet';
+import { nativeBridge } from '@/native-bridge';
 import {
   Icon16ArrowRight,
   Icon16Chat,
@@ -12,23 +19,73 @@ import {
   Icon16Version,
   Icon24Back,
 } from '@/shared/icons/NookIcons';
-import { Avatar, Button, Header, Input, Popup } from '@/shared/ui';
+import { Avatar, Button, Header, Input, Popup, Snackbar } from '@/shared/ui';
 
 type Dialog = 'logout' | 'withdraw' | null;
 
-const USER = {
-  nickname: '졸림핑',
-  groupCount: 5,
-  savedPlaceCount: 32,
-  loginProvider: 'kakao',
-} as const;
-
 export function MyPage() {
+  const navigate = useNavigate();
   const [editingProfile, setEditingProfile] = useState(false);
-  const [nickname, setNickname] = useState<string>(USER.nickname);
-  const [draftNickname, setDraftNickname] = useState<string>(USER.nickname);
+  // 수정 API 연결 전까지는 저장해도 화면에서만 바뀐다.
+  const [nicknameOverride, setNicknameOverride] = useState<string | null>(null);
+  const [draftNickname, setDraftNickname] = useState<string>('');
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [imageSheetOpen, setImageSheetOpen] = useState(false);
+  // 픽커로 고른 이미지의 data URI. 업로드 API 연결 전까지는 화면 미리보기만 한다.
+  const [pickedImageUrl, setPickedImageUrl] = useState<string | null>(null);
   const { setHidden: setBottomMenuHidden } = useBottomMenuVisibility();
+  const { clear: clearSession } = useAuthSession();
+  const { data: profile, isPending: profilePending, isError: profileError } = useMyProfile();
+  const { data: groups } = useGroups();
+  const logout = useLogout();
+  const withdraw = useWithdraw();
+  const [showWithdrawError, setShowWithdrawError] = useState(false);
+
+  const nickname = nicknameOverride ?? profile?.nickname ?? '';
+  const avatarUrl = pickedImageUrl ?? profile?.profileImageUrl ?? undefined;
+  const savedPlaceCount = groups?.reduce((sum, group) => sum + group.placeCount, 0) ?? 0;
+
+  const handlePickImage = async (source: ImagePickSource) => {
+    setImageSheetOpen(false);
+    // 셸 밖(개발용 브라우저)에서는 픽커를 열 수 없다.
+    if (!nativeBridge.isNative) return;
+    const result = await nativeBridge.requestImagePick(source);
+    if (result.status === 'success' && result.image) {
+      setPickedImageUrl(`data:${result.image.mimeType};base64,${result.image.base64}`);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (logout.isPending) return;
+    try {
+      await logout.mutateAsync();
+    } catch {
+      // 서버 로그아웃이 실패해도(만료된 토큰 등) 기기 세션은 지운다.
+    }
+    setDialog(null);
+    // 세션이 지워지면 RequireAuth 가 로그인 화면으로 보낸다.
+    await clearSession();
+  };
+
+  const handleWithdraw = async () => {
+    if (withdraw.isPending) return;
+    try {
+      await withdraw.mutateAsync();
+    } catch {
+      // 로그아웃과 달리 실패하면 계정이 남아 있다 — 세션을 지우지 않고 알린다.
+      setDialog(null);
+      setShowWithdrawError(true);
+      return;
+    }
+    setDialog(null);
+    await clearSession();
+  };
+
+  useEffect(() => {
+    if (!showWithdrawError) return;
+    const timer = setTimeout(() => setShowWithdrawError(false), 3000);
+    return () => clearTimeout(timer);
+  }, [showWithdrawError]);
 
   useEffect(() => {
     setBottomMenuHidden(editingProfile);
@@ -62,7 +119,12 @@ export function MyPage() {
 
         <section className="flex flex-1 flex-col px-4 pt-6">
           <div className="flex justify-center">
-            <Avatar size="lg" alt="프로필 이미지" onEdit={() => {}} />
+            <Avatar
+              size="lg"
+              src={avatarUrl}
+              alt="프로필 이미지"
+              onEdit={() => setImageSheetOpen(true)}
+            />
           </div>
 
           <label htmlFor="nickname" className="mt-8 mb-1 block text-b3 font-medium text-gray-60">
@@ -83,13 +145,19 @@ export function MyPage() {
             disabled={draftNickname.trim().length === 0}
             className="mt-auto mb-4"
             onClick={() => {
-              setNickname(draftNickname.trim());
+              setNicknameOverride(draftNickname.trim());
               setEditingProfile(false);
             }}
           >
             저장하기
           </Button>
         </section>
+
+        <ProfileImageSheet
+          open={imageSheetOpen}
+          onOpenChange={setImageSheetOpen}
+          onSelect={handlePickImage}
+        />
       </main>
     );
   }
@@ -101,37 +169,50 @@ export function MyPage() {
           className="h-full overflow-y-auto bg-gray-10"
           style={{ paddingBottom: 'calc(3.75rem + env(safe-area-inset-bottom))' }}
         >
-          <button
-            type="button"
-            onClick={openProfileEditor}
-            className="mx-4 flex h-25 w-[calc(100%-2rem)] items-center gap-4 rounded-sm bg-gray-0 px-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset"
-          >
-            <Avatar size="sm" alt="프로필 이미지" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-b1 font-semibold text-gray-100">{nickname}</span>
-              <span className="mt-1 block font-mono text-e2 text-gray-60">
-                Group {USER.groupCount} · Save {USER.savedPlaceCount}
+          {/* 로딩 중에는 빈 이름이 잠깐 스쳐 지나가지 않도록 카드를 그리지 않는다. */}
+          {profilePending ? null : profileError ? (
+            <p className="mx-4 flex h-25 items-center justify-center rounded-sm bg-gray-0 text-b2 text-gray-60">
+              내 정보를 불러오지 못했어요
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={openProfileEditor}
+              className="mx-4 flex h-25 w-[calc(100%-2rem)] items-center gap-4 rounded-sm bg-gray-0 px-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset"
+            >
+              <Avatar size="sm" src={avatarUrl} alt="프로필 이미지" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-b1 font-semibold text-gray-100">
+                  {nickname}
+                </span>
+                <span className="mt-1 block font-mono text-e2 text-gray-60">
+                  {groups ? `Group ${groups.length} · Save ${savedPlaceCount}` : null}
+                </span>
               </span>
-            </span>
-            <span aria-hidden="true" className="text-gray-40">
-              <Icon16ArrowRight />
-            </span>
-          </button>
+              <span aria-hidden="true" className="text-gray-40">
+                <Icon16ArrowRight />
+              </span>
+            </button>
+          )}
 
           <div className="mt-6 flex flex-col gap-5 px-4">
             <MyMenuSection title="계정 정보">
-              <MyMenuRow
-                icon={<Icon16User />}
-                label="로그인 정보"
-                value={USER.loginProvider}
-                onClick={() => {}}
-              />
+              {/* 로그인 provider 는 아직 API 가 내려주지 않는다. */}
+              <MyMenuRow icon={<Icon16User />} label="로그인 정보" />
             </MyMenuSection>
 
             <MyMenuSection title="앱 정보">
               <MyMenuRow icon={<Icon16Version />} label="버전 정보" badge="최신버전" value="v1.0" />
-              <MyMenuRow icon={<Icon16Info />} label="개인정보 처리방침" onClick={() => {}} />
-              <MyMenuRow icon={<Icon16Paper />} label="이용약관" onClick={() => {}} />
+              <MyMenuRow
+                icon={<Icon16Info />}
+                label="개인정보 처리방침"
+                onClick={() => navigate('/my/privacy')}
+              />
+              <MyMenuRow
+                icon={<Icon16Paper />}
+                label="이용약관"
+                onClick={() => navigate('/my/terms')}
+              />
               <MyMenuRow icon={<Icon16Chat />} label="문의하기" onClick={() => {}} />
             </MyMenuSection>
           </div>
@@ -162,7 +243,7 @@ export function MyPage() {
         title="로그아웃 하시겠어요?"
         description="로그아웃하면 로그인 화면으로 이동해요."
         confirmLabel="로그아웃"
-        onConfirm={() => setDialog(null)}
+        onConfirm={handleLogout}
       />
       <Popup
         open={dialog === 'withdraw'}
@@ -177,8 +258,18 @@ export function MyPage() {
         }
         confirmLabel="탈퇴하기"
         variant="warning"
-        onConfirm={() => setDialog(null)}
+        onConfirm={handleWithdraw}
       />
+
+      {showWithdrawError ? (
+        <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+          <Snackbar
+            title="탈퇴하지 못했어요"
+            description="잠시 후 다시 시도해주세요"
+            className="w-full max-w-[343px]"
+          />
+        </div>
+      ) : null}
     </>
   );
 }

@@ -1,9 +1,11 @@
-import type { BridgeMessage, SocialProvider } from './message';
+import type { BridgeMessage, ImagePickSource, SocialProvider } from './message';
 
 export type WebToNative =
   | BridgeMessage<'WEB_READY', Record<string, never>>
   // 셸이 provider SDK 를 실행한다. 백엔드 인증과 세션 저장은 웹이 결과를 받아 이어서 처리한다.
   | BridgeMessage<'SOCIAL_LOGIN', { requestId: string; provider: SocialProvider }>
+  // 셸이 앨범/카메라를 열어 이미지를 고른다. 업로드와 저장은 웹이 결과를 받아 이어서 처리한다.
+  | BridgeMessage<'IMAGE_PICK', { requestId: string; source: ImagePickSource }>
   | BridgeMessage<'OPEN_EXTERNAL_URL', { url: string }>
   | BridgeMessage<'REQUEST_PUSH_PERMISSION', Record<string, never>>
   | BridgeMessage<'SESSION_GET', { requestId: string }>

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, Platform } from 'react-native';
 import type { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { runSocialLogin } from '../auth/socialLogin';
+import { runImagePick } from '../media/imagePicker';
 import {
   clearSession,
   establishSession,
@@ -135,6 +136,17 @@ export function useWebViewBridge() {
               v: 1,
               type: 'SOCIAL_LOGIN_RESULT',
               payload: { requestId, provider, ...outcome },
+            });
+          });
+          break;
+        }
+        case 'IMAGE_PICK': {
+          const { requestId, source } = message.payload;
+          void runImagePick(source).then((outcome) => {
+            send({
+              v: 1,
+              type: 'IMAGE_PICK_RESULT',
+              payload: { requestId, source, ...outcome },
             });
           });
           break;

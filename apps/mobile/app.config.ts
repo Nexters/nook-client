@@ -35,6 +35,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         },
       ],
       [
+        'expo-image-picker',
+        {
+          photosPermission: '프로필 이미지를 앨범에서 선택하기 위해 사진에 접근해요.',
+          cameraPermission: '프로필 이미지를 촬영하기 위해 카메라를 사용해요.',
+        },
+      ],
+      [
         '@react-native-seoul/kakao-login',
         {
           kakaoAppKey: nativePublicConfig.kakao.nativeAppKey,
