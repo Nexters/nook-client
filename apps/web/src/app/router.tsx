@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { ProtectedAppLayout } from '@/app/layouts/ProtectedAppLayout';
+import { NativeBackHost } from '@/app/native-back';
 import { LoginPage } from '@/features/auth/LoginPage';
 import {
   AuthEntryRedirect,
@@ -43,6 +44,7 @@ const devRoutes = env.enableDevRoutes
 export const router = createBrowserRouter([
   {
     path: '/',
+    element: <NativeBackHost />,
     children: [
       {
         index: true,

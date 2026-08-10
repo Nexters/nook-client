@@ -31,6 +31,9 @@ export default function App() {
           // 웹의 navigator.geolocation 을 프록시한다. Android 전용 prop — iOS(WKWebView)는
           // Info.plist 의 NSLocationWhenInUseUsageDescription 만으로 자체 처리한다.
           geolocationEnabled
+          // iOS 엣지 스와이프 뒤로가기. SPA 의 pushState 히스토리도 WKWebView 백리스트에
+          // 쌓이므로 라우트·히스토리 승격된 오버레이 모두 제스처로 닫힌다. iOS 전용 prop.
+          allowsBackForwardNavigationGestures
           style={styles.webview}
         />
       ) : null}

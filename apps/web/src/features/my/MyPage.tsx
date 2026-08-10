@@ -19,13 +19,16 @@ import {
   Icon16Version,
   Icon24Back,
 } from '@/shared/icons/NookIcons';
+import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { Avatar, Button, Header, Input, Popup, Snackbar } from '@/shared/ui';
 
 type Dialog = 'logout' | 'withdraw' | null;
 
 export function MyPage() {
   const navigate = useNavigate();
-  const [editingProfile, setEditingProfile] = useState(false);
+  // 뒤로가기(버튼·하드웨어 백·스와이프)로 닫혀야 해서 히스토리 엔트리로 승격한다.
+  const [editingProfile, openEditingProfile, closeEditingProfile] =
+    useHistoryBackedFlag('profileEdit');
   // 수정 API 연결 전까지는 저장해도 화면에서만 바뀐다.
   const [nicknameOverride, setNicknameOverride] = useState<string | null>(null);
   const [draftNickname, setDraftNickname] = useState<string>('');
@@ -94,7 +97,7 @@ export function MyPage() {
 
   const openProfileEditor = () => {
     setDraftNickname(nickname);
-    setEditingProfile(true);
+    openEditingProfile();
   };
 
   if (editingProfile) {
@@ -109,7 +112,7 @@ export function MyPage() {
             <button
               type="button"
               aria-label="마이페이지로 돌아가기"
-              onClick={() => setEditingProfile(false)}
+              onClick={closeEditingProfile}
               className="flex size-6 items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
             >
               <Icon24Back />
@@ -146,7 +149,7 @@ export function MyPage() {
             className="mt-auto mb-4"
             onClick={() => {
               setNicknameOverride(draftNickname.trim());
-              setEditingProfile(false);
+              closeEditingProfile();
             }}
           >
             저장하기
