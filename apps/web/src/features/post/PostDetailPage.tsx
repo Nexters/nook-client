@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
-import { useBackInterceptor } from '@/app/native-back';
 import type { Place } from '@/features/place';
 import { capturePostHogEvent } from '@/lib/posthog';
+import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { cn } from '@/shared/lib/utils';
 import { BackButton, Header, Snackbar } from '@/shared/ui';

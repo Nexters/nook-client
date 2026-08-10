@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { nativeBridge } from '@/native-bridge';
+import { runBackInterceptors } from '@/shared/lib/backInterceptors';
 
 /**
  * 네이티브 뒤로가기(Android 하드웨어 버튼)를 웹의 단일 동작으로 수렴시킨다.
@@ -14,24 +15,6 @@ import { nativeBridge } from '@/native-bridge';
  * 그래서 "뒤로가기로 닫혀야 하는" 상태는 반드시 히스토리에 승격돼 있어야 한다.
  */
 
-type BackInterceptor = () => boolean;
-
-const interceptors: BackInterceptor[] = [];
-
-/** 반환한 함수로 해제한다. 나중에 등록된 인터셉터가 먼저 실행된다. */
-export function registerBackInterceptor(interceptor: BackInterceptor): () => void {
-  interceptors.push(interceptor);
-  return () => {
-    const index = interceptors.lastIndexOf(interceptor);
-    if (index >= 0) interceptors.splice(index, 1);
-  };
-}
-
-/** 화면 단위 등록용. null 을 주면 등록하지 않는다 — 조건부 인터셉트에 쓴다. */
-export function useBackInterceptor(interceptor: BackInterceptor | null): void {
-  useEffect(() => (interceptor ? registerBackInterceptor(interceptor) : undefined), [interceptor]);
-}
-
 function useNativeBackBridge(): void {
   const navigate = useNavigate();
 
@@ -40,9 +23,7 @@ function useNativeBackBridge(): void {
     return nativeBridge.on((message) => {
       if (message.type !== 'BACK_REQUESTED') return;
 
-      for (const interceptor of [...interceptors].reverse()) {
-        if (interceptor()) return;
-      }
+      if (runBackInterceptors()) return;
 
       // react-router 데이터 라우터가 히스토리 엔트리마다 idx 를 심는다. 0 이면 첫 화면.
       const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
