@@ -4,7 +4,7 @@
     "production": "kr.co.everynook.app"
   },
   "kakao": {
-    "nativeAppKey": "6dc7030b89ac43c7a8f9737c7abe5d59"
+    "nativeAppKey": "3d8ac946554c24f1d1a2108e95527bde"
   },
   "android": {
     "kotlinVersion": "2.1.20"
