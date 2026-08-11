@@ -20,9 +20,11 @@ import {
   Icon24Back,
 } from '@/shared/icons/NookIcons';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
-import { Avatar, Button, Header, Input, Popup, Snackbar } from '@/shared/ui';
+import { Avatar, Button, Header, Input, Popup, Skeleton, Snackbar } from '@/shared/ui';
 
 type Dialog = 'logout' | 'withdraw' | null;
+
+const CONTACT_EMAIL = 'everynook123@gmail.com';
 
 interface ErrorToast {
   title: string;
@@ -198,7 +200,16 @@ export function MyPage() {
           style={{ paddingBottom: 'calc(3.75rem + env(safe-area-inset-bottom))' }}
         >
           {/* 로딩 중에는 빈 이름이 잠깐 스쳐 지나가지 않도록 카드를 그리지 않는다. */}
-          {profilePending ? null : profileError ? (
+          {/* 로딩 중에도 카드 자리를 같은 크기로 채워 레이아웃 시프트를 막는다. */}
+          {profilePending ? (
+            <div className="mx-4 flex h-25 items-center gap-4 rounded-sm bg-gray-0 px-4">
+              <Skeleton className="size-15 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1">
+                <Skeleton className="h-4.5 w-24" />
+                <Skeleton className="mt-2 h-3.5 w-32" />
+              </div>
+            </div>
+          ) : profileError ? (
             <p className="mx-4 flex h-25 items-center justify-center rounded-sm bg-gray-0 text-b2 text-gray-60">
               내 정보를 불러오지 못했어요
             </p>
@@ -241,7 +252,14 @@ export function MyPage() {
                 label="이용약관"
                 onClick={() => navigate('/my/terms')}
               />
-              <MyMenuRow icon={<Icon16Chat />} label="문의하기" onClick={() => {}} />
+              <MyMenuRow
+                icon={<Icon16Chat />}
+                label="문의하기"
+                // 셸에서는 내비게이션 정책이 mailto 를 가로채 메일 앱으로 넘긴다.
+                onClick={() => {
+                  window.location.href = `mailto:${CONTACT_EMAIL}`;
+                }}
+              />
             </MyMenuSection>
           </div>
 
