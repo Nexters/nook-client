@@ -10,6 +10,8 @@ import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
 
 const PROFILE: MyProfile = { id: 1, nickname: '졸림핑', profileImageUrl: null };
+const PICKED_IMAGE = { base64: 'aGk=', mimeType: 'image/png', width: 600, height: 600 };
+const UPLOADED_URL = 'https://cdn.example.com/profile/1.png';
 const GROUPS: Group[] = [
   { id: 1, name: '카페', color: 'yellow', placeCount: 30 },
   { id: 2, name: '독립영화관', color: 'blue', placeCount: 2 },
@@ -20,6 +22,8 @@ const mocks = vi.hoisted(() => ({
   fetchMyProfile: vi.fn(),
   requestLogout: vi.fn(),
   requestWithdraw: vi.fn(),
+  updateMyProfile: vi.fn(),
+  uploadProfileImage: vi.fn(),
   fetchGroups: vi.fn(),
   clearSession: vi.fn(),
   requestImagePick: vi.fn(),
@@ -30,6 +34,8 @@ vi.mock('@/features/my/api', () => ({
   fetchMyProfile: mocks.fetchMyProfile,
   requestLogout: mocks.requestLogout,
   requestWithdraw: mocks.requestWithdraw,
+  updateMyProfile: mocks.updateMyProfile,
+  uploadProfileImage: mocks.uploadProfileImage,
 }));
 vi.mock('@/features/group/api', () => ({ fetchGroups: mocks.fetchGroups }));
 vi.mock('@/features/auth/session/AuthSessionProvider', () => ({
@@ -79,6 +85,8 @@ describe('MyPage', () => {
     mocks.requestLogout.mockResolvedValue(undefined);
     mocks.requestWithdraw.mockResolvedValue(undefined);
     mocks.clearSession.mockResolvedValue(undefined);
+    mocks.updateMyProfile.mockImplementation(async (patch) => ({ ...PROFILE, ...patch }));
+    mocks.uploadProfileImage.mockResolvedValue(UPLOADED_URL);
   });
 
   it('내 정보와 그룹·저장 개수, 앱 메뉴를 렌더한다', async () => {
@@ -131,8 +139,96 @@ describe('MyPage', () => {
     fireEvent.change(nicknameInput, { target: { value: 'new nook' } });
     fireEvent.click(screen.getByRole('button', { name: '저장하기' }));
 
-    expect(screen.getByText('new nook')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(mocks.updateMyProfile).toHaveBeenCalledWith({ nickname: 'new nook' }),
+    );
+    // 사진을 안 골랐으면 업로드까지 가지 않는다.
+    expect(mocks.uploadProfileImage).not.toHaveBeenCalled();
+    expect(await screen.findByText('new nook')).toBeInTheDocument();
     expect(setHidden).toHaveBeenLastCalledWith(false);
+  });
+
+  it('고른 사진을 업로드해서 받은 URL 로 프로필을 저장한다', async () => {
+    mocks.requestImagePick.mockResolvedValue({
+      requestId: 'r1',
+      source: 'album',
+      status: 'success',
+      image: PICKED_IMAGE,
+    });
+    renderMyPage();
+
+    fireEvent.click(await screen.findByText('졸림핑'));
+    fireEvent.click(screen.getByRole('button', { name: '프로필 이미지 변경' }));
+    fireEvent.click(screen.getByText('앨범에서 선택'));
+    await waitFor(() => expect(mocks.requestImagePick).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', { name: '저장하기' }));
+
+    await waitFor(() => expect(mocks.uploadProfileImage).toHaveBeenCalledWith(PICKED_IMAGE));
+    expect(mocks.updateMyProfile).toHaveBeenCalledWith({
+      nickname: '졸림핑',
+      profileImageUrl: UPLOADED_URL,
+    });
+    // 저장된 뒤에는 미리보기가 아니라 서버가 준 URL 을 그린다.
+    await waitFor(() => {
+      expect(screen.getByAltText('프로필 이미지')).toHaveAttribute('src', UPLOADED_URL);
+    });
+  });
+
+  it('업로드가 실패하면 편집 화면에 남아 안내한다', async () => {
+    mocks.uploadProfileImage.mockRejectedValue(new Error('upload'));
+    mocks.requestImagePick.mockResolvedValue({
+      requestId: 'r1',
+      source: 'album',
+      status: 'success',
+      image: PICKED_IMAGE,
+    });
+    renderMyPage();
+
+    fireEvent.click(await screen.findByText('졸림핑'));
+    fireEvent.click(screen.getByRole('button', { name: '프로필 이미지 변경' }));
+    fireEvent.click(screen.getByText('앨범에서 선택'));
+    await waitFor(() => expect(mocks.requestImagePick).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', { name: '저장하기' }));
+
+    expect(await screen.findByText('저장하지 못했어요')).toBeInTheDocument();
+    expect(mocks.updateMyProfile).not.toHaveBeenCalled();
+    // 편집 화면에 그대로 남아 고른 사진을 유지한다.
+    expect(screen.getByText('회원 정보')).toBeInTheDocument();
+    expect(screen.getByAltText('프로필 이미지')).toHaveAttribute(
+      'src',
+      'data:image/png;base64,aGk=',
+    );
+  });
+
+  it('저장하지 않고 나가면 고른 사진을 버린다', async () => {
+    mocks.requestImagePick.mockResolvedValue({
+      requestId: 'r1',
+      source: 'album',
+      status: 'success',
+      image: PICKED_IMAGE,
+    });
+    renderMyPage();
+
+    fireEvent.click(await screen.findByText('졸림핑'));
+    fireEvent.click(screen.getByRole('button', { name: '프로필 이미지 변경' }));
+    fireEvent.click(screen.getByText('앨범에서 선택'));
+    await waitFor(() => {
+      expect(screen.getByAltText('프로필 이미지')).toHaveAttribute(
+        'src',
+        'data:image/png;base64,aGk=',
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '마이페이지로 돌아가기' }));
+
+    expect(mocks.uploadProfileImage).not.toHaveBeenCalled();
+    // 마이페이지 카드에는 저장 안 된 미리보기가 남지 않는다.
+    expect(screen.getByAltText('프로필 이미지')).not.toHaveAttribute(
+      'src',
+      'data:image/png;base64,aGk=',
+    );
   });
 
   it('로그아웃을 확인하면 서버 로그아웃 후 세션을 지운다', async () => {
