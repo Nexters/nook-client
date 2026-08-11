@@ -10,8 +10,9 @@ export interface UpdateMemberProfileRequest {
    * 회원 닉네임
    * @minLength 2
    * @maxLength 20
+   * @nullable
    */
-  nickname: string;
+  nickname?: string | null;
   /**
    * 프로필 이미지 URL
    * @minLength 0

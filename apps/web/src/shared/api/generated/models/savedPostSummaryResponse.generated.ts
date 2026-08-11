@@ -21,6 +21,8 @@ export interface SavedPostSummaryResponse {
   memo?: string | null;
   /** 저장 게시물 식별자 */
   postId: number;
+  /** 게시물 처리 진행률. 0부터 100 사이의 정수입니다. */
+  processingPercent: number;
   /**
    * 현재 처리 단계. 모든 처리가 완료되면 null입니다.
    * @nullable

@@ -4,6 +4,7 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { PlaceDetailResponseThumbnailParsingStatus } from './placeDetailResponseThumbnailParsingStatus.generated';
 import type { PlaceOpeningHoursResponse } from './placeOpeningHoursResponse.generated';
 import type { PlacePostPageResponse } from './placePostPageResponse.generated';
 
@@ -46,6 +47,8 @@ export interface PlaceDetailResponse {
   provider: string;
   /** 장소 대표 태그 목록(최대 4개) */
   tags: string[];
+  /** 장소 썸네일 파싱 상태 */
+  thumbnailParsingStatus: PlaceDetailResponseThumbnailParsingStatus;
   /**
    * 장소 대표 썸네일 URL
    * @nullable

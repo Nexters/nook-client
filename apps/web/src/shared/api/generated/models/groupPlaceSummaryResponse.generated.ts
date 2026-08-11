@@ -5,7 +5,7 @@
  * OpenAPI spec version: v1
  */
 
-export interface RecentPlaceResponse {
+export interface GroupPlaceSummaryResponse {
   /** 장소 주소 */
   address: string;
   /**

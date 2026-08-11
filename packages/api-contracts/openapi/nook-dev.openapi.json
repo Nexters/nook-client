@@ -93,6 +93,43 @@
         ],
         "type": "object"
       },
+      "ApiResponseGroupPlacePageResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/GroupPlacePageResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
       "ApiResponseGroupPostPageResponse": {
         "description": "공통 API 응답",
         "properties": {
@@ -451,6 +488,43 @@
             "oneOf": [
               {
                 "$ref": "#/components/schemas/PostResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
+      "ApiResponseProfileImageUploadResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProfileImageUploadResponse"
               },
               {
                 "type": "null"
@@ -822,6 +896,132 @@
         ],
         "type": "object"
       },
+      "CreateProfileImageUploadRequest": {
+        "properties": {
+          "contentType": {
+            "description": "업로드할 이미지 Content-Type",
+            "example": "image/jpeg",
+            "pattern": "^image/(jpeg|png|webp|heic|heif)$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "contentType"
+        ],
+        "type": "object"
+      },
+      "GroupPlacePageResponse": {
+        "properties": {
+          "hasNext": {
+            "description": "다음 페이지 존재 여부",
+            "type": "boolean"
+          },
+          "items": {
+            "description": "그룹에 저장된 장소 목록",
+            "items": {
+              "$ref": "#/components/schemas/GroupPlaceSummaryResponse"
+            },
+            "type": "array"
+          },
+          "ownerNickname": {
+            "description": "그룹 소유자의 닉네임",
+            "type": "string"
+          },
+          "page": {
+            "description": "현재 페이지 번호",
+            "format": "int32",
+            "type": "integer"
+          },
+          "size": {
+            "description": "페이지당 장소 수",
+            "format": "int32",
+            "type": "integer"
+          },
+          "totalElements": {
+            "description": "전체 장소 수",
+            "format": "int64",
+            "type": "integer"
+          },
+          "totalPages": {
+            "description": "전체 페이지 수",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hasNext",
+          "items",
+          "ownerNickname",
+          "page",
+          "size",
+          "totalElements",
+          "totalPages"
+        ],
+        "type": "object"
+      },
+      "GroupPlaceSummaryResponse": {
+        "properties": {
+          "address": {
+            "description": "장소 주소",
+            "type": "string"
+          },
+          "category": {
+            "description": "장소 카테고리",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "description": "장소 지역",
+            "example": "서울",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "description": "장소 식별자",
+            "format": "int64",
+            "type": "integer"
+          },
+          "latitude": {
+            "description": "장소 위도",
+            "type": "number"
+          },
+          "longitude": {
+            "description": "장소 경도",
+            "type": "number"
+          },
+          "name": {
+            "description": "장소명",
+            "type": "string"
+          },
+          "tags": {
+            "description": "장소 대표 태그 목록(최대 4개)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "thumbnailUrl": {
+            "description": "장소 대표 썸네일 URL",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "id",
+          "latitude",
+          "longitude",
+          "name",
+          "tags"
+        ],
+        "type": "object"
+      },
       "GroupPostPageResponse": {
         "properties": {
           "hasNext": {
@@ -897,6 +1097,11 @@
             "format": "int64",
             "type": "integer"
           },
+          "processingPercent": {
+            "description": "게시물 처리 진행률. 0부터 100 사이의 정수입니다.",
+            "format": "int32",
+            "type": "integer"
+          },
           "processingStage": {
             "description": "현재 처리 단계. 모든 처리가 완료되면 null입니다.",
             "enum": [
@@ -944,6 +1149,7 @@
         "required": [
           "placeCount",
           "postId",
+          "processingPercent",
           "processingStatus",
           "savedAt"
         ],
@@ -996,6 +1202,14 @@
       },
       "MapPlaceResponse": {
         "properties": {
+          "city": {
+            "description": "장소 지역",
+            "example": "서울",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "color": {
             "description": "대표 그룹 색상 코드",
             "example": "YELLOW",
@@ -1174,6 +1388,16 @@
             },
             "type": "array"
           },
+          "thumbnailParsingStatus": {
+            "description": "장소 썸네일 파싱 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -1193,7 +1417,8 @@
           "photoUrls",
           "posts",
           "provider",
-          "tags"
+          "tags",
+          "thumbnailParsingStatus"
         ],
         "type": "object"
       },
@@ -1466,6 +1691,16 @@
             },
             "type": "array"
           },
+          "thumbnailParsingStatus": {
+            "description": "장소 썸네일 파싱 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -1483,7 +1718,8 @@
           "longitude",
           "name",
           "provider",
-          "tags"
+          "tags",
+          "thumbnailParsingStatus"
         ],
         "type": "object"
       },
@@ -1624,6 +1860,11 @@
             "format": "int64",
             "type": "integer"
           },
+          "processingPercent": {
+            "description": "게시물 처리 진행률. 0부터 100 사이의 정수입니다.",
+            "format": "int32",
+            "type": "integer"
+          },
           "processingStage": {
             "description": "현재 처리 단계. 모든 처리가 완료되면 null입니다.",
             "enum": [
@@ -1649,7 +1890,46 @@
         "required": [
           "placeParsingStatus",
           "postId",
+          "processingPercent",
           "processingStatus"
+        ],
+        "type": "object"
+      },
+      "ProfileImageUploadResponse": {
+        "properties": {
+          "contentType": {
+            "description": "업로드 시 포함할 Content-Type",
+            "type": "string"
+          },
+          "expiresAt": {
+            "description": "업로드 URL 만료 시각",
+            "type": "string"
+          },
+          "maxBytes": {
+            "description": "업로드 가능한 최대 바이트",
+            "format": "int64",
+            "type": "integer"
+          },
+          "method": {
+            "description": "업로드 HTTP method",
+            "type": "string"
+          },
+          "profileImageUrl": {
+            "description": "업로드 완료 후 프로필에 저장할 공개 이미지 URL",
+            "type": "string"
+          },
+          "uploadUrl": {
+            "description": "이미지를 업로드할 presigned PUT URL",
+            "type": "string"
+          }
+        },
+        "required": [
+          "contentType",
+          "expiresAt",
+          "maxBytes",
+          "method",
+          "profileImageUrl",
+          "uploadUrl"
         ],
         "type": "object"
       },
@@ -1661,6 +1941,14 @@
           },
           "category": {
             "description": "장소 카테고리",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city": {
+            "description": "장소 지역",
+            "example": "서울",
             "type": [
               "string",
               "null"
@@ -1845,6 +2133,11 @@
             "format": "int64",
             "type": "integer"
           },
+          "processingPercent": {
+            "description": "게시물 처리 진행률. 0부터 100 사이의 정수입니다.",
+            "format": "int32",
+            "type": "integer"
+          },
           "processingStage": {
             "description": "현재 처리 단계. 모든 처리가 완료되면 null입니다.",
             "enum": [
@@ -1895,6 +2188,7 @@
           "placeParsingStatus",
           "places",
           "postId",
+          "processingPercent",
           "processingStatus",
           "savedAt"
         ],
@@ -2055,6 +2349,16 @@
             },
             "type": "array"
           },
+          "thumbnailParsingStatus": {
+            "description": "장소 썸네일 파싱 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -2073,7 +2377,8 @@
           "name",
           "provider",
           "sequence",
-          "tags"
+          "tags",
+          "thumbnailParsingStatus"
         ],
         "type": "object"
       },
@@ -2096,6 +2401,11 @@
           "postId": {
             "description": "저장 게시물 식별자",
             "format": "int64",
+            "type": "integer"
+          },
+          "processingPercent": {
+            "description": "게시물 처리 진행률. 0부터 100 사이의 정수입니다.",
+            "format": "int32",
             "type": "integer"
           },
           "processingStage": {
@@ -2144,6 +2454,7 @@
         },
         "required": [
           "postId",
+          "processingPercent",
           "processingStatus",
           "savedAt"
         ],
@@ -2351,7 +2662,10 @@
             "example": "누커",
             "maxLength": 20,
             "minLength": 2,
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "profileImageUrl": {
             "description": "프로필 이미지 URL",
@@ -2365,9 +2679,6 @@
             ]
           }
         },
-        "required": [
-          "nickname"
-        ],
         "type": "object"
       },
       "UpdatePlaceBookmarkRequest": {
@@ -2614,6 +2925,65 @@
         ]
       }
     },
+    "/api/v1/groups/{groupId}/places": {
+      "get": {
+        "operationId": "listPlaces",
+        "parameters": [
+          {
+            "description": "조회할 그룹 식별자",
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "조회할 페이지 번호. 0부터 시작합니다.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "페이지당 장소 수",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseGroupPlacePageResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "그룹 저장 장소 목록 조회",
+        "tags": [
+          "Group"
+        ]
+      }
+    },
     "/api/v1/groups/{groupId}/posts": {
       "get": {
         "operationId": "listPosts",
@@ -2737,6 +3107,37 @@
           }
         },
         "summary": "내 정보 수정",
+        "tags": [
+          "Member"
+        ]
+      }
+    },
+    "/api/v1/members/me/profile-image-upload": {
+      "post": {
+        "operationId": "createProfileImageUpload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProfileImageUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseProfileImageUploadResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "프로필 이미지 업로드 URL 발급",
         "tags": [
           "Member"
         ]

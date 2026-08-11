@@ -9,6 +9,7 @@ import { orvalMutator } from '../orval-mutator';
 import type {
   ApiResponseAuthActionResponse,
   ApiResponseConnectedPlaceResponse,
+  ApiResponseGroupPlacePageResponse,
   ApiResponseGroupPostPageResponse,
   ApiResponseGroupResponse,
   ApiResponseListGroupResponse,
@@ -19,6 +20,7 @@ import type {
   ApiResponsePlaceSearchSliceResponse,
   ApiResponsePostPlaceParsingResponse,
   ApiResponsePostResponse,
+  ApiResponseProfileImageUploadResponse,
   ApiResponseRecentPlaceSliceResponse,
   ApiResponseSavedPostDetailResponse,
   ApiResponseSavedPostPageResponse,
@@ -29,9 +31,11 @@ import type {
   ConnectPostPlaceRequest,
   CreateGroupRequest,
   CreatePostRequest,
+  CreateProfileImageUploadRequest,
   GetDetailParams,
   GetMapPlacesParams,
   GetRecentPlacesParams,
+  ListPlacesParams,
   ListPostsParams,
   ListSavedPostsParams,
   RefreshTokenRequest,
@@ -171,6 +175,36 @@ export const update = async (
   });
 };
 
+export const getListPlacesUrl = (groupId: number, params?: ListPlacesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/groups/${groupId}/places?${stringifiedParams}`
+    : `/api/v1/groups/${groupId}/places`;
+};
+
+/**
+ * @summary 그룹 저장 장소 목록 조회
+ */
+export const listPlaces = async (
+  groupId: number,
+  params?: ListPlacesParams,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseGroupPlacePageResponse> => {
+  return orvalMutator<ApiResponseGroupPlacePageResponse>(getListPlacesUrl(groupId, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
 export const getListPostsUrl = (groupId: number, params?: ListPostsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -249,6 +283,25 @@ export const updateMe = async (
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(updateMemberProfileRequest),
+  });
+};
+
+export const getCreateProfileImageUploadUrl = () => {
+  return `/api/v1/members/me/profile-image-upload`;
+};
+
+/**
+ * @summary 프로필 이미지 업로드 URL 발급
+ */
+export const createProfileImageUpload = async (
+  createProfileImageUploadRequest: CreateProfileImageUploadRequest,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseProfileImageUploadResponse> => {
+  return orvalMutator<ApiResponseProfileImageUploadResponse>(getCreateProfileImageUploadUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createProfileImageUploadRequest),
   });
 };
 
