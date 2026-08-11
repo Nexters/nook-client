@@ -12,7 +12,8 @@
       "!**/dist",
       "!**/coverage",
       "!**/src/assets",
-      "!packages/api-contracts/openapi"
+      "!packages/api-contracts/openapi",
+      "!packages/icons/src"
     ]
   },
   "formatter": {
