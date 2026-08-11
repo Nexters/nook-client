@@ -4,12 +4,15 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { ProfileImageUploadResponseHeaders } from './profileImageUploadResponseHeaders.generated';
 
 export interface ProfileImageUploadResponse {
   /** 업로드 시 포함할 Content-Type */
   contentType: string;
   /** 업로드 URL 만료 시각 */
   expiresAt: string;
+  /** 업로드 PUT 요청에 그대로 포함할 헤더 */
+  headers: ProfileImageUploadResponseHeaders;
   /** 업로드 가능한 최대 바이트 */
   maxBytes: number;
   /** 업로드 HTTP method */

@@ -1905,6 +1905,13 @@
             "description": "업로드 URL 만료 시각",
             "type": "string"
           },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "업로드 PUT 요청에 그대로 포함할 헤더",
+            "type": "object"
+          },
           "maxBytes": {
             "description": "업로드 가능한 최대 바이트",
             "format": "int64",
@@ -1926,6 +1933,7 @@
         "required": [
           "contentType",
           "expiresAt",
+          "headers",
           "maxBytes",
           "method",
           "profileImageUrl",
