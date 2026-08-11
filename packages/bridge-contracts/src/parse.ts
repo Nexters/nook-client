@@ -89,6 +89,7 @@ export function parseWebToNative(json: string): WebToNative | null {
 
   switch (value.type) {
     case 'WEB_READY':
+    case 'BACK_EXHAUSTED':
       return { v: BRIDGE_VERSION, type: value.type, payload: {} };
     case 'OPEN_EXTERNAL_URL':
       return typeof value.payload.url === 'string'
@@ -161,7 +162,7 @@ export function parseNativeToWeb(json: string): NativeToWeb | null {
   if (!value || !hasSupportedVersion(value) || !isRecord(value.payload)) {
     return null;
   }
-  if (value.type === 'APP_RESUMED') {
+  if (value.type === 'APP_RESUMED' || value.type === 'BACK_REQUESTED') {
     return { v: BRIDGE_VERSION, type: value.type, payload: {} };
   }
   if (value.type === 'SOCIAL_LOGIN_RESULT') {

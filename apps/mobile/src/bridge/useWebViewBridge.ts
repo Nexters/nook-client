@@ -1,6 +1,6 @@
 import { parseWebToNative } from '@nook/bridge-contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, Platform } from 'react-native';
+import { BackHandler, Linking, Platform } from 'react-native';
 import type { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { runSocialLogin } from '../auth/socialLogin';
 import { runImagePick } from '../media/imagePicker';
@@ -95,6 +95,17 @@ export function useWebViewBridge() {
     [send],
   );
 
+  // Android 하드웨어 뒤로가기는 웹에 위임한다. 웹이 오버레이 닫기·히스토리 뒤로를 판단하고,
+  // 더 갈 곳이 없으면 BACK_EXHAUSTED 로 알려와 그때 OS 기본 동작(앱 내리기)을 한다.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      send({ v: 1, type: 'BACK_REQUESTED', payload: {} });
+      return true;
+    });
+    return () => subscription.remove();
+  }, [send]);
+
   const onMessage = useCallback(
     (event: WebViewMessageEvent) => {
       if (!isTrustedUrl(event.nativeEvent.url, WEB_ORIGIN)) {
@@ -151,6 +162,9 @@ export function useWebViewBridge() {
           });
           break;
         }
+        case 'BACK_EXHAUSTED':
+          if (Platform.OS === 'android') BackHandler.exitApp();
+          break;
         case 'SESSION_CLEAR':
           void clearSession().then(() => {
             send({ v: 1, type: 'SESSION_CLEARED', payload: { reason: 'logout' } });

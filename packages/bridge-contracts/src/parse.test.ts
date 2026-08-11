@@ -8,6 +8,14 @@ describe('parseWebToNative', () => {
     ).toEqual({ v: 1, type: 'OPEN_EXTERNAL_URL', payload: { url: 'https://nook.com' } });
   });
 
+  it('BACK_EXHAUSTED 메시지를 파싱한다', () => {
+    expect(parseWebToNative('{"v":1,"type":"BACK_EXHAUSTED","payload":{}}')).toEqual({
+      v: 1,
+      type: 'BACK_EXHAUSTED',
+      payload: {},
+    });
+  });
+
   it.each([
     'null',
     '[]',
@@ -25,6 +33,14 @@ describe('parseNativeToWeb', () => {
     expect(parseNativeToWeb('{"v":1,"type":"APP_RESUMED","payload":{}}')).toEqual({
       v: 1,
       type: 'APP_RESUMED',
+      payload: {},
+    });
+  });
+
+  it('BACK_REQUESTED 메시지를 파싱한다', () => {
+    expect(parseNativeToWeb('{"v":1,"type":"BACK_REQUESTED","payload":{}}')).toEqual({
+      v: 1,
+      type: 'BACK_REQUESTED',
       payload: {},
     });
   });

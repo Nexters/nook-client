@@ -1,5 +1,6 @@
-import type * as React from 'react';
+import * as React from 'react';
 import { Drawer as DrawerPrimitive } from 'vaul';
+import { useCloseOnBack } from '@/shared/lib/backInterceptors';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -8,8 +9,29 @@ import { cn } from '@/shared/lib/utils';
  * `Drawer`에 `modal={false}`, `DrawerContent`에 `overlay={false}` 를 넘긴다.
  * 드래그·스냅·ARIA 는 전부 vaul 이 담당한다.
  */
-function Drawer({ ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
-  return <DrawerPrimitive.Root data-slot="drawer" {...props} />;
+function Drawer({
+  open,
+  onOpenChange,
+  modal,
+  ...props
+}: React.ComponentProps<typeof DrawerPrimitive.Root>) {
+  // Android 백 버튼이 열린 시트를 닫는다(플랫폼 관례 — iOS 스와이프는 해당 없음).
+  // 지도 위 비모달 시트는 상시 노출 패널이라 제외한다.
+  const closeOnBack = React.useMemo(
+    () => (modal === false || !onOpenChange ? null : () => onOpenChange(false)),
+    [modal, onOpenChange],
+  );
+  useCloseOnBack(open, closeOnBack);
+
+  return (
+    <DrawerPrimitive.Root
+      data-slot="drawer"
+      open={open}
+      onOpenChange={onOpenChange}
+      modal={modal}
+      {...props}
+    />
+  );
 }
 
 function DrawerTrigger(props: React.ComponentProps<typeof DrawerPrimitive.Trigger>) {

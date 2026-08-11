@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import type { Place } from '@/features/place';
 import { capturePostHogEvent } from '@/lib/posthog';
+import { useBackInterceptor } from '@/shared/lib/backInterceptors';
+import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { cn } from '@/shared/lib/utils';
 import { BackButton, Header, Snackbar } from '@/shared/ui';
 import {
@@ -40,7 +42,8 @@ export function PostDetailPage() {
   const updateMemoMutation = useUpdatePostMemo(postId);
   const [memoOpen, setMemoOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [viewerOpen, setViewerOpen] = useState(false);
+  // 뒤로가기(버튼·하드웨어 백·스와이프)로 닫혀야 해서 히스토리 엔트리로 승격한다.
+  const [viewerOpen, openViewer, closeViewer] = useHistoryBackedFlag('imageViewer');
   const relatedPlacesState = useRelatedPlaces(postId);
   const [directInputOpen, setDirectInputOpen] = useState(false);
   const [showRelatedPlacesErrorToast, setShowRelatedPlacesErrorToast] = useState(false);
@@ -57,6 +60,16 @@ export function PostDetailPage() {
     }
     navigate(-1);
   }
+
+  // 공유 진입은 히스토리가 없어 navigate(-1) 로는 못 돌아간다 — 하드웨어 백도 버튼과
+  // 같은 목적지(지도)로 보낸다. 뷰어가 떠 있으면 히스토리 뒤로(뷰어 닫기)에 양보한다.
+  useBackInterceptor(
+    useCallback(() => {
+      if (!enteredFromShare || viewerOpen) return false;
+      navigate(shareEntryBackTarget, { replace: true });
+      return true;
+    }, [enteredFromShare, viewerOpen, navigate, shareEntryBackTarget]),
+  );
 
   // "직접 추가"로 확정한 장소 — 파싱 상태와 무관하게 항상 연관 장소에 보여준다.
   const [manualPlaces, setManualPlaces] = useState<Place[]>([]);
@@ -156,7 +169,7 @@ export function PostDetailPage() {
       >
         <Header left={<BackButton onClick={handleBack} />} />
 
-        <PostImages images={images} onImageClick={() => setViewerOpen(true)} />
+        <PostImages images={images} onImageClick={openViewer} />
 
         <div className="flex flex-col gap-2 px-4 pt-1">
           <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
@@ -215,7 +228,7 @@ export function PostDetailPage() {
         }
       />
 
-      {viewerOpen ? <PostImageViewer images={images} onClose={() => setViewerOpen(false)} /> : null}
+      {viewerOpen ? <PostImageViewer images={images} onClose={closeViewer} /> : null}
 
       <PlaceDirectInputDrawer
         open={directInputOpen}

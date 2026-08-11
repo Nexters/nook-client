@@ -26,6 +26,8 @@ export interface SocialCredential {
 
 export type NativeToWeb =
   | BridgeMessage<'APP_RESUMED', Record<string, never>>
+  // Android 하드웨어 뒤로가기. 오버레이 닫기·히스토리 뒤로 등 처리는 웹이 결정한다.
+  | BridgeMessage<'BACK_REQUESTED', Record<string, never>>
   | BridgeMessage<
       'SOCIAL_LOGIN_RESULT',
       {
