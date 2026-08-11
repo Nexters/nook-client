@@ -126,19 +126,12 @@ class ShareApiClient(private val context: Context) {
         return JSONObject().put("value", envelope.get("success"))
     }
 
+    // 서버가 확정한 PRIVATE_POST 만 비공개 안내로 보낸다.
+    // 나머지 실패는 네트워크 안내로 떨어뜨려 "다시하기" 를 남긴다 — 원인을 모르는 실패에
+    // "비공개 게시물" 을 띄우면 사용자가 할 수 있는 게 없다.
     private fun mappedFailure(body: String, status: Int? = null): IllegalStateException {
         val error = runCatching { JSONObject(body).optJSONObject("error") }.getOrNull()
-        val code = error?.optString("errorCode").orEmpty().uppercase()
-        val reason = error?.optString("reason").orEmpty()
-        if (
-            status == 403 ||
-            code.contains("PRIVATE") ||
-            code.contains("NOT_ACCESSIBLE") ||
-            code.contains("ACCESS_DENIED") ||
-            code.contains("CONTENT_UNAVAILABLE") ||
-            reason.contains("비공개") ||
-            reason.contains("접근할 수 없")
-        ) {
+        if (error?.optString("errorCode").orEmpty().uppercase() == "PRIVATE_POST") {
             return SharePrivatePostException()
         }
         return IllegalStateException(status?.let { "API 요청 실패 ($it)" } ?: "API 실패 응답")
