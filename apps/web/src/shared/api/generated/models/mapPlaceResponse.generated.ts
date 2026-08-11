@@ -6,6 +6,11 @@
  */
 
 export interface MapPlaceResponse {
+  /**
+   * 장소 지역
+   * @nullable
+   */
+  city?: string | null;
   /** 대표 그룹 색상 코드 */
   color: string;
   /** 장소 식별자 */
