@@ -93,6 +93,7 @@ export * from './postResponsePlaceParsingStatus.generated';
 export * from './postResponseProcessingStage.generated';
 export * from './postResponseProcessingStatus.generated';
 export * from './profileImageUploadResponse.generated';
+export * from './profileImageUploadResponseHeaders.generated';
 export * from './recentPlaceResponse.generated';
 export * from './recentPlaceSliceResponse.generated';
 export * from './refreshTokenRequest.generated';
