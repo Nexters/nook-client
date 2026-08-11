@@ -237,7 +237,10 @@ export function PostDetailPage() {
       />
 
       {showRelatedPlacesErrorToast ? (
-        <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+        <div
+          className="fixed inset-x-0 z-50 flex justify-center px-4"
+          style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+        >
           <Snackbar
             title="위치를 찾지 못 했어요"
             description="게시물은 저장됐지만 지도에는 표시되지 않아요"

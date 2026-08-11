@@ -21,6 +21,10 @@ const TICKET = {
   uploadUrl: 'https://storage.example.com/upload?sig=abc',
   method: 'PUT',
   contentType: 'image/png',
+  headers: {
+    'Content-Type': 'image/png',
+    'Cache-Control': 'public, max-age=31536000, immutable',
+  },
   maxBytes: 1024,
   expiresAt: '2026-08-11T00:00:00Z',
   profileImageUrl: 'https://cdn.example.com/profile/1.png',
@@ -48,11 +52,8 @@ describe('uploadProfileImage', () => {
     const [uploadUrl, init] = mocks.request.mock.calls[0] ?? [];
     expect(uploadUrl).toBe(TICKET.uploadUrl);
     expect(init.method).toBe('PUT');
-    // 서명 대상 헤더 — 하나라도 빠지면 S3 가 SignatureDoesNotMatch 로 거절한다.
-    expect(init.headers).toEqual({
-      'Content-Type': 'image/png',
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    });
+    // 서명 대상 헤더는 서버 응답값을 그대로 전달한다 — 하나라도 어긋나면 S3 가 거절한다.
+    expect(init.headers).toEqual(TICKET.headers);
     expect(Array.from(new Uint8Array(init.body as ArrayBuffer))).toEqual([0x68, 0x69]);
     // 스토리지로 나가는 요청이라 토큰을 붙이지 않는다(ApiClient 기본값 유지).
     expect(init.auth).toBeUndefined();

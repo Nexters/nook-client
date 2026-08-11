@@ -13,14 +13,6 @@ import {
 /** 사진 업로드는 공용 15초로는 모자랄 수 있다 — 픽커가 압축했어도 회선이 느릴 수 있다. */
 const UPLOAD_TIMEOUT_MS = 30_000;
 
-/**
- * presigned 서명에 cache-control 이 포함돼(SignedHeaders=cache-control;content-type;host)
- * 이 값을 그대로 보내지 않으면 S3 가 SignatureDoesNotMatch 로 거절한다.
- * 발급 응답에 값이 없어 서버 상수(S3ProfileImageUploadAdapter.CACHE_CONTROL)를 복제해 둔다 —
- * 서버가 응답에 실어주면 그 값을 쓰도록 바꾼다.
- */
-const UPLOAD_CACHE_CONTROL = 'public, max-age=31536000, immutable';
-
 export interface MyProfile {
   id: number;
   nickname: string;
@@ -102,8 +94,8 @@ export async function uploadProfileImage(image: PickedImage): Promise<string> {
   await apiClient.request(ticket.uploadUrl, {
     method: ticket.method,
     body: bytes,
-    // 둘 다 서명 대상이라 값이 하나라도 어긋나면 S3 가 거절한다.
-    headers: { 'Content-Type': ticket.contentType, 'Cache-Control': UPLOAD_CACHE_CONTROL },
+    // 서명 대상 헤더는 서버가 확정해 내려준다 — 값이 하나라도 어긋나면 S3 가 거절한다.
+    headers: ticket.headers,
     timeoutMs: UPLOAD_TIMEOUT_MS,
   });
 

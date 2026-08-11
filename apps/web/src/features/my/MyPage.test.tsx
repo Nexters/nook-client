@@ -120,6 +120,13 @@ describe('MyPage', () => {
     expect(screen.getByText('1. 서비스의 범위')).toBeInTheDocument();
   });
 
+  it('내 정보를 불러오는 동안 카드 자리를 스켈레톤으로 채운다', () => {
+    mocks.fetchMyProfile.mockReturnValue(new Promise(() => {}));
+    renderMyPage();
+
+    expect(document.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+  });
+
   it('내 정보를 불러오지 못하면 안내 문구를 보여준다', async () => {
     mocks.fetchMyProfile.mockRejectedValue(new Error('network'));
     renderMyPage();
