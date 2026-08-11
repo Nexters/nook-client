@@ -212,7 +212,10 @@ function PlaceDirectInputDrawer({
         // 되살린다. 다만 aria-hidden 자체는 풀리지 않고 Drawer 의 포커스 트랩도 이 바까지는
         // 미치지 못해서, 마우스/터치로만 누를 수 있고 키보드·스크린리더로는 이 버튼에 전혀
         // 도달할 수 없다 — "일부 제한"이 아니라 완전히 막힌 상태다(후속 과제로 남겨둔다).
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex items-center gap-2.5 border-t border-gray-10 bg-gray-0 px-4 pt-2 pb-8">
+        <div
+          className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex items-center gap-2.5 border-t border-gray-10 bg-gray-0 px-4 pt-2"
+          style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
+        >
           <p className="pointer-events-auto flex-1 text-b2 font-semibold text-gray-80">
             이 장소가 맞나요?
           </p>

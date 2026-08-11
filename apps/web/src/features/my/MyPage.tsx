@@ -171,7 +171,8 @@ export function MyPage() {
             size="lg"
             fullWidth
             disabled={draftNickname.trim().length === 0 || saveProfile.isPending}
-            className="mt-auto mb-4"
+            className="mt-auto"
+            style={{ marginBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
             onClick={handleSaveProfile}
           >
             {saveProfile.isPending ? '저장 중...' : '저장하기'}
@@ -295,7 +296,10 @@ export function MyPage() {
 
 function ErrorToastBar({ toast }: { toast: ErrorToast }) {
   return (
-    <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+    <div
+      className="fixed inset-x-0 z-50 flex justify-center px-4"
+      style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+    >
       <Snackbar
         title={toast.title}
         description={toast.description}
