@@ -1,11 +1,11 @@
-import type { ImagePickSource } from '@nook/bridge-contracts';
+import type { ImagePickSource, PickedImage } from '@nook/bridge-contracts';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { useAuthSession } from '@/features/auth/session/AuthSessionProvider';
 import { useGroups } from '@/features/group/api/queries';
-import { useLogout, useMyProfile, useWithdraw } from '@/features/my/api/queries';
+import { useLogout, useMyProfile, useSaveProfile, useWithdraw } from '@/features/my/api/queries';
 import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
 import { ProfileImageSheet } from '@/features/my/components/ProfileImageSheet';
@@ -24,28 +24,35 @@ import { Avatar, Button, Header, Input, Popup, Snackbar } from '@/shared/ui';
 
 type Dialog = 'logout' | 'withdraw' | null;
 
+interface ErrorToast {
+  title: string;
+  description: string;
+}
+
 export function MyPage() {
   const navigate = useNavigate();
   // 뒤로가기(버튼·하드웨어 백·스와이프)로 닫혀야 해서 히스토리 엔트리로 승격한다.
   const [editingProfile, openEditingProfile, closeEditingProfile] =
     useHistoryBackedFlag('profileEdit');
-  // 수정 API 연결 전까지는 저장해도 화면에서만 바뀐다.
-  const [nicknameOverride, setNicknameOverride] = useState<string | null>(null);
   const [draftNickname, setDraftNickname] = useState<string>('');
   const [dialog, setDialog] = useState<Dialog>(null);
   const [imageSheetOpen, setImageSheetOpen] = useState(false);
-  // 픽커로 고른 이미지의 data URI. 업로드 API 연결 전까지는 화면 미리보기만 한다.
-  const [pickedImageUrl, setPickedImageUrl] = useState<string | null>(null);
+  // 픽커로 고른 원본. 저장할 때 업로드해야 해서 data URI 가 아니라 그대로 들고 있는다.
+  const [pickedImage, setPickedImage] = useState<PickedImage | null>(null);
   const { setHidden: setBottomMenuHidden } = useBottomMenuVisibility();
   const { clear: clearSession } = useAuthSession();
   const { data: profile, isPending: profilePending, isError: profileError } = useMyProfile();
   const { data: groups } = useGroups();
   const logout = useLogout();
   const withdraw = useWithdraw();
-  const [showWithdrawError, setShowWithdrawError] = useState(false);
+  const saveProfile = useSaveProfile();
+  const [errorToast, setErrorToast] = useState<ErrorToast | null>(null);
 
-  const nickname = nicknameOverride ?? profile?.nickname ?? '';
-  const avatarUrl = pickedImageUrl ?? profile?.profileImageUrl ?? undefined;
+  const nickname = profile?.nickname ?? '';
+  const previewUrl = pickedImage
+    ? `data:${pickedImage.mimeType};base64,${pickedImage.base64}`
+    : undefined;
+  const avatarUrl = previewUrl ?? profile?.profileImageUrl ?? undefined;
   const savedPlaceCount = groups?.reduce((sum, group) => sum + group.placeCount, 0) ?? 0;
 
   const handlePickImage = async (source: ImagePickSource) => {
@@ -54,8 +61,20 @@ export function MyPage() {
     if (!nativeBridge.isNative) return;
     const result = await nativeBridge.requestImagePick(source);
     if (result.status === 'success' && result.image) {
-      setPickedImageUrl(`data:${result.image.mimeType};base64,${result.image.base64}`);
+      setPickedImage(result.image);
     }
+  };
+
+  const handleSaveProfile = async () => {
+    if (saveProfile.isPending) return;
+    try {
+      await saveProfile.mutateAsync({ nickname: draftNickname.trim(), image: pickedImage });
+    } catch {
+      // 실패하면 편집 화면에 머무른다 — 고른 사진과 입력이 날아가지 않게.
+      setErrorToast({ title: '저장하지 못했어요', description: '잠시 후 다시 시도해주세요' });
+      return;
+    }
+    closeEditingProfile();
   };
 
   const handleLogout = async () => {
@@ -77,7 +96,7 @@ export function MyPage() {
     } catch {
       // 로그아웃과 달리 실패하면 계정이 남아 있다 — 세션을 지우지 않고 알린다.
       setDialog(null);
-      setShowWithdrawError(true);
+      setErrorToast({ title: '탈퇴하지 못했어요', description: '잠시 후 다시 시도해주세요' });
       return;
     }
     setDialog(null);
@@ -85,15 +104,21 @@ export function MyPage() {
   };
 
   useEffect(() => {
-    if (!showWithdrawError) return;
-    const timer = setTimeout(() => setShowWithdrawError(false), 3000);
+    if (!errorToast) return;
+    const timer = setTimeout(() => setErrorToast(null), 3000);
     return () => clearTimeout(timer);
-  }, [showWithdrawError]);
+  }, [errorToast]);
 
   useEffect(() => {
     setBottomMenuHidden(editingProfile);
     return () => setBottomMenuHidden(false);
   }, [editingProfile, setBottomMenuHidden]);
+
+  // 편집 화면은 하드웨어 백·스와이프로도 닫히므로, 닫히는 길목 하나에서 저장 안 된 사진을 버린다.
+  // 안 그러면 마이페이지 카드에 업로드된 적 없는 미리보기가 남는다.
+  useEffect(() => {
+    if (!editingProfile) setPickedImage(null);
+  }, [editingProfile]);
 
   const openProfileEditor = () => {
     setDraftNickname(nickname);
@@ -145,14 +170,11 @@ export function MyPage() {
           <Button
             size="lg"
             fullWidth
-            disabled={draftNickname.trim().length === 0}
+            disabled={draftNickname.trim().length === 0 || saveProfile.isPending}
             className="mt-auto mb-4"
-            onClick={() => {
-              setNicknameOverride(draftNickname.trim());
-              closeEditingProfile();
-            }}
+            onClick={handleSaveProfile}
           >
-            저장하기
+            {saveProfile.isPending ? '저장 중...' : '저장하기'}
           </Button>
         </section>
 
@@ -161,6 +183,8 @@ export function MyPage() {
           onOpenChange={setImageSheetOpen}
           onSelect={handlePickImage}
         />
+
+        {errorToast ? <ErrorToastBar toast={errorToast} /> : null}
       </main>
     );
   }
@@ -264,15 +288,19 @@ export function MyPage() {
         onConfirm={handleWithdraw}
       />
 
-      {showWithdrawError ? (
-        <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
-          <Snackbar
-            title="탈퇴하지 못했어요"
-            description="잠시 후 다시 시도해주세요"
-            className="w-full max-w-[343px]"
-          />
-        </div>
-      ) : null}
+      {errorToast ? <ErrorToastBar toast={errorToast} /> : null}
     </>
+  );
+}
+
+function ErrorToastBar({ toast }: { toast: ErrorToast }) {
+  return (
+    <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+      <Snackbar
+        title={toast.title}
+        description={toast.description}
+        className="w-full max-w-[343px]"
+      />
+    </div>
   );
 }
