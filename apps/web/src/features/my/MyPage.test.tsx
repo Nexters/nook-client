@@ -9,6 +9,7 @@ import { ContactPage } from '@/features/my/ContactPage';
 import { MyPage } from '@/features/my/MyPage';
 import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
+import { ToastProvider } from '@/shared/toast';
 
 const PROFILE: MyProfile = { id: 1, nickname: '졸림핑', profileImageUrl: null };
 const PICKED_IMAGE = { base64: 'aGk=', mimeType: 'image/png', width: 600, height: 600 };
@@ -64,16 +65,18 @@ function renderMyPage() {
   const setHidden = vi.fn();
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/my']}>
-        <BottomMenuVisibilityProvider value={{ hidden: false, setHidden }}>
-          <Routes>
-            <Route path="/my" element={<MyPage />} />
-            <Route path="/privacy" element={<PrivacyPolicyPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/support" element={<ContactPage />} />
-          </Routes>
-        </BottomMenuVisibilityProvider>
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter initialEntries={['/my']}>
+          <BottomMenuVisibilityProvider value={{ hidden: false, setHidden }}>
+            <Routes>
+              <Route path="/my" element={<MyPage />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/support" element={<ContactPage />} />
+            </Routes>
+          </BottomMenuVisibilityProvider>
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   );
   return { setHidden };

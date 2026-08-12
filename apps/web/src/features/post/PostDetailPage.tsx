@@ -6,7 +6,8 @@ import { capturePostHogEvent } from '@/lib/posthog';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { cn } from '@/shared/lib/utils';
-import { BackButton, Header, Snackbar } from '@/shared/ui';
+import { useToast } from '@/shared/toast';
+import { BackButton, Header } from '@/shared/ui';
 import {
   usePostDetail,
   useRelatedPlaces,
@@ -46,7 +47,7 @@ export function PostDetailPage() {
   const [viewerOpen, openViewer, closeViewer] = useHistoryBackedFlag('imageViewer');
   const relatedPlacesState = useRelatedPlaces(postId);
   const [directInputOpen, setDirectInputOpen] = useState(false);
-  const [showRelatedPlacesErrorToast, setShowRelatedPlacesErrorToast] = useState(false);
+  const { showToast } = useToast();
   const firstRelatedPlaceId =
     relatedPlacesState.status === 'success' ? relatedPlacesState.places[0]?.id : undefined;
   const shareEntryBackTarget = firstRelatedPlaceId
@@ -135,10 +136,12 @@ export function PostDetailPage() {
 
   useEffect(() => {
     if (relatedPlacesState.status !== 'error') return;
-    setShowRelatedPlacesErrorToast(true);
-    const timer = setTimeout(() => setShowRelatedPlacesErrorToast(false), 3000);
-    return () => clearTimeout(timer);
-  }, [relatedPlacesState.status]);
+    showToast({
+      variant: 'description',
+      title: '위치를 찾지 못 했어요',
+      description: '게시물은 저장됐지만 지도에는 표시되지 않아요',
+    });
+  }, [relatedPlacesState.status, showToast]);
 
   if (postDetailState.status !== 'success') {
     return (
@@ -235,19 +238,6 @@ export function PostDetailPage() {
         onOpenChange={setDirectInputOpen}
         onPlaceConfirmed={handlePlaceConfirmed}
       />
-
-      {showRelatedPlacesErrorToast ? (
-        <div
-          className="fixed inset-x-0 z-50 flex justify-center px-4"
-          style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
-        >
-          <Snackbar
-            title="위치를 찾지 못 했어요"
-            description="게시물은 저장됐지만 지도에는 표시되지 않아요"
-            className="w-full max-w-[343px]"
-          />
-        </div>
-      ) : null}
     </main>
   );
 }
