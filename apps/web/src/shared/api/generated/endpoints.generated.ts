@@ -25,7 +25,6 @@ import type {
   ApiResponseSavedPostDetailResponse,
   ApiResponseSavedPostPageResponse,
   ApiResponseSocialAuthResponse,
-  ApiResponseStoredPlaceSearchSliceResponse,
   ApiResponseTokenResponse,
   ApiResponseUnit,
   ConnectPostPlaceRequest,
@@ -40,8 +39,6 @@ import type {
   ListSavedPostsParams,
   RefreshTokenRequest,
   ReplaceSavedPostGroupsRequest,
-  SearchAllStoredPlacesParams,
-  SearchMyStoredPlacesParams,
   SearchPlacesParams,
   SocialAuthRequest,
   UpdateGroupRequest,
@@ -355,38 +352,6 @@ export const updateBookmark = async (
   });
 };
 
-export const getSearchAllStoredPlacesUrl = (params: SearchAllStoredPlacesParams) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value));
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0
-    ? `/api/v1/places/database/search?${stringifiedParams}`
-    : `/api/v1/places/database/search`;
-};
-
-/**
- * @summary DB 전체 장소 검색
- */
-export const searchAllStoredPlaces = async (
-  params: SearchAllStoredPlacesParams,
-  options?: Parameters<typeof orvalMutator>[1],
-): Promise<ApiResponseStoredPlaceSearchSliceResponse> => {
-  return orvalMutator<ApiResponseStoredPlaceSearchSliceResponse>(
-    getSearchAllStoredPlacesUrl(params),
-    {
-      ...options,
-      method: 'GET',
-    },
-  );
-};
-
 export const getGetMapPlacesUrl = (params: GetMapPlacesParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -414,38 +379,6 @@ export const getMapPlaces = async (
     ...options,
     method: 'GET',
   });
-};
-
-export const getSearchMyStoredPlacesUrl = (params: SearchMyStoredPlacesParams) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value));
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0
-    ? `/api/v1/places/my/search?${stringifiedParams}`
-    : `/api/v1/places/my/search`;
-};
-
-/**
- * @summary 내가 저장한 장소 검색
- */
-export const searchMyStoredPlaces = async (
-  params: SearchMyStoredPlacesParams,
-  options?: Parameters<typeof orvalMutator>[1],
-): Promise<ApiResponseStoredPlaceSearchSliceResponse> => {
-  return orvalMutator<ApiResponseStoredPlaceSearchSliceResponse>(
-    getSearchMyStoredPlacesUrl(params),
-    {
-      ...options,
-      method: 'GET',
-    },
-  );
 };
 
 export const getGetRecentPlacesUrl = (params?: GetRecentPlacesParams) => {
