@@ -85,6 +85,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         'android.permission.ACCESS_FINE_LOCATION',
         'android.permission.ACCESS_COARSE_LOCATION',
       ],
+      // expo-image-picker 가 동영상용으로 넣지만 사진만 쓰므로 뺀다.
+      blockedPermissions: ['android.permission.RECORD_AUDIO'],
     },
   };
 };

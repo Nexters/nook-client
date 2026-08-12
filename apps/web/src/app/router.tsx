@@ -93,15 +93,16 @@ export const router = createBrowserRouter([
             path: 'my',
             element: <MyPage />,
           },
-          {
-            path: 'my/privacy',
-            element: <PrivacyPolicyPage />,
-          },
-          {
-            path: 'my/terms',
-            element: <TermsPage />,
-          },
         ],
+      },
+      // 스토어 심사·앱 스토어 등록에 공개 URL 이 필요해 로그인 밖에 둔다.
+      {
+        path: 'my/privacy',
+        element: <PrivacyPolicyPage />,
+      },
+      {
+        path: 'my/terms',
+        element: <TermsPage />,
       },
     ],
   },

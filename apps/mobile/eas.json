@@ -8,8 +8,7 @@
       "node": "22.18.0",
       "env": {
         "APPLE_TEAM_ID": "TDTGJZTB57",
-        "EXPO_PUBLIC_WEB_URL": "https://www.everynook.co.kr",
-        "EXPO_PUBLIC_API_BASE_URL": "https://api-dev.everynook.co.kr/api/v1"
+        "EXPO_PUBLIC_WEB_URL": "https://www.everynook.co.kr"
       }
     },
     "development": {
@@ -18,7 +17,8 @@
       "distribution": "internal",
       "environment": "development",
       "env": {
-        "APP_VARIANT": "development"
+        "APP_VARIANT": "development",
+        "EXPO_PUBLIC_API_BASE_URL": "https://api-dev.everynook.co.kr/api/v1"
       }
     },
     "device": {
@@ -27,7 +27,8 @@
       "distribution": "internal",
       "environment": "development",
       "env": {
-        "APP_VARIANT": "production"
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_API_BASE_URL": "https://api-dev.everynook.co.kr/api/v1"
       }
     },
     "production": {
@@ -36,7 +37,8 @@
       "environment": "production",
       "autoIncrement": true,
       "env": {
-        "APP_VARIANT": "production"
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_API_BASE_URL": "https://api-dev.everynook.co.kr/api/v1"
       },
       "ios": {
         "resourceClass": "m-medium"
