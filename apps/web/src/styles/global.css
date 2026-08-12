@@ -140,6 +140,33 @@
       opacity: 0.2;
     }
   }
+
+  /* ── Animation: 토스트 진입/퇴장. 퇴장 시간(0.2s)은 ToastProvider 의
+     TOAST_EXIT_MS 와 맞춰야 한다 — 다음 토스트가 그 시점에 새로 마운트된다. ── */
+  --animate-toast-in: toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-toast-out: toast-out 0.2s ease-in forwards;
+
+  @keyframes toast-in {
+    from {
+      transform: translateY(16px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes toast-out {
+    from {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateY(16px);
+      opacity: 0;
+    }
+  }
 }
 
 :root {

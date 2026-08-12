@@ -20,14 +20,10 @@ import {
   Icon24Back,
 } from '@/shared/icons/NookIcons';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
-import { Avatar, Button, Header, Input, Popup, Skeleton, Snackbar } from '@/shared/ui';
+import { useToast } from '@/shared/toast';
+import { Avatar, Button, Header, Input, Popup, Skeleton } from '@/shared/ui';
 
 type Dialog = 'logout' | 'withdraw' | null;
-
-interface ErrorToast {
-  title: string;
-  description: string;
-}
 
 export function MyPage() {
   const navigate = useNavigate();
@@ -46,7 +42,7 @@ export function MyPage() {
   const logout = useLogout();
   const withdraw = useWithdraw();
   const saveProfile = useSaveProfile();
-  const [errorToast, setErrorToast] = useState<ErrorToast | null>(null);
+  const { showToast } = useToast();
 
   const nickname = profile?.nickname ?? '';
   const previewUrl = pickedImage
@@ -71,7 +67,11 @@ export function MyPage() {
       await saveProfile.mutateAsync({ nickname: draftNickname.trim(), image: pickedImage });
     } catch {
       // 실패하면 편집 화면에 머무른다 — 고른 사진과 입력이 날아가지 않게.
-      setErrorToast({ title: '저장하지 못했어요', description: '잠시 후 다시 시도해주세요' });
+      showToast({
+        variant: 'description',
+        title: '저장하지 못했어요',
+        description: '잠시 후 다시 시도해주세요',
+      });
       return;
     }
     closeEditingProfile();
@@ -96,18 +96,16 @@ export function MyPage() {
     } catch {
       // 로그아웃과 달리 실패하면 계정이 남아 있다 — 세션을 지우지 않고 알린다.
       setDialog(null);
-      setErrorToast({ title: '탈퇴하지 못했어요', description: '잠시 후 다시 시도해주세요' });
+      showToast({
+        variant: 'description',
+        title: '탈퇴하지 못했어요',
+        description: '잠시 후 다시 시도해주세요',
+      });
       return;
     }
     setDialog(null);
     await clearSession();
   };
-
-  useEffect(() => {
-    if (!errorToast) return;
-    const timer = setTimeout(() => setErrorToast(null), 3000);
-    return () => clearTimeout(timer);
-  }, [errorToast]);
 
   useEffect(() => {
     setBottomMenuHidden(editingProfile);
@@ -184,8 +182,6 @@ export function MyPage() {
           onOpenChange={setImageSheetOpen}
           onSelect={handlePickImage}
         />
-
-        {errorToast ? <ErrorToastBar toast={errorToast} /> : null}
       </main>
     );
   }
@@ -301,23 +297,6 @@ export function MyPage() {
         variant="warning"
         onConfirm={handleWithdraw}
       />
-
-      {errorToast ? <ErrorToastBar toast={errorToast} /> : null}
     </>
-  );
-}
-
-function ErrorToastBar({ toast }: { toast: ErrorToast }) {
-  return (
-    <div
-      className="fixed inset-x-0 z-50 flex justify-center px-4"
-      style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
-    >
-      <Snackbar
-        title={toast.title}
-        description={toast.description}
-        className="w-full max-w-[343px]"
-      />
-    </div>
   );
 }

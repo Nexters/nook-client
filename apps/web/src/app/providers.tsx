@@ -4,6 +4,7 @@ import { createContext, useContext, useState } from 'react';
 import { NavermapsProvider } from 'react-naver-maps';
 import { queryClient } from '@/app/queryClient';
 import { env } from '@/shared/config/env';
+import { ToastProvider } from '@/shared/toast';
 
 /**
  * 앱 셸(아래 AppProviders 의 375~450px 모바일 뷰 래퍼) DOM 엘리먼트.
@@ -28,7 +29,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
         className="mx-auto min-h-dvh w-full overflow-hidden bg-gray-0 will-change-transform max-w-[450px]"
       >
         <QueryClientProvider client={queryClient}>
-          <NavermapsProvider ncpKeyId={env.naverMapClientId}>{children}</NavermapsProvider>
+          <NavermapsProvider ncpKeyId={env.naverMapClientId}>
+            <ToastProvider>{children}</ToastProvider>
+          </NavermapsProvider>
         </QueryClientProvider>
       </div>
     </AppShellContainerContext.Provider>

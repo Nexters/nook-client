@@ -23,6 +23,7 @@ import {
   Icon40Location,
   Icon44Error,
 } from '@/shared/icons/NookIcons';
+import { useToast } from '@/shared/toast';
 import type { BottomMenuItem, GroupColor } from '@/shared/ui';
 import {
   Avatar,
@@ -219,6 +220,7 @@ export function UiComponentsPage() {
   const [memo, setMemo] = useState('지우랑 가면 좋겠다');
   const [detailMemo, setDetailMemo] = useState('지우랑 가면 좋겠다');
   const [postMemo, setPostMemo] = useState('');
+  const { showToast } = useToast();
 
   const toggleBookmark = (id: string, next: boolean) =>
     setBookmarked((prev) => (next ? [...prev, id] : prev.filter((item) => item !== id)));
@@ -554,6 +556,41 @@ export function UiComponentsPage() {
           <div className="w-full max-w-[343px] rounded-xl bg-gray-20 p-3">
             <Snackbar title="저장했어요" />
           </div>
+        </Row>
+        <Row label="useToast() — 실제 3초 소멸·스와이프 해제·큐 동작 확인용">
+          <ButtonGroup>
+            <Button
+              size="sm"
+              onClick={() =>
+                showToast({
+                  variant: 'description',
+                  title: '위치를 찾지 못 했어요',
+                  description: '게시물은 저장됐지만 지도에는 표시되지 않아요',
+                })
+              }
+            >
+              1. description
+            </Button>
+            <Button
+              size="sm"
+              onClick={() =>
+                showToast({
+                  variant: 'action',
+                  title: '게시물 저장이 완료됐어요!',
+                  actionLabel: '보러가기',
+                  onAction: () => setLastAction('토스트 보러가기'),
+                })
+              }
+            >
+              2. action
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => showToast({ variant: 'simple', title: '지도에서 숨겼어요.' })}
+            >
+              3. simple
+            </Button>
+          </ButtonGroup>
         </Row>
       </Section>
 

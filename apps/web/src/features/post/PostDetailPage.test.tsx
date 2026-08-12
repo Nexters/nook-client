@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import type { PlaceParsingResult, PostDetail } from '@/features/post/types';
+import { ToastProvider } from '@/shared/toast';
 
 // HTTP 전송이 아니라 화면 ↔ Query ↔ feature API 배선만 검증한다.
 const mocks = vi.hoisted(() => ({
@@ -129,15 +130,17 @@ function renderRoute(initialPath: string, initialEntries = [initialPath]) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
-        <MemoryRouter initialEntries={initialEntries}>
-          <Routes>
-            <Route path="/post/:postId" element={<PostDetailPage />} />
-            <Route path="/map" element={<MapRouteProbe />} />
-            <Route path="/group/:groupId" element={<GroupRouteProbe />} />
-          </Routes>
-        </MemoryRouter>
-      </BottomMenuVisibilityProvider>
+      <ToastProvider>
+        <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
+          <MemoryRouter initialEntries={initialEntries}>
+            <Routes>
+              <Route path="/post/:postId" element={<PostDetailPage />} />
+              <Route path="/map" element={<MapRouteProbe />} />
+              <Route path="/group/:groupId" element={<GroupRouteProbe />} />
+            </Routes>
+          </MemoryRouter>
+        </BottomMenuVisibilityProvider>
+      </ToastProvider>
     </QueryClientProvider>,
   );
 }
