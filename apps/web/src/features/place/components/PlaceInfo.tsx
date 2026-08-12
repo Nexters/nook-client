@@ -1,5 +1,11 @@
 import type * as React from 'react';
-import { Icon16Clock, Icon16Location, Icon16Pen } from '@/shared/icons/NookIcons';
+import {
+  Icon16ArrowDown,
+  Icon16Clock,
+  Icon16Copy,
+  Icon16Location,
+  Icon16Pen,
+} from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { EditableTextRow } from '@/shared/ui';
 
@@ -14,6 +20,10 @@ import { EditableTextRow } from '@/shared/ui';
  */
 export interface PlaceInfoProps {
   address?: string;
+  /** 주소 앞에 `4.6km · ` 처럼 붙는 거리 표기. 현재 위치를 못 얻으면 생략된다. */
+  distance?: string;
+  /** 넘기면 주소 우측에 복사 버튼이 생긴다. 복사 성공 후 호출된다(토스트는 사용처가 띄운다). */
+  onAddressCopied?: () => void;
   /** 영업 상태 (예: "영업중") */
   businessStatus?: string;
   /** 영업 시간 (예: "11:00 - 19:30") */
@@ -33,12 +43,24 @@ function RowIcon({ children }: { children: React.ReactNode }) {
 
 function PlaceInfo({
   address,
+  distance,
+  onAddressCopied,
   businessStatus,
   businessHours,
   memo,
   onMemoChange,
   className,
 }: PlaceInfoProps) {
+  async function copyAddress() {
+    if (!address) return;
+    try {
+      await navigator.clipboard.writeText(address);
+      onAddressCopied?.();
+    } catch {
+      // 권한 거부·비보안 컨텍스트 등 복사가 막힌 경우. 실패 안내는 시안에 없어 조용히 넘긴다.
+    }
+  }
+
   return (
     <div className={cn('flex w-full flex-col gap-1', className)}>
       {address ? (
@@ -46,7 +68,19 @@ function PlaceInfo({
           <RowIcon>
             <Icon16Location />
           </RowIcon>
-          <p className="truncate text-b2 font-medium text-gray-80">{address}</p>
+          <p className="truncate text-b2 font-medium text-gray-80">
+            {distance ? `${distance} · ${address}` : address}
+          </p>
+          {onAddressCopied ? (
+            <button type="button" onClick={copyAddress} aria-label="주소 복사" className="shrink-0">
+              <Icon16Copy />
+            </button>
+          ) : null}
+          {/* 펼치면 지도 앱 링크가 나오는 자리. 시안이 확정 전이라 자리만 잡아두고
+              비활성으로 둔다(보조기기에도 노출하지 않는다). */}
+          <span aria-hidden="true" className="shrink-0 opacity-40">
+            <Icon16ArrowDown />
+          </span>
         </div>
       ) : null}
 
