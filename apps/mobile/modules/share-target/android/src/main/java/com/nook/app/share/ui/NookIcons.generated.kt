@@ -43,6 +43,7 @@ enum class NookIconName {
     Icon24Back,
     Icon24CheckOff,
     Icon24CheckOn,
+    Icon24Close,
     Icon24Delete,
     Icon24Group,
     Icon24MappinOff,
@@ -108,6 +109,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon24Back -> 24f to 24f
             NookIconName.Icon24CheckOff -> 24f to 24f
             NookIconName.Icon24CheckOn -> 24f to 24f
+            NookIconName.Icon24Close -> 24f to 24f
             NookIconName.Icon24Delete -> 24f to 24f
             NookIconName.Icon24Group -> 24f to 24f
             NookIconName.Icon24MappinOff -> 24f to 24f
@@ -2041,6 +2043,27 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
                 close()
             }
             drawPath(path = path1, color = Color(0xFFFFFFFF))
+        }
+        NookIconName.Icon24Close -> {
+            val path0 = Path().apply {
+
+                moveTo(20f, 4f)
+                lineTo(4f, 20f)
+            }
+            drawPath(path = path0, color = Color(0xFF848B96), style = Stroke(width = 1.5f, cap = StrokeCap.Butt))
+            val path1 = Path().apply {
+
+                moveTo(20f, 20f)
+                lineTo(4f, 4f)
+            }
+            drawPath(path = path1, color = Color(0xFF848B96), style = Stroke(width = 1.5f, cap = StrokeCap.Butt))
+            val path2 = Path().apply {
+
+                moveTo(20.0001f, 4f)
+                lineTo(12f, 11.9999f)
+                lineTo(20.0001f, 20f)
+            }
+            drawPath(path = path2, color = Color(0xFF848B96), style = Stroke(width = 1.5f, cap = StrokeCap.Butt))
         }
         NookIconName.Icon24Delete -> {
             drawCircle(color = Color(0xFFE4E6E9), center = Offset(12f, 12f), radius = 12f)
