@@ -24,8 +24,6 @@ import { Avatar, Button, Header, Input, Popup, Skeleton, Snackbar } from '@/shar
 
 type Dialog = 'logout' | 'withdraw' | null;
 
-const CONTACT_EMAIL = 'everynook123@gmail.com';
-
 interface ErrorToast {
   title: string;
   description: string;
@@ -245,20 +243,17 @@ export function MyPage() {
               <MyMenuRow
                 icon={<Icon16Info />}
                 label="개인정보 처리방침"
-                onClick={() => navigate('/my/privacy')}
+                onClick={() => navigate('/privacy')}
               />
               <MyMenuRow
                 icon={<Icon16Paper />}
                 label="이용약관"
-                onClick={() => navigate('/my/terms')}
+                onClick={() => navigate('/terms')}
               />
               <MyMenuRow
                 icon={<Icon16Chat />}
                 label="문의하기"
-                // 셸에서는 내비게이션 정책이 mailto 를 가로채 메일 앱으로 넘긴다.
-                onClick={() => {
-                  window.location.href = `mailto:${CONTACT_EMAIL}`;
-                }}
+                onClick={() => navigate('/support')}
               />
             </MyMenuSection>
           </div>

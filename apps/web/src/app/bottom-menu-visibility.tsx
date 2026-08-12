@@ -30,11 +30,15 @@ export function useBottomMenuVisibility() {
   return context;
 }
 
-/** 마운트되어 있는 동안 하단 탭바를 숨긴다 (탭 밖의 전체화면 상세/폼 라우트용). */
+/**
+ * 마운트되어 있는 동안 하단 탭바를 숨긴다 (탭 밖의 전체화면 상세/폼 라우트용).
+ * 약관처럼 로그인 밖 라우트에도 쓰이므로, 탭바 자체가 없으면 아무것도 하지 않는다.
+ */
 export function useHideBottomMenu() {
-  const { setHidden } = useBottomMenuVisibility();
+  const setHidden = useContext(BottomMenuVisibilityContext)?.setHidden;
 
   useEffect(() => {
+    if (!setHidden) return;
     setHidden(true);
     return () => setHidden(false);
   }, [setHidden]);

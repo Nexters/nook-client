@@ -16,8 +16,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const appId = nativePublicConfig.appIds[variant];
   const sessionAccessGroup = `$(AppIdentifierPrefix)group.${appId}`;
 
+  // 기본값은 SSOT 에서 오고, env 는 로컬 개발용 오버라이드로만 쓴다
+  // (실기기에서 vite preview 를 LAN IP 로 띄우는 경우 등).
+  const webUrl = process.env.EXPO_PUBLIC_WEB_URL ?? nativePublicConfig.webUrl[variant];
+  const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? nativePublicConfig.apiBaseUrl[variant];
+
   return {
     ...config,
+    // JS 는 process.env 대신 여기서 읽는다. 네이티브(Info.plist)와 같은 출처를 보게 하려는 것.
+    extra: {
+      ...config.extra,
+      webUrl,
+      apiBaseUrl,
+    },
     name: variant === 'production' ? 'nook' : `nook (${variant})`,
     slug: 'nook',
     // Share Extension 은 본앱 식별자를 스킴으로 사용해 본앱을 연다.
@@ -66,7 +77,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         NSLocationWhenInUseUsageDescription:
           '내 주변 장소를 지도에 표시하기 위해 위치 정보를 사용해요.',
         NookSessionAccessGroup: sessionAccessGroup,
-        NookApiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? '',
+        NookApiBaseUrl: apiBaseUrl,
         NookAppGroup: `group.${appId}`,
       },
       entitlements: {
@@ -85,6 +96,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         'android.permission.ACCESS_FINE_LOCATION',
         'android.permission.ACCESS_COARSE_LOCATION',
       ],
+      // expo-image-picker 가 동영상용으로 넣지만 사진만 쓰므로 뺀다.
+      blockedPermissions: ['android.permission.RECORD_AUDIO'],
     },
   };
 };

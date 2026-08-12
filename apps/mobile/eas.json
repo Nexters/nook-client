@@ -7,9 +7,7 @@
     "base": {
       "node": "22.18.0",
       "env": {
-        "APPLE_TEAM_ID": "TDTGJZTB57",
-        "EXPO_PUBLIC_WEB_URL": "https://www.everynook.co.kr",
-        "EXPO_PUBLIC_API_BASE_URL": "https://api-dev.everynook.co.kr/api/v1"
+        "APPLE_TEAM_ID": "TDTGJZTB57"
       }
     },
     "development": {
