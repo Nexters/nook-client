@@ -31,8 +31,8 @@ const thumbnailVariants = cva(
   },
 );
 
-/** src 가 없을 때 lg 썸네일을 채우는 기본 도형. */
-const EMPTY_IMAGE_LG = emptyThumbnailLg;
+/** src 가 없을 때 썸네일을 채우는 기본 도형 — 모든 크기가 같은 고스트를 쓴다. */
+const EMPTY_IMAGE = emptyThumbnailLg;
 
 export interface ThumbnailProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'>,
@@ -57,7 +57,7 @@ function Thumbnail({
   className,
   ...props
 }: ThumbnailProps) {
-  const resolvedSrc = src ?? (size === 'sm' ? undefined : EMPTY_IMAGE_LG);
+  const resolvedSrc = src ?? EMPTY_IMAGE;
 
   return (
     <div data-slot="thumbnail" className={cn(thumbnailVariants({ size }), className)} {...props}>

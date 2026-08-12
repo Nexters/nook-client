@@ -60,7 +60,8 @@ function toPlace(parsed: ParsedPlace): Place {
     name: parsed.name,
     category: parsed.category ?? '',
     address: parsed.address,
-    thumbnail: parsed.thumbnail,
+    // 썸네일 파싱이 끝나기 전(진행 중·실패)에는 빈 썸네일(플레이스홀더)로 보여준다.
+    thumbnail: parsed.thumbnailParsingStatus === 'COMPLETED' ? parsed.thumbnail : undefined,
   };
 }
 
@@ -75,8 +76,20 @@ export function useRelatedPlaces(postId: number | undefined): RelatedPlacesState
     queryFn: () => fetchPlaceParsing(postId as number),
     enabled: postId !== undefined,
     refetchInterval: (current) => {
-      const status = current.state.data?.placeParsingStatus;
-      return status === 'PENDING' || status === 'PROCESSING' ? POLL_INTERVAL_MS : false;
+      const result = current.state.data;
+      if (!result) return false;
+      const parsingPlaces =
+        result.placeParsingStatus === 'PENDING' || result.placeParsingStatus === 'PROCESSING';
+      // 장소 파싱이 끝나도 장소별 썸네일은 비동기로 계속 파싱된다 — 미완인 장소가
+      // 남아 있으면 폴링을 이어가 완성되는 대로 이미지를 반영한다(FAILED 는 종료 상태).
+      const parsingThumbnails =
+        result.placeParsingStatus === 'COMPLETED' &&
+        result.places.some(
+          (place) =>
+            place.thumbnailParsingStatus === 'PENDING' ||
+            place.thumbnailParsingStatus === 'PROCESSING',
+        );
+      return parsingPlaces || parsingThumbnails ? POLL_INTERVAL_MS : false;
     },
   });
 

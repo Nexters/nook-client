@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
+import emptyThumbnail from '@/assets/images/98_Group.svg';
 import type { PlaceParsingResult, PostDetail } from '@/features/post/types';
 import { ToastProvider } from '@/shared/toast';
 
@@ -80,6 +81,7 @@ const PLACES: PlaceParsingResult['places'] = [
     phoneNumber: null,
     // 시안: 앞의 두 장소만 파란 북마크(저장됨)
     bookmarked: true,
+    thumbnailParsingStatus: 'COMPLETED',
   },
   {
     id: 102,
@@ -92,6 +94,7 @@ const PLACES: PlaceParsingResult['places'] = [
     category: '카페',
     phoneNumber: null,
     bookmarked: true,
+    thumbnailParsingStatus: 'COMPLETED',
   },
   {
     id: 103,
@@ -104,6 +107,7 @@ const PLACES: PlaceParsingResult['places'] = [
     category: '카페',
     phoneNumber: null,
     bookmarked: false,
+    thumbnailParsingStatus: 'COMPLETED',
   },
 ];
 
@@ -229,7 +233,7 @@ describe('게시물 상세', () => {
     mocks.fetchPostDetail.mockRejectedValue(new Error('404'));
     renderRoute('/post/999');
 
-    await waitFor(() => expect(screen.getByText('게시물을 찾을 수 없어요')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('게시물을 불러오지 못했어요')).toBeInTheDocument());
   });
 
   it('공유하기로 진입하면 뒤로가기 시 첫 번째 연관 장소가 선택된 지도로 이동한다', async () => {
@@ -290,6 +294,65 @@ describe('게시물 상세', () => {
     expect(screen.getByRole('heading', { name: '지금 가기 좋은 초록뷰 카페' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '연관 장소' })).toBeInTheDocument();
     expect(screen.getByText('아이소')).toBeInTheDocument();
+  });
+
+  it('썸네일 파싱이 끝나기 전에는 고스트를 보여주고, 완성되면 폴링으로 반영한 뒤 멈춘다', async () => {
+    // 파싱 중엔 thumbnail 이 미리 내려와도 무시해야 한다 — 첫 응답에 일부러 넣어둔다.
+    const parsingPlace = {
+      ...PLACES[0],
+      thumbnail: 'too-early.png',
+      thumbnailParsingStatus: 'PROCESSING' as const,
+    };
+    const completedPlace = {
+      ...PLACES[0],
+      thumbnail: 'thumb-101.png',
+      thumbnailParsingStatus: 'COMPLETED' as const,
+    };
+    mocks.fetchPlaceParsing
+      .mockResolvedValueOnce({ ...PLACE_PARSING[1], places: [parsingPlace] })
+      .mockResolvedValue({ ...PLACE_PARSING[1], places: [completedPlace] });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    try {
+      await renderPost(1);
+
+      const row = screen.getByRole('button', { name: /아이소 카페/ });
+      expect(row.querySelector('img')?.getAttribute('src')).toBe(emptyThumbnail);
+
+      // 3초 폴링 주기(features/post/api/queries.ts POLL_INTERVAL_MS)로 재조회해 반영한다.
+      await vi.advanceTimersByTimeAsync(3000);
+      await waitFor(() =>
+        expect(row.querySelector('img')?.getAttribute('src')).toBe('thumb-101.png'),
+      );
+
+      // 모든 썸네일이 종료 상태면 폴링을 멈춘다.
+      const settledCalls = mocks.fetchPlaceParsing.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(9000);
+      expect(mocks.fetchPlaceParsing.mock.calls.length).toBe(settledCalls);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('썸네일 파싱이 실패한 장소는 고스트로 남기고 폴링하지 않는다', async () => {
+    mocks.fetchPlaceParsing.mockResolvedValue({
+      ...PLACE_PARSING[1],
+      places: [{ ...PLACES[0], thumbnailParsingStatus: 'FAILED' as const }],
+    });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    try {
+      await renderPost(1);
+
+      const row = screen.getByRole('button', { name: /아이소 카페/ });
+      expect(row.querySelector('img')?.getAttribute('src')).toBe(emptyThumbnail);
+
+      const settledCalls = mocks.fetchPlaceParsing.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(9000);
+      expect(mocks.fetchPlaceParsing.mock.calls.length).toBe(settledCalls);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('매칭된 장소가 없으면 섹션은 보이되 목록도 직접 추가 배너도 없다', async () => {

@@ -54,6 +54,12 @@ export interface PostDetail {
 /** 게시물 장소 파싱 상태. `PENDING`/`PROCESSING` 동안 폴링한다. */
 export type PlaceParsingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
+/**
+ * 장소 썸네일 파싱 상태. 장소 파싱이 끝난 뒤에도 장소별로 비동기로 돈다 —
+ * `PENDING`/`PROCESSING` 인 장소가 남아 있으면 폴링을 이어간다.
+ */
+export type ThumbnailParsingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
 /** 파싱된 장소 하나 — 서버 `PlaceResponse` 를 그대로 옮긴 형태(변환 불필요). */
 export interface ParsedPlace {
   id: number;
@@ -66,8 +72,9 @@ export interface ParsedPlace {
   category?: string;
   phoneNumber: string | null;
   bookmarked: boolean;
-  /** 장소 대표 썸네일. 없을 수 있다. */
+  /** 장소 대표 썸네일. `COMPLETED` 전에는 비어 있을 수 있다. */
   thumbnail?: string;
+  thumbnailParsingStatus: ThumbnailParsingStatus;
 }
 
 export interface PlaceParsingResult {
