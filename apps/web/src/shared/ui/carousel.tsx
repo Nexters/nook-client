@@ -28,6 +28,11 @@ export interface CarouselProps extends React.HTMLAttributes<HTMLDivElement> {
    * 확대뷰를 여는 것처럼 "몇 번째부터 시작할지"를 사용처가 정하는 경우에만 쓴다.
    */
   initialIndex?: number;
+  /**
+   * 현재 슬라이드가 바뀔 때 호출된다. 캐러셀 밖에 고정해 둔 표시(사진 카운터 `2/6` 등)를
+   * 따라오게 할 때 쓴다 — 그런 표시는 슬라이드와 함께 넘어가면 안 되므로 인덱스만 빌려준다.
+   */
+  onActiveIndexChange?: (index: number) => void;
 }
 
 function Carousel({
@@ -36,6 +41,7 @@ function Carousel({
   indicator = true,
   padded = true,
   initialIndex = 0,
+  onActiveIndexChange,
   className,
   ...props
 }: CarouselProps) {
@@ -59,8 +65,12 @@ function Carousel({
     // 슬라이드 폭이 모두 같다는 전제(시안 240px 고정). 한 칸 = 폭 + gap.
     const step = first.offsetWidth + gap;
     if (step <= 0) return;
-    const next = Math.round(scroller.scrollLeft / step);
-    setActive(Math.min(Math.max(next, 0), count - 1));
+    // 스크롤 이벤트는 한 칸을 넘기는 동안에도 수십 번 오지만 인덱스는 스냅 단위로만
+    // 바뀐다 — 실제로 달라졌을 때만 상태를 건드리고 밖에 알린다.
+    const next = Math.min(Math.max(Math.round(scroller.scrollLeft / step), 0), count - 1);
+    if (next === active) return;
+    setActive(next);
+    onActiveIndexChange?.(next);
   };
 
   return (

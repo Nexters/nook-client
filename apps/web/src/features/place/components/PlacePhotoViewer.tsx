@@ -22,6 +22,8 @@ export interface PlacePhotoViewerProps {
 function PlacePhotoViewer({ title, photos, onClose }: PlacePhotoViewerProps) {
   // null 이면 그리드, 숫자면 그 인덱스에서 시작하는 확대뷰.
   const [zoomedIndex, setZoomedIndex] = useState<number | null>(null);
+  // 확대뷰에서 지금 보고 있는 사진. 시작 위치는 그리드에서 누른 칸이고, 이후엔 캐러셀이 알려준다.
+  const [active, setActive] = useState(0);
 
   // body 로 포탈한다 — 이 뷰어를 여는 장소 상세는 vaul 드로어 안에 있고, 드로어는 스냅을
   // transform 으로 움직인다. transform 이 걸린 조상은 fixed 의 기준 박스가 되어버려서
@@ -59,7 +61,10 @@ function PlacePhotoViewer({ title, photos, onClose }: PlacePhotoViewerProps) {
               // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
               key={index}
               type="button"
-              onClick={() => setZoomedIndex(index)}
+              onClick={() => {
+                setZoomedIndex(index);
+                setActive(index);
+              }}
               aria-label={`${index + 1}번째 사진 크게 보기`}
             >
               <Thumbnail src={src} alt="" className="aspect-[167/208] h-auto w-full" />
@@ -68,23 +73,30 @@ function PlacePhotoViewer({ title, photos, onClose }: PlacePhotoViewerProps) {
         </div>
       ) : (
         <div className="flex flex-1 items-center">
-          {/* 슬라이드가 화면 폭과 같아 스냅의 좌측 여백을 없앤다. */}
-          <Carousel padded={false} gap={0} initialIndex={zoomedIndex} className="w-full">
-            {photos.map((src, index) => (
-              <div
+          {/* 사진 태그의 기준 박스 — 이 래퍼 높이가 곧 사진 높이라 태그가 사진 우상단에 앉는다
+              (flex-1 영역 기준으로 잡으면 세로 가운데 정렬된 사진보다 훨씬 위로 뜬다). */}
+          <div className="relative w-full">
+            {/* 슬라이드가 화면 폭과 같아 스냅의 좌측 여백을 없앤다. */}
+            <Carousel
+              padded={false}
+              gap={0}
+              initialIndex={zoomedIndex}
+              onActiveIndexChange={setActive}
+            >
+              {photos.map((src, index) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
-                key={index}
-                className="relative w-full"
-              >
-                <img src={src} alt="" className="aspect-[375/495] w-full object-cover" />
-                {photos.length > 1 ? (
-                  <Badge variant="photo" className="absolute top-2.5 right-2.5">
-                    {index + 1}/{photos.length}
-                  </Badge>
-                ) : null}
-              </div>
-            ))}
-          </Carousel>
+                <div key={index} className="w-full">
+                  <img src={src} alt="" className="aspect-[375/495] w-full object-cover" />
+                </div>
+              ))}
+            </Carousel>
+            {/* 넘겨도 제자리에 머문다 — 사진이 아니라 "6장 중 몇 번째"라는 캐러셀의 상태다. */}
+            {photos.length > 1 ? (
+              <Badge variant="photo" className="absolute top-2.5 right-2.5">
+                {active + 1}/{photos.length}
+              </Badge>
+            ) : null}
+          </div>
         </div>
       )}
     </div>,
