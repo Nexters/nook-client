@@ -19,7 +19,7 @@ export function PostParsingView({ percent }: { percent: number }) {
               <Lottie animationData={loadingAnimation} className="relative size-[100px]" />
             </div>
             <p className="relative pt-3 text-b2 font-semibold text-gray-100">
-              장소 불러오는 중...{percent}%
+              장소 불러오는 중...{Math.round(percent)}%
             </p>
             <div className="relative pt-3 text-center text-b3 font-medium text-gray-60">
               <p>화면을 나가도 저장은 계속될 거예요.</p>

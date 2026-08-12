@@ -158,9 +158,9 @@ export function PostDetailPage() {
       <main className="min-h-dvh bg-gray-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="relative">
           <Header left={<BackButton onClick={handleBack} />} />
-          {postDetailState.status === 'processing' ? <GoHomeTooltip /> : null}
+          {isProcessing ? <GoHomeTooltip /> : null}
         </div>
-        {postDetailState.status === 'processing' ? (
+        {isProcessing ? (
           <PostParsingView percent={postDetailState.percent} />
         ) : postDetailState.status === 'loading' ? (
           <PostDetailLoadingView />

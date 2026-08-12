@@ -179,6 +179,9 @@ describe('게시물 상세', () => {
     renderRoute('/post/1');
 
     expect(screen.getByRole('status', { name: '게시물 불러오는 중' })).toBeInTheDocument();
+    // 첫 조회 로딩엔 파싱 화면 요소(진행률·툴팁)가 없어야 한다.
+    expect(screen.queryByText(/장소 불러오는 중/)).not.toBeInTheDocument();
+    expect(screen.queryByText('홈으로 가기')).not.toBeInTheDocument();
 
     await waitFor(() =>
       expect(screen.queryByRole('status', { name: '게시물 불러오는 중' })).not.toBeInTheDocument(),
