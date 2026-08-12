@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, Linking, Platform } from 'react-native';
 import type { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { runSocialLogin } from '../auth/socialLogin';
+import { WEB_URL } from '../config/appConfig';
 import { runImagePick } from '../media/imagePicker';
 import {
   clearSession,
@@ -17,11 +18,6 @@ import {
   isTrustedUrl,
   resolveHttpOrigin,
 } from '../webview/navigationPolicy';
-
-const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL;
-if (!WEB_URL) {
-  throw new Error('EXPO_PUBLIC_WEB_URL 미설정');
-}
 
 const WEB_ORIGIN = resolveHttpOrigin(WEB_URL);
 const INJECT_BEFORE = `window.__nookPlatform = ${JSON.stringify(Platform.OS)}; true;`;

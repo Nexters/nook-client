@@ -1,6 +1,5 @@
 import NookSession, { type StoredSession } from '../../modules/session/src';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+import { API_BASE_URL } from '../config/appConfig';
 
 interface ApiEnvelope<T> {
   resultType: string;
@@ -48,8 +47,6 @@ async function performRefresh(failedRevision: number): Promise<StoredSession | n
     await clearSession();
     return null;
   }
-  if (!API_BASE_URL) throw new Error('EXPO_PUBLIC_API_BASE_URL 미설정');
-
   const refreshGeneration = generation;
   // API_BASE_URL 은 웹과 같이 /api/v1 까지 포함한다. 절대 경로로 넘기면 그 경로가 버려진다.
   const response = await fetch(`${API_BASE_URL.replace(/\/$/, '')}/auth/token/refresh`, {

@@ -3,6 +3,14 @@
     "development": "kr.co.everynook.app.dev",
     "production": "kr.co.everynook.app"
   },
+  "webUrl": {
+    "development": "https://www.everynook.co.kr",
+    "production": "https://www.everynook.co.kr"
+  },
+  "apiBaseUrl": {
+    "development": "https://api-dev.everynook.co.kr/api/v1",
+    "production": "https://api-dev.everynook.co.kr/api/v1"
+  },
   "kakao": {
     "nativeAppKey": "3d8ac946554c24f1d1a2108e95527bde"
   },
