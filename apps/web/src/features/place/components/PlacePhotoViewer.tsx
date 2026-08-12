@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon24Back, Icon24Delete } from '@/shared/icons/NookIcons';
+import { Icon24Back, Icon24Close } from '@/shared/icons/NookIcons';
 import { Badge, Carousel, Header, Thumbnail } from '@/shared/ui';
 
 /**
@@ -47,7 +47,7 @@ function PlacePhotoViewer({ title, photos, onClose }: PlacePhotoViewerProps) {
         title={title}
         right={
           <button type="button" onClick={onClose} aria-label="닫기">
-            <Icon24Delete />
+            <Icon24Close />
           </button>
         }
       />
