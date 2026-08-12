@@ -17,6 +17,7 @@ import {
 import { MemoSheet } from './components/MemoSheet';
 import { OriginalPostLink } from './components/OriginalPostLink';
 import { PlaceDirectInputDrawer } from './components/PlaceDirectInputDrawer';
+import { PostDetailErrorView } from './components/PostDetailErrorView';
 import { PostDetailLoadingView } from './components/PostDetailLoadingView';
 import { PostImages } from './components/PostImages';
 import { PostImageViewer } from './components/PostImageViewer';
@@ -158,7 +159,10 @@ export function PostDetailPage() {
 
   if (postDetailState.status !== 'success') {
     return (
-      <main className="min-h-dvh bg-gray-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <main
+        className="flex min-h-dvh flex-col bg-gray-0"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <div className="relative">
           <Header left={<BackButton onClick={handleBack} />} />
           {isProcessing ? <GoHomeTooltip /> : null}
@@ -168,9 +172,7 @@ export function PostDetailPage() {
         ) : postDetailState.status === 'loading' ? (
           <PostDetailLoadingView />
         ) : (
-          <p className="px-4 pt-20 text-center text-b2 font-medium text-gray-60">
-            게시물을 찾을 수 없어요
-          </p>
+          <PostDetailErrorView />
         )}
       </main>
     );

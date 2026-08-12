@@ -233,7 +233,7 @@ describe('게시물 상세', () => {
     mocks.fetchPostDetail.mockRejectedValue(new Error('404'));
     renderRoute('/post/999');
 
-    await waitFor(() => expect(screen.getByText('게시물을 찾을 수 없어요')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('게시물을 불러오지 못했어요')).toBeInTheDocument());
   });
 
   it('공유하기로 진입하면 뒤로가기 시 첫 번째 연관 장소가 선택된 지도로 이동한다', async () => {
