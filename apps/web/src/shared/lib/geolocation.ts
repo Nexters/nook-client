@@ -8,6 +8,37 @@ export type Coordinates = { lat: number; lng: number };
  * `geolocationEnabled` prop, iOS: WKWebView 가 Info.plist 권한 설명을 보고 자체
  * 처리) — 네이티브 브리지 메시지 없이 웹 표준 API 만으로 동작한다.
  */
+const EARTH_RADIUS_KM = 6371;
+
+function toRadians(degrees: number): number {
+  return (degrees * Math.PI) / 180;
+}
+
+/** 두 좌표 사이 직선 거리(km). Haversine 공식. */
+function distanceKm(a: Coordinates, b: Coordinates): number {
+  const dLat = toRadians(b.lat - a.lat);
+  const dLng = toRadians(b.lng - a.lng);
+  const lat1 = toRadians(a.lat);
+  const lat2 = toRadians(b.lat);
+
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h));
+}
+
+/** 두 좌표 사이 직선 거리(km, 소수 1자리). */
+export function getDistanceKm(a: Coordinates, b: Coordinates): number {
+  return Math.round(distanceKm(a, b) * 10) / 10;
+}
+
+/**
+ * 장소 상세에 붙는 거리 표기(시안 `4.6km`·`400m`).
+ * 1km 미만은 m 단위로 보여준다 — 미터로 먼저 반올림해야 999.6m 가 `1000m` 로 새지 않는다.
+ */
+export function formatDistance(a: Coordinates, b: Coordinates): string {
+  const meters = Math.round(distanceKm(a, b) * 1000);
+  return meters < 1000 ? `${meters}m` : `${Math.round(meters / 100) / 10}km`;
+}
+
 export function getCurrentPosition(): Promise<Coordinates | null> {
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
