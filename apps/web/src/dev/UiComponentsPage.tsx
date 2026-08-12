@@ -4,7 +4,14 @@ import type { Group } from '@/features/group';
 import { CollectionCard, GroupCard, GroupCreateRow, GroupSelectRow } from '@/features/group';
 import { MyMenuRow, MyMenuSection } from '@/features/my';
 import type { Place } from '@/features/place';
-import { PlaceCard, PlaceDetailHeader, PlaceInfo, PlaceRow } from '@/features/place';
+import {
+  PlaceCard,
+  PlaceDetailHeader,
+  PlaceInfo,
+  PlacePhotos,
+  PlacePhotoViewer,
+  PlaceRow,
+} from '@/features/place';
 import type { Post } from '@/features/post';
 import { OriginalPostLink, PostInfo, SavedPostCard, SavedPostContext } from '@/features/post';
 import {
@@ -103,6 +110,14 @@ const SAMPLE_IMAGE =
        <rect width="120" height="120" fill="url(#g)"/>
      </svg>`,
   );
+
+/** 사진 태그(`n/6`)와 캐러셀을 확인하려면 여러 장이 필요하다 — 색만 다른 같은 도형. */
+const SAMPLE_PHOTOS = ['#38c8c4', '#a58af2', '#f2a58a', '#8af2a5', '#f28ac8', '#c8f28a'].map(
+  (color) =>
+    `data:image/svg+xml;utf8,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="343" height="212"><rect width="343" height="212" fill="${color}"/></svg>`,
+    )}`,
+);
 
 // 도메인 컴포넌트 확인용 mock. 실제 API/store 는 연결하지 않는다(룰 §3 도메인 섹션).
 const MOCK_GROUP_FILLED: Group = {
@@ -225,6 +240,7 @@ export function UiComponentsPage() {
   const toggleBookmark = (id: string, next: boolean) =>
     setBookmarked((prev) => (next ? [...prev, id] : prev.filter((item) => item !== id)));
   const [emptyMemo, setEmptyMemo] = useState('');
+  const [photosOpen, setPhotosOpen] = useState(false);
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-8 pb-24">
@@ -645,6 +661,11 @@ export function UiComponentsPage() {
           <Badge variant="keyword">뷰 맛집</Badge>
           <Badge variant="keyword">작업하기 좋은</Badge>
         </Row>
+        <Row label="photo — 사진 태그 (SUIT 12 Medium, gray-0 / gray-100 80%)">
+          <div className="flex size-24 items-end justify-end bg-gray-40 p-2">
+            <Badge variant="photo">1/6</Badge>
+          </div>
+        </Row>
       </Section>
 
       <Section title="Thumbnail">
@@ -669,10 +690,11 @@ export function UiComponentsPage() {
       <Section title="Carousel (캐러셀)">
         <p className="text-b3 text-gray-50">
           네이티브 scroll-snap 입니다. 가로로 밀면 스냅되고 하단 점이 따라옵니다. 슬라이드 크기는
-          사용처가 정합니다 — 아래는 시안 기준 240x300.
+          사용처가 정합니다 — 아래는 시안 기준 240x300. `initialIndex` 로 시작 위치를 정할 수
+          있어(아래는 3번째부터) 그리드에서 고른 사진으로 확대뷰를 여는 데 쓴다.
         </p>
         <div className="mx-auto w-full max-w-[375px] rounded-lg border border-gray-20">
-          <Carousel>
+          <Carousel initialIndex={2}>
             {[0, 1, 2, 3].map((index) => (
               <div
                 key={index}
@@ -762,8 +784,11 @@ export function UiComponentsPage() {
       <Section title="place — PlaceInfo (장소 info)">
         <div className="mx-auto flex w-full max-w-[343px] flex-col gap-6">
           {/* 메모 O — 수정 누르면 그 자리에서 편집, Enter/바깥클릭 저장, Esc 취소 */}
+          {/* 거리 prefix + 주소 복사 버튼(onAddressCopied 를 넘겼을 때만 생긴다) */}
           <PlaceInfo
             address="서울 성동구 서울숲7길 9 4층"
+            distance="4.6km"
+            onAddressCopied={() => setLastAction('주소 복사됨')}
             businessStatus="영업중"
             businessHours="11:00 - 19:30"
             memo={memo}
@@ -787,6 +812,27 @@ export function UiComponentsPage() {
           {/* onMemoChange 없음 → 읽기 전용 */}
           <PlaceInfo memo="주소와 영업시간이 없으면 그 줄은 통째로 빠집니다" />
         </div>
+      </Section>
+
+      <Section title="place — PlacePhotos (장소 사진)">
+        <p className="text-b3 text-gray-50">
+          대표 썸네일 + photoUrls. 여러 장일 때만 우상단에 `2/6` 사진 태그가 붙고, 프레임(212px)을
+          넘는 사진은 잘려 보입니다. 누르면 전체보기(2열 그리드 → 확대뷰)가 열립니다.
+        </p>
+        <div className="mx-auto flex w-full max-w-[343px] flex-col gap-6">
+          <PlacePhotos photos={SAMPLE_PHOTOS} onPhotoClick={() => setPhotosOpen(true)} />
+          {/* 1장이면 캐러셀도 사진 태그도 없다 */}
+          <PlacePhotos photos={[SAMPLE_IMAGE]} />
+          {/* 사진이 없으면 같은 크기의 빈 프레임 */}
+          <PlacePhotos photos={[]} />
+        </div>
+        {photosOpen ? (
+          <PlacePhotoViewer
+            title="퍼머넌트해비탯"
+            photos={SAMPLE_PHOTOS}
+            onClose={() => setPhotosOpen(false)}
+          />
+        ) : null}
       </Section>
 
       <Section title="place — PlaceCard (장소 카드)">
