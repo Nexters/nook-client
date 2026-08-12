@@ -1,3 +1,4 @@
+import type { PlaceOpeningHoursResponse } from '@/shared/api';
 import type { GroupColor } from '@/shared/ui';
 
 /** 지도 뷰포트 경계 — `GetMapPlacesParams`(북쪽/남쪽/동쪽/서쪽 위경도)에 대응한다. */
@@ -52,5 +53,15 @@ export interface PlaceDetail {
   bookmarked: boolean;
   /** 장소 대표 썸네일. 없으면 회색 플레이스홀더로 렌더된다. */
   thumbnail?: string;
+  /**
+   * 캐러셀에 보여줄 사진 — 대표 썸네일 + `photoUrls`(최대 5장) 순서. 총 최대 6장.
+   * 썸네일뿐이면(=`photoUrls` 가 비었으면) 1장짜리 배열이라 사진 태그가 붙지 않는다.
+   */
+  photos: string[];
+  /** AI 요약 태그. 서버가 준 만큼 그대로 보여준다. */
+  tags: string[];
+  /** 현재 영업 여부. 서버가 판단해 내려준다(모르면 undefined). */
+  openNow?: boolean;
+  openingHours?: PlaceOpeningHoursResponse;
   posts: PlaceDetailPost[];
 }

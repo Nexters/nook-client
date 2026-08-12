@@ -95,6 +95,14 @@ export async function fetchPlaceDetail(placeId: number): Promise<PlaceDetail> {
     lng: response.longitude,
     bookmarked: response.bookmarked,
     thumbnail: response.thumbnailUrl ?? undefined,
+    // 대표 썸네일이 첫 장이고 그 뒤로 photoUrls 가 붙는다. 썸네일이 photoUrls 에도
+    // 들어 있으면 같은 사진이 두 번 나오므로 중복을 걷어낸다.
+    photos: [...new Set([response.thumbnailUrl, ...(response.photoUrls ?? [])])].filter(
+      (url): url is string => Boolean(url),
+    ),
+    tags: response.tags ?? [],
+    openNow: response.openNow ?? undefined,
+    openingHours: response.openingHours ?? undefined,
     posts: (response.posts?.items ?? []).map(toPlaceDetailPost),
   };
 }

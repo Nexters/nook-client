@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { useAppShellContainer } from '@/app/providers';
 import emptySavedPlacesIllustration from '@/assets/illustrations/empty-saved-places.svg';
+import { PlaceActions } from '@/features/map/components/PlaceActions';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { getPlaceSheetLayoutClassNames } from '@/features/map/components/place-sheet-layout';
 import {
@@ -12,8 +13,10 @@ import {
 } from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
+import { Icon16ArrowDown, Icon24Back } from '@/shared/icons/NookIcons';
+import type { Coordinates } from '@/shared/lib/geolocation';
 import { cn } from '@/shared/lib/utils';
-import { Drawer, DrawerContent } from '@/shared/ui';
+import { Drawer, DrawerContent, FloatingButton, Header } from '@/shared/ui';
 
 /** 이 값을 넘겨 스크롤된 것으로 판단한다(0 근처의 미세한 바운스/오차 무시). */
 const SCROLL_HIDE_HANDLE_THRESHOLD = 4;
@@ -33,8 +36,10 @@ export function PlaceSheet({
   isPlaceDetailPending,
   isPlaceDetailError,
   snap,
+  userCoords,
   onSnapChange,
   onSelectPlace,
+  onClose,
 }: {
   recentPlaces: RecentPlace[];
   selectedPlace: PlaceDetailModel | null;
@@ -42,8 +47,11 @@ export function PlaceSheet({
   isPlaceDetailPending: boolean;
   isPlaceDetailError: boolean;
   snap: number | string | null;
+  /** 현재 위치 — 장소까지의 거리 표기에 쓴다. 없으면 거리를 보여주지 않는다. */
+  userCoords?: Coordinates | null;
   onSnapChange: (snap: number | string | null) => void;
   onSelectPlace: (id: number) => void;
+  onClose: () => void;
 }) {
   const shellContainer = useAppShellContainer();
   // BottomMenu 를 숨기는 조건은 MapPage(선택된 장소 유무)가 정하고, 여기선 그 결과값만
@@ -57,7 +65,10 @@ export function PlaceSheet({
   // 94:4075·94:4165, 상세: full). 그 아래 스냅에서는 시트 안 어디를 잡아도 드래그가
   // 드로어 이동으로만 동작해야 하므로(제스처 주인은 상태마다 하나) overflow 를 잠근다.
   const canScroll = hasSelection ? isFull : snap === MID_SNAP_POINT || isFull;
-  const layoutClassNames = getPlaceSheetLayoutClassNames(bottomMenuHidden, snap);
+  // 스크롤을 내리면 드래그핸들 대신 고정 헤더가 뜬다(Figma `스크롤시 헤더 변경`).
+  // 맨 위로 되돌아오면 다시 핸들로 바뀐다.
+  const showStickyHeader = isFull && isScrolled && selectedPlace !== null;
+  const layoutClassNames = getPlaceSheetLayoutClassNames(bottomMenuHidden, snap, showStickyHeader);
 
   // 스크롤이 "불가 → 가능"으로 바뀌는 순간과 보는 장소가 바뀔 때만 맨 위로 되돌린다.
   // isFull 이 아니라 canScroll 을 트리거로 쓰는 이유: 탐색 모드 mid ↔ full 은 둘 다
@@ -84,6 +95,28 @@ export function PlaceSheet({
         style={layoutClassNames.drawer.style}
         className={cn('overflow-hidden', layoutClassNames.drawer.className)}
       >
+        {showStickyHeader && selectedPlace ? (
+          <Header
+            size="bottom"
+            // 시안은 뒤로가기 바로 옆에 제목이 붙는 좌측 정렬이라 기본 justify-between 을 덮는다.
+            className="shrink-0 justify-start gap-2"
+            left={
+              <button type="button" onClick={onClose} aria-label="뒤로">
+                <Icon24Back />
+              </button>
+            }
+            title={selectedPlace.name}
+            right={
+              <PlaceActions
+                size="sm"
+                className="ml-auto"
+                placeId={selectedPlace.id}
+                bookmarked={selectedPlace.bookmarked}
+                onClose={onClose}
+              />
+            }
+          />
+        ) : null}
         <div
           ref={scrollRef}
           onScroll={(e) => {
@@ -105,6 +138,8 @@ export function PlaceSheet({
                 key={selectedPlace.id}
                 place={selectedPlace}
                 expanded={isFull}
+                userCoords={userCoords}
+                onClose={onClose}
                 onSelectPlace={onSelectPlace}
               />
             ) : // isPlaceDetailPending — 아직 상세 응답 전이라 아무것도 그리지 않는다
@@ -134,6 +169,20 @@ export function PlaceSheet({
             </>
           )}
         </div>
+
+        {/* 스크롤을 내린 동안만 뜨는 "위로가기"(Figma `Button/48_up`). */}
+        {showStickyHeader ? (
+          <FloatingButton
+            floating={false}
+            size="lg"
+            tone="light"
+            aria-label="맨 위로"
+            onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="-translate-x-1/2 absolute bottom-[calc(2.5rem+env(safe-area-inset-bottom))] left-1/2 shadow-lg"
+          >
+            <Icon16ArrowDown className="rotate-180" />
+          </FloatingButton>
+        ) : null}
       </DrawerContent>
     </Drawer>
   );

@@ -34,6 +34,7 @@ enum NookIconName {
     case icon24Back
     case icon24CheckOff
     case icon24CheckOn
+    case icon24Close
     case icon24Delete
     case icon24Group
     case icon24MappinOff
@@ -128,6 +129,8 @@ enum NookIconName {
         case .icon24CheckOff:
             return (CGSize(width: 24, height: 24), CGSize(width: 24, height: 24))
         case .icon24CheckOn:
+            return (CGSize(width: 24, height: 24), CGSize(width: 24, height: 24))
+        case .icon24Close:
             return (CGSize(width: 24, height: 24), CGSize(width: 24, height: 24))
         case .icon24Delete:
             return (CGSize(width: 24, height: 24), CGSize(width: 24, height: 24))
@@ -1904,6 +1907,20 @@ struct NookIcon: View {
             path1.addCurve(to: CGPoint(x: 17.5682, y: 7.98158), control1: CGPoint(x: 17.3904, y: 7.83576), control2: CGPoint(x: 17.4869, y: 7.90027))
             path1.closeSubpath()
             context.fill(path1, with: .color(Color(red: 1.000000, green: 1.000000, blue: 1.000000)), style: FillStyle(eoFill: true))
+        case .icon24Close:
+            var path0 = Path()
+            path0.move(to: CGPoint(x: 20, y: 4))
+            path0.addLine(to: CGPoint(x: 4, y: 20))
+            context.stroke(path0, with: .color(Color(red: 0.517647, green: 0.545098, blue: 0.588235)), style: StrokeStyle(lineWidth: 1.5, lineCap: .butt))
+            var path1 = Path()
+            path1.move(to: CGPoint(x: 20, y: 20))
+            path1.addLine(to: CGPoint(x: 4, y: 4))
+            context.stroke(path1, with: .color(Color(red: 0.517647, green: 0.545098, blue: 0.588235)), style: StrokeStyle(lineWidth: 1.5, lineCap: .butt))
+            var path2 = Path()
+            path2.move(to: CGPoint(x: 20.0001, y: 4))
+            path2.addLine(to: CGPoint(x: 12, y: 11.9999))
+            path2.addLine(to: CGPoint(x: 20.0001, y: 20))
+            context.stroke(path2, with: .color(Color(red: 0.517647, green: 0.545098, blue: 0.588235)), style: StrokeStyle(lineWidth: 1.5, lineCap: .butt))
         case .icon24Delete:
             let path0 = Path(ellipseIn: CGRect(x: 0, y: 0, width: 24, height: 24))
             context.fill(path0, with: .color(Color(red: 0.894118, green: 0.901961, blue: 0.913725)))

@@ -1,13 +1,17 @@
 import { useQueries } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PlaceActions } from '@/features/map/components/PlaceActions';
 import type { PlaceDetail as PlaceDetailModel, PlaceDetailPost } from '@/features/map/types';
-import { PlaceInfo, PlaceRow } from '@/features/place';
+import { PlaceInfo, PlacePhotos, PlacePhotoViewer, PlaceRow } from '@/features/place';
+import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
 import type { Post } from '@/features/post';
 import { SavedPostCard } from '@/features/post';
 import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
 import { postQueryKeys } from '@/features/post/api/queries';
-import { Icon32StarOff, Icon32StarOn } from '@/shared/icons/NookIcons';
-import { Thumbnail } from '@/shared/ui';
+import { type Coordinates, formatDistance } from '@/shared/lib/geolocation';
+import { useToast } from '@/shared/toast';
+import { Badge } from '@/shared/ui';
 import { useUpdatePlaceBookmark } from '../api/queries';
 
 /** 대표 이미지가 없는 게시물 카드에 쓰는 회색 플레이스홀더(140x175, gray-20). */
@@ -16,7 +20,7 @@ const SAVED_POST_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(
 )}`;
 
 /**
- * 지점 정보/저장된 게시물/연관 장소 섹션 사이 구분선(Figma 14:1873).
+ * 지점 정보/저장된 게시물/게시물에 포함된 장소 섹션 사이 구분선(Figma 14:1873).
  * 얇은 border 가 아니라 6px 두께의 회색 띠다 — 부모의 좌우 padding(px-4)과
  * 위아래 gap(gap-3, 12px)을 상쇄해서 정확히 6px만 차지하는 풀블리드 바로 만든다.
  */
@@ -80,16 +84,18 @@ function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
 }
 
 /**
- * "연관 장소" — 게시물 상세 페이지의 같은 이름 섹션과 같은 내용이다.
- * `GET /places/{placeId}`(장소 상세)엔 연관 장소가 없지만, 이 장소에 저장된 게시물의
- * 상세(`GET /posts/{postId}`, 위 `SavedPostsSection`이 이미 쓰는 그 응답)에 파싱된
- * 장소 목록이 들어 있다 — 그 장소들에서 지금 보고 있는 장소만 빼고 보여준다.
+ * "게시물에 포함된 장소" — 이름 그대로 이 장소에 저장된 게시물들이 가리키는 장소 목록이다.
+ * `GET /places/{placeId}`(장소 상세)엔 이 목록이 없지만, 저장 게시물의 상세
+ * (`GET /posts/{postId}`, 위 `SavedPostsSection`이 이미 쓰는 그 응답)에 파싱된 장소가
+ * 들어 있다 — 그 장소들에서 지금 보고 있는 장소만 빼고 보여준다.
  */
 function RelatedPlacesSection({
   place,
+  userCoords,
   onSelectPlace,
 }: {
   place: PlaceDetailModel;
+  userCoords?: Coordinates | null;
   onSelectPlace?: (placeId: number) => void;
 }) {
   // 위 섹션과 같은 쿼리 키라 요청은 한 번만 나간다(캐시 공유).
@@ -112,7 +118,7 @@ function RelatedPlacesSection({
     <>
       <SectionDivider />
       <div className="mt-4 flex w-full flex-col gap-4 pb-2">
-        <p className="text-b1 font-semibold text-gray-100">연관 장소</p>
+        <p className="text-b1 font-semibold text-gray-100">게시물에 포함된 장소</p>
         <div className="flex flex-col gap-4">
           {relatedPlaces.map((related) => (
             <PlaceRow
@@ -123,6 +129,9 @@ function RelatedPlacesSection({
                 category: related.category ?? '',
                 address: related.address,
                 thumbnail: related.thumbnail,
+                distance: userCoords
+                  ? formatDistance(userCoords, { lat: related.latitude, lng: related.longitude })
+                  : undefined,
               }}
               bookmarked={related.bookmarked}
               onBookmarkedChange={(next) =>
@@ -140,63 +149,97 @@ function RelatedPlacesSection({
 
 /**
  * 지도 핀 클릭 시 드로어에 보여줄 장소 상세.
- * `expanded`(full 스냅) 일 때만 주소/저장된 게시물/연관 장소를 추가로 보여준다
- * — mid 스냅에서는 이름·위치·대표 사진까지만 노출한다(Figma 14:1483/14:1902/14:1664 차이).
+ * `expanded`(full 스냅) 일 때만 장소 info/저장된 게시물/게시물에 포함된 장소를 추가로 보여준다
+ * — mid 스냅에서는 이름·태그·거리·주소·사진까지만 노출한다(Figma 126:13002 vs 126:13111).
  *
- * 서버 응답(`PlaceDetailResponse`)엔 영업시간/태그/장소 메모가 없어 목데이터 시절과
- * 달리 이 정보들은 아예 보여주지 않는다 — 실제로 없는 값을 지어내지 않는다.
+ * 장소 메모(시안의 ✏️ 줄)는 서버에 저장할 곳이 없어(응답 필드도, PATCH 도 없다) 렌더하지
+ * 않는다 — `PlaceInfo` 는 이미 메모를 지원하므로 API 가 생기면 배선만 하면 된다.
  */
 export function PlaceDetail({
   place,
   expanded,
+  userCoords,
+  onClose,
   onSelectPlace,
 }: {
   place: PlaceDetailModel;
   expanded: boolean;
-  /** 연관 장소 행을 눌렀을 때 그 장소로 선택을 옮긴다. */
+  /** 현재 위치. 없으면(권한 거부 등) 거리 표기를 생략한다. */
+  userCoords?: Coordinates | null;
+  /** 헤더의 닫기 버튼 — 선택을 풀고 목록으로 되돌린다. */
+  onClose: () => void;
+  /** "게시물에 포함된 장소" 행을 눌렀을 때 그 장소로 선택을 옮긴다. */
   onSelectPlace?: (placeId: number) => void;
 }) {
-  const updateBookmark = useUpdatePlaceBookmark();
+  const { showToast } = useToast();
+  const [photosOpen, setPhotosOpen] = useState(false);
+
+  const distance = userCoords
+    ? formatDistance(userCoords, { lat: place.lat, lng: place.lng })
+    : undefined;
 
   return (
     <div className="flex w-full flex-col gap-3">
       <div className="flex w-full flex-col gap-1">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <p className="text-h1 text-gray-100">{place.name}</p>
-            {place.category ? <p className="text-b2 text-gray-80">{place.category}</p> : null}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="min-w-0 truncate text-h1 text-gray-100">{place.name}</p>
+            {place.category ? (
+              <p className="shrink-0 text-b2 text-gray-80">{place.category}</p>
+            ) : null}
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              updateBookmark.mutate({ placeId: place.id, bookmarked: !place.bookmarked })
-            }
-            disabled={updateBookmark.isPending}
-            aria-pressed={place.bookmarked}
-            aria-label={place.bookmarked ? '저장 취소' : '저장'}
-            className="shrink-0"
-          >
-            {place.bookmarked ? <Icon32StarOn /> : <Icon32StarOff />}
-          </button>
+          <PlaceActions placeId={place.id} bookmarked={place.bookmarked} onClose={onClose} />
         </div>
-        {/* 꽉 찬 스냅에서는 아래 `PlaceInfo` 가 같은 주소를 보여줘서 여기선 뺀다. */}
-        {!expanded && <p className="text-b2 text-gray-70">{place.address}</p>}
+        {/* 꽉 찬 스냅에서는 아래 `PlaceInfo` 가 같은 줄을 보여줘서 여기선 뺀다. */}
+        {!expanded && (
+          <p className="text-b2 text-gray-70">
+            {distance ? `${distance} · ${place.address}` : place.address}
+          </p>
+        )}
+        {place.tags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 py-2">
+            {place.tags.map((tag) => (
+              <Badge key={tag} variant="label">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* 장소 대표 사진. 없으면 같은 크기의 회색 박스로 자리만 잡는다. */}
-      {place.thumbnail ? (
-        <Thumbnail src={place.thumbnail} alt="" className="h-[212px] w-full" />
-      ) : (
-        <div className="h-[212px] w-full rounded-sm border border-gray-20 bg-gray-10" />
-      )}
+      <PlacePhotos
+        photos={place.photos}
+        onPhotoClick={place.photos.length > 0 ? () => setPhotosOpen(true) : undefined}
+      />
 
       {expanded && (
         <>
-          <PlaceInfo address={place.address} className="mb-4" />
+          <PlaceInfo
+            address={place.address}
+            distance={distance}
+            onAddressCopied={() =>
+              showToast({ variant: 'simple', title: '클립보드에 복사되었습니다.' })
+            }
+            businessStatus={formatBusinessStatus(place.openNow)}
+            businessHours={formatBusinessHours(place.openingHours)}
+            className="mb-4"
+          />
 
           <SavedPostsSection posts={place.posts} />
-          <RelatedPlacesSection place={place} onSelectPlace={onSelectPlace} />
+          <RelatedPlacesSection
+            place={place}
+            userCoords={userCoords}
+            onSelectPlace={onSelectPlace}
+          />
         </>
+      )}
+
+      {photosOpen && (
+        <PlacePhotoViewer
+          title={place.name}
+          photos={place.photos}
+          onClose={() => setPhotosOpen(false)}
+        />
       )}
     </div>
   );

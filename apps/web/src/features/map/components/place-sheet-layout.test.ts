@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FULL_SNAP_POINT, MID_SNAP_POINT } from '@/features/map/constants';
 import { BOTTOM_MENU_HEIGHT } from '@/shared/ui/bottom-menu';
-import { getPlaceSheetLayoutClassNames } from './place-sheet-layout';
+import { getPlaceSheetLayoutClassNames, PLACE_SHEET_HEADER_HEIGHT } from './place-sheet-layout';
 
 describe('getPlaceSheetLayoutClassNames', () => {
   it('BottomMenu 가 떠 있으면 드로어를 그 높이만큼 띄운다', () => {
@@ -53,5 +53,16 @@ describe('getPlaceSheetLayoutClassNames', () => {
     const layout = getPlaceSheetLayoutClassNames(true, MID_SNAP_POINT);
 
     expect(layout.drawer.style?.paddingTop).toBe('0px');
+  });
+
+  it('스크롤 고정 헤더가 뜨면 그 높이만큼 스크롤 영역을 줄여 드로어 총 높이를 유지한다', () => {
+    const withHeader = getPlaceSheetLayoutClassNames(true, FULL_SNAP_POINT, true);
+    const withoutHeader = getPlaceSheetLayoutClassNames(true, FULL_SNAP_POINT, false);
+
+    expect(withHeader.scroller.style?.height).toBe(
+      `calc(100dvh - env(safe-area-inset-top) - ${PLACE_SHEET_HEADER_HEIGHT})`,
+    );
+    // 헤더가 없을 때는 계산식에 헤더 항이 아예 붙지 않는다.
+    expect(withoutHeader.scroller.style?.height).not.toContain(PLACE_SHEET_HEADER_HEIGHT);
   });
 });

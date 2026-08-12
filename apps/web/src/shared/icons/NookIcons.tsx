@@ -835,6 +835,32 @@ export function Icon24CheckOn({ size, width, height, ...props }: NookIconProps) 
   );
 }
 
+export function Icon24Close({ size, width, height, ...props }: NookIconProps) {
+  const renderedWidth = width ?? size ?? 24;
+  const renderedHeight = height ?? (size === undefined ? 24 : size * 1);
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={renderedWidth}
+      height={renderedHeight}
+      fill="none"
+      role="presentation"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M20 4L4 20" fill="none" stroke="#848B96" strokeWidth="1.5" strokeLinecap="butt" />
+      <path d="M20 20L4 4" fill="none" stroke="#848B96" strokeWidth="1.5" strokeLinecap="butt" />
+      <path
+        d="M20.0001 4L12 11.9999L20.0001 20"
+        fill="none"
+        stroke="#848B96"
+        strokeWidth="1.5"
+        strokeLinecap="butt"
+      />
+    </svg>
+  );
+}
+
 export function Icon24Delete({ size, width, height, ...props }: NookIconProps) {
   const renderedWidth = width ?? size ?? 24;
   const renderedHeight = height ?? (size === undefined ? 24 : size * 1);

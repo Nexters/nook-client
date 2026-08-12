@@ -114,6 +114,11 @@ export function MapPage() {
     }
   }
 
+  /** 상세 헤더의 닫기/뒤로 — 시트를 내리는 것과 같은 상태로 되돌린다. */
+  function handleCloseDetail() {
+    handleSnapChange(PEEK_SNAP_POINT);
+  }
+
   return (
     <MainTabPageLayout variant="transparent">
       <div className="relative h-full w-full overflow-hidden">
@@ -142,8 +147,10 @@ export function MapPage() {
           isPlaceDetailPending={selectedPlaceId !== null && placeDetailQuery.isPending}
           isPlaceDetailError={selectedPlaceId !== null && placeDetailQuery.isError}
           snap={snap}
+          userCoords={location.coords}
           onSnapChange={handleSnapChange}
           onSelectPlace={handlePlaceClick}
+          onClose={handleCloseDetail}
         />
       </div>
     </MainTabPageLayout>

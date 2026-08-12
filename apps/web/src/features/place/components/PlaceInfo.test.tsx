@@ -85,12 +85,35 @@ describe('PlaceInfo 메모 인라인 편집', () => {
     const { rerender } = render(
       <PlaceInfo address="서울 성동구" businessStatus="영업중" memo="메모만" />,
     );
-    // 주소·영업시간·메모 세 줄 → 아이콘 3개
-    expect(screen.getAllByRole('presentation', { hidden: true })).toHaveLength(3);
+    // 주소·영업시간·메모 세 줄 → 아이콘 3개 + 주소 줄 우측의 펼침 화살표
+    expect(screen.getAllByRole('presentation', { hidden: true })).toHaveLength(4);
 
     rerender(<PlaceInfo memo="메모만" />);
     // 메모 줄만 남는다
     expect(screen.getAllByRole('presentation', { hidden: true })).toHaveLength(1);
     expect(screen.queryByText('영업중')).not.toBeInTheDocument();
+  });
+});
+
+describe('PlaceInfo 주소 줄', () => {
+  it('거리가 있으면 주소 앞에 붙인다', () => {
+    render(<PlaceInfo address="서울 성동구 서울숲7길 9 4층" distance="4.6km" />);
+    expect(screen.getByText('4.6km · 서울 성동구 서울숲7길 9 4층')).toBeInTheDocument();
+  });
+
+  it('복사 버튼은 onAddressCopied 를 넘겼을 때만 생기고, 주소를 클립보드에 쓴 뒤 알린다', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+    const onAddressCopied = vi.fn();
+
+    const { rerender } = render(<PlaceInfo address="서울 성동구" />);
+    expect(screen.queryByRole('button', { name: '주소 복사' })).not.toBeInTheDocument();
+
+    rerender(<PlaceInfo address="서울 성동구" onAddressCopied={onAddressCopied} />);
+    fireEvent.click(screen.getByRole('button', { name: '주소 복사' }));
+
+    await vi.waitFor(() => expect(onAddressCopied).toHaveBeenCalled());
+    expect(writeText).toHaveBeenCalledWith('서울 성동구');
+    vi.unstubAllGlobals();
   });
 });
