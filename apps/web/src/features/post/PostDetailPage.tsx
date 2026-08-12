@@ -21,6 +21,7 @@ import { PostDetailLoadingView } from './components/PostDetailLoadingView';
 import { PostImages } from './components/PostImages';
 import { PostImageViewer } from './components/PostImageViewer';
 import { PostInfo } from './components/PostInfo';
+import { GoHomeTooltip, PostParsingView } from './components/PostParsingView';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
 
 /**
@@ -54,7 +55,14 @@ export function PostDetailPage() {
     ? `/map?placeId=${encodeURIComponent(firstRelatedPlaceId)}`
     : '/map';
 
+  const isProcessing = postDetailState.status === 'processing';
+
   function handleBack() {
+    // 파싱 중엔 돌아갈 완성 화면이 없다 — 툴팁 문구대로 홈(지도)으로 보낸다.
+    if (isProcessing) {
+      navigate('/map', { replace: true });
+      return;
+    }
     if (enteredFromShare) {
       navigate(shareEntryBackTarget, { replace: true });
       return;
@@ -66,10 +74,15 @@ export function PostDetailPage() {
   // 같은 목적지(지도)로 보낸다. 뷰어가 떠 있으면 히스토리 뒤로(뷰어 닫기)에 양보한다.
   useBackInterceptor(
     useCallback(() => {
-      if (!enteredFromShare || viewerOpen) return false;
+      if (viewerOpen) return false;
+      if (isProcessing) {
+        navigate('/map', { replace: true });
+        return true;
+      }
+      if (!enteredFromShare) return false;
       navigate(shareEntryBackTarget, { replace: true });
       return true;
-    }, [enteredFromShare, viewerOpen, navigate, shareEntryBackTarget]),
+    }, [isProcessing, enteredFromShare, viewerOpen, navigate, shareEntryBackTarget]),
   );
 
   // "직접 추가"로 확정한 장소 — 파싱 상태와 무관하게 항상 연관 장소에 보여준다.
@@ -146,8 +159,13 @@ export function PostDetailPage() {
   if (postDetailState.status !== 'success') {
     return (
       <main className="min-h-dvh bg-gray-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <Header left={<BackButton onClick={handleBack} />} />
-        {postDetailState.status === 'loading' ? (
+        <div className="relative">
+          <Header left={<BackButton onClick={handleBack} />} />
+          {isProcessing ? <GoHomeTooltip /> : null}
+        </div>
+        {isProcessing ? (
+          <PostParsingView percent={postDetailState.percent} />
+        ) : postDetailState.status === 'loading' ? (
           <PostDetailLoadingView />
         ) : (
           <p className="px-4 pt-20 text-center text-b2 font-medium text-gray-60">

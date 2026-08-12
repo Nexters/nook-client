@@ -42,6 +42,8 @@ export interface PostGroup {
 export interface PostDetail {
   post: Post;
   processingStatus: PostProcessingStatus;
+  /** 본문 처리(크롤링·장소 파싱) 진행률 0~100. PENDING/PROCESSING 동안 폴링으로 갱신된다. */
+  processingPercent: number;
   title: string;
   groups: PostGroup[];
   memo?: string;

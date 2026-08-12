@@ -82,6 +82,7 @@ function toPostDetail(dto: SavedPostDetailResponse): PostDetail {
 
   return {
     processingStatus: dto.processingStatus,
+    processingPercent: dto.processingPercent,
     groups: dto.groups.map(toPostGroup),
     // 처리 중엔 title 이 비어 있을 수 있다 — group 의 게시물 카드와 동일한 fallback 규칙.
     title: dto.title || dto.memo || '제목 없는 게시물',

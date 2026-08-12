@@ -23,6 +23,7 @@ const { PostDetailPage } = await import('@/features/post/PostDetailPage');
 const POSTS: Record<number, PostDetail> = {
   1: {
     processingStatus: 'COMPLETED',
+    processingPercent: 100,
     places: [],
     title: '지금 가기 좋은 초록뷰 카페',
     groups: [{ id: 1, name: '카페', color: 'yellow' }],
@@ -38,6 +39,7 @@ const POSTS: Record<number, PostDetail> = {
   // 시안 `연관 장소 X` — 파싱은 성공했지만 연결된 장소가 없는 게시물.
   2: {
     processingStatus: 'COMPLETED',
+    processingPercent: 100,
     places: [],
     title: '몰래 가려고 저장해둔 서울 카페',
     groups: [{ id: 1, name: '카페', color: 'yellow' }],
@@ -52,6 +54,7 @@ const POSTS: Record<number, PostDetail> = {
   // 시안 `게시물 상세_직접 입력` 실패 케이스 — 연관 장소 파싱 자체가 실패하는 게시물.
   3: {
     processingStatus: 'COMPLETED',
+    processingPercent: 100,
     places: [],
     title: '위치 태그 없이 올라온 카페 사진',
     groups: [{ id: 1, name: '카페', color: 'yellow' }],
@@ -183,11 +186,47 @@ describe('게시물 상세', () => {
     renderRoute('/post/1');
 
     expect(screen.getByRole('status', { name: '게시물 불러오는 중' })).toBeInTheDocument();
+    // 첫 조회 로딩엔 파싱 화면 요소(진행률·툴팁)가 없어야 한다.
+    expect(screen.queryByText(/장소 불러오는 중/)).not.toBeInTheDocument();
+    expect(screen.queryByText('홈으로 가기')).not.toBeInTheDocument();
 
     await waitFor(() =>
       expect(screen.queryByRole('status', { name: '게시물 불러오는 중' })).not.toBeInTheDocument(),
     );
     expect(screen.getByRole('heading', { name: '지금 가기 좋은 초록뷰 카페' })).toBeInTheDocument();
+  });
+
+  it('본문 처리 중이면 진행률과 안내 문구를 보여준다', async () => {
+    mocks.fetchPostDetail.mockResolvedValue({
+      ...POSTS[1],
+      processingStatus: 'PROCESSING',
+      processingPercent: 15,
+    });
+    renderRoute('/post/1');
+
+    await waitFor(() =>
+      expect(screen.getByRole('status', { name: '장소 불러오는 중' })).toBeInTheDocument(),
+    );
+    expect(screen.getByText('장소 불러오는 중...15%')).toBeInTheDocument();
+    expect(screen.getByText('화면을 나가도 저장은 계속될 거예요.')).toBeInTheDocument();
+    // 첫 조회 로딩과 분리 확인 — 일반 로딩 뷰가 아니어야 한다.
+    expect(screen.queryByRole('status', { name: '게시물 불러오는 중' })).not.toBeInTheDocument();
+  });
+
+  it('본문 처리 중에는 홈으로 가기 툴팁을 보여주고, 뒤로가기는 지도로 이동한다', async () => {
+    mocks.fetchPostDetail.mockResolvedValue({
+      ...POSTS[1],
+      processingStatus: 'PROCESSING',
+      processingPercent: 15,
+    });
+    renderRoute('/post/1', ['/group/7', '/post/1']);
+
+    await waitFor(() => expect(screen.getByText('홈으로 가기')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: '뒤로 가기' }));
+
+    // 히스토리가 있어도(그룹 → 게시물) 파싱 중에는 지도로 보낸다.
+    expect(screen.getByTestId('map-route-probe')).toHaveTextContent('/map');
   });
 
   it('게시물 조회에 실패하면 안내 문구를 보여준다', async () => {
