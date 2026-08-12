@@ -32,6 +32,7 @@ function parsedPlace(id: number, name: string): ParsedPlace {
 function postDetail(places: ParsedPlace[], groups: PostDetail['groups'] = []): PostDetail {
   return {
     processingStatus: 'COMPLETED',
+    processingPercent: 100,
     title: '게시물',
     groups,
     places,

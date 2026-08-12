@@ -20,6 +20,7 @@ import { PostDetailLoadingView } from './components/PostDetailLoadingView';
 import { PostImages } from './components/PostImages';
 import { PostImageViewer } from './components/PostImageViewer';
 import { PostInfo } from './components/PostInfo';
+import { PostParsingView } from './components/PostParsingView';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
 
 /**
@@ -144,7 +145,9 @@ export function PostDetailPage() {
     return (
       <main className="min-h-dvh bg-gray-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <Header left={<BackButton onClick={handleBack} />} />
-        {postDetailState.status === 'loading' ? (
+        {postDetailState.status === 'processing' ? (
+          <PostParsingView percent={postDetailState.percent} />
+        ) : postDetailState.status === 'loading' ? (
           <PostDetailLoadingView />
         ) : (
           <p className="px-4 pt-20 text-center text-b2 font-medium text-gray-60">
