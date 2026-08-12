@@ -23,6 +23,11 @@ export interface CarouselProps extends React.HTMLAttributes<HTMLDivElement> {
    * 전체화면 이미지 뷰어처럼 좌우 여백이 없는 경우에만 쓴다.
    */
   padded?: boolean;
+  /**
+   * 처음 보여줄 슬라이드 위치. 마운트 시 한 번만 반영한다 — 그리드에서 고른 사진으로
+   * 확대뷰를 여는 것처럼 "몇 번째부터 시작할지"를 사용처가 정하는 경우에만 쓴다.
+   */
+  initialIndex?: number;
 }
 
 function Carousel({
@@ -30,12 +35,22 @@ function Carousel({
   gap = 8,
   indicator = true,
   padded = true,
+  initialIndex = 0,
   className,
   ...props
 }: CarouselProps) {
   const scrollerRef = React.useRef<HTMLDivElement>(null);
-  const [active, setActive] = React.useState(0);
+  const [active, setActive] = React.useState(initialIndex);
   const count = React.Children.count(children);
+
+  // 마운트 직후 한 번만 시작 위치로 점프한다(애니메이션 없이 — 이미 그 사진을 누른 상태다).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 시작 위치는 마운트 시점 값만 쓴다
+  React.useEffect(() => {
+    const scroller = scrollerRef.current;
+    const first = scroller?.firstElementChild;
+    if (!scroller || !(first instanceof HTMLElement) || initialIndex === 0) return;
+    scroller.scrollLeft = (first.offsetWidth + gap) * initialIndex;
+  }, []);
 
   const handleScroll = () => {
     const scroller = scrollerRef.current;
