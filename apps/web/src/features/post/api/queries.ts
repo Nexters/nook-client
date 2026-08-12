@@ -14,13 +14,15 @@ const POLL_INTERVAL_MS = 3000;
 
 export type PostDetailState =
   | { status: 'loading' }
+  | { status: 'processing'; percent: number }
   | { status: 'success'; detail: PostDetail }
   | { status: 'error' };
 
 /**
  * 게시물 상세. 저장 직후엔 BE 가 본문을 비동기로 처리해서 title/media 가 비어 있을 수
- * 있다 — `processingStatus` 가 PENDING/PROCESSING 인 동안은 폴링하며 로딩으로 보여준다.
- * TanStack Query 상태 + 처리 상태를 화면용 3-state union 으로 좁혀 노출한다 — 소비처
+ * 있다 — `processingStatus` 가 PENDING/PROCESSING 동안은 폴링하며
+ * processing 상태(진행률 포함)로 노출한다.
+ * TanStack Query 상태 + 처리 상태를 화면용 4-state union 으로 좁혀 노출한다 — 소비처
  * (PostDetailPage)가 쿼리 객체 전체에 의존하지 않게 하기 위해서다.
  */
 export function usePostDetail(postId: number | undefined): PostDetailState {
@@ -39,7 +41,7 @@ export function usePostDetail(postId: number | undefined): PostDetailState {
 
   const detail = query.data;
   if (detail.processingStatus === 'PENDING' || detail.processingStatus === 'PROCESSING') {
-    return { status: 'loading' };
+    return { status: 'processing', percent: detail.processingPercent };
   }
   // 처리 실패 전용 화면은 아직 시안이 없다 — 연관 장소 파싱 실패와 같은 처리로 임시 통일한다.
   if (detail.processingStatus === 'FAILED') return { status: 'error' };
