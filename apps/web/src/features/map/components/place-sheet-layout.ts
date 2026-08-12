@@ -3,6 +3,12 @@ import { FULL_SNAP_POINT, MID_SNAP_POINT } from '@/features/map/constants';
 import { BOTTOM_MENU_HEIGHT } from '@/shared/ui/bottom-menu';
 
 /**
+ * 스크롤 시 드래그핸들을 대신하는 고정 헤더의 높이 — Figma `Header > Place Header/44`.
+ * `<Header size="bottom">`(제목 B1 24px + pb-5 20px)의 실제 높이와 같다.
+ */
+export const PLACE_SHEET_HEADER_HEIGHT = '44px';
+
+/**
  * PlaceSheet(지도 바텀시트)의 위치·크기.
  *
  * `bottomMenuHidden` 은 실제 `useBottomMenuVisibility().hidden` 값을 받는다 — 지금은
@@ -33,18 +39,25 @@ export function getPlaceSheetLayoutClassNames(
   bottomMenuHidden: boolean,
   /** 현재 활성 스냅. vaul 계약상 string(px)일 수도 있지만 이 시트는 비율(number)만 쓴다. */
   snap: number | string | null,
+  /**
+   * 스크롤을 내려 드래그핸들 대신 고정 헤더가 떠 있는 상태(`PLACE_SHEET_HEADER_HEIGHT`).
+   * 헤더는 스크롤 영역 밖 형제라, 그만큼 스크롤 영역 높이를 줄여야 드로어 총 높이가
+   * 유지된다 — 안 줄이면 스크롤 영역 아래가 `max-h` 에 잘려 마지막 콘텐츠에 닿지 못한다.
+   */
+  stickyHeader = false,
 ): {
   drawer: { className: string; style?: React.CSSProperties };
   scroller: { className: string; style?: React.CSSProperties };
 } {
   const safeAreaTop = snap === FULL_SNAP_POINT ? 'env(safe-area-inset-top)' : '0px';
+  const minusHeader = stickyHeader ? ` - ${PLACE_SHEET_HEADER_HEIGHT}` : '';
 
   if (bottomMenuHidden) {
     return {
       drawer: { className: 'bottom-0 max-h-dvh', style: { paddingTop: safeAreaTop } },
       scroller: {
         className: 'pb-[calc(1.25rem+env(safe-area-inset-bottom))]',
-        style: { height: `calc(100dvh - ${safeAreaTop})` },
+        style: { height: `calc(100dvh - ${safeAreaTop}${minusHeader})` },
       },
     };
   }
@@ -61,7 +74,7 @@ export function getPlaceSheetLayoutClassNames(
     scroller: {
       className: '',
       style: {
-        height: `calc(100dvh - ${BOTTOM_MENU_HEIGHT} - ${safeAreaTop})`,
+        height: `calc(100dvh - ${BOTTOM_MENU_HEIGHT} - ${safeAreaTop}${minusHeader})`,
         paddingBottom: `calc(${100 - snapRatio * 100}dvh + 1.25rem)`,
       },
     },
