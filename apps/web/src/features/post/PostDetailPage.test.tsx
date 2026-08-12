@@ -203,6 +203,22 @@ describe('게시물 상세', () => {
     expect(screen.queryByRole('status', { name: '게시물 불러오는 중' })).not.toBeInTheDocument();
   });
 
+  it('본문 처리 중에는 홈으로 가기 툴팁을 보여주고, 뒤로가기는 지도로 이동한다', async () => {
+    mocks.fetchPostDetail.mockResolvedValue({
+      ...POSTS[1],
+      processingStatus: 'PROCESSING',
+      processingPercent: 15,
+    });
+    renderRoute('/post/1', ['/group/7', '/post/1']);
+
+    await waitFor(() => expect(screen.getByText('홈으로 가기')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: '뒤로 가기' }));
+
+    // 히스토리가 있어도(그룹 → 게시물) 파싱 중에는 지도로 보낸다.
+    expect(screen.getByTestId('map-route-probe')).toHaveTextContent('/map');
+  });
+
   it('게시물 조회에 실패하면 안내 문구를 보여준다', async () => {
     mocks.fetchPostDetail.mockRejectedValue(new Error('404'));
     renderRoute('/post/999');

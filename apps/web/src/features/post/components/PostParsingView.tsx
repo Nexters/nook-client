@@ -31,3 +31,19 @@ export function PostParsingView({ percent }: { percent: number }) {
     </div>
   );
 }
+
+/**
+ * 파싱 중 헤더 뒤로가기 버튼 아래 붙는 말풍선 (Figma node 116:3564).
+ * 헤더를 감싼 relative 컨테이너 안에서 absolute 로 배치된다.
+ */
+export function GoHomeTooltip() {
+  return (
+    <div className="absolute top-[43px] left-[10px] z-10 flex flex-col items-start drop-shadow-[0px_5px_8px_rgba(0,0,0,0.22)]">
+      {/* 위쪽 꼬리 22×6 — border 삼각형으로 그린다 */}
+      <div className="ml-2.5 h-0 w-0 border-x-[11px] border-b-[6px] border-x-transparent border-b-[rgba(31,31,31,0.8)]" />
+      <div className="rounded-[6px] bg-[rgba(31,31,31,0.8)] px-3 py-2">
+        <p className="whitespace-nowrap text-b3 font-semibold text-gray-0">홈으로 가기</p>
+      </div>
+    </div>
+  );
+}
