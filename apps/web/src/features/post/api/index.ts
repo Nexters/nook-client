@@ -119,6 +119,7 @@ function toParsedPlace(dto: PlaceResponse): ParsedPlace {
     phoneNumber: dto.phoneNumber ?? null,
     bookmarked: dto.bookmarked,
     thumbnail: dto.thumbnailUrl ?? undefined,
+    thumbnailParsingStatus: dto.thumbnailParsingStatus,
   };
 }
 

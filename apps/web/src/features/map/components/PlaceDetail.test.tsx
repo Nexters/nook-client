@@ -26,6 +26,7 @@ function parsedPlace(id: number, name: string): ParsedPlace {
     category: '카페',
     phoneNumber: null,
     bookmarked: false,
+    thumbnailParsingStatus: 'COMPLETED',
   };
 }
 
