@@ -115,7 +115,7 @@ const PLACE_PARSING: Record<number, PlaceParsingResult> = {
   },
 };
 
-/** 연관 장소 클릭 시 실제로 어디로 이동했는지 확인하기 위한 `/map` 자리의 더미 화면. */
+/** 장소 목록 클릭 시 실제로 어디로 이동했는지 확인하기 위한 `/map` 자리의 더미 화면. */
 function MapRouteProbe() {
   const location = useLocation();
   return <p data-testid="map-route-probe">{location.pathname + location.search}</p>;
@@ -147,15 +147,17 @@ function renderRoute(initialPath: string, initialEntries = [initialPath]) {
 
 async function renderPost(postId: number, search = '', initialEntries?: string[]) {
   renderRoute(`/post/${postId}${search}`, initialEntries);
-  // 게시물 상세와 연관 장소 모두 별도 API 로 비동기 로드된다 — 둘 다 정착할 때까지 기다린다.
+  // 게시물 상세와 장소 목록 모두 별도 API 로 비동기 로드된다 — 둘 다 정착할 때까지 기다린다.
   await waitFor(() =>
     expect(screen.queryByRole('status', { name: '게시물 불러오는 중' })).not.toBeInTheDocument(),
   );
-  await waitFor(() => expect(screen.queryByText('연관 장소를 찾는 중…')).not.toBeInTheDocument());
+  await waitFor(() =>
+    expect(screen.queryByText('게시물에 포함된 장소를 찾는 중…')).not.toBeInTheDocument(),
+  );
 }
 
 describe('게시물 상세', () => {
-  // "연관 장소" 섹션 자체는 그대로 보이고, 그 안의 "찾는 장소가 없으신가요? 직접 추가"
+  // "게시물에 포함된 장소" 섹션 자체는 그대로 보이고, 그 안의 "찾는 장소가 없으신가요? 직접 추가"
   // 배너만 잠시 숨겨져 있다(RelatedPlacesSection.tsx 의 SHOW_DIRECT_ADD_BANNER TODO
   // 참고). 그 배너가 있어야만 가능한 상호작용을 검증하던 아래 it.skip 들은 플래그가
   // 다시 켜지면 함께 되살린다.
@@ -193,7 +195,7 @@ describe('게시물 상세', () => {
     await waitFor(() => expect(screen.getByText('게시물을 찾을 수 없어요')).toBeInTheDocument());
   });
 
-  it('공유하기로 진입하면 뒤로가기 시 첫 번째 연관 장소가 선택된 지도로 이동한다', async () => {
+  it('공유하기로 진입하면 뒤로가기 시 첫 번째 장소가 선택된 지도로 이동한다', async () => {
     await renderPost(1, '?entry=share');
 
     fireEvent.click(screen.getByRole('button', { name: '뒤로 가기' }));
@@ -201,7 +203,7 @@ describe('게시물 상세', () => {
     expect(screen.getByTestId('map-route-probe')).toHaveTextContent('/map?placeId=101');
   });
 
-  it('공유하기로 진입한 게시물에 연관 장소가 없으면 기본 지도로 이동한다', async () => {
+  it('공유하기로 진입한 게시물에 포함된 장소가 없으면 기본 지도로 이동한다', async () => {
     await renderPost(2, '?entry=share');
 
     fireEvent.click(screen.getByRole('button', { name: '뒤로 가기' }));
@@ -233,39 +235,43 @@ describe('게시물 상세', () => {
     expect(screen.getByText('그룹 상세 화면')).toBeInTheDocument();
   });
 
-  it('연관 장소를 불러오는 동안 로딩 문구를 보여주고 배너는 숨긴다', async () => {
+  it('장소 목록을 불러오는 동안 로딩 문구를 보여주고 배너는 숨긴다', async () => {
     mocks.fetchPlaceParsing.mockImplementation(
       () => new Promise((resolve) => setTimeout(() => resolve(PLACE_PARSING[1]), 50)),
     );
     renderRoute('/post/1');
 
-    await waitFor(() => expect(screen.getByText('연관 장소를 찾는 중…')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('게시물에 포함된 장소를 찾는 중…')).toBeInTheDocument(),
+    );
     expect(screen.queryByRole('button', { name: /직접 추가/ })).not.toBeInTheDocument();
 
-    await waitFor(() => expect(screen.queryByText('연관 장소를 찾는 중…')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText('게시물에 포함된 장소를 찾는 중…')).not.toBeInTheDocument(),
+    );
   });
 
-  it('연관 장소가 있으면 섹션과 장소 행을 렌더한다', async () => {
+  it('게시물에 포함된 장소가 있으면 섹션과 장소 행을 렌더한다', async () => {
     await renderPost(1);
 
     expect(screen.getByRole('heading', { name: '지금 가기 좋은 초록뷰 카페' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '연관 장소' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '게시물에 포함된 장소' })).toBeInTheDocument();
     expect(screen.getByText('아이소')).toBeInTheDocument();
   });
 
   it('매칭된 장소가 없으면 섹션은 보이되 목록도 직접 추가 배너도 없다', async () => {
     await renderPost(2);
 
-    expect(screen.getByRole('heading', { name: '연관 장소' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '게시물에 포함된 장소' })).toBeInTheDocument();
     expect(screen.queryByText('아이소')).not.toBeInTheDocument();
     // "직접 추가" 배너는 잠시 숨겨져 있다(RelatedPlacesSection.tsx SHOW_DIRECT_ADD_BANNER).
     expect(screen.queryByRole('button', { name: /직접 추가/ })).not.toBeInTheDocument();
   });
 
-  it('연관 장소 파싱이 실패하면 에러 스낵바를 보여준다', async () => {
+  it('장소 파싱이 실패하면 에러 스낵바를 보여준다', async () => {
     await renderPost(3);
 
-    expect(screen.getByRole('heading', { name: '연관 장소' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '게시물에 포함된 장소' })).toBeInTheDocument();
     // "직접 추가" 배너는 잠시 숨겨져 있어 검증하지 않는다 — 이 스낵바는 그 배너와
     // 무관하게 PostDetailPage 가 독립적으로 띄운다.
     expect(screen.getByText('위치를 찾지 못 했어요')).toBeInTheDocument();
@@ -281,7 +287,7 @@ describe('게시물 상세', () => {
     expect(screen.getAllByRole('button', { name: '뒤로 가기' })).toHaveLength(2);
   });
 
-  it('연관 장소의 즐겨찾기를 토글하면 북마크 API 를 부르고 재조회된 서버 상태를 따른다', async () => {
+  it('장소 행의 즐겨찾기를 토글하면 북마크 API 를 부르고 재조회된 서버 상태를 따른다', async () => {
     // 서버 흉내: 북마크 변경이 저장됐다가 다음 파싱 재조회에 반영된다.
     const places = PLACES.map((place) => ({ ...place }));
     mocks.fetchPlaceParsing.mockImplementation(() =>
@@ -308,7 +314,7 @@ describe('게시물 상세', () => {
     await waitFor(() => expect(unsaved).toHaveAttribute('aria-pressed', 'true'));
   });
 
-  it('연관 장소를 누르면 지도의 선택된 장소 뷰로 이동한다', async () => {
+  it('장소 행을 누르면 지도의 선택된 장소 뷰로 이동한다', async () => {
     await renderPost(1);
 
     fireEvent.click(screen.getByRole('button', { name: /아이소 카페/ }));
@@ -354,7 +360,7 @@ describe('게시물 상세', () => {
     expect(screen.getByText('앤미용실')).toBeInTheDocument();
   });
 
-  it.skip('검색 결과에서 장소를 확정하면 연관 장소에 연결되고 드로어가 닫힌다', async () => {
+  it.skip('검색 결과에서 장소를 확정하면 장소 목록에 연결되고 드로어가 닫힌다', async () => {
     await renderPost(3); // 파싱 실패 케이스 — 직접 추가가 실제로 필요한 시나리오
 
     fireEvent.click(screen.getByRole('button', { name: /직접 추가/ }));

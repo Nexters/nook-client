@@ -4,7 +4,7 @@ import { Icon16ExclamationCircle } from '@/shared/icons/NookIcons';
 import type { RelatedPlacesState } from '../api/queries';
 
 // TODO(post): "찾는 장소가 없으신가요? 직접 추가" 배너만 잠시 숨긴다(기획 요청,
-// 2026-07-30) — 연관 장소 목록·클릭 이동은 그대로 노출한다. 되돌리려면 아래 플래그를
+// 2026-07-30) — 장소 목록·클릭 이동은 그대로 노출한다. 되돌리려면 아래 플래그를
 // true로 바꾼다. 관련해서 skip 해둔 테스트는 PostDetailPage.test.tsx 상단 주석 참고.
 const SHOW_DIRECT_ADD_BANNER = false;
 
@@ -20,7 +20,8 @@ export interface RelatedPlacesSectionProps {
 }
 
 /**
- * Figma `연관 장소` — 파싱 API 의 로딩/성공/실패에 따라 달라지는 섹션.
+ * Figma `연관 장소`(화면 문구는 "게시물에 포함된 장소") — 파싱 API 의 로딩/성공/실패에
+ * 따라 달라지는 섹션.
  * 로딩 중엔 안내 문구만 보여주고, 로딩이 끝나면(성공/실패 모두) 장소 목록(있으면)을
  * 보여준다. "찾는 장소가 없으신가요? 직접 추가" 배너는 `SHOW_DIRECT_ADD_BANNER` 가
  * true 일 때만 함께 보여준다(현재는 잠시 숨김, 위 TODO 참고).
@@ -41,13 +42,13 @@ function RelatedPlacesSection({
 
   return (
     <>
-      {/* 시안의 6px 회색 띠 — 게시물 정보와 연관 장소를 가르는 구분면 */}
+      {/* 시안의 6px 회색 띠 — 게시물 정보와 장소 목록을 가르는 구분면 */}
       <div className="mt-4 h-1.5 w-full bg-gray-10" />
       <section className="px-4 pb-6">
-        <h2 className="py-4 text-b1 font-semibold text-gray-100">연관 장소</h2>
+        <h2 className="py-4 text-b1 font-semibold text-gray-100">게시물에 포함된 장소</h2>
 
         {state.status === 'loading' ? (
-          <p className="pb-4 text-b2 font-medium text-gray-60">연관 장소를 찾는 중…</p>
+          <p className="pb-4 text-b2 font-medium text-gray-60">게시물에 포함된 장소를 찾는 중…</p>
         ) : null}
 
         {places.length > 0 ? (

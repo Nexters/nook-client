@@ -72,7 +72,7 @@ export function PostDetailPage() {
     }, [enteredFromShare, viewerOpen, navigate, shareEntryBackTarget]),
   );
 
-  // "직접 추가"로 확정한 장소 — 파싱 상태와 무관하게 항상 연관 장소에 보여준다.
+  // "직접 추가"로 확정한 장소 — 파싱 상태와 무관하게 항상 장소 목록에 보여준다.
   const [manualPlaces, setManualPlaces] = useState<Place[]>([]);
 
   // 직접 추가한 장소 전용 로컬 북마크 상태. 파싱된 장소는 서버 상태
