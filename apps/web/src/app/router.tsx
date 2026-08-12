@@ -11,6 +11,7 @@ import { GroupDetailPage } from '@/features/group/GroupDetailPage';
 import { GroupFormPage } from '@/features/group/GroupFormPage';
 import { GroupPage } from '@/features/group/GroupPage';
 import { MapPage } from '@/features/map/MapPage';
+import { ContactPage } from '@/features/my/ContactPage';
 import { MyPage } from '@/features/my/MyPage';
 import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
@@ -97,12 +98,16 @@ export const router = createBrowserRouter([
       },
       // 스토어 심사·앱 스토어 등록에 공개 URL 이 필요해 로그인 밖에 둔다.
       {
-        path: 'my/privacy',
+        path: 'privacy',
         element: <PrivacyPolicyPage />,
       },
       {
-        path: 'my/terms',
+        path: 'terms',
         element: <TermsPage />,
+      },
+      {
+        path: 'support',
+        element: <ContactPage />,
       },
     ],
   },

@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import type { Group } from '@/features/group/types';
 import type { MyProfile } from '@/features/my/api';
+import { ContactPage } from '@/features/my/ContactPage';
 import { MyPage } from '@/features/my/MyPage';
 import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
@@ -67,8 +68,9 @@ function renderMyPage() {
         <BottomMenuVisibilityProvider value={{ hidden: false, setHidden }}>
           <Routes>
             <Route path="/my" element={<MyPage />} />
-            <Route path="/my/privacy" element={<PrivacyPolicyPage />} />
-            <Route path="/my/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/support" element={<ContactPage />} />
           </Routes>
         </BottomMenuVisibilityProvider>
       </MemoryRouter>
@@ -118,6 +120,27 @@ describe('MyPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /^이용약관$/ }));
     expect(screen.getByText('NOOK 서비스 이용약관')).toBeInTheDocument();
     expect(screen.getByText('1. 서비스의 범위')).toBeInTheDocument();
+  });
+
+  it('문의하기 페이지에서 이메일 링크를 제공한다', async () => {
+    renderMyPage();
+    await screen.findByText('졸림핑');
+
+    fireEvent.click(screen.getByRole('button', { name: /문의하기/ }));
+
+    expect(screen.getByRole('heading', { name: 'Nook 문의하기' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Nook 이용 중 문의사항이나 불편사항이 있으시면 아래 이메일로 연락해주세요.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'everynook123@gmail.com' })).toHaveAttribute(
+      'href',
+      'mailto:everynook123@gmail.com',
+    );
+    expect(screen.getByRole('link', { name: '이용약관' })).toHaveAttribute('href', '/terms');
+    expect(screen.getByRole('link', { name: '개인정보처리방침' })).toHaveAttribute(
+      'href',
+      '/privacy',
+    );
   });
 
   it('내 정보를 불러오는 동안 카드 자리를 스켈레톤으로 채운다', () => {
