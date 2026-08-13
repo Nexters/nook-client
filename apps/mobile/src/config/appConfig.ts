@@ -22,3 +22,9 @@ function required(value: string | undefined, key: keyof NookExtra): string {
 
 export const WEB_URL = required(extra.webUrl, 'webUrl');
 export const API_BASE_URL = required(extra.apiBaseUrl, 'apiBaseUrl');
+
+/**
+ * app.json 의 `version` — 스토어에 노출되는 마케팅 버전이다.
+ * URL 들과 달리 없다고 앱이 못 도는 값은 아니라서, 비면 웹이 버전 표기를 숨기게 둔다.
+ */
+export const APP_VERSION = Constants.expoConfig?.version ?? '';
