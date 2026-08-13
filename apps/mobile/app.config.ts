@@ -56,6 +56,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           backgroundColor: SPLASH_BACKGROUND_COLOR,
           imageWidth: 200,
           resizeMode: 'contain',
+          // Android 12+ 는 스플래시 이미지를 원형으로 잘라 보여준다(캔버스의 66.7%만 노출).
+          // 태그라인까지 넣으면 가장자리가 잘려서, 원 안에 들어가는 로고+워드마크만 쓴다.
+          android: {
+            image: './assets/splash-android.png',
+            imageWidth: 200,
+          },
         },
       ],
       [
