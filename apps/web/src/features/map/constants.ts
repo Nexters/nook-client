@@ -34,10 +34,12 @@ export const DETAIL_SNAP_POINTS = [PEEK_SNAP_POINT, DETAIL_PAGE_SNAP_POINT, FULL
 export const PIN_DETAIL_MIN_ZOOM = 14;
 
 /**
- * 클러스터 격자 한 칸의 화면 픽셀 크기. 키우면 더 넓은 범위를 하나로 묶는다.
- * 버블 지름(44px)보다 넉넉해야 버블끼리 붙어 보이지 않는다.
+ * 클러스터 병합 반경(화면 픽셀). 기준 핀에서 이 거리 안에 있는 핀이 한 덩어리가 된다.
+ * 키우면 더 넓은 범위를 하나로 묶는다. 버블 지름(44px)보다 넉넉해야 버블끼리 붙어 보이지 않는다.
+ *
+ * 반경이라 한 덩어리의 지름은 이 값의 두 배까지 벌어질 수 있다.
  */
-export const CLUSTER_CELL_SIZE_PX = 72;
+export const CLUSTER_MERGE_RADIUS_PX = 72;
 
 /**
  * 클러스터 버블을 눌렀을 때 확대할 줌 단계. 멤버가 많으면 한 번에 다 풀리지 않고

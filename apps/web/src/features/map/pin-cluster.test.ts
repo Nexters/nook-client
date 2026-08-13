@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CLUSTER_CELL_SIZE_PX, PIN_DETAIL_MIN_ZOOM } from './constants';
+import { CLUSTER_MERGE_RADIUS_PX, PIN_DETAIL_MIN_ZOOM } from './constants';
 import { clusterPins } from './pin-cluster';
 import type { MapPin } from './types';
 
@@ -7,49 +7,75 @@ function pin(id: number, lat: number, lng: number): MapPin {
   return { id, lat, lng, name: `장소 ${id}`, color: 'blue' };
 }
 
-/** 해당 줌에서 격자 한 칸이 몇 도(경도)인지 — 테스트가 상수 변경에 따라 같이 움직이게 한다. */
-function cellWidthInDegrees(zoom: number) {
-  return (CLUSTER_CELL_SIZE_PX * 360) / (256 * 2 ** zoom);
+/** 해당 줌에서 화면 1px 이 몇 도(경도)인지 — 테스트가 상수 변경에 따라 같이 움직이게 한다. */
+function degreesPerPixel(zoom: number) {
+  return 360 / (256 * 2 ** zoom);
 }
 
-/**
- * `lng` 가 속한 격자 칸의 왼쪽 경계 경도. "같은 칸"을 확정적으로 만들려면 필요하다 —
- * 그냥 가까이 붙여 놓는 것만으로는 하필 칸 경계를 넘어 갈라질 수 있다.
- */
-function cellOriginLng(lng: number, zoom: number) {
-  const scale = 256 * 2 ** zoom;
-  const worldX = ((lng + 180) / 360) * scale;
-  const originWorldX = Math.floor(worldX / CLUSTER_CELL_SIZE_PX) * CLUSTER_CELL_SIZE_PX;
-  return (originWorldX / scale) * 360 - 180;
+/** 화면상 `px` 픽셀만큼 동쪽으로 떨어진 경도. */
+function lngOffsetByPixels(lng: number, px: number, zoom: number) {
+  return lng + px * degreesPerPixel(zoom);
 }
 
 describe('clusterPins', () => {
-  it('같은 칸의 핀은 하나로 묶고 무게중심에 놓는다', () => {
+  it('반경 안의 핀은 하나로 묶고 무게중심에 놓는다', () => {
     const zoom = 10;
-    const width = cellWidthInDegrees(zoom);
-    // 한 칸 안쪽 1/4·1/2·3/4 지점 — 경계에 걸릴 여지가 없다.
-    const origin = cellOriginLng(127, zoom);
-    const lngs = [origin + width * 0.25, origin + width * 0.5, origin + width * 0.75];
-    const clusters = clusterPins(
-      lngs.map((lng, index) => pin(index + 1, 37.5, lng)),
-      zoom,
-    );
+    const half = CLUSTER_MERGE_RADIUS_PX / 2;
+    const pins = [
+      pin(1, 37.5, 127),
+      pin(2, 37.5, lngOffsetByPixels(127, half / 2, zoom)),
+      pin(3, 37.5, lngOffsetByPixels(127, half, zoom)),
+    ];
+    const clusters = clusterPins(pins, zoom);
     const [cluster] = clusters;
 
     expect(clusters).toHaveLength(1);
-    expect(cluster?.pins.map((item) => item.id)).toEqual([1, 2, 3]);
-    expect(cluster?.lng).toBeCloseTo(origin + width * 0.5, 6);
+    expect(cluster?.pins.map((item) => item.id).sort()).toEqual([1, 2, 3]);
     expect(cluster?.lat).toBeCloseTo(37.5, 6);
   });
 
-  it('멀리 떨어진 핀은 각각 다른 클러스터가 된다', () => {
+  it('격자와 달리 경계 위치에 상관없이 붙어 있으면 합쳐진다', () => {
     const zoom = 10;
-    // 세 칸 너비만큼 벌리면 경계에 어떻게 걸려도 같은 칸이 될 수 없다.
-    const gap = cellWidthInDegrees(zoom) * 3;
-    const clusters = clusterPins([pin(1, 37.5, 127), pin(2, 37.5, 127 + gap)], zoom);
+    // 격자 방식이라면 칸 경계가 사이를 지날 때 갈라졌을 아주 가까운 두 점.
+    // 어떤 시작 경도에서 출발해도 항상 한 덩어리여야 한다.
+    const gap = CLUSTER_MERGE_RADIUS_PX / 4;
+    for (const baseLng of [126.9, 126.97, 127.0, 127.013, 127.0249, 127.05]) {
+      const clusters = clusterPins(
+        [pin(1, 37.5, baseLng), pin(2, 37.5, lngOffsetByPixels(baseLng, gap, zoom))],
+        zoom,
+      );
+      expect(clusters, `baseLng=${baseLng}`).toHaveLength(1);
+    }
+  });
+
+  it('반경 밖의 핀은 각각 다른 클러스터가 된다', () => {
+    const zoom = 10;
+    const far = CLUSTER_MERGE_RADIUS_PX * 2;
+    const clusters = clusterPins(
+      [pin(1, 37.5, 127), pin(2, 37.5, lngOffsetByPixels(127, far, zoom))],
+      zoom,
+    );
 
     expect(clusters).toHaveLength(2);
     expect(clusters.map((cluster) => cluster.pins.length)).toEqual([1, 1]);
+  });
+
+  it('병합이 연쇄되지 않는다 — 이웃의 이웃까지 끌어오지 않는다', () => {
+    const zoom = 10;
+    const step = CLUSTER_MERGE_RADIUS_PX * 0.75;
+    // 1—2 는 반경 안, 2—3 도 반경 안이지만 1—3 은 반경 밖이다.
+    // 연쇄 병합이면 셋이 한 덩어리가 되어 무게중심이 2 위에 찍힌다.
+    const clusters = clusterPins(
+      [
+        pin(1, 37.5, 127),
+        pin(2, 37.5, lngOffsetByPixels(127, step, zoom)),
+        pin(3, 37.5, lngOffsetByPixels(127, step * 2, zoom)),
+      ],
+      zoom,
+    );
+
+    expect(clusters).toHaveLength(2);
+    expect(clusters.map((cluster) => cluster.pins.length)).toEqual([2, 1]);
   });
 
   it('핀이 하나면 멤버 1개인 클러스터를 그대로 돌려준다 — 시안에 "1" 버블이 있다', () => {
@@ -63,11 +89,10 @@ describe('clusterPins', () => {
   });
 
   it('줌인할수록 같은 핀들이 더 잘게 쪼개진다', () => {
-    // 줌 8 에서 한 칸에 들어가는 간격 — 줌이 커지면 칸이 그만큼 좁아져 갈라진다.
     const pins = [
       pin(1, 37.5, 127),
-      pin(2, 37.5, 127 + cellWidthInDegrees(8) / 4),
-      pin(3, 37.5, 127 + cellWidthInDegrees(8) / 2),
+      pin(2, 37.5, lngOffsetByPixels(127, CLUSTER_MERGE_RADIUS_PX / 2, 8)),
+      pin(3, 37.5, lngOffsetByPixels(127, CLUSTER_MERGE_RADIUS_PX, 8)),
     ];
 
     expect(clusterPins(pins, 8).length).toBeLessThan(clusterPins(pins, 14).length);
@@ -77,12 +102,21 @@ describe('clusterPins', () => {
     expect(clusterPins([], PIN_DETAIL_MIN_ZOOM - 1)).toEqual([]);
   });
 
-  it('key 는 좌표에만 달려 있어 지도를 팬해도(같은 줌·같은 칸이면) 그대로다', () => {
+  it('입력 순서가 바뀌어도 같은 그룹과 같은 key 가 나온다', () => {
     const zoom = 11;
-    const [first] = clusterPins([pin(1, 37.5, 127)], zoom);
-    // 같은 좌표의 다른 핀 객체 — 월드 격자 기준이라 key 는 핀 id 와 무관하다.
-    const [second] = clusterPins([pin(99, 37.5, 127)], zoom);
+    const near = CLUSTER_MERGE_RADIUS_PX / 3;
+    const pins = [
+      pin(7, 37.5, 127),
+      pin(3, 37.5, lngOffsetByPixels(127, near, zoom)),
+      pin(9, 37.6, 127.3),
+    ];
 
-    expect(first?.key).toBe(second?.key);
+    const forward = clusterPins(pins, zoom);
+    const reversed = clusterPins([...pins].reverse(), zoom);
+
+    expect(reversed.map((cluster) => cluster.key)).toEqual(forward.map((cluster) => cluster.key));
+    expect(reversed.map((cluster) => cluster.pins.length)).toEqual(
+      forward.map((cluster) => cluster.pins.length),
+    );
   });
 });

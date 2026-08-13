@@ -51,7 +51,7 @@ Figma 원시값은 전부 기존 토큰에 그대로 대응한다. 새 토큰은
 
 ## 클러스터링 방식
 
-**웹 메르카토르 픽셀 공간 격자(grid) — 순수 함수.**
+**웹 메르카토르 픽셀 공간에서의 반경 병합 — 순수 함수.**
 
 ```ts
 // features/map/pin-cluster.ts
@@ -59,12 +59,32 @@ export function clusterPins(pins: MapPin[], zoom: number): PinCluster[]
 export interface PinCluster { key: string; lat: number; lng: number; pins: MapPin[] }
 ```
 
-각 핀의 위경도를 메르카토르 정규 좌표로 바꾼 뒤 `256 * 2^zoom` 을 곱해 월드 픽셀을 얻고, `CLUSTER_CELL_SIZE_PX` 격자로 버킷팅한다. 클러스터 좌표는 소속 핀의 무게중심.
+각 핀의 위경도를 메르카토르 정규 좌표로 바꾼 뒤 `256 * 2^zoom` 을 곱해 월드 픽셀을 얻고, 기준 핀(씨앗)에서 `CLUSTER_MERGE_RADIUS_PX` 안에 있는 핀을 흡수한다. 클러스터 좌표는 소속 핀의 무게중심.
 
 - 지도 인스턴스에 의존하지 않는 순수 함수라 단위 테스트가 그대로 가능하다 (`place-sheet-layout.ts` / `.test.ts` 와 같은 결).
-- 화면 픽셀과 같은 좌표계라 위도에 따라 격자가 찌그러지지 않는다. 위경도 도(degree) 격자로 하면 고위도에서 가로가 늘어난다.
-- 새 의존성이 없다. bbox 조회는 화면 안 핀만 내려주므로 수십 개 수준이고, `supercluster` 같은 라이브러리는 과하다.
+- 화면 픽셀과 같은 좌표계라 여기서 잰 거리가 사용자가 화면에서 보는 거리와 일치한다. 위경도 도(degree)로 재면 고위도에서 가로가 늘어난다.
+- 새 의존성이 없다. bbox 조회는 화면 안 핀만 내려주므로 수십 개 수준이고, `supercluster` 같은 라이브러리는 과하다. O(n²) 이지만 그 규모에선 무시할 만하다 — 수천 개로 늘면 이웃 탐색을 인덱싱하면 된다.
 - `naver.maps.MarkerClustering` 은 별도 스크립트인 데다 `naver.maps.Marker` 전용이라, React `CustomOverlay` 로 그리는 지금 구조와 맞지 않는다.
+
+### 격자에서 반경으로 바꾼 이유
+
+처음엔 화면을 `CLUSTER_CELL_SIZE_PX` 격자로 잘라 같은 칸끼리 묶었다. 그런데 격자는 **칸 경계가 사이를 지나가면 바로 붙어 있는 핀도 갈라놓는다.** 줌아웃해도 경계 위치만 바뀔 뿐 계속 재발해서, 아무리 축소해도 "1"짜리 버블이 남았다.
+
+실제 계정 데이터(32곳)로 같은 줌에서 두 방식을 비교한 결과:
+
+| 줌 | 격자 (버블 / 그중 1짜리) | 반경 (버블 / 그중 1짜리) |
+| --- | --- | --- |
+| 13 | 19 / 14 | 13 / 9 |
+| 12 | 12 / 8 | 9 / 4 |
+| 10 | 7 / 5 | 5 / 4 |
+| 8 | 6 / 5 | 3 / 2 |
+| 6 (최소 줌) | **29, 1, 1, 1** | **31, 1** |
+
+최소 줌에서 격자는 `29,1,1,1`, 반경은 `31,1` 이다. 남는 하나는 부산 쪽에 홀로 있는 장소라 따로 남는 게 맞다 — 서울 덩어리에 합치면 버블이 대전 어딘가에 찍혀 위치가 거짓말이 된다.
+
+**병합은 연쇄되지 않는다.** 씨앗 반경 안까지만 흡수하고, 흡수된 핀의 이웃을 다시 끌어오지는 않는다. 연쇄 병합(single-link)을 허용하면 촘촘히 이어진 점들을 타고 서울에서 부산까지 한 덩어리가 되어 무게중심이 아무도 없는 곳에 찍힌다.
+
+**씨앗 순서는 좌표(y → x → id)로 고정한다.** 입력 배열 순서가 흔들려도 같은 그룹과 같은 `key` 가 나와야 React 가 버블을 불필요하게 다시 마운트하지 않고, 테스트도 결정적이 된다.
 
 **규칙**
 - 클러스터는 `zoom < PIN_DETAIL_MIN_ZOOM` 일 때만 만든다. 그 이상에서는 시안대로 썸네일 핀이 서로 겹쳐도 그대로 둔다(줌인 시안에 겹친 핀이 그려져 있다).
@@ -79,8 +99,8 @@ export interface PinCluster { key: string; lat: number; lng: number; pins: MapPi
 /** 이 줌 이상에서 개별 썸네일 핀, 미만에서 클러스터 버블. */
 export const PIN_DETAIL_MIN_ZOOM = 14;
 
-/** 클러스터 격자 한 칸의 화면 픽셀 크기. 키우면 더 넓게 묶인다. */
-export const CLUSTER_CELL_SIZE_PX = 72;
+/** 클러스터 병합 반경(화면 픽셀). 키우면 더 넓게 묶인다. 지름은 이 값의 두 배까지. */
+export const CLUSTER_MERGE_RADIUS_PX = 72;
 
 /** 버블을 눌렀을 때 확대할 줌 단계. */
 export const CLUSTER_ZOOM_STEP = 2;
@@ -173,7 +193,7 @@ sky(73.6)와 red(65.7) 사이에 8포인트 갭이 있고 시안이 흰 글리�
 features/map/
   pin-cluster.ts            (신규) clusterPins + 메르카토르 격자
   pin-cluster.test.ts       (신규)
-  constants.ts              PIN_DETAIL_MIN_ZOOM / CLUSTER_CELL_SIZE_PX 추가, PIN_LABEL_MIN_ZOOM 삭제
+  constants.ts              PIN_DETAIL_MIN_ZOOM / CLUSTER_MERGE_RADIUS_PX / CLUSTER_ZOOM_STEP 추가, PIN_LABEL_MIN_ZOOM 삭제
   types.ts                  MapPin.thumbnail 추가
   api/index.ts              toMapPin 에 thumbnail 매핑
   components/
@@ -215,7 +235,7 @@ const clustered = zoom < PIN_DETAIL_MIN_ZOOM;
 
 검증: `pnpm lint && pnpm typecheck && pnpm test` (`pnpm check` 는 API 스키마까지 본다)
 
-시각 확인은 jade가 직접 — 특히 `PIN_DETAIL_MIN_ZOOM` 과 `CLUSTER_CELL_SIZE_PX` 를 만져보며 정한다.
+시각 확인은 jade가 직접 — 특히 `PIN_DETAIL_MIN_ZOOM` 과 `CLUSTER_MERGE_RADIUS_PX` 를 만져보며 정한다.
 
 ## 하지 않는 것
 
