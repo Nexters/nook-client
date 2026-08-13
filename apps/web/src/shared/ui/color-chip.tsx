@@ -29,6 +29,21 @@ export const COLOR_BG_CLASS: Record<GroupColor, string> = {
 };
 
 /**
+ * 그룹 색상을 글자색으로 — `fill="currentColor"` 인 SVG 를 그룹 색으로 칠할 때도 쓴다
+ * (지도 선택 핀). 리터럴 매핑을 쓰는 이유는 `COLOR_BG_CLASS` 와 같다.
+ */
+export const COLOR_TEXT_CLASS: Record<GroupColor, string> = {
+  yellow: 'text-yellow',
+  red: 'text-red',
+  pink: 'text-pink',
+  purple: 'text-purple',
+  blue: 'text-blue',
+  sky: 'text-sky',
+  green: 'text-green',
+  cement: 'text-cement',
+};
+
+/**
  * Figma "Chip_GroupColor" 기준 그룹 색상 선택 스와치 1개.
  *
  * 스와치는 20px 정사각. 선택 표시는 시안이 스와치 바깥 4px 자리에 1px gray-100 테두리를
