@@ -5,6 +5,9 @@ type AppVariant = keyof typeof nativePublicConfig.appIds;
 
 const KAKAO_MAVEN_REPOSITORY = 'https://devrepo.kakao.com/nexus/content/groups/public/';
 
+// 웹의 gray-10. 네이티브 스플래시와 웹 첫 화면 배경을 같은 색으로 맞춰 전환 시 색 점프를 없앤다.
+const SPLASH_BACKGROUND_COLOR = '#f4f5f7';
+
 // APP_VARIANT 미설정 시 production. 오타·누락으로 엉뚱한 식별자가 만들어지지 않게
 // 알 수 없는 값도 production 으로 떨어뜨린다.
 function resolveVariant(): AppVariant {
@@ -43,6 +46,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           android: {
             extraMavenRepos: [KAKAO_MAVEN_REPOSITORY],
           },
+        },
+      ],
+      [
+        'expo-splash-screen',
+        {
+          // 로고·워드마크·태그라인이 한 장에 담긴 시안 이미지. 네이티브 스플래시는 이미지 하나만 받는다.
+          image: './assets/splash.png',
+          backgroundColor: SPLASH_BACKGROUND_COLOR,
+          imageWidth: 200,
+          resizeMode: 'contain',
         },
       ],
       [

@@ -1,11 +1,20 @@
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useWebViewBridge } from './src/bridge/useWebViewBridge';
 
+// 웹이 첫 화면을 그리기 전까지 스플래시를 붙잡아 둔다. 컴포넌트 밖에서 불러야 첫 렌더 전에 적용된다.
+void SplashScreen.preventAutoHideAsync();
+
+/** 웹이 응답하지 않아도 스플래시에 갇히지 않게 하는 상한. */
+const SPLASH_TIMEOUT_MS = 10_000;
+
 export default function App() {
   const {
     bootstrapped,
+    webReady,
     injectedJavaScript,
     onMessage,
     onShouldStartLoadWithRequest,
@@ -13,6 +22,17 @@ export default function App() {
     webViewKey,
     webViewRef,
   } = useWebViewBridge();
+
+  // 웹이 첫 화면을 그린 뒤에 내린다 — RN 마운트 시점에 내리면 웹을 받는 동안 빈 화면이 보인다.
+  useEffect(() => {
+    if (!webReady) return;
+    void SplashScreen.hideAsync();
+  }, [webReady]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => void SplashScreen.hideAsync(), SPLASH_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -45,6 +65,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  // 스플래시와 같은 배경이라 웹이 그려지기 전 잠깐 비쳐도 색이 튀지 않는다.
+  container: { flex: 1, backgroundColor: '#f4f5f7' },
   webview: { flex: 1 },
 });

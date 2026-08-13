@@ -34,6 +34,8 @@ function openExternal(url: string): void {
 export function useWebViewBridge() {
   const webViewRef = useRef<WebView>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
+  // 웹이 WEB_READY 를 보낸 시점 = 원격 웹의 JS 가 실제로 실행됐다는 뜻. 스플래시를 내릴 기준이다.
+  const [webReady, setWebReady] = useState(false);
   const [webTarget, setWebTarget] = useState({ url: WEB_URL, revision: 0 });
 
   const applyAppLink = useCallback((appLink: string) => {
@@ -121,6 +123,7 @@ export function useWebViewBridge() {
           break;
         }
         case 'WEB_READY':
+          setWebReady(true);
           void restoreSession().then((session) => sendResult('web-ready', session));
           break;
         case 'SESSION_GET':
@@ -185,6 +188,7 @@ export function useWebViewBridge() {
   return {
     injectedJavaScript: INJECT_BEFORE,
     bootstrapped,
+    webReady,
     onMessage,
     onShouldStartLoadWithRequest,
     webUrl: webTarget.url,
