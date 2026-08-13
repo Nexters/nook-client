@@ -48,32 +48,39 @@ export function PlacePin({
           {selected ? (
             <SelectedPinMarker color={color} />
           ) : (
+            /*
+              `max-w-none` 이 없으면 사진 너비가 0 으로 붕괴한다 — Tailwind preflight 의
+              `img { max-width: 100% }` 가 폭 0 인 앵커를 기준으로 100% = 0 이 되어
+              `size-12` 의 48px 을 눌러버린다. 높이는 눌리지 않아 4×48 짜리 띠만 남는다.
+            */
             <img
               src={thumbnail ?? emptyThumbnail}
               alt=""
-              className="block size-12 rounded-lg border-2 border-gray-0 bg-gray-10 object-cover shadow-[0_2px_10px_rgba(0,0,0,0.25)]"
+              className="block size-12 max-w-none rounded-lg border-2 border-gray-0 bg-gray-10 object-cover shadow-[0_2px_10px_rgba(0,0,0,0.25)]"
             />
           )}
-        </button>
-        {/*
-          이름표. 좌표 6px 아래에 그린다(시안의 flex column gap 6px 과 같은 간격).
-          이름은 위 버튼의 aria-label 이 이미 갖고 있어 스크린리더에는 숨긴다.
-        */}
-        <span
-          aria-hidden="true"
-          className={`-translate-x-1/2 pointer-events-none absolute top-1.5 left-1/2 flex items-center gap-1.5 rounded-md ${
-            selected
-              ? 'border border-gray-20 bg-gray-0 px-[7px] py-[3px] drop-shadow-[0_2px_5px_rgba(0,0,0,0.1)]'
-              : 'bg-gray-90/85 px-2 py-1 shadow-[0_2px_10px_rgba(0,0,0,0.2)]'
-          }`}
-        >
-          <span className={`block size-1.5 shrink-0 ${COLOR_BG_CLASS[color]}`} />
+          {/*
+            이름표. 좌표 6px 아래에 그린다(시안의 flex column gap 6px 과 같은 간격).
+            버튼 안에 두어야 이름표를 눌러도 핀이 선택된다. absolute 라 문서 흐름에서 빠져
+            버튼 크기(=앵커 기준)에는 영향을 주지 않는다 — 이름이 길어져도 핀이 밀리지 않는다.
+            이름 자체는 버튼의 aria-label 이 이미 갖고 있어 스크린리더에는 숨긴다.
+          */}
           <span
-            className={`whitespace-nowrap text-s1 ${selected ? 'text-gray-100' : 'text-gray-10'}`}
+            aria-hidden="true"
+            className={`-translate-x-1/2 absolute top-full left-1/2 mt-1.5 flex items-center gap-1.5 rounded-md ${
+              selected
+                ? 'border border-gray-20 bg-gray-0 px-[7px] py-[3px] drop-shadow-[0_2px_5px_rgba(0,0,0,0.1)]'
+                : 'bg-gray-90/85 px-2 py-1 shadow-[0_2px_10px_rgba(0,0,0,0.2)]'
+            }`}
           >
-            {name}
+            <span className={`block size-1.5 shrink-0 ${COLOR_BG_CLASS[color]}`} />
+            <span
+              className={`whitespace-nowrap text-s1 ${selected ? 'text-gray-100' : 'text-gray-10'}`}
+            >
+              {name}
+            </span>
           </span>
-        </span>
+        </button>
       </div>
     </CustomOverlay>
   );
