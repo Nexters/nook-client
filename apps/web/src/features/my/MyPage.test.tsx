@@ -11,7 +11,12 @@ import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
 import { ToastProvider } from '@/shared/toast';
 
-const PROFILE: MyProfile = { id: 1, nickname: '졸림핑', profileImageUrl: null };
+const PROFILE: MyProfile = {
+  id: 1,
+  nickname: '졸림핑',
+  profileImageUrl: null,
+  provider: 'KAKAO',
+};
 const PICKED_IMAGE = { base64: 'aGk=', mimeType: 'image/png', width: 600, height: 600 };
 const UPLOADED_URL = 'https://cdn.example.com/profile/1.png';
 const GROUPS: Group[] = [
@@ -105,6 +110,22 @@ describe('MyPage', () => {
     expect(screen.getByText('문의하기')).toBeInTheDocument();
     // 로그인 정보는 이동할 곳이 없어 눌리지 않는 행이다(화살표 없음).
     expect(screen.queryByRole('button', { name: /로그인 정보/ })).not.toBeInTheDocument();
+  });
+
+  it('가입에 쓴 소셜 로그인을 로그인 정보 행에 보여준다', async () => {
+    mocks.fetchMyProfile.mockResolvedValue({ ...PROFILE, provider: 'APPLE' });
+    renderMyPage();
+
+    expect(await screen.findByText('apple')).toBeInTheDocument();
+  });
+
+  it('셸이 앱 버전을 주입하지 않으면 버전 값을 비워 둔다', async () => {
+    renderMyPage();
+    await screen.findByText('졸림핑');
+
+    // 브라우저(셸 밖)에서는 알 수 없는 값이라 "v1.0" 같은 걸 지어내지 않는다.
+    expect(screen.getByText('버전 정보')).toBeInTheDocument();
+    expect(screen.queryByText(/^v\d/)).not.toBeInTheDocument();
   });
 
   it('개인정보 처리방침 페이지로 이동한다', async () => {

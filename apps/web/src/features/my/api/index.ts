@@ -5,6 +5,7 @@ import {
   createProfileImageUpload,
   getMe as getMeEndpoint,
   logout as logoutEndpoint,
+  type MemberProfileResponseProvider,
   unwrapApiResponse,
   updateMe as updateMeEndpoint,
   withdraw as withdrawEndpoint,
@@ -17,6 +18,8 @@ export interface MyProfile {
   id: number;
   nickname: string;
   profileImageUrl: string | null;
+  /** 가입에 쓴 소셜 로그인. 서버는 KAKAO/GOOGLE/APPLE 로 주고, 화면 표기는 사용처가 정한다. */
+  provider: MemberProfileResponseProvider;
 }
 
 export interface MyProfilePatch {
@@ -33,6 +36,7 @@ export async function fetchMyProfile(): Promise<MyProfile> {
     id: dto.id,
     nickname: dto.nickname,
     profileImageUrl: dto.profileImageUrl ?? null,
+    provider: dto.provider,
   };
 }
 
@@ -45,6 +49,7 @@ export async function updateMyProfile(patch: MyProfilePatch): Promise<MyProfile>
     id: dto.id,
     nickname: dto.nickname,
     profileImageUrl: dto.profileImageUrl ?? null,
+    provider: dto.provider,
   };
 }
 

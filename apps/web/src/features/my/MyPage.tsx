@@ -50,6 +50,10 @@ export function MyPage() {
     : undefined;
   const avatarUrl = previewUrl ?? profile?.profileImageUrl ?? undefined;
   const savedPlaceCount = groups?.reduce((sum, group) => sum + group.placeCount, 0) ?? 0;
+  // 서버는 KAKAO/APPLE 처럼 대문자로 주지만 시안 표기는 소문자다.
+  const providerLabel = profile ? profile.provider.toLowerCase() : undefined;
+  // 셸이 주입한 실제 앱 버전. 브라우저로 열면 알 수 없어 행에서 값만 빠진다.
+  const appVersion = nativeBridge.appVersion ? `v${nativeBridge.appVersion}` : undefined;
 
   const handlePickImage = async (source: ImagePickSource) => {
     setImageSheetOpen(false);
@@ -230,12 +234,18 @@ export function MyPage() {
 
           <div className="mt-6 flex flex-col gap-5 px-4">
             <MyMenuSection title="계정 정보">
-              {/* 로그인 provider 는 아직 API 가 내려주지 않는다. */}
-              <MyMenuRow icon={<Icon16User />} label="로그인 정보" />
+              <MyMenuRow icon={<Icon16User />} label="로그인 정보" value={providerLabel} />
             </MyMenuSection>
 
             <MyMenuSection title="앱 정보">
-              <MyMenuRow icon={<Icon16Version />} label="버전 정보" badge="최신버전" value="v1.0" />
+              {/* TODO: "최신버전" 배지는 아직 하드코딩이다 — 스토어 최신 버전을 알려주는
+                  API 가 생기기 전까지는 실제 최신 여부를 판단할 수 없다. */}
+              <MyMenuRow
+                icon={<Icon16Version />}
+                label="버전 정보"
+                badge="최신버전"
+                value={appVersion}
+              />
               <MyMenuRow
                 icon={<Icon16Info />}
                 label="개인정보 처리방침"

@@ -19,6 +19,7 @@ declare global {
   interface Window {
     ReactNativeWebView?: ReactNativeWebView;
     __nookPlatform?: string;
+    __nookAppVersion?: string;
     __nookReceive?: (json: string) => void;
   }
 }
@@ -45,8 +46,15 @@ function detectPlatform(): Platform {
   return 'web';
 }
 
+/** 셸이 심어준 앱 버전. 브라우저로 열었거나 구버전 셸이면 알 수 없다. */
+function detectAppVersion(): string | null {
+  return window.__nookAppVersion || null;
+}
+
 class NativeBridge {
   readonly platform: Platform = detectPlatform();
+  /** app.json 의 version (예: "1.0.0"). 셸 밖에서는 null. */
+  readonly appVersion: string | null = detectAppVersion();
   private handlers = new Set<Handler>();
   private buffer: NativeToWeb[] = [];
   private started = false;
