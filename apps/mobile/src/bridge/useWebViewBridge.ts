@@ -39,6 +39,9 @@ function openExternal(url: string): void {
 export function useWebViewBridge() {
   const webViewRef = useRef<WebView>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
+  // 웹이 WEB_READY 를 보낸 시점 = 원격 웹의 JS 가 실제로 실행됐다는 뜻. 스플래시를 내릴 기준이다.
+  const [webReady, setWebReady] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [webTarget, setWebTarget] = useState({ url: WEB_URL, revision: 0 });
 
   const applyAppLink = useCallback((appLink: string) => {
@@ -126,6 +129,8 @@ export function useWebViewBridge() {
           break;
         }
         case 'WEB_READY':
+          setWebReady(true);
+          setLoadFailed(false);
           void restoreSession().then((session) => sendResult('web-ready', session));
           break;
         case 'SESSION_GET':
@@ -187,9 +192,26 @@ export function useWebViewBridge() {
     return decision === 'allow';
   }, []);
 
+  // 메인 프레임 로드가 실패했을 때만 오류 화면으로 간다. 하위 리소스 실패까지 전면 오류로
+  // 덮으면 이미 뜬 화면이 통째로 사라진다.
+  const onLoadFailed = useCallback(() => {
+    setLoadFailed(true);
+  }, []);
+
+  // 실패한 WebView 는 reload() 가 듣지 않는 경우가 있어 key 를 바꿔 새로 마운트한다.
+  const retryLoad = useCallback(() => {
+    setLoadFailed(false);
+    setWebReady(false);
+    setWebTarget((current) => ({ ...current, revision: current.revision + 1 }));
+  }, []);
+
   return {
     injectedJavaScript: INJECT_BEFORE,
     bootstrapped,
+    webReady,
+    loadFailed,
+    onLoadFailed,
+    retryLoad,
     onMessage,
     onShouldStartLoadWithRequest,
     webUrl: webTarget.url,

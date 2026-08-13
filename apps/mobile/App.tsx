@@ -1,11 +1,24 @@
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useWebViewBridge } from './src/bridge/useWebViewBridge';
+import { NetworkErrorView } from './src/webview/NetworkErrorView';
+
+// 웹이 첫 화면을 그리기 전까지 스플래시를 붙잡아 둔다. 컴포넌트 밖에서 불러야 첫 렌더 전에 적용된다.
+void SplashScreen.preventAutoHideAsync();
+
+/** 웹이 응답하지 않아도 스플래시에 갇히지 않게 하는 상한. */
+const SPLASH_TIMEOUT_MS = 10_000;
 
 export default function App() {
   const {
     bootstrapped,
+    webReady,
+    loadFailed,
+    onLoadFailed,
+    retryLoad,
     injectedJavaScript,
     onMessage,
     onShouldStartLoadWithRequest,
@@ -13,6 +26,17 @@ export default function App() {
     webViewKey,
     webViewRef,
   } = useWebViewBridge();
+
+  // 웹이 그려졌거나(webReady) 오류 화면을 띄울 수 있게 되면(loadFailed) 스플래시를 내린다.
+  useEffect(() => {
+    if (!webReady && !loadFailed) return;
+    void SplashScreen.hideAsync();
+  }, [webReady, loadFailed]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => void SplashScreen.hideAsync(), SPLASH_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -28,6 +52,12 @@ export default function App() {
           // 모든 탐색을 콜백으로 전달하고, 실제 허용 여부는 정확한 URL 판정으로 결정한다.
           originWhitelist={['*']}
           onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
+          // 연결이 없거나 웹을 못 받아오면 흰 화면 대신 안내를 띄운다.
+          onError={onLoadFailed}
+          // 메인 문서가 5xx 로 떨어진 경우만 오류로 본다 — 하위 리소스·SPA 라우트는 웹이 처리한다.
+          onHttpError={({ nativeEvent }) => {
+            if (nativeEvent.url === webUrl && nativeEvent.statusCode >= 500) onLoadFailed();
+          }}
           // 웹의 navigator.geolocation 을 프록시한다. Android 전용 prop — iOS(WKWebView)는
           // Info.plist 의 NSLocationWhenInUseUsageDescription 만으로 자체 처리한다.
           geolocationEnabled
@@ -40,11 +70,14 @@ export default function App() {
           style={styles.webview}
         />
       ) : null}
+      {/* WebView 가 그리는 기본 오류 페이지를 덮는다. */}
+      {loadFailed ? <NetworkErrorView onRetry={retryLoad} /> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  // 스플래시와 같은 배경이라 웹이 그려지기 전 잠깐 비쳐도 색이 튀지 않는다.
+  container: { flex: 1, backgroundColor: '#f4f5f7' },
   webview: { flex: 1 },
 });
