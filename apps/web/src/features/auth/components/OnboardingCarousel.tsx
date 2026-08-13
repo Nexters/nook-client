@@ -1,44 +1,108 @@
-import { type ComponentType, useRef, useState } from 'react';
+import type { LottieRefCurrentProps } from 'lottie-react';
+import { useEffect, useRef, useState } from 'react';
 import { CarouselIndicator } from '@/shared/ui/carousel-indicator';
-import {
-  ImportPlacesIllustration,
-  type OnboardingIllustrationProps,
-  OrganizePlacesIllustration,
-  SharePlacesIllustration,
-} from './OnboardingIllustrations';
+import { Lottie } from '@/shared/ui/lottie';
 
-const slides: ReadonlyArray<{
-  label: string;
-  Illustration: ComponentType<OnboardingIllustrationProps>;
-}> = [
+/**
+ * 온보딩 3장. 일러스트는 디자이너가 준 Lottie 를 그대로 재생한다.
+ *
+ * JSON 이 장당 0.6~2.2MB(대부분 base64 이미지)라 정적 import 로 묶으면 로그인 진입에
+ * 4MB 를 통째로 기다리게 된다 — 동적 import 로 쪼개 현재 장과 다음 장만 받는다.
+ */
+const SLIDES = [
   {
-    label: '마음에 드는 장소를 발견했다면 공유하기로 저장해보세요',
-    Illustration: ImportPlacesIllustration,
+    title: '발견한 장소를 누크에 쏙!',
+    description: '인스타그램에서 마음에 드는 장소를 발견하고\n누크로 가져와 보세요.',
+    load: () => import('@/assets/lottie/onboarding_1.json'),
   },
   {
-    label: '게시물을 저장하고 나만의 취향 지도를 만들어요',
-    Illustration: OrganizePlacesIllustration,
+    title: '게시물 속 장소를 지도에!',
+    description: '지도에서 게시물과 장소를 함께 보며\n가고 싶은 곳을 둘러보세요.',
+    load: () => import('@/assets/lottie/onboarding_2.json'),
   },
   {
-    label: '그룹별로 장소를 모아 언제든 쉽게 찾아볼 수 있어요',
-    Illustration: SharePlacesIllustration,
+    title: '나만의 아카이브를 만들어요',
+    description: '발견한 장소를 취향대로 모아 저장하고\n필요할 때 빠르게 찾아보세요.',
+    load: () => import('@/assets/lottie/onboarding_3.json'),
   },
 ] as const;
 
 const SWIPE_THRESHOLD = 36;
 
+/** 현재 장과 바로 다음 장만 받아 둔다. 실패한 장은 다시 요청할 수 있게 표시를 지운다. */
+function useOnboardingAnimations(activeIndex: number) {
+  const [animations, setAnimations] = useState<Record<number, unknown>>({});
+  const requested = useRef(new Set<number>());
+
+  useEffect(() => {
+    for (const index of [activeIndex, activeIndex + 1]) {
+      const slide = SLIDES[index];
+      if (!slide || requested.current.has(index)) continue;
+      requested.current.add(index);
+      slide
+        .load()
+        .then((module) => setAnimations((prev) => ({ ...prev, [index]: module.default })))
+        .catch(() => requested.current.delete(index));
+    }
+  }, [activeIndex]);
+
+  return animations;
+}
+
+function OnboardingSlide({
+  title,
+  description,
+  animationData,
+  active,
+}: {
+  title: string;
+  description: string;
+  animationData: unknown;
+  active: boolean;
+}) {
+  const lottieRef = useRef<LottieRefCurrentProps | null>(null);
+
+  // 보이지 않는 장까지 계속 돌면 저사양 기기에서 스와이프가 버벅인다.
+  useEffect(() => {
+    const lottie = lottieRef.current;
+    if (!lottie) return;
+    if (active) lottie.play();
+    else lottie.pause();
+  }, [active]);
+
+  return (
+    <div aria-hidden={!active} className="w-full shrink-0">
+      {/* 시안 캔버스가 375x400 이라 비율을 고정해, 로딩 전에도 자리가 흔들리지 않게 한다. */}
+      <div className="mx-auto aspect-[375/400] w-full max-w-[375px]">
+        {animationData ? (
+          <Lottie
+            lottieRef={lottieRef}
+            animationData={animationData}
+            autoplay={active}
+            className="h-full w-full"
+          />
+        ) : null}
+      </div>
+
+      <h2 className="mt-2 text-center text-h1 text-gray-100">{title}</h2>
+      <p className="mt-3 whitespace-pre-line text-center text-b2 text-gray-50">{description}</p>
+    </div>
+  );
+}
+
 export function OnboardingCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
   const pointerStartX = useRef<number | null>(null);
+  const animations = useOnboardingAnimations(activeIndex);
 
   const showPrevious = () => setActiveIndex((current) => Math.max(0, current - 1));
-  const showNext = () => setActiveIndex((current) => Math.min(slides.length - 1, current + 1));
+  const showNext = () => setActiveIndex((current) => Math.min(SLIDES.length - 1, current + 1));
 
   return (
     <section
       aria-roledescription="carousel"
       aria-label="누크 서비스 소개"
-      className="h-full w-full touch-pan-y"
+      className="flex min-h-0 flex-1 touch-pan-y flex-col justify-center"
       onPointerDown={(event) => {
         pointerStartX.current = event.clientX;
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -54,26 +118,30 @@ export function OnboardingCarousel() {
         pointerStartX.current = null;
       }}
     >
-      <div className="h-[calc(100%-18px)] overflow-hidden rounded-[28px]">
+      <div className="overflow-hidden">
         <div
-          className="flex h-full transition-transform duration-300 ease-out motion-reduce:transition-none"
+          className="flex transition-transform duration-300 ease-out motion-reduce:transition-none"
           style={{ transform: `translateX(-${activeIndex * 100}%)` }}
         >
-          {slides.map(({ label, Illustration }, index) => (
-            <div key={label} aria-hidden={index !== activeIndex} className="h-full w-full shrink-0">
-              <Illustration active={index === activeIndex} />
-            </div>
+          {SLIDES.map(({ title, description }, index) => (
+            <OnboardingSlide
+              key={title}
+              title={title}
+              description={description}
+              animationData={animations[index]}
+              active={index === activeIndex}
+            />
           ))}
         </div>
       </div>
 
       <CarouselIndicator
-        count={slides.length}
+        count={SLIDES.length}
         activeIndex={activeIndex}
         size="md"
         onIndexChange={setActiveIndex}
         getItemLabel={(index) => `${index + 1}번째 온보딩 보기`}
-        className="mt-6 h-1.5"
+        className="mt-10 h-1.5"
         aria-label="온보딩 페이지 선택"
       />
     </section>

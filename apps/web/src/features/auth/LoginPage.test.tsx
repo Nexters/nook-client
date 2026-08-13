@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoginPage } from '@/features/auth/LoginPage';
 
@@ -26,6 +26,13 @@ vi.mock('@/features/auth/useSocialLogin', () => ({
   }),
 }));
 
+// 온보딩 JSON 은 장당 수 MB 라 테스트에서 실제로 파싱하면 느려지기만 한다.
+// 여기서 검증할 건 문구·전환·버튼 배선이지 애니메이션 재생이 아니다.
+vi.mock('@/shared/ui/lottie', () => ({ Lottie: () => null }));
+vi.mock('@/assets/lottie/onboarding_1.json', () => ({ default: {} }));
+vi.mock('@/assets/lottie/onboarding_2.json', () => ({ default: {} }));
+vi.mock('@/assets/lottie/onboarding_3.json', () => ({ default: {} }));
+
 function renderLoginPage() {
   return render(
     <MemoryRouter initialEntries={['/login']}>
@@ -44,29 +51,43 @@ describe('LoginPage', () => {
   it('온보딩과 소셜 로그인 버튼을 렌더한다', () => {
     renderLoginPage();
 
-    expect(screen.getByRole('img', { name: 'nook' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: /마음에 드는 장소를 발견했다면/ }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '카카오로 시작하기' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Apple로 시작하기' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '발견한 장소를 누크에 쏙!' })).toBeInTheDocument();
+    expect(screen.getByText(/인스타그램에서 마음에 드는 장소를 발견하고/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '카카오로 로그인' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Apple로 로그인' })).toBeInTheDocument();
   });
 
   it('인디케이터로 다음 온보딩을 보여준다', () => {
     renderLoginPage();
 
     fireEvent.click(screen.getByRole('button', { name: '2번째 온보딩 보기' }));
-
-    expect(screen.getByRole('heading', { name: /게시물을 저장하고/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '2번째 온보딩 보기' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: '3번째 온보딩 보기' }));
+    expect(screen.getByRole('button', { name: '3번째 온보딩 보기' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+  });
 
-    expect(screen.getByRole('heading', { name: /그룹별로 장소를 모아/ })).toBeInTheDocument();
+  it('세 장의 문구를 모두 렌더하되 비활성 장은 접근성 트리에서 감춘다', () => {
+    renderLoginPage();
+
+    // 캐러셀은 translateX 로 넘기므로 비활성 장도 DOM 에는 남아 있다.
+    expect(screen.getByText('게시물 속 장소를 지도에!')).toBeInTheDocument();
+    expect(screen.getByText('나만의 아카이브를 만들어요')).toBeInTheDocument();
+    // 다만 aria-hidden 이라 스크린 리더에는 현재 장만 읽힌다.
+    expect(
+      screen.queryByRole('heading', { name: '게시물 속 장소를 지도에!' }),
+    ).not.toBeInTheDocument();
   });
 
   it.each([
-    ['카카오로 시작하기', 'kakao'],
-    ['Apple로 시작하기', 'apple'],
+    ['카카오로 로그인', 'kakao'],
+    ['Apple로 로그인', 'apple'],
   ])('%s 버튼은 해당 provider 로그인을 시작한다', (label, provider) => {
     renderLoginPage();
 
@@ -81,8 +102,8 @@ describe('LoginPage', () => {
       holder.platform = platform;
       renderLoginPage();
 
-      expect(screen.queryByRole('button', { name: 'Apple로 시작하기' })).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: '카카오로 시작하기' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Apple로 로그인' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '카카오로 로그인' })).toBeInTheDocument();
     },
   );
 
@@ -93,18 +114,9 @@ describe('LoginPage', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('로그인하지 못했어요.');
   });
 
-  it('development 테스트 세션 화면으로 이동한다', () => {
-    render(
-      <MemoryRouter initialEntries={['/login']}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/dev/ut" element={<p>테스트 세션 화면</p>} />
-        </Routes>
-      </MemoryRouter>,
-    );
+  it('테스트 토큰 로그인 진입점을 노출하지 않는다', () => {
+    renderLoginPage();
 
-    fireEvent.click(screen.getByRole('button', { name: '테스트 토큰으로 로그인' }));
-
-    expect(screen.getByText('테스트 세션 화면')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /테스트 토큰/ })).not.toBeInTheDocument();
   });
 });
