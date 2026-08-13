@@ -23,6 +23,7 @@ enum class NookIconName {
     Icon16Info,
     Icon16Insta,
     Icon16Location,
+    Icon16Mail,
     Icon16Paper,
     Icon16Pen,
     Icon16Refresh,
@@ -90,6 +91,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon16Info -> 16f to 16f
             NookIconName.Icon16Insta -> 16f to 16f
             NookIconName.Icon16Location -> 16f to 16f
+            NookIconName.Icon16Mail -> 16f to 16f
             NookIconName.Icon16Paper -> 16f to 16f
             NookIconName.Icon16Pen -> 16f to 16f
             NookIconName.Icon16Refresh -> 16f to 16f
@@ -513,6 +515,41 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
                 close()
             }
             drawPath(path = path0, color = Color(0xFFB5BBC3))
+        }
+        NookIconName.Icon16Mail -> {
+            val path0 = Path().apply {
+
+                moveTo(1.37834f, 3.65499f)
+                lineTo(7.29501f, 9.57233f)
+                cubicTo(7.47004f, 9.74748f, 7.70384f, 9.85147f, 7.95113f, 9.86415f)
+                cubicTo(8.19843f, 9.87684f, 8.44164f, 9.79732f, 8.63367f, 9.64099f)
+                lineTo(8.70967f, 9.57233f)
+                lineTo(14.6223f, 3.65899f)
+                cubicTo(14.6417f, 3.73233f, 14.6543f, 3.80699f, 14.661f, 3.88366f)
+                lineTo(14.6663f, 4.00033f)
+                lineTo(14.6663f, 12.0003f)
+                cubicTo(14.6664f, 12.3367f, 14.5394f, 12.6607f, 14.3107f, 12.9074f)
+                cubicTo(14.082f, 13.154f, 13.7684f, 13.3051f, 13.433f, 13.3303f)
+                lineTo(13.333f, 13.3337f)
+                lineTo(2.66634f, 13.3337f)
+                cubicTo(2.32996f, 13.3338f, 2.00596f, 13.2067f, 1.75931f, 12.978f)
+                cubicTo(1.51265f, 12.7493f, 1.36157f, 12.4358f, 1.33634f, 12.1003f)
+                lineTo(1.33301f, 12.0003f)
+                lineTo(1.33301f, 4.00033f)
+                cubicTo(1.33301f, 3.92033f, 1.33967f, 3.84299f, 1.35301f, 3.76699f)
+                lineTo(1.37834f, 3.65499f)
+                close()
+                moveTo(13.333f, 2.66699f)
+                cubicTo(13.4137f, 2.66699f, 13.493f, 2.67366f, 13.5697f, 2.68766f)
+                lineTo(13.683f, 2.71366f)
+                lineTo(8.00301f, 8.39366f)
+                lineTo(2.32101f, 2.71233f)
+                cubicTo(2.39434f, 2.69233f, 2.47034f, 2.67899f, 2.54767f, 2.67233f)
+                lineTo(2.66634f, 2.66699f)
+                lineTo(13.333f, 2.66699f)
+                close()
+            }
+            drawPath(path = path0, color = Color(0xFF99A0AC))
         }
         NookIconName.Icon16Paper -> {
             val path0 = Path().apply {
