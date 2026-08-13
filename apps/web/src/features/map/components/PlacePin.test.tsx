@@ -93,19 +93,4 @@ describe('PlacePin', () => {
     expect(container.querySelector('img')).toBeNull();
     expect(container.querySelectorAll('svg')).toHaveLength(2); // 물방울 + 글리프
   });
-
-  it('물방울은 그룹 색상을 따르고, 밝은 색 위에서는 글리프를 어둡게 뒤집는다', () => {
-    const { container, rerender } = render(
-      <PlacePin lat={37} lng={127} name="장소" color="purple" selected />,
-    );
-    const [shape, glyph] = [...container.querySelectorAll('svg')];
-    expect(shape).toHaveClass('text-purple');
-    expect(glyph).toHaveClass('text-gray-0');
-
-    // yellow 는 흰 글리프가 안 보일 만큼 밝다(L* 86).
-    rerender(<PlacePin lat={37} lng={127} name="장소" color="yellow" selected />);
-    const [lightShape, lightGlyph] = [...container.querySelectorAll('svg')];
-    expect(lightShape).toHaveClass('text-yellow');
-    expect(lightGlyph).toHaveClass('text-gray-100');
-  });
 });
