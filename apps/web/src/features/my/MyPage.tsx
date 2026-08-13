@@ -10,6 +10,7 @@ import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
 import { ProfileImageSheet } from '@/features/my/components/ProfileImageSheet';
 import { nativeBridge } from '@/native-bridge';
+import type { MemberProfileResponseProvider } from '@/shared/api';
 import {
   Icon16ArrowRight,
   Icon16Chat,
@@ -24,6 +25,17 @@ import { useToast } from '@/shared/toast';
 import { Avatar, Button, Header, Input, Popup, Skeleton } from '@/shared/ui';
 
 type Dialog = 'logout' | 'withdraw' | null;
+
+/**
+ * 서버는 KAKAO/APPLE 처럼 전부 대문자로 주지만, 화면에는 각 브랜드 가이드 표기로 적는다.
+ * 단순 첫 글자 대문자 변환이 아니라 맵으로 두는 건, provider 가 늘 때 표기를 빠뜨리면
+ * 타입 에러로 걸리게 하려는 것이다.
+ */
+const PROVIDER_LABEL: Record<MemberProfileResponseProvider, string> = {
+  KAKAO: 'Kakao',
+  GOOGLE: 'Google',
+  APPLE: 'Apple',
+};
 
 export function MyPage() {
   const navigate = useNavigate();
@@ -50,8 +62,7 @@ export function MyPage() {
     : undefined;
   const avatarUrl = previewUrl ?? profile?.profileImageUrl ?? undefined;
   const savedPlaceCount = groups?.reduce((sum, group) => sum + group.placeCount, 0) ?? 0;
-  // 서버는 KAKAO/APPLE 처럼 대문자로 주지만 시안 표기는 소문자다.
-  const providerLabel = profile ? profile.provider.toLowerCase() : undefined;
+  const providerLabel = profile ? PROVIDER_LABEL[profile.provider] : undefined;
   // 셸이 주입한 실제 앱 버전. 브라우저로 열면 알 수 없어 행에서 값만 빠진다.
   const appVersion = nativeBridge.appVersion ? `v${nativeBridge.appVersion}` : undefined;
 

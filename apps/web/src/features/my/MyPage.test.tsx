@@ -112,11 +112,16 @@ describe('MyPage', () => {
     expect(screen.queryByRole('button', { name: /로그인 정보/ })).not.toBeInTheDocument();
   });
 
-  it('가입에 쓴 소셜 로그인을 로그인 정보 행에 보여준다', async () => {
+  it('가입에 쓴 소셜 로그인을 브랜드 표기로 보여준다', async () => {
+    renderMyPage();
+    expect(await screen.findByText('Kakao')).toBeInTheDocument();
+  });
+
+  it('애플 로그인 계정은 Apple 로 표기한다', async () => {
     mocks.fetchMyProfile.mockResolvedValue({ ...PROFILE, provider: 'APPLE' });
     renderMyPage();
 
-    expect(await screen.findByText('apple')).toBeInTheDocument();
+    expect(await screen.findByText('Apple')).toBeInTheDocument();
   });
 
   it('셸이 앱 버전을 주입하지 않으면 버전 값을 비워 둔다', async () => {
