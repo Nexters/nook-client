@@ -25,11 +25,25 @@ export const BROWSE_SNAP_POINTS = [PEEK_SNAP_POINT, MID_SNAP_POINT, FULL_SNAP_PO
 export const DETAIL_SNAP_POINTS = [PEEK_SNAP_POINT, DETAIL_PAGE_SNAP_POINT, FULL_SNAP_POINT];
 
 /**
- * 핀 이름표를 보여주는 최소 줌 레벨(네이버 지도 줌 — 클수록 확대, 기본 18).
- * 이보다 zoom-out 하면 이름표끼리 겹쳐 지저분해지므로 핀만 남기고 이름표를 숨긴다.
- * 선택된 핀의 이름표는 줌과 무관하게 항상 보여준다(PlacePin 참고).
+ * 개별 장소 핀(썸네일+이름표)을 그리는 최소 줌 레벨(네이버 지도 줌 — 클수록 확대, 기본 18).
+ * 이보다 zoom-out 하면 핀을 하나하나 찍는 대신 `ClusterBubble` 로 개수만 보여준다.
+ *
+ * 14 로 잡은 근거: 줌아웃 시안(Figma 139:16698 · 139:16759)은 수도권 전체(≈9)와 서울 구
+ * 단위(≈12~13), 줌인 시안(139:16903)은 건물명이 보이는 가로 단위(≈15~16)라 그 사이다.
  */
-export const PIN_LABEL_MIN_ZOOM = 16;
+export const PIN_DETAIL_MIN_ZOOM = 14;
+
+/**
+ * 클러스터 격자 한 칸의 화면 픽셀 크기. 키우면 더 넓은 범위를 하나로 묶는다.
+ * 버블 지름(44px)보다 넉넉해야 버블끼리 붙어 보이지 않는다.
+ */
+export const CLUSTER_CELL_SIZE_PX = 72;
+
+/**
+ * 클러스터 버블을 눌렀을 때 확대할 줌 단계. 멤버가 많으면 한 번에 다 풀리지 않고
+ * 몇 번 눌러 파고들게 된다 — 한 번에 최대 줌까지 튀는 것보다 위치 감각을 유지하기 쉽다.
+ */
+export const CLUSTER_ZOOM_STEP = 2;
 
 /**
  * 장소를 선택해 지도를 재센터링할 때, 선택된 핀이 화면 세로 어느 지점에 와야 하는지

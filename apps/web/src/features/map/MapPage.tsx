@@ -77,6 +77,7 @@ export function MapPage() {
             // 상세 응답(`GET /places/{placeId}`)엔 그룹 색상이 없다 — bbox 조회에 이 장소가
             // 들어오면 그때 실제 색으로 교체된다(이 임시 핀은 그 전까지만 존재한다).
             color: 'cement' as const,
+            thumbnail: selectedPlace.thumbnail,
           },
         ]
       : bboxPins;
@@ -128,7 +129,6 @@ export function MapPage() {
           currentLocation={location.coords}
           initialCenter={location.coords ?? undefined}
           selectedPlaceId={selectedPlaceId}
-          selectedThumbnail={selectedPlace?.thumbnail}
           // 선택 장소로의 이동은 명령이 아니라 선언 — 상세 응답의 좌표를 그대로 내려주면
           // 지도가 늦게 마운트되든(스크립트 Suspense) 상세가 늦게 오든 MapView 가 알아서
           // 준비되는 시점에 이동한다. 선택이 풀리면 undefined 가 되어 이동하지 않는다.

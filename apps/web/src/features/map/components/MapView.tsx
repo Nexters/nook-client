@@ -1,9 +1,15 @@
 import type { Ref } from 'react';
 import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Container as MapDiv, NaverMap, useNavermaps } from 'react-naver-maps';
+import { ClusterBubble } from '@/features/map/components/ClusterBubble';
 import { CurrentLocationDot } from '@/features/map/components/CurrentLocationDot';
 import { PlacePin } from '@/features/map/components/PlacePin';
-import { PIN_LABEL_MIN_ZOOM, SELECTED_PLACE_VERTICAL_RATIO } from '@/features/map/constants';
+import {
+  CLUSTER_ZOOM_STEP,
+  PIN_DETAIL_MIN_ZOOM,
+  SELECTED_PLACE_VERTICAL_RATIO,
+} from '@/features/map/constants';
+import { clusterPins } from '@/features/map/pin-cluster';
 import type { MapBounds, MapPin } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
 
@@ -34,7 +40,6 @@ export function MapView({
   currentLocation,
   initialCenter,
   selectedPlaceId,
-  selectedThumbnail,
   panTarget,
   onPlaceClick,
   onBoundsChanged,
@@ -44,12 +49,6 @@ export function MapView({
   currentLocation: Coordinates | null;
   initialCenter?: Coordinates;
   selectedPlaceId?: number | null;
-  /**
-   * 선택된 장소의 대표 사진(`GET /places/{placeId}` 의 `thumbnailUrl`). 있으면 그 핀만
-   * 사진 말풍선으로 그린다. 핀 목록 조회(bbox)가 아니라 상세 응답이 출처라 pin 이 아닌
-   * 별도 prop 으로 받는다 — 선택된 핀 하나에만 해당하는 값이다.
-   */
-  selectedThumbnail?: string;
   /**
    * 지도가 보여줘야 할 선택 장소 좌표. 값이 있으면 그 좌표가 드로어에 가려지지 않는
    * 화면 위쪽 영역 정가운데(`SELECTED_PLACE_VERTICAL_RATIO`)에 오도록 이동한다.
@@ -68,8 +67,8 @@ export function MapView({
   // panTarget 을 적용할 재렌더/재실행이 일어나지 않는다.
   const mapRef = useRef<naver.maps.Map | null>(null);
   const [map, setMap] = useState<naver.maps.Map | null>(null);
-  // 이름표 표시 여부 판단용. 줌 제스처 중간값까지 따라갈 필요는 없어서(이름표가
-  // 깜빡이며 나타났다 사라지는 게 더 어수선하다) idle 시점 값만 쓴다.
+  // 클러스터/개별 핀 모드 판단용. 줌 제스처 중간값까지 따라갈 필요는 없어서(클러스터가
+  // 깜빡이며 재구성되는 게 더 어수선하다) idle 시점 값만 쓴다.
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const attachMap = useCallback((instance: naver.maps.Map | null) => {
     mapRef.current = instance;
@@ -110,6 +109,25 @@ export function MapView({
     map.panTo(projection.fromOffsetToCoord(shiftedOffset));
   }, [map, navermaps, panTargetLat, panTargetLng]);
 
+  // 버블을 누르면 그 덩어리 쪽으로 이동하면서 한 단계 확대한다. 최대 줌 초과는 네이버가
+  // 알아서 클램프하므로 여기서 상한을 따로 두지 않는다.
+  const zoomIntoCluster = useCallback(
+    (lat: number, lng: number) => {
+      const currentMap = mapRef.current;
+      if (!currentMap) return;
+      currentMap.morph(new navermaps.LatLng(lat, lng), currentMap.getZoom() + CLUSTER_ZOOM_STEP);
+    },
+    [navermaps],
+  );
+
+  // 선택된 핀은 클러스터에서 빼고 줌과 무관하게 항상 물방울로 그린다 — 방금 고른 장소가
+  // 버블 속에 숨어버리면 안 된다.
+  const selectedPin =
+    selectedPlaceId === null || selectedPlaceId === undefined
+      ? undefined
+      : pins.find((pin) => pin.id === selectedPlaceId);
+  const restPins = selectedPin ? pins.filter((pin) => pin.id !== selectedPin.id) : pins;
+
   return (
     <MapDiv style={{ width: '100%', height: '100%' }}>
       <NaverMap
@@ -132,19 +150,39 @@ export function MapView({
           });
         }}
       >
-        {pins.map((pin) => (
+        {zoom < PIN_DETAIL_MIN_ZOOM
+          ? clusterPins(restPins, zoom).map((cluster) => (
+              <ClusterBubble
+                key={cluster.key}
+                lat={cluster.lat}
+                lng={cluster.lng}
+                count={cluster.pins.length}
+                onClick={() => zoomIntoCluster(cluster.lat, cluster.lng)}
+              />
+            ))
+          : restPins.map((pin) => (
+              <PlacePin
+                key={pin.id}
+                lat={pin.lat}
+                lng={pin.lng}
+                name={pin.name}
+                color={pin.color}
+                thumbnail={pin.thumbnail}
+                onClick={() => onPlaceClick?.(pin.id)}
+              />
+            ))}
+        {selectedPin && (
           <PlacePin
-            key={pin.id}
-            lat={pin.lat}
-            lng={pin.lng}
-            name={pin.name}
-            color={pin.color}
-            thumbnail={pin.id === selectedPlaceId ? selectedThumbnail : undefined}
-            selected={pin.id === selectedPlaceId}
-            showLabel={zoom >= PIN_LABEL_MIN_ZOOM}
-            onClick={() => onPlaceClick?.(pin.id)}
+            key={selectedPin.id}
+            lat={selectedPin.lat}
+            lng={selectedPin.lng}
+            name={selectedPin.name}
+            color={selectedPin.color}
+            thumbnail={selectedPin.thumbnail}
+            selected
+            onClick={() => onPlaceClick?.(selectedPin.id)}
           />
-        ))}
+        )}
         {currentLocation && (
           <CurrentLocationDot
             lat={currentLocation.lat}
