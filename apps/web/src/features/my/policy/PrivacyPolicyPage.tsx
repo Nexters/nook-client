@@ -16,7 +16,6 @@ const SECTIONS: PolicySection[] = [
       {
         type: 'bullets',
         items: [
-          '이메일 주소',
           '닉네임',
           '프로필 이미지',
           '소셜 로그인 식별 정보',
@@ -133,7 +132,7 @@ const SECTIONS: PolicySection[] = [
     blocks: [
       {
         type: 'paragraph',
-        text: 'Nook은 때때로 이 개인정보 보호정책을 수정할 수 있습니다. 개인정보처리방침이 변경되는 경우 서비스 내 공지 또는 이메일 등 적절한 방법으로 안내합니다.',
+        text: 'Nook은 때때로 이 개인정보 보호정책을 수정할 수 있습니다. 개인정보처리방침이 변경되는 경우 서비스 내 공지 등 적절한 방법으로 안내합니다.',
       },
     ],
   },
@@ -148,7 +147,7 @@ const SECTIONS: PolicySection[] = [
         type: 'bullets',
         items: ['문의 이메일: everynook123@gmail.com'],
       },
-      { type: 'paragraph', text: '시행일 : 2026년 8월 8일' },
+      { type: 'paragraph', text: '시행일 : 2026년 8월 13일' },
     ],
   },
 ];
