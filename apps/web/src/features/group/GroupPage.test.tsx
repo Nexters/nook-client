@@ -18,6 +18,7 @@ const GROUPS: Group[] = [
 const mocks = vi.hoisted(() => ({
   fetchGroups: vi.fn(),
   fetchGroupPosts: vi.fn(),
+  fetchGroupPlaces: vi.fn(),
   createGroup: vi.fn(),
   updateGroup: vi.fn(),
   deleteGroup: vi.fn(),
@@ -55,7 +56,12 @@ function renderGroupRoutes(initialPath: string) {
 describe('그룹 화면', () => {
   beforeEach(() => {
     mocks.fetchGroups.mockReset().mockResolvedValue(GROUPS);
-    mocks.fetchGroupPosts.mockReset().mockResolvedValue({ posts: [], nextPage: undefined });
+    mocks.fetchGroupPosts
+      .mockReset()
+      .mockResolvedValue({ posts: [], nextPage: undefined, totalElements: 0 });
+    mocks.fetchGroupPlaces
+      .mockReset()
+      .mockResolvedValue({ places: [], nextPage: undefined, totalElements: 0 });
     mocks.createGroup.mockReset().mockResolvedValue(undefined);
     mocks.updateGroup.mockReset().mockResolvedValue(undefined);
     mocks.deleteGroup.mockReset().mockResolvedValue(undefined);
@@ -67,7 +73,6 @@ describe('그룹 화면', () => {
     fireEvent.click(await screen.findByRole('button', { name: /카페/ }));
 
     expect(screen.getByRole('heading', { name: '카페' })).toBeInTheDocument();
-    expect(screen.getByText('114 Places')).toBeInTheDocument();
   });
 
   it('새 그룹 생성은 이름이 비면 버튼이 비활성화되고, 입력하면 생성 요청을 보낸다', async () => {
@@ -113,6 +118,12 @@ describe('그룹 화면', () => {
       ],
       nextPage: undefined,
       ownerNickname: 'Purr',
+      totalElements: 12,
+    });
+    mocks.fetchGroupPlaces.mockResolvedValue({
+      places: [],
+      nextPage: undefined,
+      totalElements: 114,
     });
 
     renderGroupRoutes('/group/1');
@@ -124,6 +135,81 @@ describe('그룹 화면', () => {
     const card = screen.getByRole('button', { name: /초록뷰 카페/ });
     expect(within(card).getByText('@abcde')).toBeInTheDocument();
     expect(within(card).getByText('3 Places')).toBeInTheDocument();
+    // 탭 카운트는 각 목록 응답의 totalElements 가 채운다.
+    expect(screen.getByRole('tab', { name: /게시물/ })).toHaveTextContent('12');
+    expect(screen.getByRole('tab', { name: /장소/ })).toHaveTextContent('114');
+  });
+
+  it('그룹 상세 장소 탭을 누르면 저장된 장소 목록을 그린다', async () => {
+    mocks.fetchGroupPosts.mockResolvedValue({
+      posts: [
+        { id: 7, name: '초록뷰 카페', placeCount: 3, authorHandle: '@abcde', thumbnails: [] },
+      ],
+      nextPage: undefined,
+      ownerNickname: 'Purr',
+      totalElements: 1,
+    });
+    mocks.fetchGroupPlaces.mockResolvedValue({
+      places: [{ id: '42', name: '을지다락', category: '카페', region: '서울' }],
+      nextPage: undefined,
+      totalElements: 1,
+    });
+
+    renderGroupRoutes('/group/1');
+
+    fireEvent.click(await screen.findByRole('tab', { name: /장소/ }));
+
+    expect(await screen.findByText('을지다락')).toBeInTheDocument();
+    // 장소 카드는 게시물 카드와 같은 그리드에 놓이는 세로형(PlaceCard) — 지역·업종을 보여준다.
+    expect(screen.getByText('서울 • 카페')).toBeInTheDocument();
+    expect(mocks.fetchGroupPlaces.mock.calls[0]?.[0]).toBe(1);
+  });
+
+  it('그룹 상세에 게시물이 없으면 탭 없이 빈 상태를 보여준다', async () => {
+    renderGroupRoutes('/group/1');
+
+    expect(await screen.findByText('저장한 게시물이 없어요')).toBeInTheDocument();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  });
+
+  it('상세 더보기 메뉴의 아카이브 편집을 누르면 편집 화면으로 이동한다', async () => {
+    mocks.fetchGroupPosts.mockResolvedValue({
+      posts: [
+        { id: 7, name: '초록뷰 카페', placeCount: 3, authorHandle: '@abcde', thumbnails: [] },
+      ],
+      nextPage: undefined,
+      ownerNickname: 'Purr',
+      totalElements: 1,
+    });
+
+    renderGroupRoutes('/group/1');
+    expect(await screen.findByText('초록뷰 카페')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '아카이브 편집' }));
+
+    expect(await screen.findByDisplayValue('카페')).toBeInTheDocument();
+  });
+
+  it('상세 더보기 메뉴의 아카이브 삭제는 확인 팝업을 거쳐 삭제 요청을 보낸다', async () => {
+    mocks.fetchGroupPosts.mockResolvedValue({
+      posts: [
+        { id: 7, name: '초록뷰 카페', placeCount: 3, authorHandle: '@abcde', thumbnails: [] },
+      ],
+      nextPage: undefined,
+      ownerNickname: 'Purr',
+      totalElements: 1,
+    });
+
+    renderGroupRoutes('/group/1');
+    expect(await screen.findByText('초록뷰 카페')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '아카이브 삭제' }));
+    expect(screen.getByText('아카이브를 삭제하시겠어요?')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
+    await vi.waitFor(() => expect(mocks.deleteGroup.mock.calls[0]?.[0]).toBe(1));
   });
 
   it('그룹 편집은 기존 이름을 채우고 삭제 확인 후 삭제 요청을 보낸다', async () => {

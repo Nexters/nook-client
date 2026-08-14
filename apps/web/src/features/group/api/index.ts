@@ -1,9 +1,12 @@
+import type { Place } from '@/features/place';
 import {
   type CreateGroupRequestColor,
   create as createGroupEndpoint,
   _delete as deleteGroupEndpoint,
+  type GroupPlaceSummaryResponse,
   type GroupPostSummaryResponse,
   type GroupResponse,
+  listPlaces as listGroupPlacesEndpoint,
   listPosts as listGroupPostsEndpoint,
   list as listGroupsEndpoint,
   unwrapApiResponse,
@@ -102,6 +105,8 @@ export interface GroupPostPage {
   nextPage?: number;
   /** 그룹 상세의 "by Purr" 표기. 그룹 조회가 아니라 이 응답이 소유자를 알려준다. */
   ownerNickname?: string;
+  /** 전체 게시물 수 — 상세 탭의 "게시물 N" 카운트. */
+  totalElements: number;
 }
 
 export async function fetchGroupPosts(groupId: number, page = 0): Promise<GroupPostPage> {
@@ -113,5 +118,40 @@ export async function fetchGroupPosts(groupId: number, page = 0): Promise<GroupP
     posts: (response?.items ?? []).map(toGroupPost),
     nextPage: response?.hasNext ? page + 1 : undefined,
     ownerNickname: response?.ownerNickname,
+    totalElements: response?.totalElements ?? 0,
+  };
+}
+
+/** 장소 카드(`PlaceCard` — 썸네일 + 이름 + 지역·업종)가 그리는 데 필요한 만큼만 옮긴다. */
+function toGroupPlace(dto: GroupPlaceSummaryResponse): Place {
+  return {
+    // Place.id 는 화면 전반에서 문자열이다 — 지도 딥링크(`/map?placeId=`)에서 다시 숫자로 쓴다.
+    id: String(dto.id),
+    name: dto.name,
+    category: dto.category ?? '',
+    region: dto.city ?? undefined,
+    thumbnail: dto.thumbnailUrl ?? undefined,
+  };
+}
+
+const PLACES_PAGE_SIZE = 20;
+
+export interface GroupPlacePage {
+  places: Place[];
+  /** 다음 페이지 번호. 없으면 마지막 페이지다. */
+  nextPage?: number;
+  /** 전체 장소 수 — 상세 탭의 "장소 N" 카운트. */
+  totalElements: number;
+}
+
+export async function fetchGroupPlaces(groupId: number, page = 0): Promise<GroupPlacePage> {
+  const response = unwrapApiResponse(
+    await listGroupPlacesEndpoint(groupId, { page, size: PLACES_PAGE_SIZE }, { auth: 'required' }),
+  );
+
+  return {
+    places: (response?.items ?? []).map(toGroupPlace),
+    nextPage: response?.hasNext ? page + 1 : undefined,
+    totalElements: response?.totalElements ?? 0,
   };
 }
