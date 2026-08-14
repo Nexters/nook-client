@@ -1,4 +1,7 @@
+import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
+import { SlideScreen, useSlideScreen } from '@/app/slide-screen';
 import { Icon16ArrowDiagonal, Icon16Mail } from '@/shared/icons/NookIcons';
 import { BackButton, Header } from '@/shared/ui';
 
@@ -35,16 +38,17 @@ const FAQS = [
  */
 export function ContactPage() {
   useHideBottomMenu();
+  const navigate = useNavigate();
+  const { slidIn, slideOut } = useSlideScreen({
+    close: useCallback(() => navigate(-1), [navigate]),
+  });
 
   return (
-    <main
-      className="flex min-h-dvh flex-col bg-gray-0"
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
-    >
-      <Header title="문의하기" left={<BackButton />} />
+    <SlideScreen slidIn={slidIn} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <Header title="문의하기" left={<BackButton onClick={slideOut} />} />
 
       <div
-        className="flex-1 overflow-y-auto px-4 pt-6"
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-6"
         style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
       >
         <h1 className="text-h1 text-gray-100">누크에 무엇이든 물어보세요!</h1>
@@ -85,6 +89,6 @@ export function ContactPage() {
           </section>
         ))}
       </div>
-    </main>
+    </SlideScreen>
   );
 }

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
+import { SlideScreen, useSlideScreen } from '@/app/slide-screen';
 import { useAuthSession } from '@/features/auth/session/AuthSessionProvider';
 import { useGroups } from '@/features/group/api/queries';
 import { useLogout, useMyProfile, useSaveProfile, useWithdraw } from '@/features/my/api/queries';
@@ -43,6 +44,11 @@ export function MyPage() {
   const withdraw = useWithdraw();
   const saveProfile = useSaveProfile();
   const { showToast } = useToast();
+  // 회원 정보는 라우트가 아니라 이 화면 위에 얹히는 전체화면이라 open 을 직접 넘긴다.
+  const { slidIn, slideOut } = useSlideScreen({
+    open: editingProfile,
+    close: closeEditingProfile,
+  });
 
   const nickname = profile?.nickname ?? '';
   const previewUrl = pickedImage
@@ -78,7 +84,7 @@ export function MyPage() {
       });
       return;
     }
-    closeEditingProfile();
+    slideOut();
   };
 
   const handleLogout = async () => {
@@ -127,164 +133,167 @@ export function MyPage() {
     openEditingProfile();
   };
 
-  if (editingProfile) {
-    return (
-      <main
-        className="flex min-h-dvh flex-col bg-gray-0"
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
-      >
-        <Header
-          title="회원 정보"
-          left={
-            <button
-              type="button"
-              aria-label="마이페이지로 돌아가기"
-              onClick={closeEditingProfile}
-              className="flex size-6 items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-            >
-              <Icon24Back />
-            </button>
-          }
-        />
-
-        <section className="flex flex-1 flex-col px-4 pt-6">
-          <div className="flex justify-center">
-            <Avatar
-              size="lg"
-              src={avatarUrl}
-              alt="프로필 이미지"
-              onEdit={() => setImageSheetOpen(true)}
-            />
-          </div>
-
-          <label htmlFor="nickname" className="mt-8 mb-1 block text-b3 font-medium text-gray-60">
-            닉네임
-          </label>
-          <Input
-            id="nickname"
-            value={draftNickname}
-            maxLength={25}
-            aria-label="닉네임"
-            onChange={(event) => setDraftNickname(event.target.value)}
-            onClear={() => setDraftNickname('')}
-          />
-
-          <Button
-            size="lg"
-            fullWidth
-            disabled={draftNickname.trim().length === 0 || saveProfile.isPending}
-            className="mt-auto"
-            style={{ marginBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
-            onClick={handleSaveProfile}
+  // 슬라이드 동안 뒤로 마이페이지 목록이 비쳐야 해서, 분기 대신 목록 위에 얹는다.
+  const profileEditScreen = editingProfile ? (
+    <SlideScreen
+      slidIn={slidIn}
+      className="overflow-y-auto overscroll-contain"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
+      <Header
+        title="회원 정보"
+        left={
+          <button
+            type="button"
+            aria-label="마이페이지로 돌아가기"
+            onClick={slideOut}
+            className="flex size-6 items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
           >
-            {saveProfile.isPending ? '저장 중...' : '저장하기'}
-          </Button>
-        </section>
+            <Icon24Back />
+          </button>
+        }
+      />
 
-        <ProfileImageSheet
-          open={imageSheetOpen}
-          onOpenChange={setImageSheetOpen}
-          onSelect={handlePickImage}
+      <section className="flex flex-1 flex-col px-4 pt-6">
+        <div className="flex justify-center">
+          <Avatar
+            size="lg"
+            src={avatarUrl}
+            alt="프로필 이미지"
+            onEdit={() => setImageSheetOpen(true)}
+          />
+        </div>
+
+        <label htmlFor="nickname" className="mt-8 mb-1 block text-b3 font-medium text-gray-60">
+          닉네임
+        </label>
+        <Input
+          id="nickname"
+          value={draftNickname}
+          maxLength={25}
+          aria-label="닉네임"
+          onChange={(event) => setDraftNickname(event.target.value)}
+          onClear={() => setDraftNickname('')}
         />
-      </main>
-    );
-  }
+
+        <Button
+          size="lg"
+          fullWidth
+          disabled={draftNickname.trim().length === 0 || saveProfile.isPending}
+          className="mt-auto"
+          style={{ marginBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+          onClick={handleSaveProfile}
+        >
+          {saveProfile.isPending ? '저장 중...' : '저장하기'}
+        </Button>
+      </section>
+
+      <ProfileImageSheet
+        open={imageSheetOpen}
+        onOpenChange={setImageSheetOpen}
+        onSelect={handlePickImage}
+      />
+    </SlideScreen>
+  ) : null;
 
   return (
     <>
-      <MainTabPageLayout>
-        {/* 콘텐츠는 문서 흐름 그대로 #root 스크롤에 맡긴다(러버밴드). 하단 여백은
-            fixed 탭바(60px)가 마지막 행을 가리지 않게 하는 것. */}
-        <main
-          className="bg-gray-10"
-          style={{ paddingBottom: 'calc(3.75rem + env(safe-area-inset-bottom))' }}
-        >
-          {/* 로딩 중에는 빈 이름이 잠깐 스쳐 지나가지 않도록 카드를 그리지 않는다. */}
-          {/* 로딩 중에도 카드 자리를 같은 크기로 채워 레이아웃 시프트를 막는다. */}
-          {profilePending ? (
-            <div className="mx-4 flex h-25 items-center gap-4 rounded-sm bg-gray-0 px-4">
-              <Skeleton className="size-15 shrink-0 rounded-full" />
-              <div className="min-w-0 flex-1">
-                <Skeleton className="h-4.5 w-24" />
-                <Skeleton className="mt-2 h-3.5 w-32" />
+      {/* 회원 정보가 덮고 있는 동안 뒤 목록으로 포커스가 들어가거나 낭독되지 않게 막는다. */}
+      <div inert={editingProfile}>
+        <MainTabPageLayout>
+          {/* 콘텐츠는 문서 흐름 그대로 #root 스크롤에 맡긴다(러버밴드). 하단 여백은
+              fixed 탭바(60px)가 마지막 행을 가리지 않게 하는 것. */}
+          <main
+            className="bg-gray-10"
+            style={{ paddingBottom: 'calc(3.75rem + env(safe-area-inset-bottom))' }}
+          >
+            {/* 로딩 중에는 빈 이름이 잠깐 스쳐 지나가지 않도록 카드를 그리지 않는다. */}
+            {/* 로딩 중에도 카드 자리를 같은 크기로 채워 레이아웃 시프트를 막는다. */}
+            {profilePending ? (
+              <div className="mx-4 flex h-25 items-center gap-4 rounded-sm bg-gray-0 px-4">
+                <Skeleton className="size-15 shrink-0 rounded-full" />
+                <div className="min-w-0 flex-1">
+                  <Skeleton className="h-4.5 w-24" />
+                  <Skeleton className="mt-2 h-3.5 w-32" />
+                </div>
               </div>
-            </div>
-          ) : profileError ? (
-            <p className="mx-4 flex h-25 items-center justify-center rounded-sm bg-gray-0 text-b2 text-gray-60">
-              내 정보를 불러오지 못했어요
-            </p>
-          ) : (
-            <button
-              type="button"
-              onClick={openProfileEditor}
-              className="mx-4 flex h-25 w-[calc(100%-2rem)] items-center gap-4 rounded-sm bg-gray-0 px-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset"
-            >
-              <Avatar size="sm" src={avatarUrl} alt="프로필 이미지" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-b1 font-semibold text-gray-100">
-                  {nickname}
+            ) : profileError ? (
+              <p className="mx-4 flex h-25 items-center justify-center rounded-sm bg-gray-0 text-b2 text-gray-60">
+                내 정보를 불러오지 못했어요
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={openProfileEditor}
+                className="mx-4 flex h-25 w-[calc(100%-2rem)] items-center gap-4 rounded-sm bg-gray-0 px-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset"
+              >
+                <Avatar size="sm" src={avatarUrl} alt="프로필 이미지" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-b1 font-semibold text-gray-100">
+                    {nickname}
+                  </span>
+                  <span className="mt-1 block font-mono text-e2 text-gray-60">
+                    {groups ? `Group ${groups.length} · Save ${savedPlaceCount}` : null}
+                  </span>
                 </span>
-                <span className="mt-1 block font-mono text-e2 text-gray-60">
-                  {groups ? `Group ${groups.length} · Save ${savedPlaceCount}` : null}
+                <span aria-hidden="true" className="text-gray-40">
+                  <Icon16ArrowRight />
                 </span>
-              </span>
-              <span aria-hidden="true" className="text-gray-40">
-                <Icon16ArrowRight />
-              </span>
-            </button>
-          )}
+              </button>
+            )}
 
-          <div className="mt-6 flex flex-col gap-5 px-4">
-            <MyMenuSection title="계정 정보">
-              <MyMenuRow icon={<Icon16User />} label="로그인 정보" value={providerLabel} />
-            </MyMenuSection>
+            <div className="mt-6 flex flex-col gap-5 px-4">
+              <MyMenuSection title="계정 정보">
+                <MyMenuRow icon={<Icon16User />} label="로그인 정보" value={providerLabel} />
+              </MyMenuSection>
 
-            <MyMenuSection title="앱 정보">
-              {/* TODO: "최신버전" 배지는 아직 하드코딩이다 — 스토어 최신 버전을 알려주는
+              <MyMenuSection title="앱 정보">
+                {/* TODO: "최신버전" 배지는 아직 하드코딩이다 — 스토어 최신 버전을 알려주는
                   API 가 생기기 전까지는 실제 최신 여부를 판단할 수 없다. */}
-              <MyMenuRow
-                icon={<Icon16Version />}
-                label="버전 정보"
-                badge="최신버전"
-                value={appVersion}
-              />
-              <MyMenuRow
-                icon={<Icon16Info />}
-                label="개인정보 처리방침"
-                onClick={() => navigate('/privacy')}
-              />
-              <MyMenuRow
-                icon={<Icon16Paper />}
-                label="이용약관"
-                onClick={() => navigate('/terms')}
-              />
-              <MyMenuRow
-                icon={<Icon16Chat />}
-                label="문의하기"
-                onClick={() => navigate('/support')}
-              />
-            </MyMenuSection>
-          </div>
+                <MyMenuRow
+                  icon={<Icon16Version />}
+                  label="버전 정보"
+                  badge="최신버전"
+                  value={appVersion}
+                />
+                <MyMenuRow
+                  icon={<Icon16Info />}
+                  label="개인정보 처리방침"
+                  onClick={() => navigate('/privacy')}
+                />
+                <MyMenuRow
+                  icon={<Icon16Paper />}
+                  label="이용약관"
+                  onClick={() => navigate('/terms')}
+                />
+                <MyMenuRow
+                  icon={<Icon16Chat />}
+                  label="문의하기"
+                  onClick={() => navigate('/support')}
+                />
+              </MyMenuSection>
+            </div>
 
-          <div className="flex h-14 items-center justify-center px-4 text-b2 font-semibold">
-            <button
-              type="button"
-              onClick={() => setDialog('logout')}
-              className="flex-1 text-gray-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-            >
-              로그아웃
-            </button>
-            <span aria-hidden="true" className="h-6 w-px bg-gray-20" />
-            <button
-              type="button"
-              onClick={() => setDialog('withdraw')}
-              className="flex-1 text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
-            >
-              탈퇴하기
-            </button>
-          </div>
-        </main>
-      </MainTabPageLayout>
+            <div className="flex h-14 items-center justify-center px-4 text-b2 font-semibold">
+              <button
+                type="button"
+                onClick={() => setDialog('logout')}
+                className="flex-1 text-gray-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+              >
+                로그아웃
+              </button>
+              <span aria-hidden="true" className="h-6 w-px bg-gray-20" />
+              <button
+                type="button"
+                onClick={() => setDialog('withdraw')}
+                className="flex-1 text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
+              >
+                탈퇴하기
+              </button>
+            </div>
+          </main>
+        </MainTabPageLayout>
+      </div>
 
       <Popup
         open={dialog === 'logout'}
@@ -309,6 +318,8 @@ export function MyPage() {
         variant="warning"
         onConfirm={handleWithdraw}
       />
+
+      {profileEditScreen}
     </>
   );
 }
