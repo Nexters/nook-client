@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/shared/lib/utils';
 import { Button, type ButtonProps } from './button';
 
@@ -56,7 +57,7 @@ const FloatingButton = React.forwardRef<HTMLButtonElement, FloatingButtonProps>(
     },
     ref,
   ) => {
-    return (
+    const button = (
       <Button
         ref={ref}
         variant="primary"
@@ -70,7 +71,7 @@ const FloatingButton = React.forwardRef<HTMLButtonElement, FloatingButtonProps>(
           // (`40_location.svg`) 배경색만 바꾸면 가려져 보이지 않는다.
           tone === 'light' &&
             'bg-gray-0 text-gray-100 hover:bg-gray-10 active:bg-gray-10 disabled:opacity-40',
-          floating && 'fixed right-5 z-40',
+          floating && 'fixed z-40',
           className,
         )}
         style={
@@ -78,6 +79,9 @@ const FloatingButton = React.forwardRef<HTMLButtonElement, FloatingButtonProps>(
             ? {
                 // safe-area + (옵션) 하단 탭바 65px 를 피해 앉는다.
                 bottom: `calc(env(safe-area-inset-bottom) + ${aboveBottomMenu ? '81px' : '20px'})`,
+                // 뷰포트가 셸(max-w-[450px], providers.tsx)보다 넓은 데스크톱에서도
+                // 셸 우측 20px 자리에 오도록 남는 폭의 절반을 더한다.
+                right: 'max(1.25rem, calc((100vw - 450px) / 2 + 1.25rem))',
                 ...style,
               }
             : style
@@ -87,6 +91,11 @@ const FloatingButton = React.forwardRef<HTMLButtonElement, FloatingButtonProps>(
         {children ?? <PlusGlyph />}
       </Button>
     );
+
+    // 페이지가 뷰포트보다 길어지면 셸(will-change-transform)이 fixed 의 기준이 돼
+    // 버튼이 화면 밖으로 밀려난다 — 문서 스크롤(#root) 중에도 화면에 붙어 있도록
+    // body 로 포탈한다(ProtectedAppLayout 의 탭바와 같은 이유).
+    return floating ? createPortal(button, document.body) : button;
   },
 );
 FloatingButton.displayName = 'FloatingButton';

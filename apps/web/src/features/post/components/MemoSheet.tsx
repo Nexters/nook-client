@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useAppShellContainer } from '@/app/providers';
 import { Button, Drawer, DrawerContent, DrawerTitle, Input } from '@/shared/ui';
 
 /** 시안 카운터 표기(`0/25`) 기준. */
@@ -20,17 +19,18 @@ export interface MemoSheetProps {
 }
 
 function MemoSheet({ open, onOpenChange, memo, onSave }: MemoSheetProps) {
-  // 셸(모바일 폭) 안으로 포탈한다 — 기본값인 body 포탈이면 뷰포트 전체 폭으로 펼쳐진다.
-  const shellContainer = useAppShellContainer();
   const [draft, setDraft] = useState(memo ?? '');
 
   useEffect(() => {
     if (open) setDraft(memo ?? '');
   }, [open, memo]);
 
+  // 셸 컨테이너가 아니라 기본값(body)으로 포탈한다 — 게시물 상세가 문서 흐름을 따라
+  // 셸이 콘텐츠만큼 길어지므로, 셸 기준 fixed 로는 시트가 화면 밖에 붙는다.
+  // 데스크톱에서 뷰포트 전체 폭으로 퍼지는 건 max-w 로 셸 폭에 맞춰 막는다.
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} container={shellContainer}>
-      <DrawerContent className="px-4 pt-4">
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className="mx-auto max-w-[450px] px-4 pt-4">
         <DrawerTitle className="text-b3 font-medium text-gray-60">메모</DrawerTitle>
         <Input
           value={draft}
