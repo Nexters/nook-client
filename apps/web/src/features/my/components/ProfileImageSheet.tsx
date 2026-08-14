@@ -1,5 +1,4 @@
 import type { ImagePickSource } from '@nook/bridge-contracts';
-import { useAppShellContainer } from '@/app/providers';
 import { Icon20Camera, Icon20Picture } from '@/shared/icons/NookIcons';
 import { Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
 
@@ -19,13 +18,12 @@ const OPTIONS = [
 ] as const;
 
 export function ProfileImageSheet({ open, onOpenChange, onSelect }: ProfileImageSheetProps) {
-  // 셸(모바일 폭) 안으로 포탈한다 — 기본값인 body 포탈이면 뷰포트 전체 폭으로 펼쳐진다.
-  const shellContainer = useAppShellContainer();
-
+  // 셸 컨테이너가 아니라 기본값(body)으로 포탈한다 — 페이지가 문서 흐름을 따라 셸이
+  // 길어질 수 있어 셸 기준 fixed 는 위치가 틀어진다. 데스크톱 폭은 max-w 로 막는다.
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} container={shellContainer}>
+    <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent
-        className="px-4 pt-2"
+        className="mx-auto max-w-[450px] px-4 pt-2"
         style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
       >
         <DrawerTitle className="sr-only">프로필 이미지 변경</DrawerTitle>

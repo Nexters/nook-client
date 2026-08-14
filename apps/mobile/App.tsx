@@ -64,6 +64,10 @@ export default function App() {
           // iOS 엣지 스와이프 뒤로가기. SPA 의 pushState 히스토리도 WKWebView 백리스트에
           // 쌓이므로 라우트·히스토리 승격된 오버레이 모두 제스처로 닫힌다. iOS 전용 prop.
           allowsBackForwardNavigationGestures
+          // Android 는 스크롤 끝에서 글로우와 함께 화면 전체를 밀어낸다 — 웹은 헤더·바텀이 고정이라
+          // 그 영역까지 딸려 움직인다. iOS 는 bounces 를 끄면 안쪽 스크롤의 러버밴드까지 죽어
+          // 스크롤이 뻣뻣해지므로, 웹에서 문서를 뷰포트에 붙박는 방식으로 대신 막는다(global.css).
+          overScrollMode="never"
           // dev 서버 번들은 URL 이 그대로라 WebView 캐시에 남는다 — 코드를 고쳐도 옛 모듈이
           // 섞여 실행되면서(지도 스크립트 컨텍스트가 null 이 되는 등) 재현 불가한 오류를 만든다.
           cacheEnabled={!__DEV__}
