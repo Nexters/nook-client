@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { cn } from '@/shared/lib/utils';
 
@@ -75,7 +76,7 @@ export interface SlideScreenProps extends React.HTMLAttributes<HTMLDivElement> {
  * 스크롤은 화면마다 구조가 달라 여기서 정하지 않는다 — 사용처가 className 으로 준다.
  */
 export function SlideScreen({ slidIn, className, ...props }: SlideScreenProps) {
-  return (
+  return createPortal(
     <div
       data-slot="slide-screen"
       className={cn(
@@ -86,6 +87,9 @@ export function SlideScreen({ slidIn, className, ...props }: SlideScreenProps) {
         className,
       )}
       {...props}
-    />
+    />,
+    // 셸의 will-change-transform 이 fixed 의 기준을 셸 박스로 바꾼다 — 문서(#root)가
+    // 스크롤되면 전체화면이 함께 밀려나므로 body 로 포탈한다(BottomMenu·토스트와 같은 이유).
+    document.body,
   );
 }

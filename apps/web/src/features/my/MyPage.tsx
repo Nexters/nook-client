@@ -201,8 +201,10 @@ export function MyPage() {
       {/* 회원 정보가 덮고 있는 동안 뒤 목록으로 포커스가 들어가거나 낭독되지 않게 막는다. */}
       <div inert={editingProfile}>
         <MainTabPageLayout>
+          {/* 콘텐츠는 문서 흐름 그대로 #root 스크롤에 맡긴다(러버밴드). 하단 여백은
+              fixed 탭바(60px)가 마지막 행을 가리지 않게 하는 것. */}
           <main
-            className="h-full overflow-y-auto bg-gray-10"
+            className="bg-gray-10"
             style={{ paddingBottom: 'calc(3.75rem + env(safe-area-inset-bottom))' }}
           >
             {/* 로딩 중에는 빈 이름이 잠깐 스쳐 지나가지 않도록 카드를 그리지 않는다. */}

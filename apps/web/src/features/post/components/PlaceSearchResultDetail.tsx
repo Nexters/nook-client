@@ -62,7 +62,7 @@ function PlaceSearchResultDetail({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* 하단 fixed 바에 가리지 않도록 스크롤 영역 자체에 여유 패딩을 둔다. */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-20">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-20">
         <PlaceDetailHeader place={place} className="pt-4 pb-4" />
 
         {posts.length > 0 ? (

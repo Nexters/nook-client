@@ -173,14 +173,30 @@
   color-scheme: light;
 }
 
+/* 화면마다 자기 스크롤 컨테이너를 두고 헤더·바텀은 고정이라, 문서가 튕기면 그 고정 영역까지
+   함께 밀린다. 문서를 뷰포트에 붙박아 당길 여지를 없애고, 컨테이너 끝에서 문서로 넘어오는
+   스크롤 연쇄도 끊는다. 셸의 바운스를 끄는 대신 이 방식을 쓰는 이유는, 바운스를 꺼 버리면
+   안쪽 스크롤 영역의 러버밴드까지 같이 죽어 스크롤이 뻣뻣해지기 때문이다. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--color-gray-0);
   color: var(--color-gray-100);
-  min-height: 100dvh;
   margin: 0;
 }
 
+/* 스크롤은 문서가 아니라 여기서 일어난다. iOS WebKit 은 뷰포트를 꽉 채운 이 스크롤러를
+   루트 스크롤러로 승격해 러버밴드를 여기서만 낸다 — 안쪽 overflow 컨테이너는 끝에서
+   튕기지 않는다. 그래서 튕겨야 하는 화면(그룹·상세·마이·약관류)은 콘텐츠를 문서 흐름에
+   두고 이 스크롤에 기대며, 헤더·탭바·FAB 는 body 포탈 + fixed 로 화면에 남는다.
+   지도만 예외로 뷰포트에 갇힌다(h-dvh + 내부 스크롤). */
 #root {
-  min-height: 100dvh;
+  height: 100%;
+  overflow-y: auto;
 }

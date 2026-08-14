@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import type { Place } from '@/features/place';
@@ -181,15 +182,15 @@ export function PostDetailPage() {
   const { post, title, groups, memo } = postDetailState.detail;
   const images = post.images ?? [];
 
+  // 콘텐츠는 문서 흐름 그대로 #root 스크롤에 맡긴다(러버밴드). 헤더도 흐름 안에 있어
+  // 콘텐츠와 함께 스크롤되는 기존 동작 그대로다.
+  // +1px: 짧은 게시물도 당겨지게 한다(MainTabPageLayout 과 같은 이유).
   return (
     <main
-      className="flex h-dvh flex-col overflow-hidden bg-gray-0"
+      className="flex min-h-[calc(100dvh+1px)] flex-col bg-gray-0"
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <div
-        className="min-h-0 flex-1 overflow-y-auto"
-        style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
-      >
+      <div style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}>
         <Header left={<BackButton onClick={handleBack} />} />
 
         <PostImages images={images} onImageClick={openViewer} />
@@ -251,7 +252,11 @@ export function PostDetailPage() {
         }
       />
 
-      {viewerOpen ? <PostImageViewer images={images} onClose={closeViewer} /> : null}
+      {/* fixed 오버레이 — 페이지가 뷰포트보다 길면 셸(will-change-transform)에 붙어
+          화면 밖으로 밀려나니 body 로 포탈해 뷰포트 기준으로 띄운다. */}
+      {viewerOpen
+        ? createPortal(<PostImageViewer images={images} onClose={closeViewer} />, document.body)
+        : null}
 
       <PlaceDirectInputDrawer
         open={directInputOpen}
