@@ -87,6 +87,23 @@ function renderMyPage() {
   return { setHidden };
 }
 
+/**
+ * 회원 정보는 마이페이지 목록을 덮는 전체화면이라 둘이 함께 떠 있다 —
+ * 아바타처럼 양쪽에 같이 있는 요소는 화면 안으로 좁혀서 찾는다.
+ */
+function withinEditScreen() {
+  const element = document.querySelector<HTMLElement>('[data-slot="slide-screen"]');
+  if (!element) throw new Error('회원 정보 화면이 열려 있지 않다');
+  return within(element);
+}
+
+/** 닫기는 슬라이드가 끝난 뒤에 일어난다. */
+async function waitForEditScreenClosed() {
+  await waitFor(() =>
+    expect(document.querySelector('[data-slot="slide-screen"]')).not.toBeInTheDocument(),
+  );
+}
+
 describe('MyPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -196,6 +213,8 @@ describe('MyPage', () => {
     // 사진을 안 골랐으면 업로드까지 가지 않는다.
     expect(mocks.uploadProfileImage).not.toHaveBeenCalled();
     expect(await screen.findByText('new nook')).toBeInTheDocument();
+    // 편집 화면은 슬라이드가 끝난 뒤에 닫히므로 탭바 복귀도 그때다.
+    await waitForEditScreenClosed();
     expect(setHidden).toHaveBeenLastCalledWith(false);
   });
 
@@ -247,7 +266,7 @@ describe('MyPage', () => {
     expect(mocks.updateMyProfile).not.toHaveBeenCalled();
     // 편집 화면에 그대로 남아 고른 사진을 유지한다.
     expect(screen.getByText('회원 정보')).toBeInTheDocument();
-    expect(screen.getByAltText('프로필 이미지')).toHaveAttribute(
+    expect(withinEditScreen().getByAltText('프로필 이미지')).toHaveAttribute(
       'src',
       'data:image/png;base64,aGk=',
     );
@@ -266,19 +285,23 @@ describe('MyPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '프로필 이미지 변경' }));
     fireEvent.click(screen.getByText('앨범에서 선택'));
     await waitFor(() => {
-      expect(screen.getByAltText('프로필 이미지')).toHaveAttribute(
+      expect(withinEditScreen().getByAltText('프로필 이미지')).toHaveAttribute(
         'src',
         'data:image/png;base64,aGk=',
       );
     });
 
     fireEvent.click(screen.getByRole('button', { name: '마이페이지로 돌아가기' }));
+    await waitForEditScreenClosed();
 
     expect(mocks.uploadProfileImage).not.toHaveBeenCalled();
     // 마이페이지 카드에는 저장 안 된 미리보기가 남지 않는다.
-    expect(screen.getByAltText('프로필 이미지')).not.toHaveAttribute(
-      'src',
-      'data:image/png;base64,aGk=',
+    // (미리보기를 비우는 건 화면이 사라진 다음 effect 라 한 틱 뒤에 반영된다.)
+    await waitFor(() =>
+      expect(screen.getByAltText('프로필 이미지')).not.toHaveAttribute(
+        'src',
+        'data:image/png;base64,aGk=',
+      ),
     );
   });
 
@@ -324,7 +347,7 @@ describe('MyPage', () => {
     fireEvent.click(screen.getByText('앨범에서 선택'));
     expect(mocks.requestImagePick).toHaveBeenCalledWith('album');
     await waitFor(() => {
-      expect(screen.getByAltText('프로필 이미지')).toHaveAttribute(
+      expect(withinEditScreen().getByAltText('프로필 이미지')).toHaveAttribute(
         'src',
         'data:image/png;base64,aGk=',
       );
@@ -340,12 +363,12 @@ describe('MyPage', () => {
     renderMyPage();
 
     fireEvent.click(await screen.findByText('졸림핑'));
-    const before = screen.getByAltText('프로필 이미지').getAttribute('src');
+    const before = withinEditScreen().getByAltText('프로필 이미지').getAttribute('src');
     fireEvent.click(screen.getByRole('button', { name: '프로필 이미지 변경' }));
     fireEvent.click(screen.getByText('직접 촬영하기'));
 
     await waitFor(() => expect(mocks.requestImagePick).toHaveBeenCalledWith('camera'));
-    expect(screen.getByAltText('프로필 이미지')).toHaveAttribute('src', before ?? '');
+    expect(withinEditScreen().getByAltText('프로필 이미지')).toHaveAttribute('src', before ?? '');
   });
 
   it('탈퇴를 확인하면 계정 삭제 후 세션을 지운다', async () => {
