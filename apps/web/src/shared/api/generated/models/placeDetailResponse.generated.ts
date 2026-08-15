@@ -26,6 +26,11 @@ export interface PlaceDetailResponse {
   latitude: number;
   /** 장소 경도 */
   longitude: number;
+  /**
+   * 사용자가 이 장소에 남긴 메모
+   * @nullable
+   */
+  memo?: string | null;
   /** 장소명 */
   name: string;
   openingHours?: PlaceOpeningHoursResponse | null;
