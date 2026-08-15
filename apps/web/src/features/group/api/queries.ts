@@ -1,9 +1,19 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createGroup, deleteGroup, fetchGroupPosts, fetchGroups, updateGroup } from '.';
+import { mapQueryKeys } from '@/features/map/api/queries';
+import {
+  createGroup,
+  deleteGroup,
+  deleteGroupPosts,
+  fetchGroupPlaces,
+  fetchGroupPosts,
+  fetchGroups,
+  updateGroup,
+} from '.';
 
 export const groupQueryKeys = {
   list: ['groups'] as const,
   posts: (groupId: number) => ['groups', groupId, 'posts'] as const,
+  places: (groupId: number) => ['groups', groupId, 'places'] as const,
 };
 
 /** 처리 중(본문 크롤링·장소 파싱)인 게시물이 있는 동안의 재조회 간격 — post 쪽 폴링과 같은 값. */
@@ -32,6 +42,7 @@ export function useGroupPosts(groupId: number | undefined) {
     select: (data) => ({
       posts: data.pages.flatMap((page) => page.posts),
       ownerNickname: data.pages[0]?.ownerNickname,
+      totalElements: data.pages[0]?.totalElements ?? 0,
     }),
     enabled: groupId !== undefined,
     refetchInterval: (query) => {
@@ -40,6 +51,21 @@ export function useGroupPosts(groupId: number | undefined) {
       );
       return anyProcessing ? POLL_INTERVAL_MS : false;
     },
+  });
+}
+
+/** 그룹에 저장된 장소 — 상세 "장소" 탭 목록. 게시물처럼 페이지를 이어 붙인다. */
+export function useGroupPlaces(groupId: number | undefined) {
+  return useInfiniteQuery({
+    queryKey: groupQueryKeys.places(groupId ?? -1),
+    queryFn: ({ pageParam }) => fetchGroupPlaces(groupId as number, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    select: (data) => ({
+      places: data.pages.flatMap((page) => page.places),
+      totalElements: data.pages[0]?.totalElements ?? 0,
+    }),
+    enabled: groupId !== undefined,
   });
 }
 
@@ -67,5 +93,21 @@ export function useDeleteGroup() {
   return useMutation({
     mutationFn: deleteGroup,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: groupQueryKeys.list }),
+  });
+}
+
+/** 선택 삭제 — 단건 삭제 묶음(`deleteGroupPosts`). */
+export function useDeleteGroupPosts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteGroupPosts,
+    // 일부 실패 시에도 성공분은 이미 지워졌으므로 성공/실패와 무관하게 다시 불러온다.
+    onSettled: () => {
+      // ['groups'] 프리픽스라 그룹 목록·게시물·장소 캐시가 전부 무효화된다.
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.list });
+      // 게시물이 지워지면 딸린 장소 핀도 사라진다 — 북마크 토글과 같은 정책.
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll });
+    },
   });
 }

@@ -1,9 +1,13 @@
+import type { Place } from '@/features/place';
 import {
   type CreateGroupRequestColor,
   create as createGroupEndpoint,
   _delete as deleteGroupEndpoint,
+  deleteSavedPost as deleteSavedPostEndpoint,
+  type GroupPlaceSummaryResponse,
   type GroupPostSummaryResponse,
   type GroupResponse,
+  listPlaces as listGroupPlacesEndpoint,
   listPosts as listGroupPostsEndpoint,
   list as listGroupsEndpoint,
   unwrapApiResponse,
@@ -72,6 +76,20 @@ export async function deleteGroup(groupId: number): Promise<void> {
   await deleteGroupEndpoint(groupId, { auth: 'required' });
 }
 
+/**
+ * 선택 삭제 — 일괄 삭제 API가 아직 없어 단건 삭제(`DELETE /posts/{postId}`)를
+ * 병렬로 묶어 보낸다. 일부만 실패해도 성공분은 이미 지워진 상태라 도중에 끊지 않고
+ * 전부 시도한 뒤, 실패가 있으면 에러로 알린다 — 호출부는 성공/실패와 무관하게
+ * 목록을 다시 불러와야 한다(useDeleteGroupPosts 의 onSettled 무효화).
+ */
+export async function deleteGroupPosts(postIds: number[]): Promise<void> {
+  const results = await Promise.allSettled(
+    postIds.map((postId) => deleteSavedPostEndpoint(postId, { auth: 'required' })),
+  );
+  const failedCount = results.filter((result) => result.status === 'rejected').length;
+  if (failedCount > 0) throw new Error(`${failedCount}개 게시물을 삭제하지 못했어요`);
+}
+
 /** 그리드 한 칸에 필요한 만큼만 옮긴다. 대표 미디어 1장이 커버가 된다. */
 function toGroupPost(dto: GroupPostSummaryResponse): GroupPost {
   return {
@@ -102,6 +120,8 @@ export interface GroupPostPage {
   nextPage?: number;
   /** 그룹 상세의 "by Purr" 표기. 그룹 조회가 아니라 이 응답이 소유자를 알려준다. */
   ownerNickname?: string;
+  /** 전체 게시물 수 — 상세 탭의 "게시물 N" 카운트. */
+  totalElements: number;
 }
 
 export async function fetchGroupPosts(groupId: number, page = 0): Promise<GroupPostPage> {
@@ -113,5 +133,40 @@ export async function fetchGroupPosts(groupId: number, page = 0): Promise<GroupP
     posts: (response?.items ?? []).map(toGroupPost),
     nextPage: response?.hasNext ? page + 1 : undefined,
     ownerNickname: response?.ownerNickname,
+    totalElements: response?.totalElements ?? 0,
+  };
+}
+
+/** 장소 카드(`PlaceCard` — 썸네일 + 이름 + 지역·업종)가 그리는 데 필요한 만큼만 옮긴다. */
+function toGroupPlace(dto: GroupPlaceSummaryResponse): Place {
+  return {
+    // Place.id 는 화면 전반에서 문자열이다 — 지도 딥링크(`/map?placeId=`)에서 다시 숫자로 쓴다.
+    id: String(dto.id),
+    name: dto.name,
+    category: dto.category ?? '',
+    region: dto.city ?? undefined,
+    thumbnail: dto.thumbnailUrl ?? undefined,
+  };
+}
+
+const PLACES_PAGE_SIZE = 20;
+
+export interface GroupPlacePage {
+  places: Place[];
+  /** 다음 페이지 번호. 없으면 마지막 페이지다. */
+  nextPage?: number;
+  /** 전체 장소 수 — 상세 탭의 "장소 N" 카운트. */
+  totalElements: number;
+}
+
+export async function fetchGroupPlaces(groupId: number, page = 0): Promise<GroupPlacePage> {
+  const response = unwrapApiResponse(
+    await listGroupPlacesEndpoint(groupId, { page, size: PLACES_PAGE_SIZE }, { auth: 'required' }),
+  );
+
+  return {
+    places: (response?.items ?? []).map(toGroupPlace),
+    nextPage: response?.hasNext ? page + 1 : undefined,
+    totalElements: response?.totalElements ?? 0,
   };
 }

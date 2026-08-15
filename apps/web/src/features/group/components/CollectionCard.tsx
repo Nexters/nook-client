@@ -1,3 +1,4 @@
+import { Icon24CheckOff, Icon24CheckOn } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { Thumbnail } from '@/shared/ui';
 import type { CollectionSummary } from '../types';
@@ -18,10 +19,15 @@ import type { CollectionSummary } from '../types';
 export interface CollectionCardProps {
   group: CollectionSummary;
   onClick?: () => void;
+  /**
+   * 선택 삭제 모드(Figma `게시글 편집`) — 정의하면 썸네일 우상단에 체크가 뜨고
+   * 선택된 카드는 흰색 딤으로 표시된다. 토글 동작 자체는 onClick 책임이다.
+   */
+  selected?: boolean;
   className?: string;
 }
 
-function CollectionCard({ group, onClick, className }: CollectionCardProps) {
+function CollectionCard({ group, onClick, selected, className }: CollectionCardProps) {
   const Comp = onClick ? 'button' : 'div';
   const cover = group.thumbnails?.[0];
   const isProcessing = group.processingState === 'processing';
@@ -30,6 +36,7 @@ function CollectionCard({ group, onClick, className }: CollectionCardProps) {
   return (
     <Comp
       {...(onClick ? { type: 'button' as const, onClick } : {})}
+      {...(selected !== undefined ? { 'aria-pressed': selected } : {})}
       className={cn(
         'flex w-full flex-col items-start gap-2 text-left',
         onClick &&
@@ -38,13 +45,26 @@ function CollectionCard({ group, onClick, className }: CollectionCardProps) {
       )}
     >
       {/* 시안 167x208. 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
-      <Thumbnail
-        src={cover}
-        alt=""
-        loading={isProcessing}
-        failed={isFailed}
-        className="aspect-[167/208] h-auto w-full"
-      />
+      <span className="relative w-full">
+        <Thumbnail
+          src={cover}
+          alt=""
+          loading={isProcessing}
+          failed={isFailed}
+          className="aspect-[167/208] h-auto w-full"
+        />
+        {selected !== undefined ? (
+          <>
+            {/* 선택된 카드는 시안대로 흰색 40% 딤으로 가라앉힌다. */}
+            {selected ? (
+              <span aria-hidden="true" className="absolute inset-0 rounded-sm bg-gray-0/40" />
+            ) : null}
+            <span aria-hidden="true" className="absolute top-2 right-2">
+              {selected ? <Icon24CheckOn /> : <Icon24CheckOff />}
+            </span>
+          </>
+        ) : null}
+      </span>
       <div className="flex w-full flex-col">
         <p className="truncate text-b3 font-semibold text-gray-90">
           {isProcessing ? '처리 중…' : isFailed ? '처리 실패' : group.name}
