@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  Icon16CheckCircle,
-  Icon16Pen,
-  Icon16Share,
-  Icon16Trash,
-  Icon24More,
-} from '@/shared/icons/NookIcons';
+import { Icon16CheckCircle, Icon16Pen, Icon16Trash, Icon24More } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -53,8 +47,8 @@ function GroupDetailMenu({ onEdit, onSelectDelete, onDelete }: GroupDetailMenuPr
 
   const items: MenuItem[] = [
     { label: '아카이브 편집', icon: <Icon16Pen />, onSelect: onEdit },
-    // TODO(api): 공유는 링크 스펙 확정 후 연결한다 — 지금은 메뉴만 닫힌다.
-    { label: '아카이브 공유', icon: <Icon16Share /> },
+    // TODO(api): "아카이브 공유"는 공유 링크 스펙 확정 전이라 잠시 숨긴다 — 되살릴 땐
+    // `{ label: '아카이브 공유', icon: <Icon16Share /> }` 항목을 이 자리에 다시 넣는다.
     { label: '선택 삭제', icon: <Icon16CheckCircle />, onSelect: onSelectDelete },
     { label: '아카이브 삭제', icon: <Icon16Trash />, onSelect: onDelete, destructive: true },
   ];
