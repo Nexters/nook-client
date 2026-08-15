@@ -248,6 +248,42 @@ describe('아카이브 화면', () => {
     await vi.waitFor(() => expect(mocks.deleteArchivePosts.mock.calls[0]?.[0]).toEqual([7, 8]));
   });
 
+  it('장소 탭에서 선택 삭제를 켜면 탭이 유지되고 장소를 고를 수 있다', async () => {
+    mocks.fetchArchivePosts.mockResolvedValue({
+      posts: [{ id: 7, name: '초록뷰 카페', placeCount: 3, thumbnails: [] }],
+      nextPage: undefined,
+      ownerNickname: 'Purr',
+      totalElements: 1,
+    });
+    mocks.fetchArchivePlaces.mockResolvedValue({
+      places: [
+        { id: '42', name: '을지다락', category: '카페', region: '서울' },
+        { id: '43', name: '아이소', category: '카페', region: '서울' },
+      ],
+      nextPage: undefined,
+      totalElements: 2,
+    });
+
+    renderArchiveRoutes('/archive/1');
+
+    fireEvent.click(await screen.findByRole('tab', { name: /장소/ }));
+    expect(await screen.findByText('을지다락')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '선택 삭제' }));
+
+    // 게시물 탭으로 튕기지 않는다.
+    expect(screen.getByRole('tab', { name: /장소/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('을지다락')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /을지다락/ }));
+    expect(screen.getByRole('button', { name: /을지다락/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: '1개 삭제하기' })).toBeInTheDocument();
+  });
+
   it('선택 삭제 모드에서 뒤로가기는 페이지를 떠나지 않고 모드만 종료한다', async () => {
     mocks.fetchArchivePosts.mockResolvedValue({
       posts: [
