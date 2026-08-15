@@ -181,6 +181,16 @@ describe('게시물 상세', () => {
     mocks.updatePlaceBookmark.mockResolvedValue(undefined);
   });
 
+  it('헤더를 화면에 고정하고 콘텐츠는 그 아래에서 시작한다', async () => {
+    const { container } = renderRoute('/post/1');
+    await screen.findByRole('heading', { name: '지금 가기 좋은 초록뷰 카페' });
+
+    // 콘텐츠와 함께 스크롤되지 않도록, 헤더는 문서 흐름이 아니라 body 로 포탈된 fixed 영역에 있다.
+    const header = screen.getByRole('banner');
+    expect(container).not.toContainElement(header);
+    expect(header.closest('.fixed')?.parentElement).toBe(document.body);
+  });
+
   it('게시물 상세를 불러오는 동안 로딩 문구를 보여준다', async () => {
     mocks.fetchPostDetail.mockImplementation(
       () => new Promise((resolve) => setTimeout(() => resolve(POSTS[1]), 50)),
