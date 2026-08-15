@@ -1,21 +1,35 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { PlaceCard } from '@/features/place';
 import { cn } from '@/shared/lib/utils';
-import { BackButton, BOTTOM_MENU_HEIGHT, COLOR_BG_CLASS, Header, Popup } from '@/shared/ui';
-import { useDeleteGroup, useGroupPlaces, useGroupPosts, useGroups } from './api/queries';
+import { useToast } from '@/shared/toast';
+import { BackButton, BOTTOM_MENU_HEIGHT, Button, COLOR_BG_CLASS, Header, Popup } from '@/shared/ui';
+import {
+  useDeleteGroup,
+  useDeleteGroupPosts,
+  useGroupPlaces,
+  useGroupPosts,
+  useGroups,
+} from './api/queries';
 import { CollectionCard } from './components/CollectionCard';
 import { GroupDetailMenu } from './components/GroupDetailMenu';
 import { GroupEmpty } from './components/GroupEmpty';
 
 type DetailTab = 'posts' | 'places';
 
-/** Figma `그룹 > 그룹 상세` (게시물/장소 탭 · 더보기 메뉴 · 빈 그룹). */
+/** Figma `그룹 > 그룹 상세` (게시물/장소 탭 · 더보기 메뉴 · 선택 삭제 · 빈 그룹). */
 export function GroupDetailPage() {
   const { groupId } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<DetailTab>('posts');
   const [deletePopupOpen, setDeletePopupOpen] = useState(false);
+
+  // 선택 삭제(Figma `게시글 편집`) — 더보기 메뉴로 켜고, 뒤로가기/장소 탭 전환으로 끈다.
+  const [selecting, setSelecting] = useState(false);
+  const [selectedPostIds, setSelectedPostIds] = useState<ReadonlySet<number>>(new Set());
+  const [deletePostsPopupOpen, setDeletePostsPopupOpen] = useState(false);
 
   // 상세 전용 API가 아직 없어 목록 캐시에서 고른다.
   const { data: groups, isPending } = useGroups();
@@ -27,6 +41,28 @@ export function GroupDetailPage() {
   const places = placesQuery.data?.places;
 
   const deleteGroup = useDeleteGroup();
+  const deleteGroupPosts = useDeleteGroupPosts();
+
+  // 선택 모드 동안은 하단 탭바 대신 삭제 CTA 바가 자리를 차지한다.
+  const { setHidden: setBottomMenuHidden } = useBottomMenuVisibility();
+  useEffect(() => {
+    setBottomMenuHidden(selecting);
+    return () => setBottomMenuHidden(false);
+  }, [selecting, setBottomMenuHidden]);
+
+  const exitSelecting = () => {
+    setSelecting(false);
+    setSelectedPostIds(new Set());
+  };
+
+  const togglePostSelected = (postId: number) => {
+    setSelectedPostIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(postId)) next.delete(postId);
+      else next.add(postId);
+      return next;
+    });
+  };
 
   // 그리드/목록 끝(sentinel)이 화면에 들어오면 활성 탭의 다음 페이지를 당긴다.
   const activeQuery = activeTab === 'posts' ? postsQuery : placesQuery;
@@ -78,10 +114,16 @@ export function GroupDetailPage() {
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       <Header
-        left={<BackButton />}
+        // 선택 모드의 뒤로가기는 페이지 이탈이 아니라 모드 종료다.
+        left={<BackButton onClick={selecting ? exitSelecting : undefined} />}
         right={
           <GroupDetailMenu
             onEdit={() => navigate(`/group/${group.id}/edit`)}
+            onSelectDelete={() => {
+              // 선택 삭제는 게시물 대상 — 장소 탭에서 열었으면 게시물 탭으로 돌린다.
+              setActiveTab('posts');
+              setSelecting(true);
+            }}
             onDelete={() => setDeletePopupOpen(true)}
           />
         }
@@ -118,7 +160,11 @@ export function GroupDetailPage() {
                   type="button"
                   role="tab"
                   aria-selected={selected}
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => {
+                    // 장소 탭에는 선택 개념이 없다 — 전환하면 선택 모드를 접는다.
+                    if (tab.key === 'places') exitSelecting();
+                    setActiveTab(tab.key);
+                  }}
                   className={cn(
                     'flex flex-1 items-center justify-center gap-1.5 border-b px-2.5 py-3',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset',
@@ -140,7 +186,10 @@ export function GroupDetailPage() {
               넘친 콘텐츠를 스크롤할 방법이 없다. */}
           <div
             className="flex-1 overflow-y-auto"
-            style={{ paddingBottom: `calc(1.25rem + ${BOTTOM_MENU_HEIGHT})` }}
+            // 선택 모드에선 CTA 바가 flex 형제로 자리를 차지해 탭바 몫의 패딩이 필요 없다.
+            style={{
+              paddingBottom: selecting ? '1.25rem' : `calc(1.25rem + ${BOTTOM_MENU_HEIGHT})`,
+            }}
           >
             {activeTab === 'posts' ? (
               <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
@@ -148,7 +197,12 @@ export function GroupDetailPage() {
                   <CollectionCard
                     key={post.id}
                     group={post}
-                    onClick={() => navigate(`/post/${post.id}`)}
+                    selected={selecting ? selectedPostIds.has(post.id) : undefined}
+                    onClick={
+                      selecting
+                        ? () => togglePostSelected(post.id)
+                        : () => navigate(`/post/${post.id}`)
+                    }
                   />
                 ))}
               </div>
@@ -171,8 +225,51 @@ export function GroupDetailPage() {
             {/* 다음 페이지 트리거. 마지막 페이지면 관찰 대상이 없어 아무 일도 하지 않는다. */}
             <div ref={sentinelRef} aria-hidden="true" className="h-1" />
           </div>
+
+          {/* 선택 모드 CTA — 숨긴 하단 탭바 자리를 대신 차지한다 (Figma `Button_Primary_52`). */}
+          {selecting ? (
+            <div
+              className="shrink-0 bg-gray-0 p-4"
+              style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+            >
+              <Button
+                size="lg"
+                fullWidth
+                disabled={selectedPostIds.size === 0 || deleteGroupPosts.isPending}
+                onClick={() => setDeletePostsPopupOpen(true)}
+              >
+                {selectedPostIds.size > 0 ? `${selectedPostIds.size}개 삭제하기` : '삭제하기'}
+              </Button>
+            </div>
+          ) : null}
         </>
       )}
+
+      <Popup
+        open={deletePostsPopupOpen}
+        onClose={() => setDeletePostsPopupOpen(false)}
+        title={`${selectedPostIds.size}개 게시물을 삭제하시겠어요?`}
+        description={
+          <>
+            게시물을 삭제하면 게시물에 포함된
+            <br />
+            장소도 모두 삭제돼요.
+          </>
+        }
+        confirmLabel="삭제하기"
+        variant="warning"
+        onConfirm={() =>
+          deleteGroupPosts.mutate([...selectedPostIds], {
+            // 일부 실패 시에도 성공분은 지워졌고 onSettled 무효화로 목록이 갱신되므로,
+            // 성공/실패 모두 선택 모드는 접고 실패만 토스트로 알린다.
+            onSuccess: () => exitSelecting(),
+            onError: () => {
+              exitSelecting();
+              showToast({ variant: 'simple', title: '게시물을 삭제하지 못했어요' });
+            },
+          })
+        }
+      />
 
       <Popup
         open={deletePopupOpen}

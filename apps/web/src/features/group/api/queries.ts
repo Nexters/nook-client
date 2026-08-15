@@ -1,7 +1,9 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { mapQueryKeys } from '@/features/map/api/queries';
 import {
   createGroup,
   deleteGroup,
+  deleteGroupPosts,
   fetchGroupPlaces,
   fetchGroupPosts,
   fetchGroups,
@@ -91,5 +93,21 @@ export function useDeleteGroup() {
   return useMutation({
     mutationFn: deleteGroup,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: groupQueryKeys.list }),
+  });
+}
+
+/** 선택 삭제 — 단건 삭제 묶음(`deleteGroupPosts`). */
+export function useDeleteGroupPosts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteGroupPosts,
+    // 일부 실패 시에도 성공분은 이미 지워졌으므로 성공/실패와 무관하게 다시 불러온다.
+    onSettled: () => {
+      // ['groups'] 프리픽스라 그룹 목록·게시물·장소 캐시가 전부 무효화된다.
+      queryClient.invalidateQueries({ queryKey: groupQueryKeys.list });
+      // 게시물이 지워지면 딸린 장소 핀도 사라진다 — 북마크 토글과 같은 정책.
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll });
+    },
   });
 }

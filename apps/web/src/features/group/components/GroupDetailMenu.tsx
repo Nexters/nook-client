@@ -15,6 +15,8 @@ import { cn } from '@/shared/lib/utils';
  */
 export interface GroupDetailMenuProps {
   onEdit: () => void;
+  /** 선택 삭제 — 게시물 다중 선택 모드로 전환한다. */
+  onSelectDelete: () => void;
   onDelete: () => void;
 }
 
@@ -26,7 +28,7 @@ interface MenuItem {
   destructive?: boolean;
 }
 
-function GroupDetailMenu({ onEdit, onDelete }: GroupDetailMenuProps) {
+function GroupDetailMenu({ onEdit, onSelectDelete, onDelete }: GroupDetailMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -51,9 +53,9 @@ function GroupDetailMenu({ onEdit, onDelete }: GroupDetailMenuProps) {
 
   const items: MenuItem[] = [
     { label: '아카이브 편집', icon: <Icon16Pen />, onSelect: onEdit },
-    // TODO(api): 공유/선택 삭제는 스펙 확정 후 연결한다 — 지금은 메뉴만 닫힌다.
+    // TODO(api): 공유는 링크 스펙 확정 후 연결한다 — 지금은 메뉴만 닫힌다.
     { label: '아카이브 공유', icon: <Icon16Share /> },
-    { label: '선택 삭제', icon: <Icon16CheckCircle /> },
+    { label: '선택 삭제', icon: <Icon16CheckCircle />, onSelect: onSelectDelete },
     { label: '아카이브 삭제', icon: <Icon16Trash />, onSelect: onDelete, destructive: true },
   ];
 

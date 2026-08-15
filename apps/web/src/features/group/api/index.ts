@@ -3,6 +3,7 @@ import {
   type CreateGroupRequestColor,
   create as createGroupEndpoint,
   _delete as deleteGroupEndpoint,
+  deleteSavedPost as deleteSavedPostEndpoint,
   type GroupPlaceSummaryResponse,
   type GroupPostSummaryResponse,
   type GroupResponse,
@@ -73,6 +74,20 @@ export async function updateGroup({
 
 export async function deleteGroup(groupId: number): Promise<void> {
   await deleteGroupEndpoint(groupId, { auth: 'required' });
+}
+
+/**
+ * 선택 삭제 — 일괄 삭제 API가 아직 없어 단건 삭제(`DELETE /posts/{postId}`)를
+ * 병렬로 묶어 보낸다. 일부만 실패해도 성공분은 이미 지워진 상태라 도중에 끊지 않고
+ * 전부 시도한 뒤, 실패가 있으면 에러로 알린다 — 호출부는 성공/실패와 무관하게
+ * 목록을 다시 불러와야 한다(useDeleteGroupPosts 의 onSettled 무효화).
+ */
+export async function deleteGroupPosts(postIds: number[]): Promise<void> {
+  const results = await Promise.allSettled(
+    postIds.map((postId) => deleteSavedPostEndpoint(postId, { auth: 'required' })),
+  );
+  const failedCount = results.filter((result) => result.status === 'rejected').length;
+  if (failedCount > 0) throw new Error(`${failedCount}개 게시물을 삭제하지 못했어요`);
 }
 
 /** 그리드 한 칸에 필요한 만큼만 옮긴다. 대표 미디어 1장이 커버가 된다. */
