@@ -30,7 +30,8 @@ function PlacePhotoViewer({ title, photos, onClose }: PlacePhotoViewerProps) {
   // 포탈 없이는 화면 전체가 아니라 드로어 안쪽만 덮는다.
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-gray-0"
+      // z-70: 전체화면 뷰어라 탭바(60)까지 덮는다.
+      className="fixed inset-0 z-[70] flex flex-col bg-gray-0"
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       <Header

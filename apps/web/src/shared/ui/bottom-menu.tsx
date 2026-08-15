@@ -11,6 +11,24 @@ import { cn } from '@/shared/lib/utils';
  */
 export const BOTTOM_MENU_HEIGHT = 'calc(3.75rem + env(safe-area-inset-bottom))';
 
+/**
+ * 화면 하단이 무엇에 가려져 있는지 — 탭바가 보이면 그 높이, 아니면 safe-area 만.
+ * `ProtectedAppLayout` 이 탭바 표시 상태에 맞춰 :root 에 심고, 하단에 떠 있는 요소
+ * (토스트)가 이 값만큼 비켜 앉는다. 탭바가 없는 라우트(로그인·약관)에서는 값이 없어
+ * 사용처의 fallback(safe-area)이 쓰인다.
+ *
+ * 레이어(z-index) 순서: 콘텐츠 10 → 화면 크롬(헤더·FAB) 40 → 시트/드롭다운 50 →
+ * 탭바 60 → 모달·전체화면 뷰어 70 → 토스트 100.
+ */
+export const BOTTOM_INSET_VAR = '--bottom-menu-inset';
+
+/**
+ * 탭바 대신 화면이 직접 하단에 깔아둔 바(예: 아카이브 상세의 선택 삭제 CTA)의 높이.
+ * 그 화면이 켜고 끄며, 토스트는 둘 중 큰 값만큼 비켜 앉는다 — 소유자가 달라
+ * 변수를 나눠야 서로 덮어쓰지 않는다.
+ */
+export const BOTTOM_BAR_INSET_VAR = '--bottom-bar-inset';
+
 /** Figma "NAV" 컴포넌트 셋(지도/마이페이지/아카이브 variant) 기준 하단 탭바. */
 export interface BottomMenuItem {
   /** 아직 연결된 라우트가 없으면 생략한다 — 탭은 보이되 클릭은 동작하지 않는다. */
