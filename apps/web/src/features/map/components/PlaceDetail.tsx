@@ -127,7 +127,8 @@ function RelatedPlacesSection({
       <SectionDivider />
       <div className="mt-4 flex w-full flex-col gap-4 pb-2">
         <p className="text-b1 font-semibold text-gray-100">게시물에 포함된 장소</p>
-        <div className="flex flex-col gap-4">
+        {/* 좌우 여백은 행이 갖는다(삭제 스와이프에서 여백째 밀려나가야 한다) — 시트의 px-4 를 상쇄한다. */}
+        <div className="-mx-4 flex flex-col gap-4">
           {relatedPlaces.map((related) => (
             <PlaceRow
               key={related.id}

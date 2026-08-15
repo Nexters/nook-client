@@ -776,7 +776,7 @@ export function UiComponentsPage() {
       </Section>
 
       <Section title="place — PlaceRow (List/64_Place)">
-        <div className="mx-auto flex w-full max-w-[343px] flex-col gap-4">
+        <div className="mx-auto flex w-full max-w-[375px] flex-col gap-4">
           {[MOCK_PLACE, MOCK_PLACE_NO_IMAGE, MOCK_PLACE_LONG].map((place) => (
             <PlaceRow
               key={place.id}
@@ -792,7 +792,7 @@ export function UiComponentsPage() {
           로 파생됩니다. 별은 행 본문과 별개의 액션입니다.
         </p>
 
-        <div className="mx-auto flex w-full max-w-[343px] flex-col gap-4">
+        <div className="mx-auto flex w-full max-w-[375px] flex-col gap-4">
           <PlaceRow
             place={MOCK_PLACE}
             bookmarked={bookmarked.includes(MOCK_PLACE.id)}

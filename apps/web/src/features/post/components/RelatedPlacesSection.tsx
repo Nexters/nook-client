@@ -56,7 +56,8 @@ function RelatedPlacesSection({
         ) : null}
 
         {places.length > 0 ? (
-          <div className="flex flex-col gap-4 pb-4">
+          // 좌우 여백은 행이 갖는다(삭제 스와이프에서 여백째 밀려나가야 한다) — 섹션의 px-4 를 상쇄한다.
+          <div className="-mx-4 flex flex-col gap-4 pb-4">
             {places.map((place) => (
               <PlaceRow
                 key={place.id}
