@@ -1,14 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { FloatingButton } from '@/shared/ui';
-import { useGroups } from './api/queries';
-import { GroupCard } from './components/GroupCard';
-import { GroupEmpty } from './components/GroupEmpty';
+import { useArchives } from './api/queries';
+import { ArchiveCard } from './components/ArchiveCard';
+import { ArchiveEmpty } from './components/ArchiveEmpty';
 
-/** Figma `그룹 > 홈 - 그룹` (그룹 없음 / 빈 그룹 / 그룹 여러개). */
-export function GroupPage() {
+/** Figma `아카이브 > 홈 - 아카이브` (아카이브 없음 / 빈 아카이브 / 아카이브 여러개). */
+export function ArchivePage() {
   const navigate = useNavigate();
-  const { data: groups, isPending, isError } = useGroups();
+  const { data: archives, isPending, isError } = useArchives();
 
   return (
     <MainTabPageLayout>
@@ -21,16 +21,16 @@ export function GroupPage() {
       >
         {/* 로딩 중에는 빈 상태 문구가 잠깐 스쳐 지나가지 않도록 아무것도 그리지 않는다. */}
         {isPending ? null : isError ? (
-          <GroupEmpty message="그룹을 불러오지 못했어요" />
-        ) : groups.length === 0 ? (
-          <GroupEmpty message="아직 생성한 그룹이 없어요" />
+          <ArchiveEmpty message="아카이브를 불러오지 못했어요" />
+        ) : archives.length === 0 ? (
+          <ArchiveEmpty message="아직 생성한 아카이브가 없어요" />
         ) : (
           <div className="flex flex-col gap-2">
-            {groups.map((group) => (
-              <GroupCard
-                key={group.id}
-                group={group}
-                onClick={() => navigate(`/group/${group.id}`)}
+            {archives.map((archive) => (
+              <ArchiveCard
+                key={archive.id}
+                archive={archive}
+                onClick={() => navigate(`/archive/${archive.id}`)}
               />
             ))}
           </div>
@@ -38,8 +38,8 @@ export function GroupPage() {
 
         <FloatingButton
           aboveBottomMenu
-          aria-label="새 그룹 만들기"
-          onClick={() => navigate('/group/new')}
+          aria-label="새 아카이브 만들기"
+          onClick={() => navigate('/archive/new')}
         />
       </main>
     </MainTabPageLayout>

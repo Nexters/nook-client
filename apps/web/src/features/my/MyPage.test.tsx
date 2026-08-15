@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
-import type { Group } from '@/features/group/types';
+import type { Archive } from '@/features/archive/types';
 import type { MyProfile } from '@/features/my/api';
 import { ContactPage } from '@/features/my/ContactPage';
 import { MyPage } from '@/features/my/MyPage';
@@ -19,7 +19,7 @@ const PROFILE: MyProfile = {
 };
 const PICKED_IMAGE = { base64: 'aGk=', mimeType: 'image/png', width: 600, height: 600 };
 const UPLOADED_URL = 'https://cdn.example.com/profile/1.png';
-const GROUPS: Group[] = [
+const ARCHIVES: Archive[] = [
   { id: 1, name: '카페', color: 'yellow', placeCount: 30 },
   { id: 2, name: '독립영화관', color: 'blue', placeCount: 2 },
 ];
@@ -31,7 +31,7 @@ const mocks = vi.hoisted(() => ({
   requestWithdraw: vi.fn(),
   updateMyProfile: vi.fn(),
   uploadProfileImage: vi.fn(),
-  fetchGroups: vi.fn(),
+  fetchArchives: vi.fn(),
   clearSession: vi.fn(),
   requestImagePick: vi.fn(),
   isNative: true,
@@ -44,7 +44,7 @@ vi.mock('@/features/my/api', () => ({
   updateMyProfile: mocks.updateMyProfile,
   uploadProfileImage: mocks.uploadProfileImage,
 }));
-vi.mock('@/features/group/api', () => ({ fetchGroups: mocks.fetchGroups }));
+vi.mock('@/features/archive/api', () => ({ fetchArchives: mocks.fetchArchives }));
 vi.mock('@/features/auth/session/AuthSessionProvider', () => ({
   useAuthSession: () => ({
     status: 'authenticated',
@@ -108,7 +108,7 @@ describe('MyPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.fetchMyProfile.mockResolvedValue(PROFILE);
-    mocks.fetchGroups.mockResolvedValue(GROUPS);
+    mocks.fetchArchives.mockResolvedValue(ARCHIVES);
     mocks.requestLogout.mockResolvedValue(undefined);
     mocks.requestWithdraw.mockResolvedValue(undefined);
     mocks.clearSession.mockResolvedValue(undefined);
@@ -116,11 +116,11 @@ describe('MyPage', () => {
     mocks.uploadProfileImage.mockResolvedValue(UPLOADED_URL);
   });
 
-  it('내 정보와 그룹·저장 개수, 앱 메뉴를 렌더한다', async () => {
+  it('내 정보와 아카이브·저장 개수, 앱 메뉴를 렌더한다', async () => {
     renderMyPage();
 
     expect(await screen.findByText('졸림핑')).toBeInTheDocument();
-    expect(await screen.findByText('Group 2 · Save 32')).toBeInTheDocument();
+    expect(await screen.findByText('Archive 2 · Save 32')).toBeInTheDocument();
     expect(screen.getByText('로그인 정보')).toBeInTheDocument();
     expect(screen.getByText('개인정보 처리방침')).toBeInTheDocument();
     expect(screen.getByText('이용약관')).toBeInTheDocument();

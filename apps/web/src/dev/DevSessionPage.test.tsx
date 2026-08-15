@@ -94,7 +94,7 @@ describe('DevSessionPage', () => {
     expect(screen.getByText('앱 진입점')).toBeInTheDocument();
   });
 
-  it('그룹을 다중 선택하고 메모와 함께 게시글을 생성한다', async () => {
+  it('아카이브를 다중 선택하고 메모와 함께 게시글을 생성한다', async () => {
     sessionState.status = 'authenticated';
     apiMocks.listGroups.mockResolvedValue({
       resultType: 'SUCCESS',

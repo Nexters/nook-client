@@ -4,16 +4,16 @@ import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { cn } from '@/shared/lib/utils';
 import {
+  ARCHIVE_COLORS,
+  type ArchiveColor,
   BackButton,
   Button,
   ColorChip,
-  GROUP_COLORS,
-  type GroupColor,
   Header,
   Input,
   Popup,
 } from '@/shared/ui';
-import { useCreateGroup, useDeleteGroup, useGroups, useUpdateGroup } from './api/queries';
+import { useArchives, useCreateArchive, useDeleteArchive, useUpdateArchive } from './api/queries';
 
 /** 시안의 카운터 표기(`0/20`) 기준. */
 const NAME_MAX_LENGTH = 20;
@@ -21,28 +21,28 @@ const NAME_MAX_LENGTH = 20;
 /** 아래에서 올라오고/내려가는 전환 시간. 아래 `duration-300` 과 같은 값이어야 한다. */
 const SLIDE_DURATION_MS = 300;
 
-export interface GroupFormPageProps {
-  /** `create` = Figma `새 그룹 생성`, `edit` = Figma `그룹 편집` */
+export interface ArchiveFormPageProps {
+  /** `create` = Figma `새 아카이브 생성`, `edit` = Figma `아카이브 편집` */
   mode: 'create' | 'edit';
 }
 
 /**
- * Figma `그룹 > 새 그룹 생성` / `그룹 편집`.
+ * Figma `아카이브 > 새 아카이브 생성` / `아카이브 편집`.
  * 두 시안이 제목·버튼 라벨·삭제 액션만 다른 같은 폼이라 mode 로 합쳤다.
  */
-export function GroupFormPage({ mode }: GroupFormPageProps) {
-  const { groupId } = useParams();
+export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
+  const { archiveId } = useParams();
   const navigate = useNavigate();
   useHideBottomMenu();
 
   const editing = mode === 'edit';
-  const { data: groups } = useGroups();
-  const group = editing ? groups?.find((item) => String(item.id) === groupId) : undefined;
+  const { data: archives } = useArchives();
+  const archive = editing ? archives?.find((item) => String(item.id) === archiveId) : undefined;
 
   // 편집 시 초기값은 목록 응답에서 온다. 사용자가 아직 건드리지 않은 필드는 undefined 로 두고
   // 서버 값을 그대로 비추므로, 응답이 늦게 도착해도 폼이 빈 채로 굳지 않는다.
   const [editedName, setName] = useState<string>();
-  const [editedColor, setColor] = useState<GroupColor>();
+  const [editedColor, setColor] = useState<ArchiveColor>();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   // 생성 화면만 시트처럼 아래에서 올라온다(편집은 기존대로 바로 뜬다).
@@ -64,51 +64,51 @@ export function GroupFormPage({ mode }: GroupFormPageProps) {
     closeTimer.current = setTimeout(() => navigate(to, { replace: true }), SLIDE_DURATION_MS);
   };
 
-  const name = editedName ?? group?.name ?? '';
-  const color = editedColor ?? group?.color ?? GROUP_COLORS[0];
+  const name = editedName ?? archive?.name ?? '';
+  const color = editedColor ?? archive?.color ?? ARCHIVE_COLORS[0];
 
-  const createGroup = useCreateGroup();
-  const updateGroup = useUpdateGroup();
-  const deleteGroup = useDeleteGroup();
+  const createArchive = useCreateArchive();
+  const updateArchive = useUpdateArchive();
+  const deleteArchive = useDeleteArchive();
 
-  const submitting = createGroup.isPending || updateGroup.isPending;
+  const submitting = createArchive.isPending || updateArchive.isPending;
   const canSubmit = name.trim().length > 0 && !submitting;
-  const requestError = createGroup.error ?? updateGroup.error ?? deleteGroup.error;
+  const requestError = createArchive.error ?? updateArchive.error ?? deleteArchive.error;
 
   const handleSubmit = () => {
     if (editing) {
-      if (!group) return;
+      if (!archive) return;
 
-      updateGroup.mutate(
-        { groupId: group.id, name: name.trim(), color },
+      updateArchive.mutate(
+        { archiveId: archive.id, name: name.trim(), color },
         {
           onSuccess: () => {
-            capturePostHogEvent('group_updated', { group_id: group.id, color });
-            navigate(`/group/${group.id}`, { replace: true });
+            capturePostHogEvent('archive_updated', { archive_id: archive.id, color });
+            navigate(`/archive/${archive.id}`, { replace: true });
           },
         },
       );
       return;
     }
 
-    createGroup.mutate(
+    createArchive.mutate(
       { name: name.trim(), color },
       {
         onSuccess: () => {
-          capturePostHogEvent('group_created', { color });
-          slideOutAndNavigate('/group');
+          capturePostHogEvent('archive_created', { color });
+          slideOutAndNavigate('/archive');
         },
       },
     );
   };
 
   const handleDelete = () => {
-    if (!group) return;
+    if (!archive) return;
 
-    deleteGroup.mutate(group.id, {
+    deleteArchive.mutate(archive.id, {
       onSuccess: () => {
-        capturePostHogEvent('group_deleted', { group_id: group.id });
-        navigate('/group', { replace: true });
+        capturePostHogEvent('archive_deleted', { archive_id: archive.id });
+        navigate('/archive', { replace: true });
       },
     });
   };
@@ -123,34 +123,34 @@ export function GroupFormPage({ mode }: GroupFormPageProps) {
       )}
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <Header left={<BackButton />} title={editing ? '그룹 편집' : '새 그룹 생성'} />
+      <Header left={<BackButton />} title={editing ? '아카이브 편집' : '새 아카이브 생성'} />
 
       {/* 헤더는 위에 남기고, 넘치는 만큼은 이 안에서만 스크롤한다. */}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
         {/* 시안 수치: 좌우 16 / 상하 12 여백, 라벨-입력 사이 8 */}
         <div className="flex flex-col gap-2 px-4 py-3">
-          <label htmlFor="group-name" className="text-b2 font-medium text-gray-70">
-            그룹 이름
+          <label htmlFor="archive-name" className="text-b2 font-medium text-gray-70">
+            아카이브 이름
           </label>
           <Input
-            id="group-name"
+            id="archive-name"
             value={name}
             onChange={(event) => setName(event.target.value)}
             onClear={() => setName('')}
             maxLength={NAME_MAX_LENGTH}
-            placeholder="새 그룹명을 입력해주세요"
+            placeholder="새 아카이브명을 입력해주세요"
           />
         </div>
 
         {/* 시안 수치: 팔레트 줄은 상하 20 여백에 가운데 정렬, 스와치 간격 20 */}
         <fieldset className="flex items-center justify-center gap-5 px-4 py-5">
-          <legend className="sr-only">그룹 색상</legend>
-          {GROUP_COLORS.map((groupColor) => (
+          <legend className="sr-only">아카이브 색상</legend>
+          {ARCHIVE_COLORS.map((archiveColor) => (
             <ColorChip
-              key={groupColor}
-              color={groupColor}
-              selected={groupColor === color}
-              onClick={() => setColor(groupColor)}
+              key={archiveColor}
+              color={archiveColor}
+              selected={archiveColor === color}
+              onClick={() => setColor(archiveColor)}
             />
           ))}
         </fieldset>
@@ -166,7 +166,7 @@ export function GroupFormPage({ mode }: GroupFormPageProps) {
               onClick={() => setDeleteOpen(true)}
               className="text-b2 font-medium text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
             >
-              그룹 삭제
+              아카이브 삭제
             </button>
           ) : null}
           {/* ApiClientError 의 메시지는 사용자에게 그대로 보여줄 수 있는 한국어다. */}
@@ -176,7 +176,7 @@ export function GroupFormPage({ mode }: GroupFormPageProps) {
             </p>
           ) : null}
           <Button size="lg" fullWidth disabled={!canSubmit} onClick={handleSubmit}>
-            {editing ? '저장하기' : '그룹 만들기'}
+            {editing ? '저장하기' : '아카이브 만들기'}
           </Button>
         </div>
       </div>
@@ -184,10 +184,10 @@ export function GroupFormPage({ mode }: GroupFormPageProps) {
       <Popup
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        title="그룹을 삭제하시겠어요?"
+        title="아카이브를 삭제하시겠어요?"
         description={
           <>
-            그룹을 삭제하면 그룹 내 게시물도
+            아카이브를 삭제하면 아카이브 내 게시물도
             <br />
             모두 삭제돼요.
           </>

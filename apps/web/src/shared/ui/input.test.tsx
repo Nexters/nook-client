@@ -7,14 +7,14 @@ describe('Input', () => {
   function renderInput(props?: Partial<React.ComponentProps<typeof Input>>) {
     render(
       <Input
-        aria-label="그룹 이름"
+        aria-label="아카이브 이름"
         maxLength={20}
         onClear={() => {}}
-        placeholder="새 그룹명을 입력해주세요"
+        placeholder="새 아카이브명을 입력해주세요"
         {...props}
       />,
     );
-    return screen.getByLabelText('그룹 이름');
+    return screen.getByLabelText('아카이브 이름');
   }
 
   it('포커스가 없으면 값이 있든 없든 글자수·X 를 감춘다', () => {

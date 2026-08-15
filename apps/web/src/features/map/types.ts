@@ -1,5 +1,5 @@
 import type { PlaceOpeningHoursResponse } from '@/shared/api';
-import type { GroupColor } from '@/shared/ui';
+import type { ArchiveColor } from '@/shared/ui';
 
 /** 지도 뷰포트 경계 — `GetMapPlacesParams`(북쪽/남쪽/동쪽/서쪽 위경도)에 대응한다. */
 export interface MapBounds {
@@ -10,7 +10,7 @@ export interface MapBounds {
 }
 
 /**
- * 지도 핀 하나 — `MapPlaceResponse` 기준. 이름·대표 그룹 색상·대표 썸네일까지 내려오므로
+ * 지도 핀 하나 — `MapPlaceResponse` 기준. 이름·대표 아카이브 색상·대표 썸네일까지 내려오므로
  * 핀 단계에서 사진과 이름표를 다 그린다. 나머지 상세는 클릭 시 `usePlaceDetail`로 가져온다.
  */
 export interface MapPin {
@@ -18,8 +18,8 @@ export interface MapPin {
   lat: number;
   lng: number;
   name: string;
-  /** 장소를 저장한 대표 그룹의 색상. */
-  color: GroupColor;
+  /** 장소를 저장한 대표 아카이브의 색상. */
+  color: ArchiveColor;
   /** 장소 대표 썸네일. 없으면 핀이 빈 썸네일 고스트로 그려진다. */
   thumbnail?: string;
 }

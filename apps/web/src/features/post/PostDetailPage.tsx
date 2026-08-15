@@ -28,7 +28,7 @@ import { GoHomeTooltip, PostParsingView } from './components/PostParsingView';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
 
 /**
- * Figma `그룹 > 게시물 상세` (연관 장소 O / X, 메모 최대글자수, 이미지 확대 뷰)
+ * Figma `아카이브 > 게시물 상세` (연관 장소 O / X, 메모 최대글자수, 이미지 확대 뷰)
  * + `메모하기` 바텀시트.
  *
  * 이미지 확대 뷰와 메모 시트는 별도 라우트가 아니라 이 화면 위에 얹는 레이어라
@@ -184,7 +184,7 @@ export function PostDetailPage() {
     );
   }
 
-  const { post, title, groups, memo } = postDetailState.detail;
+  const { post, title, archives, memo } = postDetailState.detail;
   const images = post.images ?? [];
 
   // 콘텐츠는 문서 흐름 그대로 #root 스크롤에 맡기고(러버밴드), 헤더만 화면에 고정한다.
@@ -220,10 +220,10 @@ export function PostDetailPage() {
           ) : null}
 
           <PostInfo
-            groups={groups}
+            archives={archives}
             memo={memo}
             onMemoEdit={() => setMemoOpen(true)}
-            onGroupClick={(groupId) => navigate(`/group/${groupId}`)}
+            onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
             className="pt-2"
           />
 

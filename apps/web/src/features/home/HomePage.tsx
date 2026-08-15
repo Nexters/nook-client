@@ -12,7 +12,7 @@ export function HomePage() {
     >
       <h1 className="text-h1">nook</h1>
       <p className="text-b2 mt-1 text-gray-60">취향 기반 장소 아카이빙</p>
-      {/* 탭바(group/map/my) 붙기 전까지 지도 화면 확인용 임시 링크 */}
+      {/* 탭바(archive/map/my) 붙기 전까지 지도 화면 확인용 임시 링크 */}
       <Link
         to="/map"
         className="mt-7 flex items-center justify-center rounded-[10px] bg-gray-100 py-3 text-b2 font-medium text-gray-0"

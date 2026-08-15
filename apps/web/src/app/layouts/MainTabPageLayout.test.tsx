@@ -3,7 +3,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 
 describe('MainTabPageLayout', () => {
-  it('group/my용 회색 로고 헤더와 safe area를 렌더한다', () => {
+  it('archive/my용 회색 로고 헤더와 safe area를 렌더한다', () => {
     const { container } = render(
       <MemoryRouter>
         <MainTabPageLayout>
