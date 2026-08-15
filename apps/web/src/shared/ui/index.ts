@@ -1,4 +1,5 @@
 export * from './alert-dialog';
+export * from './archive-tag';
 export * from './avatar';
 export * from './badge';
 export * from './bottom-menu';
@@ -11,7 +12,6 @@ export * from './color-chip';
 export * from './drawer';
 export * from './editable-text-row';
 export * from './floating-button';
-export * from './group-tag';
 export * from './header';
 export * from './input';
 export * from './lottie';

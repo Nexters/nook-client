@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { SlideScreen, useSlideScreen } from '@/app/slide-screen';
+import { useArchives } from '@/features/archive/api/queries';
 import { useAuthSession } from '@/features/auth/session/AuthSessionProvider';
-import { useGroups } from '@/features/group/api/queries';
 import { useLogout, useMyProfile, useSaveProfile, useWithdraw } from '@/features/my/api/queries';
 import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
@@ -39,7 +39,7 @@ export function MyPage() {
   const { setHidden: setBottomMenuHidden } = useBottomMenuVisibility();
   const { clear: clearSession } = useAuthSession();
   const { data: profile, isPending: profilePending, isError: profileError } = useMyProfile();
-  const { data: groups } = useGroups();
+  const { data: archives } = useArchives();
   const logout = useLogout();
   const withdraw = useWithdraw();
   const saveProfile = useSaveProfile();
@@ -55,7 +55,7 @@ export function MyPage() {
     ? `data:${pickedImage.mimeType};base64,${pickedImage.base64}`
     : undefined;
   const avatarUrl = previewUrl ?? profile?.profileImageUrl ?? undefined;
-  const savedPlaceCount = groups?.reduce((sum, group) => sum + group.placeCount, 0) ?? 0;
+  const savedPlaceCount = archives?.reduce((sum, archive) => sum + archive.placeCount, 0) ?? 0;
   // 서버는 KAKAO/APPLE 처럼 대문자로 주지만 시안 표기는 소문자다.
   const providerLabel = profile ? profile.provider.toLowerCase() : undefined;
   // 셸이 주입한 실제 앱 버전. 브라우저로 열면 알 수 없어 행에서 값만 빠진다.
@@ -233,7 +233,7 @@ export function MyPage() {
                     {nickname}
                   </span>
                   <span className="mt-1 block font-mono text-e2 text-gray-60">
-                    {groups ? `Group ${groups.length} · Save ${savedPlaceCount}` : null}
+                    {archives ? `Archive ${archives.length} · Save ${savedPlaceCount}` : null}
                   </span>
                 </span>
                 <span aria-hidden="true" className="text-gray-40">

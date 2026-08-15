@@ -1,4 +1,4 @@
-import type { GroupColor } from '@/shared/ui';
+import type { ArchiveColor } from '@/shared/ui';
 
 /**
  * 저장된 게시물 — 사용자가 외부(인스타그램 등)에서 공유해 들여온 원본 글.
@@ -27,17 +27,17 @@ export interface Post {
  */
 export type PostProcessingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 
-/** 게시물이 속한 그룹 하나 — `SavedPostGroupResponse`를 옮긴 형태. */
-export interface PostGroup {
+/** 게시물이 속한 아카이브 하나 — `SavedPostGroupResponse`를 옮긴 형태. */
+export interface PostArchive {
   id: number;
   name: string;
-  color: GroupColor;
+  color: ArchiveColor;
 }
 
 /**
- * 게시물 상세가 한 화면에 필요로 하는 묶음 — 게시물 + 저장된 그룹.
+ * 게시물 상세가 한 화면에 필요로 하는 묶음 — 게시물 + 저장된 아카이브.
  * `features/post/api` 가 서버 응답(`SavedPostDetailResponse`)을 이 형태로 변환해 넘긴다.
- * 게시물이 여러 그룹에 저장될 수 있어 `groups`는 배열이다.
+ * 게시물이 여러 아카이브에 저장될 수 있어 `archives`는 배열이다.
  */
 export interface PostDetail {
   post: Post;
@@ -45,7 +45,7 @@ export interface PostDetail {
   /** 본문 처리(크롤링·장소 파싱) 진행률 0~100. PENDING/PROCESSING 동안 폴링으로 갱신된다. */
   processingPercent: number;
   title: string;
-  groups: PostGroup[];
+  archives: PostArchive[];
   memo?: string;
   /** 게시물에서 파싱된 연관 장소. 파싱 전이면 비어 있다. */
   places: ParsedPlace[];

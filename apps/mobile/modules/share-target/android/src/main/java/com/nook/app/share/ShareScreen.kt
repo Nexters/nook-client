@@ -61,7 +61,7 @@ import com.nook.app.share.ui.SheetButton
 import com.nook.app.share.ui.noRippleClick
 import com.nook.app.share.ui.suit
 
-// 새 그룹 생성 행 + 그룹 4개까지 노출(56*5=280), 초과 시 스크롤. 새 그룹 생성 행도 스크롤에 포함.
+// 새 아카이브 생성 행 + 아카이브 4개까지 노출(56*5=280), 초과 시 스크롤. 새 아카이브 생성 행도 스크롤에 포함.
 private const val SCROLL_REGION_DP = 280
 
 enum class ShareFeedbackKind(
@@ -282,7 +282,7 @@ private fun SelectGroupContent(
     var memo by remember { mutableStateOf("") }
     var isSaving by remember { mutableStateOf(false) }
 
-    // 키보드가 열리면 핸들 + 인풋만 남기고, 그룹 리스트는 키보드 인셋에 맞춰 실시간 접힘
+    // 키보드가 열리면 핸들 + 인풋만 남기고, 아카이브 리스트는 키보드 인셋에 맞춰 실시간 접힘
     CollapsibleByIme(panelFraction) {
         Column(
             Modifier
@@ -348,7 +348,7 @@ private fun CreateGroupContent(
     InputField(
         value = newGroupName,
         onChange = { newGroupName = it },
-        placeholder = "새 그룹명을 입력해주세요",
+        placeholder = "새 아카이브명을 입력해주세요",
         maxLength = 20,
         modifier = Modifier
             .fillMaxWidth()
@@ -358,7 +358,7 @@ private fun CreateGroupContent(
 
     ColorPalette(selectedColor) { selectedColor = it }
 
-    // 키보드 열리면 그룹 만들기 버튼 숨김
+    // 키보드 열리면 아카이브 만들기 버튼 숨김
     CollapsibleByIme(panelFraction) {
         Row(
             Modifier
@@ -366,7 +366,7 @@ private fun CreateGroupContent(
                 .padding(16.dp),
         ) {
             SheetButton(
-                "그룹 만들기",
+                "아카이브 만들기",
                 primary = true,
                 modifier = Modifier.weight(1f),
                 enabled = newGroupName.isNotBlank() && selectedColor >= 0 && !isCreating,
@@ -382,7 +382,7 @@ private fun CreateGroupContent(
     }
 }
 
-// 새 그룹 생성 화면 상단바: 좌측 뒤로가기 + 중앙 타이틀, 요소는 상단 정렬
+// 새 아카이브 생성 화면 상단바: 좌측 뒤로가기 + 중앙 타이틀, 요소는 상단 정렬
 @Composable
 private fun CreateGroupHeader(onBack: () -> Unit) {
     Box(
@@ -399,7 +399,7 @@ private fun CreateGroupHeader(onBack: () -> Unit) {
                 .noRippleClick(onBack),
         )
         Text(
-            "새 그룹 생성",
+            "새 아카이브 생성",
             Modifier.align(Alignment.Center),
             color = Color(0xFF1F1F1F),
             style = suit(16, FontWeight.SemiBold),

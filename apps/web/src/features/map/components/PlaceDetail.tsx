@@ -32,12 +32,12 @@ function SectionDivider() {
  * 이 장소에 연결된 저장 게시물 — 목데이터 시절과 같은 `SavedPostCard` 를 그대로 쓴다.
  *
  * `PlacePostResponse`(장소 상세 응답)는 제목·작성자·대표 이미지 1장·메모까지만 준다 —
- * 본문 전체·이미지 전체·원본 링크·그룹은 없다. 그 값들은 이미 게시물 상세가 갖고 있으므로
+ * 본문 전체·이미지 전체·원본 링크·아카이브는 없다. 그 값들은 이미 게시물 상세가 갖고 있으므로
  * (`GET /posts/{postId}`) postId 로 병렬 추가 조회해서 채운다. `postQueryKeys.detail` 을
  * 그대로 재사용해 게시물 상세 페이지와 캐시를 공유한다 — 여기서 한 번 로드해두면 그
  * 게시물 상세로 들어갔을 때 재요청 없이 바로 뜬다(반대 방향도 마찬가지).
  * 상세가 오기 전(또는 실패)엔 장소 상세 응답의 얇은 정보로 채운 카드를 우선 보여준다
- * (그룹 태그는 상세가 올 때까지 비어 있다).
+ * (아카이브 태그는 상세가 올 때까지 비어 있다).
  */
 function usePostDetails(posts: PlaceDetailPost[]) {
   return useQueries({
@@ -72,8 +72,8 @@ function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
             <SavedPostCard
               key={placePost.id}
               post={post}
-              groups={detail?.groups ?? []}
-              onGroupClick={(groupId) => navigate(`/group/${groupId}`)}
+              archives={detail?.archives ?? []}
+              onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
             />
           );
         })}

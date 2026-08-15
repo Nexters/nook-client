@@ -1,13 +1,13 @@
 import * as React from 'react';
-import type { PostGroup } from '@/features/post/types';
+import type { PostArchive } from '@/features/post/types';
 import { cn } from '@/shared/lib/utils';
-import { Carousel, GroupTag } from '@/shared/ui';
+import { ArchiveTag, Carousel } from '@/shared/ui';
 import type { Post } from '../types';
 import { OriginalPostLink } from './OriginalPostLink';
 
 /**
  * Figma `저장된 게시물`.
- * 게시물 상세 카드 — 제목 + 저장된 그룹/공유자 + 이미지 캐러셀 + 본문 + 원본 링크.
+ * 게시물 상세 카드 — 제목 + 저장된 아카이브/공유자 + 이미지 캐러셀 + 본문 + 원본 링크.
  *
  * 이미지 줄은 시안이 140x175 를 가로로 늘어놓고 화면(343)을 넘기므로 공용 `Carousel`
  * (네이티브 scroll-snap)에 얹는다. 다만 여기엔 점 인디케이터를 두지 않는다
@@ -17,20 +17,20 @@ import { OriginalPostLink } from './OriginalPostLink';
  */
 export interface SavedPostCardProps {
   post: Post;
-  /** 이 게시물이 저장된 그룹들 (표시용 이름/색만 받는다). 여러 그룹에 저장될 수 있다. */
-  groups: PostGroup[];
+  /** 이 게시물이 저장된 아카이브들 (표시용 이름/색만 받는다). 여러 아카이브에 저장될 수 있다. */
+  archives: PostArchive[];
   /** 카드 상단 제목 */
   title?: string;
-  /** 넘기면 그룹 태그가 버튼이 된다 — 게시물 상세와 같이 그 그룹 상세로 보낼 때 쓴다. */
-  onGroupClick?: (groupId: number) => void;
+  /** 넘기면 아카이브 태그가 버튼이 된다 — 게시물 상세와 같이 그 아카이브 상세로 보낼 때 쓴다. */
+  onArchiveClick?: (archiveId: number) => void;
   className?: string;
 }
 
 function SavedPostCard({
   post,
-  groups,
+  archives,
   title = '저장된 게시물',
-  onGroupClick,
+  onArchiveClick,
   className,
 }: SavedPostCardProps) {
   const [expanded, setExpanded] = React.useState(false);
@@ -44,14 +44,14 @@ function SavedPostCard({
       </div>
 
       <div className="flex w-full flex-wrap items-center gap-2 pb-3">
-        {groups.map((group) => (
-          <GroupTag
-            key={group.id}
-            color={group.color}
-            onClick={onGroupClick ? () => onGroupClick(group.id) : undefined}
+        {archives.map((archive) => (
+          <ArchiveTag
+            key={archive.id}
+            color={archive.color}
+            onClick={onArchiveClick ? () => onArchiveClick(archive.id) : undefined}
           >
-            {group.name}
-          </GroupTag>
+            {archive.name}
+          </ArchiveTag>
         ))}
         {post.sharedBy ? (
           <span className="truncate font-mono text-e2 text-gray-60">{post.sharedBy}</span>

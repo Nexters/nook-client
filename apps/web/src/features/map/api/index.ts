@@ -9,11 +9,11 @@ import {
   unwrapApiResponse,
   updateBookmark as updateBookmarkEndpoint,
 } from '@/shared/api';
-import type { GroupColor } from '@/shared/ui';
+import type { ArchiveColor } from '@/shared/ui';
 import type { MapBounds, MapPin, PlaceDetail, PlaceDetailPost, RecentPlace } from '../types';
 
 /**
- * 서버 색상 코드 ↔ 디자인 토큰 색상. `features/group/api`·`features/post/api`의 매핑과
+ * 서버 색상 코드 ↔ 디자인 토큰 색상. `features/archive/api`·`features/post/api`의 매핑과
  * 동일한 서버 enum이라 값도 그대로 맞춘다 — 각 feature가 자기 진입점을 소유하는 컨벤션.
  */
 const SERVER_TO_UI_COLOR = {
@@ -25,7 +25,7 @@ const SERVER_TO_UI_COLOR = {
   MINT: 'sky',
   GREEN: 'green',
   GRAY: 'cement',
-} as const satisfies Record<CreateGroupRequestColor, GroupColor>;
+} as const satisfies Record<CreateGroupRequestColor, ArchiveColor>;
 
 function toMapPin(dto: MapPlaceResponse): MapPin {
   return {

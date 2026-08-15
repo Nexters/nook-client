@@ -1,28 +1,28 @@
 import { cn } from '@/shared/lib/utils';
 import { Badge, COLOR_BG_CLASS, Thumbnail } from '@/shared/ui';
-import type { Group } from '../types';
+import type { Archive } from '../types';
 
 /** 시안이 한 줄에 98px 썸네일 3개를 놓는다. 넘치는 수는 마지막 칸에 +N 으로 접는다. */
 const VISIBLE_THUMBNAILS = 3;
 
 /**
- * Figma `List/Home_Group > Property 1=Default | Empty`.
- * 홈에서 그룹 하나를 요약해 보여주는 카드 — 색 스와치 + 이름 + 개수 배지 + 썸네일 줄.
+ * Figma `List/Home_Archive > Property 1=Default | Empty`.
+ * 홈에서 아카이브 하나를 요약해 보여주는 카드 — 색 스와치 + 이름 + 개수 배지 + 썸네일 줄.
  *
  * Empty 는 별도 prop 이 아니라 `thumbnails` 가 비었을 때 파생된다.
  */
-export interface GroupCardProps {
-  group: Group;
+export interface ArchiveCardProps {
+  archive: Archive;
   onClick?: () => void;
   className?: string;
 }
 
-function GroupCard({ group, onClick, className }: GroupCardProps) {
-  const thumbnails = group.thumbnails ?? [];
+function ArchiveCard({ archive, onClick, className }: ArchiveCardProps) {
+  const thumbnails = archive.thumbnails ?? [];
   const visible = thumbnails.slice(0, VISIBLE_THUMBNAILS);
-  // 마지막 칸에 접어 넣을 나머지 게시물 수 (시안의 `Thumbnail/98_Group > Plus`).
+  // 마지막 칸에 접어 넣을 나머지 게시물 수 (시안의 `Thumbnail/98_Archive > Plus`).
   // 서버는 썸네일을 몇 장만 내려주므로 URL 개수가 아니라 전체 개수에서 뺀다.
-  const overflow = group.placeCount - VISIBLE_THUMBNAILS;
+  const overflow = archive.placeCount - VISIBLE_THUMBNAILS;
 
   const Comp = onClick ? 'button' : 'div';
 
@@ -38,10 +38,13 @@ function GroupCard({ group, onClick, className }: GroupCardProps) {
     >
       <div className="flex w-full items-center gap-2">
         <span className="flex min-w-0 items-center gap-2">
-          <span className={cn('size-2 shrink-0', COLOR_BG_CLASS[group.color])} aria-hidden="true" />
-          <span className="truncate text-b2 font-medium text-gray-100">{group.name}</span>
+          <span
+            className={cn('size-2 shrink-0', COLOR_BG_CLASS[archive.color])}
+            aria-hidden="true"
+          />
+          <span className="truncate text-b2 font-medium text-gray-100">{archive.name}</span>
         </span>
-        <Badge variant="number">{group.placeCount}</Badge>
+        <Badge variant="number">{archive.placeCount}</Badge>
       </div>
 
       {/* 썸네일은 카드 폭을 3등분해 늘어난다 — 화면이 넓어져도 왼쪽에 몰리지 않게.
@@ -68,4 +71,4 @@ function GroupCard({ group, onClick, className }: GroupCardProps) {
   );
 }
 
-export { GroupCard };
+export { ArchiveCard };

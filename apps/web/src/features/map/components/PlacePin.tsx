@@ -1,7 +1,7 @@
 import { CustomOverlay } from 'react-naver-maps';
 import emptyThumbnail from '@/assets/images/98_Group.svg';
 import { SelectedPinMarker } from '@/features/map/components/SelectedPinMarker';
-import { COLOR_BG_CLASS, type GroupColor } from '@/shared/ui';
+import { type ArchiveColor, COLOR_BG_CLASS } from '@/shared/ui';
 
 /**
  * 개별 장소 핀 — 줌인 상태에서 쓴다(줌아웃은 `ClusterBubble`). Figma 139:16951(기본) ·
@@ -23,8 +23,8 @@ export function PlacePin({
   lat: number;
   lng: number;
   name: string;
-  /** 장소를 저장한 대표 그룹의 색상(`GET /places/map` 의 `color`). */
-  color: GroupColor;
+  /** 장소를 저장한 대표 아카이브의 색상(`GET /places/map` 의 `color`). */
+  color: ArchiveColor;
   /** 장소 대표 썸네일(`GET /places/map` 의 `thumbnailUrl`). 없으면 빈 썸네일 고스트를 그린다. */
   thumbnail?: string;
   selected?: boolean;

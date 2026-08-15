@@ -12,8 +12,8 @@ import { cn } from '@/shared/lib/utils';
  *   Logo_BG_White        → <Header left={<Logo />} />
  *   Logo_BG_Gray         → <Header variant="gray" left={<Logo />} />
  *   Logo_Transparency    → <Header variant="transparent" left={<Logo />} />
- *   Back                 → <Header left={<BackButton />} title="새 그룹 생성" right={<ShareButton />} />
- *   bottom               → <Header size="bottom" left={<BackButton />} title="새 그룹 생성" />
+ *   Back                 → <Header left={<BackButton />} title="새 아카이브 생성" right={<ShareButton />} />
+ *   bottom               → <Header size="bottom" left={<BackButton />} title="새 아카이브 생성" />
  *
  * `right` 를 비우면 24px 자리를 빈 칸으로 남겨 제목이 한쪽으로 쏠리지 않게 한다
  * (시안의 `bottom` variant 가 쓰는 방식 그대로).
