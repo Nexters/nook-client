@@ -19,6 +19,15 @@ describe('SelectedPinMarker', () => {
     );
   });
 
+  it('서버 값 "음식점"은 "식당" 글리프로 그린다', () => {
+    const restaurant = render(<SelectedPinMarker color="blue" category="식당" />);
+    const server = render(<SelectedPinMarker color="blue" category="음식점" />);
+
+    expect(glyphPath(server.container).getAttribute('d')).toBe(
+      glyphPath(restaurant.container).getAttribute('d'),
+    );
+  });
+
   it('모르는 카테고리와 미지정은 "기타" 글리프로 그린다', () => {
     const etc = render(<SelectedPinMarker color="blue" category="기타" />);
     const unknown = render(<SelectedPinMarker color="blue" category="노래방" />);
