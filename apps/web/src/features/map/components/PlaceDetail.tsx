@@ -6,13 +6,13 @@ import type { PlaceDetail as PlaceDetailModel, PlaceDetailPost } from '@/feature
 import { PlaceInfo, PlacePhotos, PlacePhotoViewer, PlaceRow } from '@/features/place';
 import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
 import type { Post } from '@/features/post';
-import { SavedPostCard } from '@/features/post';
+import { MemoSheet, SavedPostCard } from '@/features/post';
 import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
 import { postQueryKeys } from '@/features/post/api/queries';
 import { type Coordinates, formatDistance } from '@/shared/lib/geolocation';
 import { useToast } from '@/shared/toast';
 import { Badge } from '@/shared/ui';
-import { useUpdatePlaceBookmark } from '../api/queries';
+import { useUpdatePlaceBookmark, useUpdatePlaceMemo } from '../api/queries';
 
 /** 대표 이미지가 없는 게시물 카드에 쓰는 회색 플레이스홀더(140x175, gray-20). */
 const SAVED_POST_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(
@@ -150,9 +150,6 @@ function RelatedPlacesSection({
  * 지도 핀 클릭 시 드로어에 보여줄 장소 상세.
  * `expanded`(full 스냅) 일 때만 장소 info/저장된 게시물/게시물에 포함된 장소를 추가로 보여준다
  * — mid 스냅에서는 이름·태그·거리·주소·사진까지만 노출한다(Figma 126:13002 vs 126:13111).
- *
- * 장소 메모(시안의 ✏️ 줄)는 서버에 저장할 곳이 없어(응답 필드도, PATCH 도 없다) 렌더하지
- * 않는다 — `PlaceInfo` 는 이미 메모를 지원하므로 API 가 생기면 배선만 하면 된다.
  */
 export function PlaceDetail({
   place,
@@ -172,6 +169,8 @@ export function PlaceDetail({
 }) {
   const { showToast } = useToast();
   const [photosOpen, setPhotosOpen] = useState(false);
+  const [memoOpen, setMemoOpen] = useState(false);
+  const updateMemo = useUpdatePlaceMemo(place.id);
 
   const distance = userCoords
     ? formatDistance(userCoords, { lat: place.lat, lng: place.lng })
@@ -221,6 +220,8 @@ export function PlaceDetail({
             }
             businessStatus={formatBusinessStatus(place.openNow)}
             businessHours={formatBusinessHours(place.openingHours)}
+            memo={place.memo}
+            onMemoEdit={() => setMemoOpen(true)}
             className="mb-4"
           />
 
@@ -240,6 +241,14 @@ export function PlaceDetail({
           onClose={() => setPhotosOpen(false)}
         />
       )}
+
+      {/* 게시물 상세와 같은 `메모하기` 바텀시트를 그대로 쓴다 — 저장 대상만 장소 메모다. */}
+      <MemoSheet
+        open={memoOpen}
+        onOpenChange={setMemoOpen}
+        memo={place.memo}
+        onSave={(memo) => updateMemo.mutate(memo)}
+      />
     </div>
   );
 }

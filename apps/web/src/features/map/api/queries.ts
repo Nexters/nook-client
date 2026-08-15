@@ -1,6 +1,12 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { MapBounds } from '../types';
-import { fetchMapPins, fetchPlaceDetail, fetchRecentPlaces, updatePlaceBookmark } from '.';
+import {
+  fetchMapPins,
+  fetchPlaceDetail,
+  fetchRecentPlaces,
+  updatePlaceBookmark,
+  updatePlaceMemo,
+} from '.';
 
 export const mapQueryKeys = {
   pinsAll: ['map', 'pins'] as const,
@@ -54,6 +60,21 @@ export function useUpdatePlaceBookmark() {
       // 연관 장소의 별 표시는 게시물 상세 응답(`postQueryKeys.detail` = ['posts', postId])의
       // places 에서 온다 — post → map 방향 import 가 이미 있어 순환을 피해 접두사를 직접 쓴다.
       queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
+}
+
+/**
+ * 장소 메모 저장. 게시물 메모(`useUpdatePostMemo`)와 저장 위치가 다른 별개의 메모다.
+ * 성공하면 상세 쿼리만 무효화한다 — 핀·목록엔 메모가 안 나온다(낙관적 갱신 없음, 동일 컨벤션).
+ */
+export function useUpdatePlaceMemo(placeId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (memo: string) => updatePlaceMemo(placeId, memo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.detail(placeId) });
     },
   });
 }

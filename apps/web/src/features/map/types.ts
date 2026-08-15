@@ -61,5 +61,7 @@ export interface PlaceDetail {
   /** 현재 영업 여부. 서버가 판단해 내려준다(모르면 undefined). */
   openNow?: boolean;
   openingHours?: PlaceOpeningHoursResponse;
+  /** 사용자가 이 장소에 남긴 메모. 게시물 메모와 별개다(`PATCH /places/{placeId}/memo`). */
+  memo?: string;
   posts: PlaceDetailPost[];
 }

@@ -1,16 +1,23 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlaceDetail as PlaceDetailModel } from '@/features/map/types';
 import type { ParsedPlace, PostDetail } from '@/features/post/types';
 import { ToastProvider } from '@/shared/toast';
 
 // HTTP 전송이 아니라 "게시물 상세의 places → 게시물에 포함된 장소 섹션" 배선만 검증한다.
-const mocks = vi.hoisted(() => ({ fetchPostDetail: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  fetchPostDetail: vi.fn(),
+  updatePlaceMemo: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('@/features/post/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/post/api')>()),
-  ...mocks,
+  fetchPostDetail: mocks.fetchPostDetail,
+}));
+vi.mock('@/features/map/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/map/api')>()),
+  updatePlaceMemo: mocks.updatePlaceMemo,
 }));
 
 const { PlaceDetail } = await import('@/features/map/components/PlaceDetail');
@@ -132,5 +139,36 @@ describe('PlaceDetail 게시물에 포함된 장소', () => {
 
     expect(await screen.findByText('아이소')).toBeInTheDocument();
     expect(screen.queryByText('게시물에 포함된 장소')).not.toBeInTheDocument();
+  });
+});
+
+describe('PlaceDetail 장소 메모', () => {
+  beforeEach(() => {
+    mocks.fetchPostDetail.mockResolvedValue(postDetail([]));
+    mocks.updatePlaceMemo.mockClear();
+  });
+
+  it('메모가 없으면 "수정" 없이 안내 문구를 눌러 메모 시트를 열고 저장한다', async () => {
+    renderDetail();
+
+    expect(screen.queryByRole('button', { name: '수정' })).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: '메모를 남겨보세요' }));
+
+    const input = screen.getByPlaceholderText('추가로 메모하고 싶은 내용이 있나요?');
+    fireEvent.change(input, { target: { value: '주말엔 웨이팅 김' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장하기' }));
+
+    await waitFor(() => expect(mocks.updatePlaceMemo).toHaveBeenCalledWith(1, '주말엔 웨이팅 김'));
+  });
+
+  it('메모가 있으면 "수정"으로 같은 시트를 현재 값과 함께 연다', async () => {
+    renderDetail(undefined, { ...PLACE, memo: '창가 자리 좋음' });
+
+    expect(await screen.findByText('창가 자리 좋음')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '수정' }));
+
+    expect(screen.getByPlaceholderText('추가로 메모하고 싶은 내용이 있나요?')).toHaveValue(
+      '창가 자리 좋음',
+    );
   });
 });

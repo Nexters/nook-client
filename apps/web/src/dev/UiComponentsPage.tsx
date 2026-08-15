@@ -808,6 +808,12 @@ export function UiComponentsPage() {
               setLastAction(`메모 저장: ${next || '(비움)'}`);
             }}
           />
+          {/* onMemoEdit — 인라인 편집 대신 별도 시트를 여는 경로(장소 상세가 쓰는 방식) */}
+          <PlaceInfo
+            address="서울 성동구 서울숲7길 9 4층"
+            memo=""
+            onMemoEdit={() => setLastAction('메모 시트 열기')}
+          />
           {/* 주소·영업시간 없이 메모 줄만 */}
           {/* onMemoChange 없음 → 읽기 전용 */}
           <PlaceInfo memo="주소와 영업시간이 없으면 그 줄은 통째로 빠집니다" />
