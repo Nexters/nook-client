@@ -1,7 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
+import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { Icon32Edit } from '@/shared/icons/NookIcons';
 import { BackButton, Badge, COLOR_BG_CLASS, Header } from '@/shared/ui';
 import { useGroupPosts, useGroups } from './api/queries';
@@ -20,21 +20,6 @@ export function GroupDetailPage() {
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useGroupPosts(group?.id);
   const posts = data?.posts;
-
-  // 고정 영역(헤더+그룹 정보)은 그룹 이름 줄수·작성자 표기에 따라 높이가 변해서,
-  // 실측해 콘텐츠 시작 위치(padding-top)를 맞춘다.
-  const pinnedRef = useRef<HTMLDivElement>(null);
-  const [pinnedHeight, setPinnedHeight] = useState(0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: group 데이터가 바뀌면 다시 잰다.
-  useLayoutEffect(() => {
-    const pinned = pinnedRef.current;
-    if (!pinned) return;
-
-    setPinnedHeight(pinned.offsetHeight);
-    const observer = new ResizeObserver(() => setPinnedHeight(pinned.offsetHeight));
-    observer.observe(pinned);
-    return () => observer.disconnect();
-  }, [group, data?.ownerNickname]);
 
   // 그리드 끝(sentinel)이 화면에 들어오면 다음 페이지를 당긴다.
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -63,57 +48,42 @@ export function GroupDetailPage() {
     );
   }
 
-  // 그리드는 문서 흐름 그대로 #root 스크롤에 맡긴다(러버밴드). 헤더+그룹 정보는 화면에
-  // 붙어 있어야 하니 body 로 포탈해 뷰포트 기준 fixed 로 띄운다(MainTabPageLayout 의
-  // 헤더와 같은 이유 — 셸의 will-change-transform 이 fixed 기준을 셸로 바꾼다).
-  // +1px: 빈 그룹처럼 짧은 화면도 당겨지게 한다(MainTabPageLayout 과 같은 이유).
+  // 헤더에 이어 그룹 정보(이름·색·편집)까지 함께 고정한다 — 그룹 이름 줄수·작성자 표기에
+  // 따라 높이가 변하지만, 콘텐츠 시작 위치는 레이아웃이 실측해 맞춰준다.
   return (
-    <main className="min-h-[calc(100dvh+1px)] bg-gray-0">
-      {createPortal(
-        <div ref={pinnedRef} className="fixed inset-x-0 top-0 z-40">
-          <div
-            className="mx-auto w-full max-w-[450px] bg-gray-0"
-            style={{ paddingTop: 'env(safe-area-inset-top)' }}
-          >
-            {/* TODO(api): 공유 버튼은 아직 동작이 없어 숨긴다 — 링크 스펙 확정 후
-                `right={<ShareButton />}` 로 되살리고 native share 에 연결한다. */}
-            <Header left={<BackButton />} />
+    <PinnedHeaderLayout
+      header={
+        <>
+          {/* TODO(api): 공유 버튼은 아직 동작이 없어 숨긴다 — 링크 스펙 확정 후
+              `right={<ShareButton />}` 로 되살리고 native share 에 연결한다. */}
+          <Header left={<BackButton />} />
 
-            {/* 그룹 정보(이름·색·편집)도 헤더와 함께 고정한다. */}
-            <div className="flex flex-col gap-1 border-gray-20 border-b px-4 pb-4">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`size-3 shrink-0 ${COLOR_BG_CLASS[group.color]}`}
-                  aria-hidden="true"
-                />
-                <h1 className="min-w-0 truncate text-h2 font-semibold text-gray-100">
-                  {group.name}
-                </h1>
-                <Badge variant="number">{group.placeCount} Places</Badge>
-                <button
-                  type="button"
-                  aria-label="그룹 편집"
-                  onClick={() => navigate(`/group/${group.id}/edit`)}
-                  className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-                >
-                  <Icon32Edit />
-                </button>
-              </div>
-              {data?.ownerNickname ? (
-                <p className="font-mono text-e2 text-gray-60">by {data.ownerNickname}</p>
-              ) : null}
+          <div className="flex flex-col gap-1 border-gray-20 border-b px-4 pb-4">
+            <div className="flex items-center gap-2">
+              <span
+                className={`size-3 shrink-0 ${COLOR_BG_CLASS[group.color]}`}
+                aria-hidden="true"
+              />
+              <h1 className="min-w-0 truncate text-h2 font-semibold text-gray-100">{group.name}</h1>
+              <Badge variant="number">{group.placeCount} Places</Badge>
+              <button
+                type="button"
+                aria-label="그룹 편집"
+                onClick={() => navigate(`/group/${group.id}/edit`)}
+                className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+              >
+                <Icon32Edit />
+              </button>
             </div>
+            {data?.ownerNickname ? (
+              <p className="font-mono text-e2 text-gray-60">by {data.ownerNickname}</p>
+            ) : null}
           </div>
-        </div>,
-        document.body,
-      )}
-
-      <div
-        style={{
-          paddingTop: pinnedHeight,
-          paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))',
-        }}
-      >
+        </>
+      }
+      contentStyle={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+    >
+      <main>
         {posts?.length === 0 ? (
           <GroupEmpty message="아직 저장한 게시물이 없어요" />
         ) : (
@@ -129,7 +99,7 @@ export function GroupDetailPage() {
         )}
         {/* 다음 페이지 트리거. 마지막 페이지면 관찰 대상이 없어 아무 일도 하지 않는다. */}
         <div ref={sentinelRef} aria-hidden="true" className="h-1" />
-      </div>
-    </main>
+      </main>
+    </PinnedHeaderLayout>
   );
 }

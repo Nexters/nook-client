@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
+import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import type { Place } from '@/features/place';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
@@ -158,23 +159,27 @@ export function PostDetailPage() {
     });
   }, [relatedPlacesState.status, showToast]);
 
+  // 로딩·파싱·에러는 스켈레톤과 안내 문구뿐이라 문서를 늘리지 않고 뷰포트에 가둔다 —
+  // 헤더는 흐름 그대로 위에 남고, 넘치는 만큼만 아래 영역이 스크롤된다.
   if (postDetailState.status !== 'success') {
     return (
       <main
-        className="flex min-h-dvh flex-col bg-gray-0"
+        className="fixed inset-0 flex flex-col bg-gray-0"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <div className="relative">
+        <div className="relative shrink-0">
           <Header left={<BackButton onClick={handleBack} />} />
           {isProcessing ? <GoHomeTooltip /> : null}
         </div>
-        {isProcessing ? (
-          <PostParsingView percent={postDetailState.percent} />
-        ) : postDetailState.status === 'loading' ? (
-          <PostDetailLoadingView />
-        ) : (
-          <PostDetailErrorView />
-        )}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+          {isProcessing ? (
+            <PostParsingView percent={postDetailState.percent} />
+          ) : postDetailState.status === 'loading' ? (
+            <PostDetailLoadingView />
+          ) : (
+            <PostDetailErrorView />
+          )}
+        </div>
       </main>
     );
   }
@@ -182,17 +187,13 @@ export function PostDetailPage() {
   const { post, title, groups, memo } = postDetailState.detail;
   const images = post.images ?? [];
 
-  // 콘텐츠는 문서 흐름 그대로 #root 스크롤에 맡긴다(러버밴드). 헤더도 흐름 안에 있어
-  // 콘텐츠와 함께 스크롤되는 기존 동작 그대로다.
-  // +1px: 짧은 게시물도 당겨지게 한다(MainTabPageLayout 과 같은 이유).
+  // 콘텐츠는 문서 흐름 그대로 #root 스크롤에 맡기고(러버밴드), 헤더만 화면에 고정한다.
   return (
-    <main
-      className="flex min-h-[calc(100dvh+1px)] flex-col bg-gray-0"
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    <PinnedHeaderLayout
+      header={<Header left={<BackButton onClick={handleBack} />} />}
+      contentStyle={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
     >
-      <div style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}>
-        <Header left={<BackButton onClick={handleBack} />} />
-
+      <main>
         <PostImages images={images} onImageClick={openViewer} />
 
         <div className="flex flex-col gap-2 px-4 pt-1">
@@ -239,7 +240,7 @@ export function PostDetailPage() {
           onDirectAddClick={() => setDirectInputOpen(true)}
           onPlaceClick={handleRelatedPlaceClick}
         />
-      </div>
+      </main>
 
       <MemoSheet
         open={memoOpen}
@@ -263,6 +264,6 @@ export function PostDetailPage() {
         onOpenChange={setDirectInputOpen}
         onPlaceConfirmed={handlePlaceConfirmed}
       />
-    </main>
+    </PinnedHeaderLayout>
   );
 }
