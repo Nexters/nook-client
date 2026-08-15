@@ -31,12 +31,12 @@ function parsedPlace(id: number, name: string): ParsedPlace {
   };
 }
 
-function postDetail(places: ParsedPlace[], groups: PostDetail['groups'] = []): PostDetail {
+function postDetail(places: ParsedPlace[], archives: PostDetail['archives'] = []): PostDetail {
   return {
     processingStatus: 'COMPLETED',
     processingPercent: 100,
     title: '게시물',
-    groups,
+    archives,
     places,
     post: { id: '1', authorHandle: '@nook' },
   };
@@ -75,7 +75,7 @@ function renderDetail(onSelectPlace?: (id: number) => void, place: PlaceDetailMo
                 />
               }
             />
-            <Route path="/group/:groupId" element={<p>그룹 상세 화면</p>} />
+            <Route path="/archive/:archiveId" element={<p>아카이브 상세 화면</p>} />
           </Routes>
         </MemoryRouter>
       </ToastProvider>
@@ -111,8 +111,8 @@ describe('PlaceDetail 게시물에 포함된 장소', () => {
     expect(onSelectPlace).toHaveBeenCalledWith(2);
   });
 
-  it('저장된 게시물의 그룹 태그를 누르면 그 그룹 상세로 이동한다', async () => {
-    // 그룹 태그는 게시물 11 에만 달아 버튼이 하나만 나오게 한다.
+  it('저장된 게시물의 아카이브 태그를 누르면 그 아카이브 상세로 이동한다', async () => {
+    // 아카이브 태그는 게시물 11 에만 달아 버튼이 하나만 나오게 한다.
     mocks.fetchPostDetail.mockImplementation(async (postId: number) =>
       postId === 11
         ? postDetail([parsedPlace(1, '아이소')], [{ id: 7, name: '카페', color: 'yellow' }])
@@ -122,7 +122,7 @@ describe('PlaceDetail 게시물에 포함된 장소', () => {
     renderDetail();
 
     fireEvent.click(await screen.findByRole('button', { name: '카페' }));
-    expect(screen.getByText('그룹 상세 화면')).toBeInTheDocument();
+    expect(screen.getByText('아카이브 상세 화면')).toBeInTheDocument();
   });
 
   it('게시물에 포함된 장소가 없으면 섹션 자체를 그리지 않는다', async () => {

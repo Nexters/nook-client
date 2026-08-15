@@ -110,7 +110,7 @@ export function useRelatedPlaces(postId: number | undefined): RelatedPlacesState
   };
 }
 
-/** 메모 저장. 성공하면 상세 쿼리를 무효화해 새 메모를 반영한다(낙관적 갱신 없음, group 과 동일 컨벤션). */
+/** 메모 저장. 성공하면 상세 쿼리를 무효화해 새 메모를 반영한다(낙관적 갱신 없음, archive 과 동일 컨벤션). */
 export function useUpdatePostMemo(postId: number | undefined) {
   const queryClient = useQueryClient();
 

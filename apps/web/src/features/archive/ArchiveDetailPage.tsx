@@ -7,24 +7,24 @@ import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
 import { BackButton, BOTTOM_MENU_HEIGHT, Button, COLOR_BG_CLASS, Header, Popup } from '@/shared/ui';
 import {
-  useDeleteGroup,
-  useDeleteGroupPosts,
-  useGroupPlaces,
-  useGroupPosts,
-  useGroups,
+  useArchivePlaces,
+  useArchivePosts,
+  useArchives,
+  useDeleteArchive,
+  useDeleteArchivePosts,
 } from './api/queries';
+import { ArchiveDetailMenu } from './components/ArchiveDetailMenu';
+import { ArchiveEmpty } from './components/ArchiveEmpty';
 import { CollectionCard } from './components/CollectionCard';
-import { GroupDetailMenu } from './components/GroupDetailMenu';
-import { GroupEmpty } from './components/GroupEmpty';
 
 type DetailTab = 'posts' | 'places';
 
 /** 선택 모드 CTA 바 높이(p-4 16px + Button_52 + 16px) — 콘텐츠 하단 패딩이 비켜줄 몫. */
 const SELECT_CTA_HEIGHT = '5.25rem';
 
-/** Figma `그룹 > 그룹 상세` (게시물/장소 탭 · 더보기 메뉴 · 선택 삭제 · 빈 그룹). */
-export function GroupDetailPage() {
-  const { groupId } = useParams();
+/** Figma `아카이브 > 아카이브 상세` (게시물/장소 탭 · 더보기 메뉴 · 선택 삭제 · 빈 아카이브). */
+export function ArchiveDetailPage() {
+  const { archiveId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<DetailTab>('posts');
@@ -36,16 +36,16 @@ export function GroupDetailPage() {
   const [deletePostsPopupOpen, setDeletePostsPopupOpen] = useState(false);
 
   // 상세 전용 API가 아직 없어 목록 캐시에서 고른다.
-  const { data: groups, isPending } = useGroups();
-  const group = groups?.find((item) => String(item.id) === groupId);
+  const { data: archives, isPending } = useArchives();
+  const archive = archives?.find((item) => String(item.id) === archiveId);
 
-  const postsQuery = useGroupPosts(group?.id);
+  const postsQuery = useArchivePosts(archive?.id);
   const posts = postsQuery.data?.posts;
-  const placesQuery = useGroupPlaces(group?.id);
+  const placesQuery = useArchivePlaces(archive?.id);
   const places = placesQuery.data?.places;
 
-  const deleteGroup = useDeleteGroup();
-  const deleteGroupPosts = useDeleteGroupPosts();
+  const deleteArchive = useDeleteArchive();
+  const deleteArchivePosts = useDeleteArchivePosts();
 
   // 게시물이 하나도 없으면 시안대로 탭 없이 빈 상태만 보여준다 — 장소는 게시물에서
   // 파생되므로 게시물이 없으면 장소도 없다. 로딩 중(undefined)에는 판단을 미룬다.
@@ -72,11 +72,11 @@ export function GroupDetailPage() {
     });
   };
 
-  // 고정 영역(헤더+그룹 정보+탭)은 그룹 이름 줄수·작성자 표기·탭 유무에 따라 높이가
+  // 고정 영역(헤더+아카이브 정보+탭)은 아카이브 이름 줄수·작성자 표기·탭 유무에 따라 높이가
   // 변해서, 실측해 콘텐츠 시작 위치(padding-top)를 맞춘다.
   const pinnedRef = useRef<HTMLDivElement>(null);
   const [pinnedHeight, setPinnedHeight] = useState(0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: group 데이터가 바뀌면 다시 잰다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: archive 데이터가 바뀌면 다시 잰다.
   useLayoutEffect(() => {
     const pinned = pinnedRef.current;
     if (!pinned) return;
@@ -85,7 +85,7 @@ export function GroupDetailPage() {
     const observer = new ResizeObserver(() => setPinnedHeight(pinned.offsetHeight));
     observer.observe(pinned);
     return () => observer.disconnect();
-  }, [group, postsQuery.data?.ownerNickname, isEmpty]);
+  }, [archive, postsQuery.data?.ownerNickname, isEmpty]);
 
   // 그리드/목록 끝(sentinel)이 화면에 들어오면 활성 탭의 다음 페이지를 당긴다.
   const activeQuery = activeTab === 'posts' ? postsQuery : placesQuery;
@@ -104,14 +104,14 @@ export function GroupDetailPage() {
 
   if (isPending) return null;
 
-  if (!group) {
+  if (!archive) {
     return (
       <main
         className="fixed inset-0 flex flex-col bg-gray-0"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <Header left={<BackButton />} />
-        <GroupEmpty message="그룹을 찾을 수 없어요" />
+        <ArchiveEmpty message="아카이브를 찾을 수 없어요" />
       </main>
     );
   }
@@ -121,10 +121,10 @@ export function GroupDetailPage() {
     { key: 'places', label: '장소', count: placesQuery.data?.totalElements },
   ];
 
-  // 그리드는 문서 흐름 그대로 #root 스크롤에 맡긴다(러버밴드). 헤더+그룹 정보+탭은
+  // 그리드는 문서 흐름 그대로 #root 스크롤에 맡긴다(러버밴드). 헤더+아카이브 정보+탭은
   // 화면에 붙어 있어야 하니 body 로 포탈해 뷰포트 기준 fixed 로 띄운다
   // (MainTabPageLayout 의 헤더와 같은 이유 — 셸의 will-change-transform 이 fixed
-  // 기준을 셸로 바꾼다). +1px: 빈 그룹처럼 짧은 화면도 당겨지게 한다.
+  // 기준을 셸로 바꾼다). +1px: 빈 아카이브처럼 짧은 화면도 당겨지게 한다.
   // 하단 탭바(ProtectedAppLayout)와 선택 모드 CTA 바도 같은 이유로 fixed 라,
   // 콘텐츠는 하단 패딩으로만 비켜준다.
   return (
@@ -139,8 +139,8 @@ export function GroupDetailPage() {
               // 선택 모드의 뒤로가기는 페이지 이탈이 아니라 모드 종료다.
               left={<BackButton onClick={selecting ? exitSelecting : undefined} />}
               right={
-                <GroupDetailMenu
-                  onEdit={() => navigate(`/group/${group.id}/edit`)}
+                <ArchiveDetailMenu
+                  onEdit={() => navigate(`/archive/${archive.id}/edit`)}
                   onSelectDelete={() => {
                     // 선택 삭제는 게시물 대상 — 장소 탭에서 열었으면 게시물 탭으로 돌린다.
                     setActiveTab('posts');
@@ -151,21 +151,21 @@ export function GroupDetailPage() {
               }
             />
 
-            {/* 그룹 정보(이름·색·소유자)도 헤더와 함께 고정한다. */}
+            {/* 아카이브 정보(이름·색·소유자)도 헤더와 함께 고정한다. */}
             <div
               className={cn(
                 'flex flex-col gap-1 px-4 pt-2 pb-4',
-                // 빈 그룹은 탭이 없어 정보 영역이 직접 경계선을 긋는다.
+                // 빈 아카이브는 탭이 없어 정보 영역이 직접 경계선을 긋는다.
                 isEmpty && 'border-gray-20 border-b',
               )}
             >
               <div className="flex items-center gap-2">
                 <span
-                  className={`size-3 shrink-0 ${COLOR_BG_CLASS[group.color]}`}
+                  className={`size-3 shrink-0 ${COLOR_BG_CLASS[archive.color]}`}
                   aria-hidden="true"
                 />
                 <h1 className="min-w-0 truncate text-h1 font-semibold text-gray-100">
-                  {group.name}
+                  {archive.name}
                 </h1>
               </div>
               {postsQuery.data?.ownerNickname ? (
@@ -221,13 +221,13 @@ export function GroupDetailPage() {
         }}
       >
         {isEmpty ? (
-          <GroupEmpty message="저장한 게시물이 없어요" />
+          <ArchiveEmpty message="저장한 게시물이 없어요" />
         ) : activeTab === 'posts' ? (
           <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
             {posts?.map((post) => (
               <CollectionCard
                 key={post.id}
-                group={post}
+                archive={post}
                 selected={selecting ? selectedPostIds.has(post.id) : undefined}
                 onClick={
                   selecting ? () => togglePostSelected(post.id) : () => navigate(`/post/${post.id}`)
@@ -236,7 +236,7 @@ export function GroupDetailPage() {
             ))}
           </div>
         ) : places?.length === 0 ? (
-          <GroupEmpty message="저장한 장소가 없어요" />
+          <ArchiveEmpty message="저장한 장소가 없어요" />
         ) : (
           // 게시물 탭과 같은 2열 그리드 — 카드도 최근 저장한 공간 바텀시트와 같은
           // 세로형 장소 카드(PlaceCard)를 쓴다.
@@ -267,7 +267,7 @@ export function GroupDetailPage() {
                 <Button
                   size="lg"
                   fullWidth
-                  disabled={selectedPostIds.size === 0 || deleteGroupPosts.isPending}
+                  disabled={selectedPostIds.size === 0 || deleteArchivePosts.isPending}
                   onClick={() => setDeletePostsPopupOpen(true)}
                 >
                   {selectedPostIds.size > 0 ? `${selectedPostIds.size}개 삭제하기` : '삭제하기'}
@@ -292,7 +292,7 @@ export function GroupDetailPage() {
         confirmLabel="삭제하기"
         variant="warning"
         onConfirm={() =>
-          deleteGroupPosts.mutate([...selectedPostIds], {
+          deleteArchivePosts.mutate([...selectedPostIds], {
             // 일부 실패 시에도 성공분은 지워졌고 onSettled 무효화로 목록이 갱신되므로,
             // 성공/실패 모두 선택 모드는 접고 실패만 토스트로 알린다.
             onSuccess: () => exitSelecting(),
@@ -318,8 +318,8 @@ export function GroupDetailPage() {
         confirmLabel="삭제하기"
         variant="warning"
         onConfirm={() =>
-          deleteGroup.mutate(group.id, {
-            onSuccess: () => navigate('/group', { replace: true }),
+          deleteArchive.mutate(archive.id, {
+            onSuccess: () => navigate('/archive', { replace: true }),
           })
         }
       />

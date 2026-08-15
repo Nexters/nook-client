@@ -2,15 +2,15 @@ import { createBrowserRouter } from 'react-router-dom';
 import { ProtectedAppLayout } from '@/app/layouts/ProtectedAppLayout';
 import { NativeBackHost } from '@/app/native-back';
 import { RootScrollReset } from '@/app/scroll-reset';
+import { ArchiveDetailPage } from '@/features/archive/ArchiveDetailPage';
+import { ArchiveFormPage } from '@/features/archive/ArchiveFormPage';
+import { ArchivePage } from '@/features/archive/ArchivePage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import {
   AuthEntryRedirect,
   RedirectAuthenticated,
   RequireAuth,
 } from '@/features/auth/session/AuthRouteGuards';
-import { GroupDetailPage } from '@/features/group/GroupDetailPage';
-import { GroupFormPage } from '@/features/group/GroupFormPage';
-import { GroupPage } from '@/features/group/GroupPage';
 import { MapPage } from '@/features/map/MapPage';
 import { ContactPage } from '@/features/my/ContactPage';
 import { MyPage } from '@/features/my/MyPage';
@@ -77,20 +77,20 @@ export const router = createBrowserRouter([
             element: <MapPage />,
           },
           {
-            path: 'group',
-            element: <GroupPage />,
+            path: 'archive',
+            element: <ArchivePage />,
           },
           {
-            path: 'group/new',
-            element: <GroupFormPage mode="create" />,
+            path: 'archive/new',
+            element: <ArchiveFormPage mode="create" />,
           },
           {
-            path: 'group/:groupId',
-            element: <GroupDetailPage />,
+            path: 'archive/:archiveId',
+            element: <ArchiveDetailPage />,
           },
           {
-            path: 'group/:groupId/edit',
-            element: <GroupFormPage mode="edit" />,
+            path: 'archive/:archiveId/edit',
+            element: <ArchiveFormPage mode="edit" />,
           },
           {
             path: 'post/:postId',

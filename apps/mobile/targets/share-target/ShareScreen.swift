@@ -1,6 +1,6 @@
 import SwiftUI
 
-// 새 그룹 생성 행 + 그룹 4개까지 노출(56*5=280), 초과 시 스크롤
+// 새 아카이브 생성 행 + 아카이브 4개까지 노출(56*5=280), 초과 시 스크롤
 private let scrollRegion: CGFloat = 280
 private let dismissThreshold: CGFloat = 120
 // ShareViewController.dismissDuration 과 같아야 딤과 시트가 함께 사라진다
@@ -141,7 +141,7 @@ private struct CreateGroupContent: View {
 
         Spacer().frame(height: 20)
 
-        InputField(text: $name, placeholder: "새 그룹명을 입력해주세요", focused: $nameFocused, maxLength: 20)
+        InputField(text: $name, placeholder: "새 아카이브명을 입력해주세요", focused: $nameFocused, maxLength: 20)
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
             .onAppear { nameFocused = false }
@@ -150,7 +150,7 @@ private struct CreateGroupContent: View {
 
         CollapsibleByKeyboard(fraction: panelFraction) {
             SheetButton(
-                text: "그룹 만들기",
+                text: "아카이브 만들기",
                 primary: true,
                 enabled: !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedColor >= 0 && !isCreating
             ) {
@@ -165,13 +165,13 @@ private struct CreateGroupContent: View {
     }
 }
 
-// 새 그룹 생성 화면 상단바: 좌측 뒤로가기 + 중앙 타이틀
+// 새 아카이브 생성 화면 상단바: 좌측 뒤로가기 + 중앙 타이틀
 private struct CreateGroupHeader: View {
     let onBack: () -> Void
 
     var body: some View {
         ZStack {
-            Text("새 그룹 생성")
+            Text("새 아카이브 생성")
                 .suit(16, .semibold)
                 .foregroundColor(Color(hex: 0x1F1F1F))
             HStack {

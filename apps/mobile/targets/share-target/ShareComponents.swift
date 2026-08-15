@@ -27,7 +27,7 @@ struct CreateGroupRow: View {
         HStack(spacing: 8) {
             NookIcon(name: .icon24Add)
                 .padding(.leading, 10)
-            Text("새 그룹 생성")
+            Text("새 아카이브 생성")
                 .suit(16, .medium)
                 .foregroundColor(Color(hex: 0x67707D))
             Spacer(minLength: 0)

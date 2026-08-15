@@ -11,7 +11,7 @@ interface MainTabPageLayoutProps {
   variant?: 'gray' | 'transparent';
 }
 
-/** map/group/my 최상위 탭 화면이 공유하는 safe area와 로고 헤더 레이아웃. */
+/** map/archive/my 최상위 탭 화면이 공유하는 safe area와 로고 헤더 레이아웃. */
 export function MainTabPageLayout({ children, variant = 'gray' }: MainTabPageLayoutProps) {
   const overlay = variant === 'transparent';
   const navigate = useNavigate();
@@ -87,7 +87,7 @@ export function MainTabPageLayout({ children, variant = 'gray' }: MainTabPageLay
     );
   }
 
-  // gray(그룹·마이)는 콘텐츠를 문서 흐름에 두고 #root 가 스크롤한다(global.css) —
+  // gray(아카이브·마이)는 콘텐츠를 문서 흐름에 두고 #root 가 스크롤한다(global.css) —
   // 스크롤 끝 러버밴드가 여기서 나온다. 헤더는 화면에 붙어 있어야 하니 body 로 포탈해
   // 뷰포트 기준 fixed 로 띄운다(셸의 will-change-transform 을 피하는 이유는
   // ProtectedAppLayout 의 탭바와 같다). 콘텐츠는 그 높이만큼 내려서 시작한다.

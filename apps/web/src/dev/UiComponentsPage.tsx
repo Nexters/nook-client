@@ -1,7 +1,12 @@
 import { type ReactNode, useState } from 'react';
 import logo from '@/assets/logo/header_logo.svg';
-import type { Group } from '@/features/group';
-import { CollectionCard, GroupCard, GroupCreateRow, GroupSelectRow } from '@/features/group';
+import type { Archive } from '@/features/archive';
+import {
+  ArchiveCard,
+  ArchiveCreateRow,
+  ArchiveSelectRow,
+  CollectionCard,
+} from '@/features/archive';
 import { MyMenuRow, MyMenuSection } from '@/features/my';
 import type { Place } from '@/features/place';
 import {
@@ -21,8 +26,8 @@ import {
   Icon16Paper,
   Icon16User,
   Icon16Version,
-  Icon32GroupSelected,
-  Icon32GroupUnselected,
+  Icon32ArchiveSelected,
+  Icon32ArchiveUnselected,
   Icon32MapSelected,
   Icon32MapUnselected,
   Icon32MySelected,
@@ -31,8 +36,10 @@ import {
   Icon44Error,
 } from '@/shared/icons/NookIcons';
 import { useToast } from '@/shared/toast';
-import type { BottomMenuItem, GroupColor } from '@/shared/ui';
+import type { ArchiveColor, BottomMenuItem } from '@/shared/ui';
 import {
+  ARCHIVE_COLORS,
+  ArchiveTag,
   Avatar,
   BackButton,
   Badge,
@@ -51,8 +58,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
   FloatingButton,
-  GROUP_COLORS,
-  GroupTag,
   Header,
   Input,
   Popup,
@@ -120,30 +125,30 @@ const SAMPLE_PHOTOS = ['#38c8c4', '#a58af2', '#f2a58a', '#8af2a5', '#f28ac8', '#
 );
 
 // 도메인 컴포넌트 확인용 mock. 실제 API/store 는 연결하지 않는다(룰 §3 도메인 섹션).
-const MOCK_GROUP_FILLED: Group = {
+const MOCK_ARCHIVE_FILLED: Archive = {
   id: 1,
   name: '카페',
   color: 'yellow',
   placeCount: 112,
   thumbnails: Array.from({ length: 5 }, () => SAMPLE_IMAGE),
 };
-const MOCK_GROUP_EMPTY: Group = {
+const MOCK_ARCHIVE_EMPTY: Archive = {
   id: 2,
   name: '서촌 놀거리',
   color: 'sky',
   placeCount: 0,
   thumbnails: [],
 };
-const MOCK_GROUP_LONG: Group = {
+const MOCK_ARCHIVE_LONG: Archive = {
   id: 3,
-  name: '이름이 아주 길어지는 그룹은 말줄임으로 잘립니다',
+  name: '이름이 아주 길어지는 아카이브는 말줄임으로 잘립니다',
   color: 'purple',
   placeCount: 3,
 };
-const MOCK_GROUPS = [MOCK_GROUP_FILLED, MOCK_GROUP_EMPTY, MOCK_GROUP_LONG];
+const MOCK_ARCHIVES = [MOCK_ARCHIVE_FILLED, MOCK_ARCHIVE_EMPTY, MOCK_ARCHIVE_LONG];
 
-// 공개 그룹(다른 사람이 만든 것) — CollectionCard 용
-const MOCK_COLLECTIONS: Group[] = [
+// 공개 아카이브(다른 사람이 만든 것) — CollectionCard 용
+const MOCK_COLLECTIONS: Archive[] = [
   {
     id: 101,
     name: '지금 가기 좋은 초록뷰 카페',
@@ -203,9 +208,9 @@ const MOCK_PLACE_LONG: Place = {
 const NAV_ITEMS: BottomMenuItem[] = [
   {
     to: '/dev/ui',
-    label: 'group',
-    icon: <Icon32GroupUnselected />,
-    activeIcon: <Icon32GroupSelected />,
+    label: 'archive',
+    icon: <Icon32ArchiveUnselected />,
+    activeIcon: <Icon32ArchiveSelected />,
     end: true,
   },
   {
@@ -223,14 +228,14 @@ const NAV_ITEMS: BottomMenuItem[] = [
 ];
 
 export function UiComponentsPage() {
-  const [selectedColor, setSelectedColor] = useState<GroupColor>('yellow');
+  const [selectedColor, setSelectedColor] = useState<ArchiveColor>('yellow');
   const [checked, setChecked] = useState(true);
   const [popupOpen, setPopupOpen] = useState(false);
   const [warningPopupOpen, setWarningPopupOpen] = useState(false);
   const [lastAction, setLastAction] = useState<string>('—');
   const [fabCount, setFabCount] = useState(0);
-  const [groupName, setGroupName] = useState('초록뷰 카');
-  const [selectedGroups, setSelectedGroups] = useState<number[]>([1]);
+  const [archiveName, setArchiveName] = useState('초록뷰 카');
+  const [selectedArchives, setSelectedArchives] = useState<number[]>([1]);
   const [bookmarked, setBookmarked] = useState<string[]>(['p1']);
   const [memo, setMemo] = useState('지우랑 가면 좋겠다');
   const [detailMemo, setDetailMemo] = useState('지우랑 가면 좋겠다');
@@ -258,7 +263,7 @@ export function UiComponentsPage() {
             생성 후 저장
           </Button>
           <Button variant="secondary" size="lg">
-            새 그룹 생성
+            새 아카이브 생성
           </Button>
           <Button size="lg" disabled>
             Disabled
@@ -318,7 +323,7 @@ export function UiComponentsPage() {
           <div className="w-full max-w-[343px]">
             <ButtonGroup size="lg">
               <Button variant="secondary" size="lg">
-                새 그룹 생성
+                새 아카이브 생성
               </Button>
               <Button size="lg">저장</Button>
             </ButtonGroup>
@@ -341,7 +346,7 @@ export function UiComponentsPage() {
           <Checkbox
             checked={checked}
             onCheckedChange={(next) => setChecked(next === true)}
-            aria-label="그룹 선택"
+            aria-label="아카이브 선택"
           />
           <span className="text-b2 text-gray-60">클릭해 상태를 전환합니다</span>
         </Row>
@@ -476,25 +481,25 @@ export function UiComponentsPage() {
         </p>
         <Row label="Scale=Large(52px) — Default / Filled / Disabled">
           <div className="flex w-full max-w-[343px] flex-col gap-2">
-            <Input placeholder="새 그룹명을 입력해주세요" />
+            <Input placeholder="새 아카이브명을 입력해주세요" />
             <Input defaultValue="초록뷰 카페" />
             <Input placeholder="비활성" disabled />
           </div>
         </Row>
         <Row label="Scale=Small(44px)">
           <div className="flex w-full max-w-[343px] flex-col gap-2">
-            <Input scale="sm" placeholder="새 그룹명을 입력해주세요" />
+            <Input scale="sm" placeholder="새 아카이브명을 입력해주세요" />
             <Input scale="sm" defaultValue="초록뷰 카페" />
           </div>
         </Row>
-        <Row label={`Typing — onClear + maxLength (현재 ${groupName.length}자)`}>
+        <Row label={`Typing — onClear + maxLength (현재 ${archiveName.length}자)`}>
           <div className="w-full max-w-[343px]">
             <Input
-              value={groupName}
-              onChange={(event) => setGroupName(event.target.value)}
-              onClear={() => setGroupName('')}
+              value={archiveName}
+              onChange={(event) => setArchiveName(event.target.value)}
+              onClear={() => setArchiveName('')}
               maxLength={25}
-              placeholder="새 그룹명을 입력해주세요"
+              placeholder="새 아카이브명을 입력해주세요"
             />
           </div>
         </Row>
@@ -520,7 +525,7 @@ export function UiComponentsPage() {
           <Header
             variant="white"
             left={<BackButton />}
-            title="새 그룹 생성"
+            title="새 아카이브 생성"
             right={<ShareButton onClick={() => setLastAction('공유하기')} />}
             className="rounded-lg border border-gray-20"
           />
@@ -531,7 +536,7 @@ export function UiComponentsPage() {
             right={<ShareButton onClick={() => setLastAction('공유하기')} />}
             className="rounded-lg border border-gray-20"
           />
-          <Header size="bottom" left={<BackButton />} title="새 그룹 생성" />
+          <Header size="bottom" left={<BackButton />} title="새 아카이브 생성" />
         </div>
       </Section>
 
@@ -610,32 +615,32 @@ export function UiComponentsPage() {
         </Row>
       </Section>
 
-      <Section title="GroupTag (Chip/Group_Tag)">
+      <Section title="ArchiveTag (Chip/Archive_Tag)">
         <Row label="size lg(28px) — 라벨 B2">
-          <GroupTag color="purple">밥집</GroupTag>
-          <GroupTag color="green">카페</GroupTag>
-          <GroupTag color="cement">아주 긴 그룹 이름도 한 줄로</GroupTag>
+          <ArchiveTag color="purple">밥집</ArchiveTag>
+          <ArchiveTag color="green">카페</ArchiveTag>
+          <ArchiveTag color="cement">아주 긴 아카이브 이름도 한 줄로</ArchiveTag>
         </Row>
         <Row label="size sm(24px) — 라벨 B3">
-          <GroupTag size="sm" color="yellow">
+          <ArchiveTag size="sm" color="yellow">
             카페
-          </GroupTag>
-          <GroupTag size="sm" color="red">
+          </ArchiveTag>
+          <ArchiveTag size="sm" color="red">
             밥집
-          </GroupTag>
+          </ArchiveTag>
         </Row>
         <Row label="onClick 을 주면 button 으로 렌더된다 (모양은 동일)">
-          <GroupTag color="blue" onClick={() => setLastAction('그룹 태그 클릭')}>
+          <ArchiveTag color="blue" onClick={() => setLastAction('아카이브 태그 클릭')}>
             눌러보기
-          </GroupTag>
+          </ArchiveTag>
         </Row>
       </Section>
 
-      <Section title="Chips (Chip_GroupColor)">
-        <Row label={`8색 그룹 팔레트 · 클릭해 선택 (선택: ${selectedColor})`}>
+      <Section title="Chips (Chip_ArchiveColor)">
+        <Row label={`8색 아카이브 팔레트 · 클릭해 선택 (선택: ${selectedColor})`}>
           {/* 시안 간격 20px — 선택 테두리는 ring 이라 간격을 밀지 않는다. */}
           <div className="flex items-center gap-5">
-            {GROUP_COLORS.map((color) => (
+            {ARCHIVE_COLORS.map((color) => (
               <ColorChip
                 key={color}
                 color={color}
@@ -731,18 +736,18 @@ export function UiComponentsPage() {
         </p>
       </div>
 
-      <Section title="group — GroupSelectRow / GroupCreateRow (List/Popup_Group)">
+      <Section title="archive — ArchiveSelectRow / ArchiveCreateRow (List/Popup_Archive)">
         <div className="mx-auto w-full max-w-[343px] overflow-hidden rounded-lg border border-gray-20">
           {/* 시안(28:1227) 조립 순서 — 생성 행이 맨 위 */}
-          <GroupCreateRow onClick={() => setLastAction('새 그룹 생성')} />
-          {MOCK_GROUPS.map((group) => (
-            <GroupSelectRow
-              key={group.id}
-              group={group}
-              selected={selectedGroups.includes(group.id)}
+          <ArchiveCreateRow onClick={() => setLastAction('새 아카이브 생성')} />
+          {MOCK_ARCHIVES.map((archive) => (
+            <ArchiveSelectRow
+              key={archive.id}
+              archive={archive}
+              selected={selectedArchives.includes(archive.id)}
               onSelectedChange={(next) =>
-                setSelectedGroups((prev) =>
-                  next ? [...prev, group.id] : prev.filter((id) => id !== group.id),
+                setSelectedArchives((prev) =>
+                  next ? [...prev, archive.id] : prev.filter((id) => id !== archive.id),
                 )
               }
             />
@@ -753,13 +758,16 @@ export function UiComponentsPage() {
         </p>
       </Section>
 
-      <Section title="group — GroupCard (List/Home_Group)">
+      <Section title="archive — ArchiveCard (List/Home_Archive)">
         <div className="mx-auto flex w-full max-w-[343px] flex-col gap-2">
           {/* Default: 썸네일 5장 → 3칸 + 마지막에 +2 */}
-          <GroupCard group={MOCK_GROUP_FILLED} onClick={() => setLastAction('그룹 카드')} />
+          <ArchiveCard
+            archive={MOCK_ARCHIVE_FILLED}
+            onClick={() => setLastAction('아카이브 카드')}
+          />
           {/* Empty: 썸네일 없음 */}
-          <GroupCard group={MOCK_GROUP_EMPTY} />
-          <GroupCard group={MOCK_GROUP_LONG} />
+          <ArchiveCard archive={MOCK_ARCHIVE_EMPTY} />
+          <ArchiveCard archive={MOCK_ARCHIVE_LONG} />
         </div>
       </Section>
 
@@ -897,7 +905,7 @@ export function UiComponentsPage() {
 
       <Section title="post — SavedPostCard (저장된 게시물)">
         <div className="mx-auto w-full max-w-[375px] rounded-lg border border-gray-20">
-          <SavedPostCard post={MOCK_POST} groups={[{ id: 1, name: '밥집', color: 'purple' }]} />
+          <SavedPostCard post={MOCK_POST} archives={[{ id: 1, name: '밥집', color: 'purple' }]} />
         </div>
         <p className="text-b3 text-gray-50">
           이미지 줄은 공용 Carousel(scroll-snap)이고, 본문은 2줄로 접힙니다. "더보기"로 펼칩니다.
@@ -921,12 +929,12 @@ export function UiComponentsPage() {
         <Row label="PostInfo — 게시물 정보 (메모 O / 메모 X)">
           <div className="flex w-full max-w-[343px] flex-col gap-4">
             <PostInfo
-              groups={[{ id: 1, name: '카페', color: 'yellow' }]}
+              archives={[{ id: 1, name: '카페', color: 'yellow' }]}
               memo="지우랑 가면 좋겠다"
               onMemoChange={(next) => setLastAction(`게시물 메모: ${next}`)}
             />
             <PostInfo
-              groups={[
+              archives={[
                 { id: 1, name: '밥집', color: 'purple' },
                 { id: 2, name: '카페', color: 'yellow' },
               ]}
@@ -935,7 +943,7 @@ export function UiComponentsPage() {
             />
             {/* onMemoEdit — 인라인 편집 대신 외부 편집기(게시물 상세의 메모 시트)를 여는 형태 */}
             <PostInfo
-              groups={[{ id: 1, name: '카페', color: 'yellow' }]}
+              archives={[{ id: 1, name: '카페', color: 'yellow' }]}
               memo="지우랑 가면 좋겠다"
               onMemoEdit={() => setLastAction('메모 편집 시트 열기')}
             />
@@ -943,17 +951,17 @@ export function UiComponentsPage() {
         </Row>
       </Section>
 
-      <Section title="group — CollectionCard (List/2Line)">
+      <Section title="archive — CollectionCard (List/2Line)">
         <p className="text-b3 text-gray-50">
           시안 <code className="font-mono text-e2">List/Thumbnail_2Lines</code> 는 이 카드를 2열로
           깐 그리드라 별도 컴포넌트가 아닙니다.
         </p>
         <div className="mx-auto grid w-full max-w-[343px] grid-cols-2 gap-2">
-          {MOCK_COLLECTIONS.map((group) => (
+          {MOCK_COLLECTIONS.map((archive) => (
             <CollectionCard
-              key={group.id}
-              group={group}
-              onClick={() => setLastAction(`컬렉션: ${group.name}`)}
+              key={archive.id}
+              archive={archive}
+              onClick={() => setLastAction(`컬렉션: ${archive.name}`)}
             />
           ))}
         </div>

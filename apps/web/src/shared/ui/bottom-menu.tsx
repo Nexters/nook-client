@@ -11,7 +11,7 @@ import { cn } from '@/shared/lib/utils';
  */
 export const BOTTOM_MENU_HEIGHT = 'calc(3.75rem + env(safe-area-inset-bottom))';
 
-/** Figma "NAV" 컴포넌트 셋(지도/마이페이지/그룹 variant) 기준 하단 탭바. */
+/** Figma "NAV" 컴포넌트 셋(지도/마이페이지/아카이브 variant) 기준 하단 탭바. */
 export interface BottomMenuItem {
   /** 아직 연결된 라우트가 없으면 생략한다 — 탭은 보이되 클릭은 동작하지 않는다. */
   to?: string;

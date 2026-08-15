@@ -81,7 +81,7 @@ class ShareViewController: UIViewController {
                 let groups = try await api.groups()
                 self.mountScreen(groups: groups)
             } catch {
-                shareLogger.error("그룹 조회 실패: \(String(describing: error), privacy: .public)")
+                shareLogger.error("아카이브 조회 실패: \(String(describing: error), privacy: .public)")
                 self.handleFailure(error) { [weak self] in self?.loadGroups() }
             }
         }
@@ -169,7 +169,7 @@ class ShareViewController: UIViewController {
                 finishCreating?(true)
                 self.replaceScreen(groups: existingGroups + [created])
             } catch {
-                shareLogger.error("그룹 생성 실패: \(String(describing: error), privacy: .public)")
+                shareLogger.error("아카이브 생성 실패: \(String(describing: error), privacy: .public)")
                 finishCreating?(false)
                 self.handleFailure(error) { [weak self] in
                     self?.createGroup(name: name, colorIndex: colorIndex, existingGroups: existingGroups)

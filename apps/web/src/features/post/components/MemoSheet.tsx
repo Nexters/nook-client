@@ -5,7 +5,7 @@ import { Button, Drawer, DrawerContent, DrawerTitle, Input } from '@/shared/ui';
 const MEMO_MAX_LENGTH = 25;
 
 /**
- * Figma `그룹 > 메모하기`.
+ * Figma `아카이브 > 메모하기`.
  * 게시물 메모를 고쳐 쓰는 바텀시트 — 라벨 + 입력 + 저장 버튼.
  *
  * 열릴 때마다 현재 값으로 초안을 되돌린다(취소하면 원래 값 유지).

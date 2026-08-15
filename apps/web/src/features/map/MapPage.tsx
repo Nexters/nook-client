@@ -74,7 +74,7 @@ export function MapPage() {
             lat: selectedPlace.lat,
             lng: selectedPlace.lng,
             name: selectedPlace.name,
-            // 상세 응답(`GET /places/{placeId}`)엔 그룹 색상이 없다 — bbox 조회에 이 장소가
+            // 상세 응답(`GET /places/{placeId}`)엔 아카이브 색상이 없다 — bbox 조회에 이 장소가
             // 들어오면 그때 실제 색으로 교체된다(이 임시 핀은 그 전까지만 존재한다).
             color: 'cement' as const,
             thumbnail: selectedPlace.thumbnail,
