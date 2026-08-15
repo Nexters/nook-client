@@ -72,7 +72,7 @@ class ShareActivity : ComponentActivity() {
                     feedback = null
                 }
                 .onFailure { error ->
-                    Log.e(TAG, "그룹 조회 실패", error)
+                    Log.e(TAG, "아카이브 조회 실패", error)
                     handleFailure(error, ::loadGroups)
                 }
         }
@@ -111,7 +111,7 @@ class ShareActivity : ComponentActivity() {
                     onResult?.invoke(true)
                 }
                 .onFailure { error ->
-                    Log.e(TAG, "그룹 생성 실패", error)
+                    Log.e(TAG, "아카이브 생성 실패", error)
                     onResult?.invoke(false)
                     handleFailure(error) { createGroup(name, colorIndex) }
                 }

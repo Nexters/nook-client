@@ -1,4 +1,7 @@
+import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
+import { SlideScreen, useSlideScreen } from '@/app/slide-screen';
 import { BackButton, Header } from '@/shared/ui';
 
 export type PolicyBlock =
@@ -17,15 +20,16 @@ export interface PolicySection {
  */
 export function PolicyPage({ title, sections }: { title: string; sections: PolicySection[] }) {
   useHideBottomMenu();
+  const navigate = useNavigate();
+  const { slidIn, slideOut } = useSlideScreen({
+    close: useCallback(() => navigate(-1), [navigate]),
+  });
 
   return (
-    <main
-      className="flex min-h-dvh flex-col bg-gray-0"
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
-    >
-      <Header title={title} left={<BackButton />} />
+    <SlideScreen slidIn={slidIn} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <Header title={title} left={<BackButton onClick={slideOut} />} />
 
-      <article className="flex-1 overflow-y-auto px-4 pt-4 pb-16">
+      <article className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-4 pb-16">
         {sections.map((section) => (
           <section key={section.heading ?? blockKey(section.blocks[0])} className="mt-6 first:mt-2">
             {section.heading ? <h2 className="text-h2 text-gray-100">{section.heading}</h2> : null}
@@ -47,7 +51,7 @@ export function PolicyPage({ title, sections }: { title: string; sections: Polic
           </section>
         ))}
       </article>
-    </main>
+    </SlideScreen>
   );
 }
 

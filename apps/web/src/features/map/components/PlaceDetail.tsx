@@ -3,8 +3,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
 import type { PlaceDetail as PlaceDetailModel, PlaceDetailPost } from '@/features/map/types';
-import { PlaceInfo, PlacePhotos, PlacePhotoViewer, PlaceRow } from '@/features/place';
+import {
+  PlaceDeletePopup,
+  PlaceInfo,
+  PlacePhotos,
+  PlacePhotoViewer,
+  PlaceRow,
+} from '@/features/place';
 import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
+import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
 import type { Post } from '@/features/post';
 import { MemoSheet, SavedPostCard } from '@/features/post';
 import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
@@ -32,12 +39,12 @@ function SectionDivider() {
  * 이 장소에 연결된 저장 게시물 — 목데이터 시절과 같은 `SavedPostCard` 를 그대로 쓴다.
  *
  * `PlacePostResponse`(장소 상세 응답)는 제목·작성자·대표 이미지 1장까지만 준다 —
- * 본문 전체·이미지 전체·원본 링크·그룹은 없다. 그 값들은 이미 게시물 상세가 갖고 있으므로
+ * 본문 전체·이미지 전체·원본 링크·아카이브는 없다. 그 값들은 이미 게시물 상세가 갖고 있으므로
  * (`GET /posts/{postId}`) postId 로 병렬 추가 조회해서 채운다. `postQueryKeys.detail` 을
  * 그대로 재사용해 게시물 상세 페이지와 캐시를 공유한다 — 여기서 한 번 로드해두면 그
  * 게시물 상세로 들어갔을 때 재요청 없이 바로 뜬다(반대 방향도 마찬가지).
  * 상세가 오기 전(또는 실패)엔 장소 상세 응답의 얇은 정보로 채운 카드를 우선 보여준다
- * (그룹 태그는 상세가 올 때까지 비어 있다).
+ * (아카이브 태그는 상세가 올 때까지 비어 있다).
  */
 function usePostDetails(posts: PlaceDetailPost[]) {
   return useQueries({
@@ -72,8 +79,8 @@ function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
             <SavedPostCard
               key={placePost.id}
               post={post}
-              groups={detail?.groups ?? []}
-              onGroupClick={(groupId) => navigate(`/group/${groupId}`)}
+              archives={detail?.archives ?? []}
+              onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
             />
           );
         })}
@@ -100,6 +107,7 @@ function RelatedPlacesSection({
   // 위 섹션과 같은 쿼리 키라 요청은 한 번만 나간다(캐시 공유).
   const postDetailQueries = usePostDetails(place.posts);
   const updateBookmark = useUpdatePlaceBookmark();
+  const deletion = usePlaceDeletion();
 
   // 여러 게시물이 같은 장소를 가리킬 수 있어 id 로 중복을 제거한다.
   const relatedPlaces = [
@@ -109,8 +117,9 @@ function RelatedPlacesSection({
         .filter((related) => related.id !== place.id)
         .map((related) => [related.id, related]),
     ).values(),
-  ];
+  ].filter((related) => !deletion.deletedPlaceIds.includes(String(related.id)));
 
+  // 마지막 장소까지 지우면 섹션째 사라진다(연관 장소가 원래 없을 때와 같은 모습).
   if (relatedPlaces.length === 0) return null;
 
   return (
@@ -118,7 +127,8 @@ function RelatedPlacesSection({
       <SectionDivider />
       <div className="mt-4 flex w-full flex-col gap-4 pb-2">
         <p className="text-b1 font-semibold text-gray-100">게시물에 포함된 장소</p>
-        <div className="flex flex-col gap-4">
+        {/* 좌우 여백은 행이 갖는다(삭제 스와이프에서 여백째 밀려나가야 한다) — 시트의 px-4 를 상쇄한다. */}
+        <div className="-mx-4 flex flex-col gap-4">
           {relatedPlaces.map((related) => (
             <PlaceRow
               key={related.id}
@@ -138,10 +148,15 @@ function RelatedPlacesSection({
               }
               // 같은 지도 화면 안에서 선택 장소만 바뀌므로 라우팅은 필요 없다.
               onClick={onSelectPlace ? () => onSelectPlace(related.id) : undefined}
+              onDelete={() =>
+                deletion.requestDelete({ id: String(related.id), name: related.name })
+              }
             />
           ))}
         </div>
       </div>
+
+      <PlaceDeletePopup deletion={deletion} />
     </>
   );
 }

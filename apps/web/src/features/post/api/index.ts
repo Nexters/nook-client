@@ -9,8 +9,8 @@ import {
   updateBookmark,
   updateMemo,
 } from '@/shared/api';
-import type { GroupColor } from '@/shared/ui';
-import type { ParsedPlace, PlaceParsingResult, PostDetail, PostGroup } from '../types';
+import type { ArchiveColor } from '@/shared/ui';
+import type { ParsedPlace, PlaceParsingResult, PostArchive, PostDetail } from '../types';
 
 /**
  * 게시물 도메인 BE 호출. 응답은 공통 envelope(`resultType`/`success`/`error`)로
@@ -18,7 +18,7 @@ import type { ParsedPlace, PlaceParsingResult, PostDetail, PostGroup } from '../
  */
 
 /**
- * 서버 색상 코드 ↔ 디자인 토큰 색상. `features/group/api`의 매핑과 동일한 서버 enum이라
+ * 서버 색상 코드 ↔ 디자인 토큰 색상. `features/archive/api`의 매핑과 동일한 서버 enum이라
  * 값도 그대로 맞춘다 — 각 feature가 자기 진입점을 소유하는 컨벤션이라 여기서 다시 둔다.
  */
 const SERVER_TO_UI_COLOR = {
@@ -30,7 +30,7 @@ const SERVER_TO_UI_COLOR = {
   MINT: 'sky',
   GREEN: 'green',
   GRAY: 'cement',
-} as const satisfies Record<CreateGroupRequestColor, GroupColor>;
+} as const satisfies Record<CreateGroupRequestColor, ArchiveColor>;
 
 /**
  * 원본 URL 호스트 → 표기용 출처 이름. 서버 응답엔 출처(provider) 필드가 없어서
@@ -65,7 +65,7 @@ export function formatAuthorHandle(identifier?: string | null, canonicalUrl?: st
   return source ? `@${name} on ${source}` : `@${name}`;
 }
 
-function toPostGroup(dto: SavedPostGroupResponse): PostGroup {
+function toPostArchive(dto: SavedPostGroupResponse): PostArchive {
   return {
     id: dto.id,
     name: dto.name,
@@ -83,8 +83,8 @@ function toPostDetail(dto: SavedPostDetailResponse): PostDetail {
   return {
     processingStatus: dto.processingStatus,
     processingPercent: dto.processingPercent,
-    groups: dto.groups.map(toPostGroup),
-    // 처리 중엔 title 이 비어 있을 수 있다 — group 의 게시물 카드와 동일한 fallback 규칙.
+    archives: dto.groups.map(toPostArchive),
+    // 처리 중엔 title 이 비어 있을 수 있다 — archive 의 게시물 카드와 동일한 fallback 규칙.
     title: dto.title || dto.memo || '제목 없는 게시물',
     memo: dto.memo ?? undefined,
     // `SavedPostPlaceResponse` 는 `PlaceResponse` + sequence 라 같은 변환을 쓴다.

@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-// 그룹 목록 최상단의 "새 그룹 생성" 행
+// 아카이브 목록 최상단의 "새 아카이브 생성" 행
 @Composable
 fun CreateGroupRow(onClick: () -> Unit) {
     Row(
@@ -33,7 +33,7 @@ fun CreateGroupRow(onClick: () -> Unit) {
                 .size(24.dp),
         )
         Text(
-            "새 그룹 생성",
+            "새 아카이브 생성",
             color = Color(0xFF67707D),
             style = suit(16, FontWeight.Medium),
         )

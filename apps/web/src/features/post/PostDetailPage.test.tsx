@@ -26,7 +26,7 @@ const POSTS: Record<number, PostDetail> = {
     processingPercent: 100,
     places: [],
     title: '지금 가기 좋은 초록뷰 카페',
-    groups: [{ id: 1, name: '카페', color: 'yellow' }],
+    archives: [{ id: 1, name: '카페', color: 'yellow' }],
     memo: '지우랑 가면 좋겠다',
     post: {
       id: '1',
@@ -42,7 +42,7 @@ const POSTS: Record<number, PostDetail> = {
     processingPercent: 100,
     places: [],
     title: '몰래 가려고 저장해둔 서울 카페',
-    groups: [{ id: 1, name: '카페', color: 'yellow' }],
+    archives: [{ id: 1, name: '카페', color: 'yellow' }],
     post: {
       id: '2',
       authorHandle: '@nook.official on instagram',
@@ -57,7 +57,7 @@ const POSTS: Record<number, PostDetail> = {
     processingPercent: 100,
     places: [],
     title: '위치 태그 없이 올라온 카페 사진',
-    groups: [{ id: 1, name: '카페', color: 'yellow' }],
+    archives: [{ id: 1, name: '카페', color: 'yellow' }],
     post: {
       id: '3',
       authorHandle: '@nook.official on instagram',
@@ -128,8 +128,8 @@ function MapRouteProbe() {
   return <p data-testid="map-route-probe">{location.pathname + location.search}</p>;
 }
 
-function GroupRouteProbe() {
-  return <p>그룹 상세 화면</p>;
+function ArchiveRouteProbe() {
+  return <p>아카이브 상세 화면</p>;
 }
 
 function renderRoute(initialPath: string, initialEntries = [initialPath]) {
@@ -143,7 +143,7 @@ function renderRoute(initialPath: string, initialEntries = [initialPath]) {
             <Routes>
               <Route path="/post/:postId" element={<PostDetailPage />} />
               <Route path="/map" element={<MapRouteProbe />} />
-              <Route path="/group/:groupId" element={<GroupRouteProbe />} />
+              <Route path="/archive/:archiveId" element={<ArchiveRouteProbe />} />
             </Routes>
           </MemoryRouter>
         </BottomMenuVisibilityProvider>
@@ -221,13 +221,13 @@ describe('게시물 상세', () => {
       processingStatus: 'PROCESSING',
       processingPercent: 15,
     });
-    renderRoute('/post/1', ['/group/7', '/post/1']);
+    renderRoute('/post/1', ['/archive/7', '/post/1']);
 
     await waitFor(() => expect(screen.getByText('홈으로 가기')).toBeInTheDocument());
 
     fireEvent.click(screen.getByRole('button', { name: '뒤로 가기' }));
 
-    // 히스토리가 있어도(그룹 → 게시물) 파싱 중에는 지도로 보낸다.
+    // 히스토리가 있어도(아카이브 → 게시물) 파싱 중에는 지도로 보낸다.
     expect(screen.getByTestId('map-route-probe')).toHaveTextContent('/map');
   });
 
@@ -255,17 +255,17 @@ describe('게시물 상세', () => {
   });
 
   it('일반 화면 이동으로 진입하면 기존 히스토리로 돌아간다', async () => {
-    await renderPost(1, '', ['/group/7', '/post/1']);
+    await renderPost(1, '', ['/archive/7', '/post/1']);
 
     fireEvent.click(screen.getByRole('button', { name: '뒤로 가기' }));
 
-    expect(screen.getByText('그룹 상세 화면')).toBeInTheDocument();
+    expect(screen.getByText('아카이브 상세 화면')).toBeInTheDocument();
   });
 
-  it('저장된 그룹을 모두 태그 버튼으로 보여주고, 누르면 그 그룹 상세로 이동한다', async () => {
+  it('저장된 아카이브를 모두 태그 버튼으로 보여주고, 누르면 그 아카이브 상세로 이동한다', async () => {
     mocks.fetchPostDetail.mockResolvedValue({
       ...POSTS[1],
-      groups: [
+      archives: [
         { id: 1, name: '카페', color: 'yellow' },
         { id: 2, name: '밥집', color: 'green' },
       ],
@@ -275,7 +275,7 @@ describe('게시물 상세', () => {
     expect(screen.getByRole('button', { name: '카페' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '밥집' }));
 
-    expect(screen.getByText('그룹 상세 화면')).toBeInTheDocument();
+    expect(screen.getByText('아카이브 상세 화면')).toBeInTheDocument();
   });
 
   it('장소 목록을 불러오는 동안 로딩 문구를 보여주고 배너는 숨긴다', async () => {
@@ -359,6 +359,18 @@ describe('게시물 상세', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('장소 행을 스와이프해 삭제하면 확인 모달을 거쳐 목록에서 사라진다', async () => {
+    await renderPost(1);
+
+    fireEvent.click(screen.getByRole('button', { name: '아이소 삭제' }));
+    expect(screen.getByText('장소를 삭제하시겠어요?')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
+
+    expect(screen.queryByText('아이소')).not.toBeInTheDocument();
+    expect(screen.getByText('장소가 삭제 됐어요.')).toBeInTheDocument();
   });
 
   it('매칭된 장소가 없으면 섹션은 보이되 목록도 직접 추가 배너도 없다', async () => {

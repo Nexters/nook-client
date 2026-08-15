@@ -126,7 +126,7 @@ export function PlaceSheet({
           style={layoutClassNames.scroller.style}
           className={cn(
             'flex flex-col gap-3 px-4',
-            canScroll ? 'overflow-y-auto' : 'overflow-hidden',
+            canScroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
             layoutClassNames.scroller.className,
           )}
         >
@@ -143,7 +143,7 @@ export function PlaceSheet({
                 onSelectPlace={onSelectPlace}
               />
             ) : // isPlaceDetailPending — 아직 상세 응답 전이라 아무것도 그리지 않는다
-            // (GroupPage 와 같은 정책: 로딩 문구가 잠깐 스쳐 지나가지 않게 한다).
+            // (ArchivePage 와 같은 정책: 로딩 문구가 잠깐 스쳐 지나가지 않게 한다).
             null
           ) : (
             <>

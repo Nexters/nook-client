@@ -6,7 +6,7 @@ import { cn } from '@/shared/lib/utils';
  * `Header` 의 좌/우 슬롯에 넣는 아이콘 버튼들 (Figma `icon/24_back`, `icon/24_share`).
  *
  * 라우터를 쓰지만 특정 라우트를 알지는 않는다(히스토리 뒤로가기뿐) — 같은 이유로
- * 이미 `BottomMenu` 도 shared/ui 에서 NavLink 를 쓴다. group·post 양쪽이 같은
+ * 이미 `BottomMenu` 도 shared/ui 에서 NavLink 를 쓴다. archive·post 양쪽이 같은
  * 버튼을 쓰므로 여기 둔다. `onClick` 을 주면 뒤로가기 대신 그 동작을 한다.
  */
 const iconButtonClass =

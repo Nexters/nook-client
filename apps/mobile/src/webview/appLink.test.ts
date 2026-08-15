@@ -25,7 +25,7 @@ describe('resolveAppLinkWebUrl', () => {
 
   it.each([
     'kr.co.everynook.app://post/not-a-number',
-    'kr.co.everynook.app://group/1',
+    'kr.co.everynook.app://archive/1',
     'kr.co.everynook.app://post/1?next=https://evil.example',
     // 등록되지 않은 스킴(옛 식별자 포함)은 허용하지 않는다
     'com.nook.app://post/1',

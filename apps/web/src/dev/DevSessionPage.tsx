@@ -167,23 +167,23 @@ function DevPostCreator() {
           </button>
         </div>
         <p className="text-b2 leading-6 text-gray-60">
-          현재 토큰으로 그룹을 조회하고 실제 게시글 생성 API를 호출합니다.
+          현재 토큰으로 아카이브를 조회하고 실제 게시글 생성 API를 호출합니다.
         </p>
       </section>
 
       <form className="flex flex-col gap-6" onSubmit={submit}>
         <fieldset>
           <legend className="mb-3 text-b2 font-semibold text-gray-90">
-            그룹 선택 <span className="font-medium text-gray-50">(다중 선택 가능)</span>
+            아카이브 선택 <span className="font-medium text-gray-50">(다중 선택 가능)</span>
           </legend>
 
           {groupsQuery.isPending ? (
-            <p className="text-b2 text-gray-60">그룹 불러오는 중...</p>
+            <p className="text-b2 text-gray-60">아카이브 불러오는 중...</p>
           ) : null}
           {groupsQuery.isError ? (
             <div className="rounded-xl bg-error/10 p-4">
               <p role="alert" className="text-b2 font-medium text-error">
-                {errorMessage(groupsQuery.error, '그룹 목록을 불러오지 못했습니다.')}
+                {errorMessage(groupsQuery.error, '아카이브 목록을 불러오지 못했습니다.')}
               </p>
               <button
                 type="button"
@@ -196,7 +196,7 @@ function DevPostCreator() {
           ) : null}
           {groupsQuery.data?.length === 0 ? (
             <p className="rounded-xl bg-gray-10 p-4 text-b2 text-gray-60">
-              생성된 그룹이 없습니다.
+              생성된 아카이브가 없습니다.
             </p>
           ) : null}
           {groupsQuery.data && groupsQuery.data.length > 0 ? (

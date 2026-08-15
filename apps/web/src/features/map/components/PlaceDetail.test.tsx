@@ -38,12 +38,12 @@ function parsedPlace(id: number, name: string): ParsedPlace {
   };
 }
 
-function postDetail(places: ParsedPlace[], groups: PostDetail['groups'] = []): PostDetail {
+function postDetail(places: ParsedPlace[], archives: PostDetail['archives'] = []): PostDetail {
   return {
     processingStatus: 'COMPLETED',
     processingPercent: 100,
     title: '게시물',
-    groups,
+    archives,
     places,
     post: { id: '1', authorHandle: '@nook' },
   };
@@ -82,7 +82,7 @@ function renderDetail(onSelectPlace?: (id: number) => void, place: PlaceDetailMo
                 />
               }
             />
-            <Route path="/group/:groupId" element={<p>그룹 상세 화면</p>} />
+            <Route path="/archive/:archiveId" element={<p>아카이브 상세 화면</p>} />
           </Routes>
         </MemoryRouter>
       </ToastProvider>
@@ -118,8 +118,8 @@ describe('PlaceDetail 게시물에 포함된 장소', () => {
     expect(onSelectPlace).toHaveBeenCalledWith(2);
   });
 
-  it('저장된 게시물의 그룹 태그를 누르면 그 그룹 상세로 이동한다', async () => {
-    // 그룹 태그는 게시물 11 에만 달아 버튼이 하나만 나오게 한다.
+  it('저장된 게시물의 아카이브 태그를 누르면 그 아카이브 상세로 이동한다', async () => {
+    // 아카이브 태그는 게시물 11 에만 달아 버튼이 하나만 나오게 한다.
     mocks.fetchPostDetail.mockImplementation(async (postId: number) =>
       postId === 11
         ? postDetail([parsedPlace(1, '아이소')], [{ id: 7, name: '카페', color: 'yellow' }])
@@ -129,7 +129,7 @@ describe('PlaceDetail 게시물에 포함된 장소', () => {
     renderDetail();
 
     fireEvent.click(await screen.findByRole('button', { name: '카페' }));
-    expect(screen.getByText('그룹 상세 화면')).toBeInTheDocument();
+    expect(screen.getByText('아카이브 상세 화면')).toBeInTheDocument();
   });
 
   it('게시물에 포함된 장소가 없으면 섹션 자체를 그리지 않는다', async () => {
@@ -170,5 +170,51 @@ describe('PlaceDetail 장소 메모', () => {
     expect(screen.getByPlaceholderText('추가로 메모하고 싶은 내용이 있나요?')).toHaveValue(
       '창가 자리 좋음',
     );
+  });
+});
+
+describe('PlaceDetail 장소 삭제', () => {
+  it('삭제 버튼만으로는 지워지지 않고 확인 모달을 거친다', async () => {
+    mocks.fetchPostDetail.mockResolvedValue(postDetail([parsedPlace(2, '퍼머넌트해비탯')]));
+
+    renderDetail();
+
+    fireEvent.click(await screen.findByRole('button', { name: '퍼머넌트해비탯 삭제' }));
+    expect(screen.getByText('장소를 삭제하시겠어요?')).toBeInTheDocument();
+    // 모달이 떠 있는 동안에는 아직 목록에 남아 있다.
+    expect(screen.getByText('퍼머넌트해비탯')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    expect(screen.getByText('퍼머넌트해비탯')).toBeInTheDocument();
+  });
+
+  it('확인하면 목록에서 사라지고, 실행취소하면 되돌아온다', async () => {
+    mocks.fetchPostDetail.mockResolvedValue(
+      postDetail([parsedPlace(2, '퍼머넌트해비탯'), parsedPlace(3, '탐석과 사랑')]),
+    );
+
+    renderDetail();
+
+    fireEvent.click(await screen.findByRole('button', { name: '퍼머넌트해비탯 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
+
+    expect(screen.queryByText('퍼머넌트해비탯')).not.toBeInTheDocument();
+    // 같은 섹션의 다른 장소는 그대로 남는다.
+    expect(screen.getByText('탐석과 사랑')).toBeInTheDocument();
+    expect(screen.getByText('장소가 삭제 됐어요.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '실행취소' }));
+    expect(screen.getByText('퍼머넌트해비탯')).toBeInTheDocument();
+  });
+
+  it('마지막 장소까지 지우면 섹션이 사라진다', async () => {
+    mocks.fetchPostDetail.mockResolvedValue(postDetail([parsedPlace(2, '퍼머넌트해비탯')]));
+
+    renderDetail();
+
+    fireEvent.click(await screen.findByRole('button', { name: '퍼머넌트해비탯 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
+
+    expect(screen.queryByText('게시물에 포함된 장소')).not.toBeInTheDocument();
   });
 });
