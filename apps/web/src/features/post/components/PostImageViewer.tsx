@@ -14,24 +14,28 @@ export interface PostImageViewerProps {
 
 function PostImageViewer({ images, onClose }: PostImageViewerProps) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col bg-gray-0"
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
-    >
-      <Header left={<BackButton onClick={onClose} />} />
-      <div className="flex flex-1 items-center">
-        <Carousel padded={false} gap={0} className="w-full">
-          {images.map((src, index) => (
-            <img
-              // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
-              // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
-              key={index}
-              src={src}
-              alt=""
-              className="aspect-[375/495] w-full object-cover"
-            />
-          ))}
-        </Carousel>
+    <div className="fixed inset-0 z-50 bg-gray-0">
+      {/* body 포탈로 뜨면 fixed 기준이 뷰포트 전체 폭이라, 데스크톱에서도 셸 폭
+          (max-w-[450px], providers.tsx)을 넘지 않게 안쪽에서 다시 묶는다. */}
+      <div
+        className="mx-auto flex h-full w-full max-w-[450px] flex-col"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        <Header left={<BackButton onClick={onClose} />} />
+        <div className="flex flex-1 items-center">
+          <Carousel padded={false} gap={0} className="w-full">
+            {images.map((src, index) => (
+              <img
+                // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
+                // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
+                key={index}
+                src={src}
+                alt=""
+                className="aspect-[375/495] w-full object-cover"
+              />
+            ))}
+          </Carousel>
+        </div>
       </div>
     </div>
   );

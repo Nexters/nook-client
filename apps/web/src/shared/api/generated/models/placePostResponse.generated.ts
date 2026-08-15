@@ -15,11 +15,6 @@ export interface PlacePostResponse {
   authorIdentifier?: string | null;
   /** 게시물이 속한 그룹 목록 */
   groups: PlacePostGroupResponse[];
-  /**
-   * 사용자 메모
-   * @nullable
-   */
-  memo?: string | null;
   /** 저장 게시물 식별자 */
   postId: number;
   representativeMedia?: PlacePostMediaResponse | null;

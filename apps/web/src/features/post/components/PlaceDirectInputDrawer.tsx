@@ -1,6 +1,6 @@
 import { Dialog } from 'radix-ui';
 import { useEffect, useState } from 'react';
-import { useAppShellContainer } from '@/app/providers';
+import { createPortal } from 'react-dom';
 import type { Place } from '@/features/place';
 import type { Post } from '@/features/post';
 import { Icon16Location, Icon18MagnifyingGlass, Icon24Delete } from '@/shared/icons/NookIcons';
@@ -43,7 +43,6 @@ function PlaceDirectInputDrawer({
   onOpenChange,
   onPlaceConfirmed,
 }: PlaceDirectInputDrawerProps) {
-  const shellContainer = useAppShellContainer();
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
@@ -52,29 +51,6 @@ function PlaceDirectInputDrawer({
   );
   const [viewingPost, setViewingPost] = useState<Post | null>(null);
   const results = searchMockPlaces(query);
-
-  // 배경 페이지가 스크롤된 채로 열리면 vaul 이 "콘텐츠를 스크롤하는 중"으로 오인해
-  // 끌어내리기(dismiss) 제스처를 막아버린다 — 열려 있는 동안만 문서 스크롤 위치를 고정해
-  // 화면은 그대로 두면서 vaul 의 드래그 판정(scrollTop === 0)은 항상 통과하게 한다.
-  useEffect(() => {
-    if (!open) return;
-    const root = document.documentElement;
-    const scrollY = root.scrollTop;
-    const previous = {
-      position: root.style.position,
-      top: root.style.top,
-      width: root.style.width,
-    };
-    root.style.position = 'fixed';
-    root.style.top = `-${scrollY}px`;
-    root.style.width = '100%';
-    return () => {
-      root.style.position = previous.position;
-      root.style.top = previous.top;
-      root.style.width = previous.width;
-      root.scrollTop = scrollY;
-    };
-  }, [open]);
 
   // "추가하기" 확정처럼 부모가 `open` prop 을 직접 false 로 바꿔 닫는 경우, vaul 의
   // onOpenChange 콜백은 호출되지 않는다(그건 드로어 스스로 닫힐 때만 불린다) — 닫히는
@@ -89,25 +65,23 @@ function PlaceDirectInputDrawer({
 
   return (
     <>
+      {/* 셸 컨테이너가 아니라 기본값(body)으로 포탈한다 — 게시물 상세가 문서 흐름을 따라
+          셸이 콘텐츠만큼 길어지므로, 셸 기준으로는 fixed 위치도 snapPoints 비율(vaul 은
+          container 박스 높이로 계산한다)도 전부 틀어진다. body 포탈이면 둘 다 뷰포트
+          기준이라 항상 맞는다. 데스크톱 폭은 max-w 로 셸 폭에 맞춰 막는다. */}
       <Drawer
         open={open}
         onOpenChange={onOpenChange}
-        container={shellContainer}
         snapPoints={selectedPlace ? PLACE_DETAIL_SNAP_POINTS : PLACE_LIST_SNAP_POINTS}
         activeSnapPoint={activeSnapPoint}
         setActiveSnapPoint={setActiveSnapPoint}
       >
         <DrawerContent
           className={cn(
-            'flex flex-col',
-            // vaul 은 snapPoints 를 뷰포트가 아니라 `container` prop(앱 셸, providers.tsx)의
-            // 박스 높이 비율로 계산해 transform 으로 감춘다 — 셸 높이가 실제 뷰포트 높이와
-            // 같아지는 건 이 드로어를 호스팅하는 페이지 자체가 `h-dvh` + 내부 스크롤로 뷰포트
-            // 높이에 갇혀 있을 때뿐이다(PostDetailPage/GroupPage/MapPage 가 그 패턴을 따른다) —
-            // 그렇지 않고 페이지가 뷰포트보다 길어지면 셸도 같이 늘어나 모든 스냅 비율이 틀어진다.
-            // 이와 별개로, 드로어 엘리먼트 자체는 항상 셸 전체 높이(h-dvh)여야 그 계산이 맞고
-            // 지금 보이는 스냅만큼만 잘려 보인다 — 그래서 목록/상세 모드 상관없이 항상 h-dvh 로
-            // 고정하고, 모드별 여백/스크롤은 안쪽 래퍼(아래)에서 따로 준다.
+            'mx-auto flex max-w-[450px] flex-col',
+            // 드로어 엘리먼트 자체는 항상 뷰포트 전체 높이(h-dvh)여야 vaul 의 스냅 계산이
+            // 맞고 지금 보이는 스냅만큼만 잘려 보인다 — 그래서 목록/상세 모드 상관없이
+            // h-dvh 로 고정하고, 모드별 여백/스크롤은 안쪽 래퍼(아래)에서 따로 준다.
             'h-dvh overflow-hidden',
           )}
         >
@@ -155,7 +129,7 @@ function PlaceDirectInputDrawer({
               </div>
 
               {results.length > 0 ? (
-                <ul className="mt-5 flex w-full flex-1 flex-col overflow-y-auto">
+                <ul className="mt-5 flex w-full flex-1 flex-col overflow-y-auto overscroll-contain">
                   {results.map((place, index) => (
                     <li key={place.id} className={cn(index > 0 && 'border-t border-gray-10')}>
                       <button
@@ -196,38 +170,42 @@ function PlaceDirectInputDrawer({
         </DrawerContent>
       </Drawer>
 
-      {open && selectedPlace && !viewingPost ? (
-        // vaul 이 snapPoints 를 표현하려고 드로어 엘리먼트 전체를 transform 으로 밀어
-        // 올리는데, 그 안의 자식은 collapsed 스냅에서 화면 밖(엘리먼트 실제 바닥)으로
-        // 같이 밀려난다 — 스냅과 무관하게 항상 보여야 하는 이 바는 드로어 밖, 뷰포트
-        // 기준 fixed 로 따로 그린다(Figma 시안도 시트와 겹치는 별도 레이어다).
-        //
-        // Drawer(vaul)가 모달로 열려 있는 동안 `aria-hidden` 패키지의 hideOthers() 가 이
-        // 형제 엘리먼트에 aria-hidden/data-aria-hidden 을 붙이고, 이와 별개로 Radix Dialog 가
-        // 모달이 열려 있는 동안 `document.body.style.pointerEvents = 'none'` 을 직접 설정해
-        // 클릭도 막아버린다(§PostImageViewer 와 같은 원인). 거기는 "열려있는 동안 배타적으로
-        // 대체하는" 오버레이라 별도 Dialog 로 감싸는 게 맞았지만, 이 바는 드로어 콘텐츠와
-        // "동시에" 계속 조작 가능해야 해서 같은 방법(중첩 Dialog)을 쓰면 두 모달의 포커스
-        // 트랩이 서로 얽혀 브라우저가 멈춘다(실제 확인함) — 여기는 포인터 이벤트만 명시적으로
-        // 되살린다. 다만 aria-hidden 자체는 풀리지 않고 Drawer 의 포커스 트랩도 이 바까지는
-        // 미치지 못해서, 마우스/터치로만 누를 수 있고 키보드·스크린리더로는 이 버튼에 전혀
-        // 도달할 수 없다 — "일부 제한"이 아니라 완전히 막힌 상태다(후속 과제로 남겨둔다).
-        <div
-          className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex items-center gap-2.5 border-t border-gray-10 bg-gray-0 px-4 pt-2"
-          style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
-        >
-          <p className="pointer-events-auto flex-1 text-b2 font-semibold text-gray-80">
-            이 장소가 맞나요?
-          </p>
-          <Button
-            size="md"
-            onClick={() => onPlaceConfirmed(selectedPlace)}
-            className="pointer-events-auto flex-1"
-          >
-            추가하기
-          </Button>
-        </div>
-      ) : null}
+      {open && selectedPlace && !viewingPost
+        ? // vaul 이 snapPoints 를 표현하려고 드로어 엘리먼트 전체를 transform 으로 밀어
+          // 올리는데, 그 안의 자식은 collapsed 스냅에서 화면 밖(엘리먼트 실제 바닥)으로
+          // 같이 밀려난다 — 스냅과 무관하게 항상 보여야 하는 이 바는 드로어 밖, 뷰포트
+          // 기준 fixed 로 따로 그린다(Figma 시안도 시트와 겹치는 별도 레이어다).
+          // body 로 포탈하는 이유는 위 Drawer 와 같다(셸 기준 fixed 는 위치가 틀어진다).
+          //
+          // Drawer(vaul)가 모달로 열려 있는 동안 `aria-hidden` 패키지의 hideOthers() 가 이
+          // 형제 엘리먼트에 aria-hidden/data-aria-hidden 을 붙이고, 이와 별개로 Radix Dialog 가
+          // 모달이 열려 있는 동안 `document.body.style.pointerEvents = 'none'` 을 직접 설정해
+          // 클릭도 막아버린다(§PostImageViewer 와 같은 원인). 거기는 "열려있는 동안 배타적으로
+          // 대체하는" 오버레이라 별도 Dialog 로 감싸는 게 맞았지만, 이 바는 드로어 콘텐츠와
+          // "동시에" 계속 조작 가능해야 해서 같은 방법(중첩 Dialog)을 쓰면 두 모달의 포커스
+          // 트랩이 서로 얽혀 브라우저가 멈춘다(실제 확인함) — 여기는 포인터 이벤트만 명시적으로
+          // 되살린다. 다만 aria-hidden 자체는 풀리지 않고 Drawer 의 포커스 트랩도 이 바까지는
+          // 미치지 못해서, 마우스/터치로만 누를 수 있고 키보드·스크린리더로는 이 버튼에 전혀
+          // 도달할 수 없다 — "일부 제한"이 아니라 완전히 막힌 상태다(후속 과제로 남겨둔다).
+          createPortal(
+            <div
+              className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] mx-auto flex max-w-[450px] items-center gap-2.5 border-t border-gray-10 bg-gray-0 px-4 pt-2"
+              style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
+            >
+              <p className="pointer-events-auto flex-1 text-b2 font-semibold text-gray-80">
+                이 장소가 맞나요?
+              </p>
+              <Button
+                size="md"
+                onClick={() => onPlaceConfirmed(selectedPlace)}
+                className="pointer-events-auto flex-1"
+              >
+                추가하기
+              </Button>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {viewingPost ? (
         // 장소 상세 Drawer 가 열려 있는 동안 겹쳐 뜨는 오버레이라 일반 형제(`fixed` div)로만
@@ -240,7 +218,7 @@ function PlaceDirectInputDrawer({
             if (!next) setViewingPost(null);
           }}
         >
-          <Dialog.Portal container={shellContainer}>
+          <Dialog.Portal>
             <Dialog.Content>
               <Dialog.Title className="sr-only">이미지 확대 보기</Dialog.Title>
               <PostImageViewer

@@ -126,7 +126,7 @@ export function PlaceSheet({
           style={layoutClassNames.scroller.style}
           className={cn(
             'flex flex-col gap-3 px-4',
-            canScroll ? 'overflow-y-auto' : 'overflow-hidden',
+            canScroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
             layoutClassNames.scroller.className,
           )}
         >

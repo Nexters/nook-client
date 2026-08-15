@@ -54,7 +54,7 @@ function PlacePhotoViewer({ title, photos, onClose }: PlacePhotoViewerProps) {
 
       {zoomedIndex === null ? (
         // 카드 크기는 "최근 저장한 공간" 그리드와 같다(시안 167.5x208).
-        <div className="grid flex-1 auto-rows-min grid-cols-2 gap-2 overflow-y-auto px-4 pb-4">
+        <div className="grid flex-1 auto-rows-min grid-cols-2 gap-2 overflow-y-auto overscroll-contain px-4 pb-4">
           {photos.map((src, index) => (
             <button
               // 사진 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.

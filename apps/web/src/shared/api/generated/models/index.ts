@@ -118,4 +118,5 @@ export * from './updateGroupRequest.generated';
 export * from './updateGroupRequestColor.generated';
 export * from './updateMemberProfileRequest.generated';
 export * from './updatePlaceBookmarkRequest.generated';
+export * from './updatePlaceMemoRequest.generated';
 export * from './updatePostMemoRequest.generated';
