@@ -68,3 +68,9 @@ if (typeof HTMLCanvasElement !== 'undefined') {
     // biome-ignore lint/suspicious/noExplicitAny: jsdom 이 CanvasRenderingContext2D 를 지원하지 않아 실제 타입을 만들 수 없다.
   })) as any;
 }
+
+// jsdom 에는 레이아웃이 없어 Element.scrollTo 도 없다(window 쪽만 있다).
+// 스크롤 스냅으로 만든 스와이프 행처럼 스크롤 위치를 직접 되돌리는 코드가 있어 no-op 으로 채운다.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
+  Element.prototype.scrollTo = () => {};
+}

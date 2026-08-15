@@ -134,3 +134,49 @@ describe('PlaceDetail 게시물에 포함된 장소', () => {
     expect(screen.queryByText('게시물에 포함된 장소')).not.toBeInTheDocument();
   });
 });
+
+describe('PlaceDetail 장소 삭제', () => {
+  it('삭제 버튼만으로는 지워지지 않고 확인 모달을 거친다', async () => {
+    mocks.fetchPostDetail.mockResolvedValue(postDetail([parsedPlace(2, '퍼머넌트해비탯')]));
+
+    renderDetail();
+
+    fireEvent.click(await screen.findByRole('button', { name: '퍼머넌트해비탯 삭제' }));
+    expect(screen.getByText('장소를 삭제하시겠어요?')).toBeInTheDocument();
+    // 모달이 떠 있는 동안에는 아직 목록에 남아 있다.
+    expect(screen.getByText('퍼머넌트해비탯')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    expect(screen.getByText('퍼머넌트해비탯')).toBeInTheDocument();
+  });
+
+  it('확인하면 목록에서 사라지고, 실행취소하면 되돌아온다', async () => {
+    mocks.fetchPostDetail.mockResolvedValue(
+      postDetail([parsedPlace(2, '퍼머넌트해비탯'), parsedPlace(3, '탐석과 사랑')]),
+    );
+
+    renderDetail();
+
+    fireEvent.click(await screen.findByRole('button', { name: '퍼머넌트해비탯 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
+
+    expect(screen.queryByText('퍼머넌트해비탯')).not.toBeInTheDocument();
+    // 같은 섹션의 다른 장소는 그대로 남는다.
+    expect(screen.getByText('탐석과 사랑')).toBeInTheDocument();
+    expect(screen.getByText('장소가 삭제 됐어요.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '실행취소' }));
+    expect(screen.getByText('퍼머넌트해비탯')).toBeInTheDocument();
+  });
+
+  it('마지막 장소까지 지우면 섹션이 사라진다', async () => {
+    mocks.fetchPostDetail.mockResolvedValue(postDetail([parsedPlace(2, '퍼머넌트해비탯')]));
+
+    renderDetail();
+
+    fireEvent.click(await screen.findByRole('button', { name: '퍼머넌트해비탯 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
+
+    expect(screen.queryByText('게시물에 포함된 장소')).not.toBeInTheDocument();
+  });
+});

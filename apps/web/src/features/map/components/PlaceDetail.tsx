@@ -3,8 +3,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
 import type { PlaceDetail as PlaceDetailModel, PlaceDetailPost } from '@/features/map/types';
-import { PlaceInfo, PlacePhotos, PlacePhotoViewer, PlaceRow } from '@/features/place';
+import {
+  PlaceDeletePopup,
+  PlaceInfo,
+  PlacePhotos,
+  PlacePhotoViewer,
+  PlaceRow,
+} from '@/features/place';
 import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
+import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
 import type { Post } from '@/features/post';
 import { SavedPostCard } from '@/features/post';
 import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
@@ -100,6 +107,7 @@ function RelatedPlacesSection({
   // 위 섹션과 같은 쿼리 키라 요청은 한 번만 나간다(캐시 공유).
   const postDetailQueries = usePostDetails(place.posts);
   const updateBookmark = useUpdatePlaceBookmark();
+  const deletion = usePlaceDeletion();
 
   // 여러 게시물이 같은 장소를 가리킬 수 있어 id 로 중복을 제거한다.
   const relatedPlaces = [
@@ -109,8 +117,9 @@ function RelatedPlacesSection({
         .filter((related) => related.id !== place.id)
         .map((related) => [related.id, related]),
     ).values(),
-  ];
+  ].filter((related) => !deletion.deletedPlaceIds.includes(String(related.id)));
 
+  // 마지막 장소까지 지우면 섹션째 사라진다(연관 장소가 원래 없을 때와 같은 모습).
   if (relatedPlaces.length === 0) return null;
 
   return (
@@ -118,7 +127,8 @@ function RelatedPlacesSection({
       <SectionDivider />
       <div className="mt-4 flex w-full flex-col gap-4 pb-2">
         <p className="text-b1 font-semibold text-gray-100">게시물에 포함된 장소</p>
-        <div className="flex flex-col gap-4">
+        {/* 좌우 여백은 행이 갖는다(삭제 스와이프에서 여백째 밀려나가야 한다) — 시트의 px-4 를 상쇄한다. */}
+        <div className="-mx-4 flex flex-col gap-4">
           {relatedPlaces.map((related) => (
             <PlaceRow
               key={related.id}
@@ -138,10 +148,15 @@ function RelatedPlacesSection({
               }
               // 같은 지도 화면 안에서 선택 장소만 바뀌므로 라우팅은 필요 없다.
               onClick={onSelectPlace ? () => onSelectPlace(related.id) : undefined}
+              onDelete={() =>
+                deletion.requestDelete({ id: String(related.id), name: related.name })
+              }
             />
           ))}
         </div>
       </div>
+
+      <PlaceDeletePopup deletion={deletion} />
     </>
   );
 }

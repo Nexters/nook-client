@@ -1,6 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import { ToastProvider } from '@/shared/toast';
 import { RelatedPlacesSection } from './RelatedPlacesSection';
+
+// 장소 삭제(실행취소 토스트)를 위해 섹션이 useToast 를 쓴다 — 앱과 같은 provider 를 씌운다.
+function renderSection(ui: ReactNode) {
+  return render(<ToastProvider>{ui}</ToastProvider>);
+}
 
 const PLACE = {
   id: '101',
@@ -12,7 +19,7 @@ const PLACE = {
 describe('RelatedPlacesSection', () => {
   it('onPlaceClick 이 있으면 장소 행을 눌렀을 때 그 장소 id 로 호출된다', () => {
     const onPlaceClick = vi.fn();
-    render(
+    renderSection(
       <RelatedPlacesSection
         state={{ status: 'success', places: [PLACE], bookmarkedPlaceIds: [] }}
         manualPlaces={[]}
@@ -30,7 +37,7 @@ describe('RelatedPlacesSection', () => {
   });
 
   it('onPlaceClick 이 없으면 장소 행이 버튼이 아니라 그냥 텍스트로 렌더된다', () => {
-    render(
+    renderSection(
       <RelatedPlacesSection
         state={{ status: 'success', places: [PLACE], bookmarkedPlaceIds: [] }}
         manualPlaces={[]}

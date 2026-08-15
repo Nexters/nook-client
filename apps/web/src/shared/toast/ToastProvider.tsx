@@ -6,12 +6,16 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 
 const TOAST_DURATION_MS = 3000;
+/** `undo` 토스트의 고정 라벨 — 문구를 사용처가 바꾸지 못하게 여기서 소유한다. */
+const UNDO_LABEL = '실행취소';
 /** CSS `--animate-toast-out` 길이(global.css)와 맞춰야 잔상 없이 큐가 넘어간다. */
 const TOAST_EXIT_MS = 200;
 
 export type ToastRequest =
   | { variant: 'description'; title: string; description: string }
   | { variant: 'action'; title: string; actionLabel: string; onAction: () => void }
+  /** 라벨이 "실행취소"로 고정된 되돌리기 전용 모양(장소 삭제 시안). */
+  | { variant: 'undo'; title: string; onUndo: () => void }
   | { variant: 'simple'; title: string };
 
 interface ActiveToast {
@@ -26,8 +30,8 @@ interface ToastContextValue {
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 /**
- * 어디서든 토스트를 띄우는 훅. 3가지 타입(description/action/simple)만 제공한다 —
- * 화면마다 문구·버튼을 자유 조합하지 않고 디자인이 정의한 3개 모양 중 골라 쓰게 한다.
+ * 어디서든 토스트를 띄우는 훅. 4가지 타입(description/action/undo/simple)만 제공한다 —
+ * 화면마다 문구·버튼을 자유 조합하지 않고 디자인이 정의한 모양 중 골라 쓰게 한다.
  * 자동 소멸(3초)·스와이프 해제·연속 노출 큐잉은 ToastProvider 가 전담한다.
  */
 export function useToast() {
@@ -158,6 +162,22 @@ function ToastRoot({
           >
             {request.actionLabel}
           </Button>
+        </ToastPrimitive.Action>
+      ) : null}
+
+      {/* 되돌리기는 버튼이 아니라 파란 텍스트다(시안 `장소가 삭제 됐어요.`). */}
+      {request.variant === 'undo' ? (
+        <ToastPrimitive.Action altText={UNDO_LABEL} asChild>
+          <button
+            type="button"
+            className="shrink-0 px-2 py-1 text-b2 font-semibold text-nook-blue"
+            onClick={() => {
+              request.onUndo();
+              onActionClick();
+            }}
+          >
+            {UNDO_LABEL}
+          </button>
         </ToastPrimitive.Action>
       ) : null}
     </ToastPrimitive.Root>

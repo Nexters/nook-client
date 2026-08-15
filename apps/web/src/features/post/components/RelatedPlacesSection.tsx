@@ -1,5 +1,6 @@
 import type { Place } from '@/features/place';
-import { PlaceRow } from '@/features/place';
+import { PlaceDeletePopup, PlaceRow } from '@/features/place';
+import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
 import { Icon16ExclamationCircle } from '@/shared/icons/NookIcons';
 import type { RelatedPlacesState } from '../api/queries';
 
@@ -37,8 +38,11 @@ function RelatedPlacesSection({
   onDirectAddClick,
   onPlaceClick,
 }: RelatedPlacesSectionProps) {
+  const deletion = usePlaceDeletion();
   const parsedPlaces = state.status === 'success' ? state.places : [];
-  const places = [...parsedPlaces, ...manualPlaces];
+  const places = [...parsedPlaces, ...manualPlaces].filter(
+    (place) => !deletion.deletedPlaceIds.includes(place.id),
+  );
 
   return (
     <>
@@ -52,7 +56,8 @@ function RelatedPlacesSection({
         ) : null}
 
         {places.length > 0 ? (
-          <div className="flex flex-col gap-4 pb-4">
+          // 좌우 여백은 행이 갖는다(삭제 스와이프에서 여백째 밀려나가야 한다) — 섹션의 px-4 를 상쇄한다.
+          <div className="-mx-4 flex flex-col gap-4 pb-4">
             {places.map((place) => (
               <PlaceRow
                 key={place.id}
@@ -60,6 +65,7 @@ function RelatedPlacesSection({
                 bookmarked={bookmarkedPlaceIds.includes(place.id)}
                 onBookmarkedChange={(next) => onBookmarkedChange(place.id, next)}
                 onClick={onPlaceClick ? () => onPlaceClick(place.id) : undefined}
+                onDelete={() => deletion.requestDelete({ id: place.id, name: place.name })}
               />
             ))}
           </div>
@@ -79,6 +85,8 @@ function RelatedPlacesSection({
           </button>
         ) : null}
       </section>
+
+      <PlaceDeletePopup deletion={deletion} />
     </>
   );
 }
