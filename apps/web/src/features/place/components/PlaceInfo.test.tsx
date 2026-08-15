@@ -6,10 +6,13 @@ import { PlaceInfo } from './PlaceInfo';
  * 상호작용은 `fireEvent` 로만 쓴다 — `@testing-library/user-event` 는 미설치이고
  * 여기 필요한 건 click/change/keyDown/blur 뿐이라 새 의존성을 들일 이유가 없다.
  */
-function startEditing() {
-  fireEvent.click(screen.getByRole('button', { name: '수정' }));
+function startEditing(trigger = '수정') {
+  fireEvent.click(screen.getByRole('button', { name: trigger }));
   return screen.getByRole('textbox', { name: '메모' });
 }
+
+/** 메모가 없을 때는 "수정" 버튼이 없고 안내 문구 자체가 작성 진입점이다. */
+const EMPTY_TRIGGER = '메모를 남겨보세요';
 
 describe('PlaceInfo 메모 인라인 편집', () => {
   it('"수정"을 누르면 입력으로 바뀌고 Enter 로 저장한다', () => {
@@ -28,7 +31,7 @@ describe('PlaceInfo 메모 인라인 편집', () => {
     const onMemoChange = vi.fn();
     render(<PlaceInfo memo="" onMemoChange={onMemoChange} />);
 
-    const input = startEditing();
+    const input = startEditing(EMPTY_TRIGGER);
     fireEvent.change(input, { target: { value: '새 메모' } });
     fireEvent.blur(input);
 
@@ -62,11 +65,18 @@ describe('PlaceInfo 메모 인라인 편집', () => {
     const onMemoChange = vi.fn();
     render(<PlaceInfo memo="" onMemoChange={onMemoChange} />);
 
-    const input = startEditing();
+    const input = startEditing(EMPTY_TRIGGER);
     fireEvent.change(input, { target: { value: '  공백 있음  ' } });
     fireEvent.keyDown(input, { key: 'Enter' });
 
     expect(onMemoChange).toHaveBeenCalledWith('공백 있음');
+  });
+
+  it('메모가 없으면 "수정" 버튼 없이 안내 문구를 눌러 작성한다', () => {
+    render(<PlaceInfo memo="" onMemoChange={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: '수정' })).not.toBeInTheDocument();
+    expect(startEditing(EMPTY_TRIGGER)).toBeInTheDocument();
   });
 
   it('onMemoChange 가 없으면 읽기 전용이다', () => {

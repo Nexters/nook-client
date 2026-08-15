@@ -797,7 +797,7 @@ export function UiComponentsPage() {
               setLastAction(`메모 저장: ${next || '(비움)'}`);
             }}
           />
-          {/* 메모 X — 비어 있으면 "작성" */}
+          {/* 메모 X — 비어 있으면 "수정" 버튼 없이 안내 문구를 눌러 작성 */}
           <PlaceInfo
             address="서울 성동구 서울숲7길 9 4층"
             businessStatus="영업중"
