@@ -602,9 +602,21 @@ export function UiComponentsPage() {
             </Button>
             <Button
               size="sm"
+              onClick={() =>
+                showToast({
+                  variant: 'undo',
+                  title: '장소가 삭제 됐어요.',
+                  onUndo: () => setLastAction('토스트 실행취소'),
+                })
+              }
+            >
+              3. undo
+            </Button>
+            <Button
+              size="sm"
               onClick={() => showToast({ variant: 'simple', title: '지도에서 숨겼어요.' })}
             >
-              3. simple
+              4. simple
             </Button>
           </ButtonGroup>
         </Row>
@@ -778,6 +790,18 @@ export function UiComponentsPage() {
         <p className="text-b3 text-gray-50">
           두 번째 행은 thumbnail 이 없어 시안의 <code className="font-mono text-e2">Image_x</code>{' '}
           로 파생됩니다. 별은 행 본문과 별개의 액션입니다.
+        </p>
+
+        <div className="mx-auto flex w-full max-w-[343px] flex-col gap-4">
+          <PlaceRow
+            place={MOCK_PLACE}
+            bookmarked={bookmarked.includes(MOCK_PLACE.id)}
+            onBookmarkedChange={(next) => toggleBookmark(MOCK_PLACE.id, next)}
+            onDelete={() => setLastAction(`장소 삭제 요청: ${MOCK_PLACE.name}`)}
+          />
+        </div>
+        <p className="text-b3 text-gray-50">
+          onDelete 를 넘긴 행은 왼쪽으로 밀면 삭제 버튼이 나옵니다(확인 모달은 사용처 책임).
         </p>
       </Section>
 

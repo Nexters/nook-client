@@ -1,4 +1,5 @@
-import { Icon32MappinOff, Icon32MappinOn } from '@/shared/icons/NookIcons';
+import { useRef } from 'react';
+import { Icon20Delete, Icon32MappinOff, Icon32MappinOn } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { Thumbnail } from '@/shared/ui';
 import type { Place } from '../types';
@@ -16,6 +17,11 @@ export interface PlaceRowProps {
   bookmarked?: boolean;
   onBookmarkedChange?: (bookmarked: boolean) => void;
   onClick?: () => void;
+  /**
+   * 넘기면 행을 왼쪽으로 밀어 삭제 버튼을 꺼낼 수 있다(Figma `장소 삭제`).
+   * 실제 삭제는 여기서 하지 않는다 — 확인 모달을 띄우는 건 사용처 책임이다.
+   */
+  onDelete?: () => void;
   className?: string;
 }
 
@@ -24,12 +30,14 @@ function PlaceRow({
   bookmarked = false,
   onBookmarkedChange,
   onClick,
+  onDelete,
   className,
 }: PlaceRowProps) {
   const Body = onClick ? 'button' : 'div';
+  const swipeRef = useRef<HTMLDivElement>(null);
 
-  return (
-    <div className={cn('flex w-full items-center gap-4 bg-gray-0', className)}>
+  const row = (
+    <div className={cn('flex w-full items-center gap-4 bg-gray-0', !onDelete && className)}>
       <Body
         {...(onClick ? { type: 'button' as const, onClick } : {})}
         className={cn(
@@ -67,6 +75,39 @@ function PlaceRow({
           {bookmarked ? <Icon32MappinOn /> : <Icon32MappinOff />}
         </button>
       ) : null}
+    </div>
+  );
+
+  if (!onDelete) return row;
+
+  /*
+   * 스와이프는 제스처 핸들러가 아니라 가로 스크롤 스냅으로 만든다 — 관성·되돌아감·
+   * 접근성(버튼이 항상 DOM 에 있어 키보드/보이스오버로 닿는다)을 브라우저에 맡기는 쪽이
+   * 시트(vaul) 안에서도 안전하다. 같은 이유로 `Carousel` 도 스크롤 스냅을 쓴다.
+   */
+  return (
+    <div
+      ref={swipeRef}
+      className={cn(
+        'flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain',
+        '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+        className,
+      )}
+    >
+      <div className="w-full shrink-0 snap-start">{row}</div>
+      <button
+        type="button"
+        aria-label={`${place.name} 삭제`}
+        onClick={() => {
+          // 확인 모달 뒤로 열린 행이 남지 않게 먼저 닫는다(취소해도 원래 자리로 돌아온다).
+          swipeRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
+          onDelete();
+        }}
+        className="flex size-16 shrink-0 snap-start flex-col items-center justify-center gap-0.5 rounded-lg bg-error"
+      >
+        <Icon20Delete />
+        <span className="text-b3 font-medium text-gray-0">삭제</span>
+      </button>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 export * from './components/PlaceCard';
+export * from './components/PlaceDeletePopup';
 export * from './components/PlaceDetailHeader';
 export * from './components/PlaceInfo';
 export * from './components/PlacePhotos';

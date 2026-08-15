@@ -361,6 +361,18 @@ describe('게시물 상세', () => {
     }
   });
 
+  it('장소 행을 스와이프해 삭제하면 확인 모달을 거쳐 목록에서 사라진다', async () => {
+    await renderPost(1);
+
+    fireEvent.click(screen.getByRole('button', { name: '아이소 삭제' }));
+    expect(screen.getByText('장소를 삭제하시겠어요?')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
+
+    expect(screen.queryByText('아이소')).not.toBeInTheDocument();
+    expect(screen.getByText('장소가 삭제 됐어요.')).toBeInTheDocument();
+  });
+
   it('매칭된 장소가 없으면 섹션은 보이되 목록도 직접 추가 배너도 없다', async () => {
     await renderPost(2);
 

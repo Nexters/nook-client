@@ -8,6 +8,7 @@ const TOAST_DURATION_MS = 3000;
 const TOAST_EXIT_MS = 200;
 
 const onAction = vi.fn();
+const onUndo = vi.fn();
 
 function Harness() {
   const { showToast } = useToast();
@@ -44,6 +45,12 @@ function Harness() {
       >
         show-action
       </button>
+      <button
+        type="button"
+        onClick={() => showToast({ variant: 'undo', title: '장소가 삭제 됐어요.', onUndo })}
+      >
+        show-undo
+      </button>
     </>
   );
 }
@@ -60,6 +67,7 @@ describe('ToastProvider', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     onAction.mockClear();
+    onUndo.mockClear();
   });
 
   afterEach(() => {
@@ -125,5 +133,19 @@ describe('ToastProvider', () => {
     });
 
     expect(screen.queryByText('게시물 저장이 완료됐어요!')).not.toBeInTheDocument();
+  });
+
+  it('undo 타입은 고정 라벨 "실행취소"를 누르면 콜백을 부르고 토스트를 닫는다', async () => {
+    renderHarness();
+    fireEvent.click(screen.getByText('show-undo'));
+
+    fireEvent.click(screen.getByRole('button', { name: '실행취소' }));
+    expect(onUndo).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(TOAST_EXIT_MS);
+    });
+
+    expect(screen.queryByText('장소가 삭제 됐어요.')).not.toBeInTheDocument();
   });
 });

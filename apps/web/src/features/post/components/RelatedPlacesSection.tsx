@@ -1,5 +1,6 @@
 import type { Place } from '@/features/place';
-import { PlaceRow } from '@/features/place';
+import { PlaceDeletePopup, PlaceRow } from '@/features/place';
+import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
 import { Icon16ExclamationCircle } from '@/shared/icons/NookIcons';
 import type { RelatedPlacesState } from '../api/queries';
 
@@ -37,8 +38,11 @@ function RelatedPlacesSection({
   onDirectAddClick,
   onPlaceClick,
 }: RelatedPlacesSectionProps) {
+  const deletion = usePlaceDeletion();
   const parsedPlaces = state.status === 'success' ? state.places : [];
-  const places = [...parsedPlaces, ...manualPlaces];
+  const places = [...parsedPlaces, ...manualPlaces].filter(
+    (place) => !deletion.deletedPlaceIds.includes(place.id),
+  );
 
   return (
     <>
@@ -60,6 +64,7 @@ function RelatedPlacesSection({
                 bookmarked={bookmarkedPlaceIds.includes(place.id)}
                 onBookmarkedChange={(next) => onBookmarkedChange(place.id, next)}
                 onClick={onPlaceClick ? () => onPlaceClick(place.id) : undefined}
+                onDelete={() => deletion.requestDelete({ id: place.id, name: place.name })}
               />
             ))}
           </div>
@@ -79,6 +84,8 @@ function RelatedPlacesSection({
           </button>
         ) : null}
       </section>
+
+      <PlaceDeletePopup deletion={deletion} />
     </>
   );
 }
