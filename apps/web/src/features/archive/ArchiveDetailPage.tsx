@@ -6,7 +6,15 @@ import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { PlaceCard } from '@/features/place';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
-import { BackButton, BOTTOM_MENU_HEIGHT, Button, COLOR_BG_CLASS, Header, Popup } from '@/shared/ui';
+import {
+  BackButton,
+  BOTTOM_BAR_INSET_VAR,
+  BOTTOM_MENU_HEIGHT,
+  Button,
+  COLOR_BG_CLASS,
+  Header,
+  Popup,
+} from '@/shared/ui';
 import {
   useArchivePlaces,
   useArchivePosts,
@@ -34,7 +42,9 @@ export function ArchiveDetailPage() {
   // 선택 삭제(Figma `게시글 편집`) — 더보기 메뉴로 켜고, 뒤로가기/장소 탭 전환으로 끈다.
   const [selecting, setSelecting] = useState(false);
   const [selectedPostIds, setSelectedPostIds] = useState<ReadonlySet<number>>(new Set());
-  const [deletePostsPopupOpen, setDeletePostsPopupOpen] = useState(false);
+  const [selectedPlaceIds, setSelectedPlaceIds] = useState<ReadonlySet<number>>(new Set());
+  // 확인 모달은 게시물·장소가 문구와 동작이 달라 어느 탭에서 열렸는지를 들고 있는다.
+  const [deletePopupOpenFor, setDeletePopupOpenFor] = useState<DetailTab | null>(null);
 
   // 상세 전용 API가 아직 없어 목록 캐시에서 고른다.
   const { data: archives, isPending } = useArchives();
@@ -43,7 +53,12 @@ export function ArchiveDetailPage() {
   const postsQuery = useArchivePosts(archive?.id);
   const posts = postsQuery.data?.posts;
   const placesQuery = useArchivePlaces(archive?.id);
-  const places = placesQuery.data?.places;
+  // TODO(api): 아카이브에서 장소를 빼는 엔드포인트가 아직 없다(`/archives/{archiveId}/places` 는
+  // GET 뿐). 그래서 삭제 결과를 이 화면 상태로만 들고 있어 새로고침·재진입하면 되살아난다.
+  // 엔드포인트가 생기면 게시물 선택 삭제(`useDeleteArchivePosts`)와 같은 흐름으로 바꾸고
+  // 이 목록은 걷어낸다.
+  const [deletedPlaceIds, setDeletedPlaceIds] = useState<ReadonlySet<number>>(new Set());
+  const places = placesQuery.data?.places.filter((place) => !deletedPlaceIds.has(Number(place.id)));
 
   const deleteArchive = useDeleteArchive();
   const deleteArchivePosts = useDeleteArchivePosts();
@@ -59,19 +74,37 @@ export function ArchiveDetailPage() {
     return () => setBottomMenuHidden(false);
   }, [selecting, setBottomMenuHidden]);
 
+  // 그 CTA 바 높이를 알려 토스트가 위로 비켜 앉게 한다(탭바 변수와 주인이 다르다).
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!selecting) {
+      root.style.removeProperty(BOTTOM_BAR_INSET_VAR);
+      return;
+    }
+    root.style.setProperty(
+      BOTTOM_BAR_INSET_VAR,
+      `calc(${SELECT_CTA_HEIGHT} + env(safe-area-inset-bottom))`,
+    );
+    return () => {
+      root.style.removeProperty(BOTTOM_BAR_INSET_VAR);
+    };
+  }, [selecting]);
+
   const exitSelecting = () => {
     setSelecting(false);
     setSelectedPostIds(new Set());
+    setSelectedPlaceIds(new Set());
   };
 
-  const togglePostSelected = (postId: number) => {
-    setSelectedPostIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(postId)) next.delete(postId);
-      else next.add(postId);
-      return next;
-    });
-  };
+  function toggle(ids: ReadonlySet<number>, id: number): ReadonlySet<number> {
+    const next = new Set(ids);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  }
+
+  // 선택 개수는 열려 있는 탭 기준이다 — CTA 라벨·활성화·확인 모달이 모두 이 값을 쓴다.
+  const selectedCount = activeTab === 'posts' ? selectedPostIds.size : selectedPlaceIds.size;
 
   // 그리드/목록 끝(sentinel)이 화면에 들어오면 활성 탭의 다음 페이지를 당긴다.
   const activeQuery = activeTab === 'posts' ? postsQuery : placesQuery;
@@ -121,11 +154,9 @@ export function ArchiveDetailPage() {
             right={
               <ArchiveDetailMenu
                 onEdit={() => navigate(`/archive/${archive.id}/edit`)}
-                onSelectDelete={() => {
-                  // 선택 삭제는 게시물 대상 — 장소 탭에서 열었으면 게시물 탭으로 돌린다.
-                  setActiveTab('posts');
-                  setSelecting(true);
-                }}
+                // 보고 있던 탭 그대로 선택 모드로 들어간다 — 장소를 고르려고 장소 탭에서
+                // 연 사용자를 게시물 탭으로 되돌리지 않는다.
+                onSelectDelete={() => setSelecting(true)}
                 onDelete={() => setDeletePopupOpen(true)}
               />
             }
@@ -164,8 +195,9 @@ export function ArchiveDetailPage() {
                     role="tab"
                     aria-selected={selected}
                     onClick={() => {
-                      // 장소 탭에는 선택 개념이 없다 — 전환하면 선택 모드를 접는다.
-                      if (tab.key === 'places') exitSelecting();
+                      // 선택 모드는 유지하되 고른 것은 비운다 — 탭마다 대상이 다르다.
+                      setSelectedPostIds(new Set());
+                      setSelectedPlaceIds(new Set());
                       setActiveTab(tab.key);
                     }}
                     className={cn(
@@ -205,7 +237,9 @@ export function ArchiveDetailPage() {
                 archive={post}
                 selected={selecting ? selectedPostIds.has(post.id) : undefined}
                 onClick={
-                  selecting ? () => togglePostSelected(post.id) : () => navigate(`/post/${post.id}`)
+                  selecting
+                    ? () => setSelectedPostIds((prev) => toggle(prev, post.id))
+                    : () => navigate(`/post/${post.id}`)
                 }
               />
             ))}
@@ -220,8 +254,13 @@ export function ArchiveDetailPage() {
               <PlaceCard
                 key={place.id}
                 place={place}
-                // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
-                onClick={() => navigate(`/map?placeId=${place.id}`)}
+                selected={selecting ? selectedPlaceIds.has(Number(place.id)) : undefined}
+                onClick={
+                  selecting
+                    ? () => setSelectedPlaceIds((prev) => toggle(prev, Number(place.id)))
+                    : // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
+                      () => navigate(`/map?placeId=${place.id}`)
+                }
               />
             ))}
           </div>
@@ -242,10 +281,10 @@ export function ArchiveDetailPage() {
                 <Button
                   size="lg"
                   fullWidth
-                  disabled={selectedPostIds.size === 0 || deleteArchivePosts.isPending}
-                  onClick={() => setDeletePostsPopupOpen(true)}
+                  disabled={selectedCount === 0 || deleteArchivePosts.isPending}
+                  onClick={() => setDeletePopupOpenFor(activeTab)}
                 >
-                  {selectedPostIds.size > 0 ? `${selectedPostIds.size}개 삭제하기` : '삭제하기'}
+                  {selectedCount > 0 ? `${selectedCount}개 삭제하기` : '삭제하기'}
                 </Button>
               </div>
             </div>,
@@ -254,8 +293,38 @@ export function ArchiveDetailPage() {
         : null}
 
       <Popup
-        open={deletePostsPopupOpen}
-        onClose={() => setDeletePostsPopupOpen(false)}
+        open={deletePopupOpenFor === 'places'}
+        onClose={() => setDeletePopupOpenFor(null)}
+        title={`${selectedPlaceIds.size}개 장소를 삭제하시겠어요?`}
+        description={
+          <>
+            삭제한 장소는 이 아카이브에서
+            <br />
+            사라져요.
+          </>
+        }
+        confirmLabel="삭제하기"
+        variant="warning"
+        onConfirm={() => {
+          const removed = [...selectedPlaceIds];
+          setDeletedPlaceIds((prev) => new Set([...prev, ...removed]));
+          exitSelecting();
+          showToast({
+            variant: 'undo',
+            title: `${removed.length}개 장소가 삭제 됐어요.`,
+            onUndo: () =>
+              setDeletedPlaceIds((prev) => {
+                const next = new Set(prev);
+                for (const id of removed) next.delete(id);
+                return next;
+              }),
+          });
+        }}
+      />
+
+      <Popup
+        open={deletePopupOpenFor === 'posts'}
+        onClose={() => setDeletePopupOpenFor(null)}
         title={`${selectedPostIds.size}개 게시물을 삭제하시겠어요?`}
         description={
           <>

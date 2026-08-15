@@ -27,7 +27,8 @@ function AlertDialogOverlay({
   return (
     <AlertDialogPrimitive.Overlay
       data-slot="alert-dialog-overlay"
-      className={cn('fixed inset-0 z-50 bg-gray-100/50', className)}
+      // z-70: 탭바(60) 위에 딤이 덮여야 한다 — 아니면 모달 위로 탭바가 남는다.
+      className={cn('fixed inset-0 z-[70] bg-gray-100/50', className)}
       {...props}
     />
   );
@@ -43,7 +44,7 @@ function AlertDialogContent({
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 grid w-full max-w-[calc(100%-2.5rem)]',
+          'fixed left-1/2 top-1/2 z-[70] grid w-full max-w-[calc(100%-2.5rem)]',
           '-translate-x-1/2 -translate-y-1/2 rounded-xl bg-gray-0 shadow-lg',
           className,
         )}
