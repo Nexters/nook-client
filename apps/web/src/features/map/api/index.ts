@@ -73,10 +73,9 @@ export async function fetchRecentPlaces(): Promise<RecentPlace[]> {
 function toPlaceDetailPost(dto: PlacePostResponse): PlaceDetailPost {
   return {
     id: dto.postId,
-    title: dto.title || dto.memo || '제목 없는 게시물',
+    title: dto.title || '제목 없는 게시물',
     authorHandle: dto.authorIdentifier ?? undefined,
     thumbnail: dto.representativeMedia?.url,
-    memo: dto.memo ?? undefined,
     savedAt: dto.savedAt,
   };
 }

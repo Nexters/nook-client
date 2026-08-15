@@ -44,6 +44,7 @@ import type {
   UpdateGroupRequest,
   UpdateMemberProfileRequest,
   UpdatePlaceBookmarkRequest,
+  UpdatePlaceMemoRequest,
   UpdatePostMemoRequest,
 } from './models';
 export const getLogoutUrl = () => {
@@ -349,6 +350,26 @@ export const updateBookmark = async (
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(updatePlaceBookmarkRequest),
+  });
+};
+
+export const getUpdateMemo1Url = (placeId: number) => {
+  return `/api/v1/places/${placeId}/memo`;
+};
+
+/**
+ * @summary 내 장소 메모 변경
+ */
+export const updateMemo1 = async (
+  placeId: number,
+  updatePlaceMemoRequest: UpdatePlaceMemoRequest,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseUnit> => {
+  return orvalMutator<ApiResponseUnit>(getUpdateMemo1Url(placeId), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updatePlaceMemoRequest),
   });
 };
 

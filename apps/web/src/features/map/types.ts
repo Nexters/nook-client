@@ -37,8 +37,6 @@ export interface PlaceDetailPost {
   title: string;
   authorHandle?: string;
   thumbnail?: string;
-  /** 사용자가 게시물에 남긴 메모. 카드의 본문(캡션) 자리에 보여준다. */
-  memo?: string;
   savedAt: string;
 }
 
