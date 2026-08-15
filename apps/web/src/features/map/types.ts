@@ -20,6 +20,8 @@ export interface MapPin {
   name: string;
   /** 장소를 저장한 대표 아카이브의 색상. */
   color: ArchiveColor;
+  /** 장소 카테고리. 선택된 핀의 글리프를 고를 때 쓴다(모르는 값·미지정은 "기타"). */
+  category?: string;
   /** 장소 대표 썸네일. 없으면 핀이 빈 썸네일 고스트로 그려진다. */
   thumbnail?: string;
 }

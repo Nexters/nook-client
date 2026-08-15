@@ -167,6 +167,7 @@ export function MapView({
                 lng={pin.lng}
                 name={pin.name}
                 color={pin.color}
+                category={pin.category}
                 thumbnail={pin.thumbnail}
                 onClick={() => onPlaceClick?.(pin.id)}
               />
@@ -178,6 +179,7 @@ export function MapView({
             lng={selectedPin.lng}
             name={selectedPin.name}
             color={selectedPin.color}
+            category={selectedPin.category}
             thumbnail={selectedPin.thumbnail}
             selected
             onClick={() => onPlaceClick?.(selectedPin.id)}
