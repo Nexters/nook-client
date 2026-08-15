@@ -465,6 +465,15 @@ describe('게시물 상세', () => {
     await waitFor(() => expect(mocks.updatePostMemo).toHaveBeenCalledWith(1, '다음엔 지우랑'));
   });
 
+  it('메모가 없으면 "수정" 없이 안내 문구를 눌러 메모 시트를 연다', async () => {
+    await renderPost(2);
+
+    expect(screen.queryByRole('button', { name: '수정' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '메모를 남겨보세요' }));
+
+    expect(screen.getByPlaceholderText('추가로 메모하고 싶은 내용이 있나요?')).toBeInTheDocument();
+  });
+
   it.skip('직접 추가 배너를 누르면 장소 검색 드로어가 열린다', async () => {
     await renderPost(1);
 

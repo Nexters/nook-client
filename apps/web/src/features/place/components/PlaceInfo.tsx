@@ -15,8 +15,8 @@ import { EditableTextRow } from '@/shared/ui';
  * 토글). 메모 줄은 비어 있어도 편집 가능하면(`onMemoChange`) 남아 작성 유도 문구를
  * 보여주고, 편집도 불가하면 저장할 곳이 없으므로 렌더하지 않는다.
  *
- * 메모의 인라인 편집(Enter·blur 저장, Esc 취소)은 `EditableTextRow` 가 소유한다 —
- * `게시물 정보`의 메모 줄과 같은 구조라 공용으로 뽑아 썼다.
+ * 메모 줄은 `EditableTextRow` 가 소유한다 — `게시물 정보`의 메모 줄과 같은 구조라
+ * 공용으로 뽑아 썼다. `onMemoEdit` 를 넘기면 인라인 편집 대신 그 콜백(바텀시트)이 열린다.
  */
 export interface PlaceInfoProps {
   address?: string;
@@ -34,6 +34,8 @@ export interface PlaceInfoProps {
    * 값이 그대로면 호출하지 않는다.
    */
   onMemoChange?: (memo: string) => void;
+  /** 넘기면 인라인 편집 대신 이 콜백을 부른다 (장소 상세의 `메모하기` 바텀시트). */
+  onMemoEdit?: () => void;
   className?: string;
 }
 
@@ -49,6 +51,7 @@ function PlaceInfo({
   businessHours,
   memo,
   onMemoChange,
+  onMemoEdit,
   className,
 }: PlaceInfoProps) {
   async function copyAddress() {
@@ -105,7 +108,7 @@ function PlaceInfo({
 
       {/* 값도 없고 편집도 못 하면(=저장할 곳이 없으면) 작성 유도 문구만 남으므로
           주소·영업시간과 같은 규칙으로 줄째 뺀다. */}
-      {memo || onMemoChange ? (
+      {memo || onMemoChange || onMemoEdit ? (
         <EditableTextRow
           icon={
             <RowIcon>
@@ -115,6 +118,7 @@ function PlaceInfo({
           value={memo}
           placeholder="메모를 남겨보세요"
           onValueChange={onMemoChange}
+          onEdit={onMemoEdit}
           inputLabel="메모"
         />
       ) : null}

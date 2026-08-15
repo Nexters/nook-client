@@ -8,6 +8,8 @@ import {
   type RecentPlaceResponse,
   unwrapApiResponse,
   updateBookmark as updateBookmarkEndpoint,
+  // 생성기가 `/posts/{postId}/memo` 와 이름이 겹쳐 붙인 `_1` 접미사다 — 여기서만 풀어준다.
+  updateMemo1 as updateMemoEndpoint,
 } from '@/shared/api';
 import type { ArchiveColor } from '@/shared/ui';
 import type { MapBounds, MapPin, PlaceDetail, PlaceDetailPost, RecentPlace } from '../types';
@@ -103,10 +105,17 @@ export async function fetchPlaceDetail(placeId: number): Promise<PlaceDetail> {
     tags: response.tags ?? [],
     openNow: response.openNow ?? undefined,
     openingHours: response.openingHours ?? undefined,
+    memo: response.memo ?? undefined,
     posts: (response.posts?.items ?? []).map(toPlaceDetailPost),
   };
 }
 
 export async function updatePlaceBookmark(placeId: number, bookmarked: boolean): Promise<void> {
   await updateBookmarkEndpoint(placeId, { bookmarked }, { auth: 'required' });
+}
+
+/** `PATCH /api/v1/places/{placeId}/memo` — 장소 메모 변경. 빈 문자열은 삭제(null)로 보낸다. */
+export async function updatePlaceMemo(placeId: number, memo: string): Promise<void> {
+  const trimmed = memo.trim();
+  await updateMemoEndpoint(placeId, { memo: trimmed || null }, { auth: 'required' });
 }

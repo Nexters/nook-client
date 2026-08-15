@@ -6,9 +6,12 @@ import { cn } from '@/shared/lib/utils';
  * 같은 구조라 여기로 뽑았다.
  *
  * 편집 상태는 이 컴포넌트가 소유한다 — 사용처는 현재 값과 저장 콜백만 넘기면 된다.
- *   "수정" 탭 → 그 자리에서 입력 전환(자동 포커스)
+ *   값이 있으면 "수정" 탭, 값이 없으면 안내 문구 자체를 탭 → 그 자리에서 입력 전환(자동 포커스)
  *   Enter / 바깥 클릭(blur) → 저장 (앞뒤 공백 제거, 값이 그대로면 콜백 미호출)
  *   Esc → 취소
+ *
+ * 값이 없을 때 "수정" 버튼을 따로 두지 않는 건 정책이다 — 아직 쓴 게 없으면
+ * "수정"할 대상도 없으므로, 작성 진입점은 안내 문구 하나로 통일한다.
  *
  * `onValueChange` 를 넘기지 않으면 읽기 전용이다(편집 버튼이 아예 렌더되지 않는다).
  * 도메인을 모르는 표현 컴포넌트라 shared/ui 에 둔다.
@@ -25,12 +28,14 @@ export interface EditableTextRowProps {
    * 별도 편집 화면(게시물 상세의 `메모하기` 바텀시트)을 여는 경우에 쓴다.
    */
   onEdit?: () => void;
-  /** 편집 버튼 라벨. 시안은 값 유무와 무관하게 "수정". */
+  /** 값이 있을 때의 편집 버튼 라벨. 값이 없으면 이 버튼 대신 안내 문구가 진입점이다. */
   editLabel?: string;
   /** 접근성용 입력 라벨 */
   inputLabel?: string;
   className?: string;
 }
+
+const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100';
 
 function EditableTextRow({
   icon,
@@ -65,6 +70,9 @@ function EditableTextRow({
     setEditing(false);
   };
 
+  const canEdit = Boolean(onEdit || onValueChange);
+  const openEditor = onEdit ?? startEdit;
+
   return (
     <div className={cn('flex min-h-6 w-full items-center gap-2', className)}>
       {icon}
@@ -93,20 +101,33 @@ function EditableTextRow({
         />
       ) : (
         <div className="flex min-w-0 items-center gap-2">
-          <p
-            className={cn('truncate text-b2 font-medium', value ? 'text-gray-80' : 'text-gray-50')}
-          >
-            {value || placeholder}
-          </p>
-          {onEdit || onValueChange ? (
+          {value ? (
+            <>
+              <p className="truncate text-b2 font-medium text-gray-80">{value}</p>
+              {canEdit ? (
+                <button
+                  type="button"
+                  onClick={openEditor}
+                  className={cn('shrink-0 text-b2 font-medium text-nook-blue', focusRing)}
+                >
+                  {editLabel}
+                </button>
+              ) : null}
+            </>
+          ) : canEdit ? (
             <button
               type="button"
-              onClick={onEdit ?? startEdit}
-              className="shrink-0 text-b2 font-medium text-nook-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+              onClick={openEditor}
+              className={cn(
+                'min-w-0 truncate text-left text-b2 font-medium text-gray-50',
+                focusRing,
+              )}
             >
-              {editLabel}
+              {placeholder}
             </button>
-          ) : null}
+          ) : (
+            <p className="truncate text-b2 font-medium text-gray-50">{placeholder}</p>
+          )}
         </div>
       )}
     </div>
