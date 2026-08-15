@@ -7,6 +7,11 @@
 
 export interface MapPlaceResponse {
   /**
+   * 장소 카테고리
+   * @nullable
+   */
+  category?: string | null;
+  /**
    * 장소 지역
    * @nullable
    */

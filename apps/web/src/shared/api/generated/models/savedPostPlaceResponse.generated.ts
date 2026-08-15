@@ -24,6 +24,11 @@ export interface SavedPostPlaceResponse {
   latitude: number;
   /** 장소 경도 */
   longitude: number;
+  /**
+   * 사용자의 저장 게시물 장소 메모
+   * @nullable
+   */
+  memo?: string | null;
   /** 장소명 */
   name: string;
   /**

@@ -65,7 +65,6 @@ function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
             : {
                 id: String(placePost.id),
                 authorHandle: formatAuthorHandle(placePost.authorHandle),
-                caption: placePost.memo,
                 // 이미지는 대표 미디어 1장만 내려온다 — 없으면 회색 플레이스홀더로 채운다.
                 images: [placePost.thumbnail ?? SAVED_POST_IMAGE],
               };
