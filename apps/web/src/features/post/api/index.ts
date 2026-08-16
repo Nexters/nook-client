@@ -1,6 +1,7 @@
 import {
   type CreateGroupRequestColor,
   connectPlace,
+  disconnectPlace as disconnectPlaceEndpoint,
   findPlaceParsing,
   getSavedPostDetail,
   type PlaceResponse,
@@ -206,4 +207,13 @@ export async function updatePostMemo(postId: number, memo: string): Promise<void
  */
 export async function updatePlaceBookmark(placeId: number, bookmarked: boolean): Promise<void> {
   await updateBookmark(placeId, { bookmarked }, { auth: 'required' });
+}
+
+/**
+ * `DELETE /api/v1/posts/{postId}/places/{placeId}` — 저장 게시물의 장소 연결 삭제.
+ * 화면에서 말하는 "장소 삭제"가 이것이다 — 장소 자체가 아니라 이 사용자의 게시물↔장소
+ * 연결을 끊는다.
+ */
+export async function disconnectPostPlace(postId: number, placeId: number): Promise<void> {
+  await disconnectPlaceEndpoint(postId, placeId, { auth: 'required' });
 }

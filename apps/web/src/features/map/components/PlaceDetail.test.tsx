@@ -10,6 +10,7 @@ import { ToastProvider } from '@/shared/toast';
 const mocks = vi.hoisted(() => ({
   fetchPostDetail: vi.fn(),
   updatePlaceMemo: vi.fn().mockResolvedValue(undefined),
+  disconnectPostPlace: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('@/features/post/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/post/api')>()),
@@ -18,6 +19,7 @@ vi.mock('@/features/post/api', async (importOriginal) => ({
 vi.mock('@/features/map/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/map/api')>()),
   updatePlaceMemo: mocks.updatePlaceMemo,
+  disconnectPostPlace: mocks.disconnectPostPlace,
 }));
 
 const { PlaceDetail } = await import('@/features/map/components/PlaceDetail');
@@ -188,7 +190,33 @@ describe('PlaceDetail 장소 삭제', () => {
     expect(screen.getByText('퍼머넌트해비탯')).toBeInTheDocument();
   });
 
+  it('확인하면 목록에서 사라지고 유예 뒤 그 장소를 담은 게시물마다 연결을 끊는다', async () => {
+    mocks.disconnectPostPlace.mockClear();
+    mocks.fetchPostDetail.mockImplementation(async (postId: number) =>
+      postId === 11
+        ? postDetail([parsedPlace(2, '퍼머넌트해비탯')])
+        : postDetail([parsedPlace(2, '퍼머넌트해비탯')]),
+    );
+
+    renderDetail();
+
+    fireEvent.click(await screen.findByRole('button', { name: '퍼머넌트해비탯 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
+
+    expect(mocks.disconnectPostPlace).not.toHaveBeenCalled();
+
+    // 두 게시물(11·12)이 같은 장소를 가리키므로 각각 연결을 끊는다.
+    await waitFor(
+      () => {
+        expect(mocks.disconnectPostPlace).toHaveBeenCalledWith(11, 2);
+        expect(mocks.disconnectPostPlace).toHaveBeenCalledWith(12, 2);
+      },
+      { timeout: 5000 },
+    );
+  });
+
   it('확인하면 목록에서 사라지고, 실행취소하면 되돌아온다', async () => {
+    mocks.disconnectPostPlace.mockClear();
     mocks.fetchPostDetail.mockResolvedValue(
       postDetail([parsedPlace(2, '퍼머넌트해비탯'), parsedPlace(3, '탐석과 사랑')]),
     );
@@ -205,6 +233,7 @@ describe('PlaceDetail 장소 삭제', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '실행취소' }));
     expect(screen.getByText('퍼머넌트해비탯')).toBeInTheDocument();
+    expect(mocks.disconnectPostPlace).not.toHaveBeenCalled();
   });
 
   it('마지막 장소까지 지우면 섹션이 사라진다', async () => {

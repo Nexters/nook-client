@@ -223,6 +223,7 @@ export function PostDetailPage() {
         </div>
 
         <RelatedPlacesSection
+          postId={postId}
           state={relatedPlacesState}
           postPlaces={detailPlaces.map(toPlace)}
           bookmarkedPlaceIds={bookmarkedPlaceIds}

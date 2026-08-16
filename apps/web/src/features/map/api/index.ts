@@ -1,5 +1,6 @@
 import {
   type CreateGroupRequestColor,
+  disconnectPlace as disconnectPlaceEndpoint,
   getMapPlaces as getMapPlacesEndpoint,
   getDetail as getPlaceDetailEndpoint,
   getRecentPlaces as getRecentPlacesEndpoint,
@@ -112,6 +113,15 @@ export async function fetchPlaceDetail(placeId: number): Promise<PlaceDetail> {
 
 export async function updatePlaceBookmark(placeId: number, bookmarked: boolean): Promise<void> {
   await updateBookmarkEndpoint(placeId, { bookmarked }, { auth: 'required' });
+}
+
+/**
+ * `DELETE /api/v1/posts/{postId}/places/{placeId}` — 저장 게시물의 장소 연결 삭제.
+ * 게시물 도메인 엔드포인트지만(`features/post/api` 와 동일 호출) 각 feature 가 자기
+ * 진입점을 소유한다 — 테스트가 feature api 모듈 단위로 모킹하는 컨벤션 때문이다.
+ */
+export async function disconnectPostPlace(postId: number, placeId: number): Promise<void> {
+  await disconnectPlaceEndpoint(postId, placeId, { auth: 'required' });
 }
 
 /** `PATCH /api/v1/places/{placeId}/memo` — 장소 메모 변경. 빈 문자열은 삭제(null)로 보낸다. */
