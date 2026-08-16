@@ -616,3 +616,21 @@ export const connectPlace = async (
     body: JSON.stringify(connectPostPlaceRequest),
   });
 };
+
+export const getDisconnectPlaceUrl = (postId: number, placeId: number) => {
+  return `/api/v1/posts/${postId}/places/${placeId}`;
+};
+
+/**
+ * @summary 저장 게시물의 장소 연결 삭제
+ */
+export const disconnectPlace = async (
+  postId: number,
+  placeId: number,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseUnit> => {
+  return orvalMutator<ApiResponseUnit>(getDisconnectPlaceUrl(postId, placeId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
