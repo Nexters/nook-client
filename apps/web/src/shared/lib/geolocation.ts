@@ -31,12 +31,18 @@ export function getDistanceKm(a: Coordinates, b: Coordinates): number {
 }
 
 /**
- * 장소 상세에 붙는 거리 표기(시안 `4.6km`·`400m`).
+ * 미터 거리 → 표기(시안 `4.6km`·`400m`).
  * 1km 미만은 m 단위로 보여준다 — 미터로 먼저 반올림해야 999.6m 가 `1000m` 로 새지 않는다.
+ * 서버가 미터를 그대로 내려주는 응답(장소 검색 `distanceMeters`)에도 같은 표기를 쓴다.
  */
+export function formatDistanceFromMeters(meters: number): string {
+  const rounded = Math.round(meters);
+  return rounded < 1000 ? `${rounded}m` : `${Math.round(rounded / 100) / 10}km`;
+}
+
+/** 두 좌표 사이 거리 표기 — `formatDistanceFromMeters` 와 같은 규칙. */
 export function formatDistance(a: Coordinates, b: Coordinates): string {
-  const meters = Math.round(distanceKm(a, b) * 1000);
-  return meters < 1000 ? `${meters}m` : `${Math.round(meters / 100) / 10}km`;
+  return formatDistanceFromMeters(distanceKm(a, b) * 1000);
 }
 
 export function getCurrentPosition(): Promise<Coordinates | null> {

@@ -1,3 +1,4 @@
+import type { Place } from '@/features/place';
 import type { ArchiveColor } from '@/shared/ui';
 
 /**
@@ -75,6 +76,18 @@ export interface ParsedPlace {
   /** 장소 대표 썸네일. `COMPLETED` 전에는 비어 있을 수 있다. */
   thumbnail?: string;
   thumbnailParsingStatus: ThumbnailParsingStatus;
+}
+
+/**
+ * 직접 연결용 장소 검색 결과(`GET /places/search`) 하나.
+ * 서버에 아직 실체가 없는 후보라 `placeId` 가 없고, 연결 시점에만 쓰는 만료형
+ * `selectionToken` 으로 식별한다 — 화면 컴포넌트(`Place.id`)와의 호환을 위해 `id` 에도
+ * 토큰을 그대로 넣지만, 이 값을 절대 `placeId` 로 서버에 보내면 안 된다.
+ */
+export interface SearchedPlace extends Place {
+  selectionToken: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface PlaceParsingResult {

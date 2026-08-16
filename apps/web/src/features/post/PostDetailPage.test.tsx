@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import emptyThumbnail from '@/assets/images/98_Group.svg';
-import type { PlaceParsingResult, PostDetail } from '@/features/post/types';
+import type { PlaceParsingResult, PostDetail, SearchedPlace } from '@/features/post/types';
 import { ToastProvider } from '@/shared/toast';
 
 // HTTP 전송이 아니라 화면 ↔ Query ↔ feature API 배선만 검증한다.
@@ -13,9 +13,18 @@ const mocks = vi.hoisted(() => ({
   fetchPlaceParsing: vi.fn(),
   updatePostMemo: vi.fn(),
   updatePlaceBookmark: vi.fn(),
+  searchConnectablePlaces: vi.fn(),
+  connectPostPlace: vi.fn(),
 }));
 
 vi.mock('@/features/post/api', () => mocks);
+
+// 네이버 지도 SDK 는 jsdom 에서 로드할 수 없다 — 직접 연결 드로어의 프리뷰 지도는 스텁으로 대체한다.
+vi.mock('@/features/map/components/PlacePreviewMap', () => ({
+  PlacePreviewMap: ({ place }: { place: { name: string } }) => (
+    <div data-testid="place-preview-map">{place.name}</div>
+  ),
+}));
 
 // vi.mock 뒤에 두어야 모킹된 모듈을 가져온다.
 const { PostDetailPage } = await import('@/features/post/PostDetailPage');
@@ -122,6 +131,30 @@ const PLACE_PARSING: Record<number, PlaceParsingResult> = {
   },
 };
 
+/** 직접 연결용 장소 검색 결과 — 서버 실체가 없어 selectionToken 으로만 식별된다. */
+const SEARCHED_PLACES: SearchedPlace[] = [
+  {
+    id: 'token-앤미',
+    selectionToken: 'token-앤미',
+    name: '앤미',
+    category: '일식',
+    address: '서울 관악구 관악로 12길 47 (봉천동)',
+    distance: '16.2km',
+    latitude: 37.478,
+    longitude: 126.951,
+  },
+  {
+    id: 'token-앤미용실',
+    selectionToken: 'token-앤미용실',
+    name: '앤미용실',
+    category: '미용실',
+    address: '서울 관악구 관악로 12길 47 (봉천동)',
+    distance: '16.2km',
+    latitude: 37.478,
+    longitude: 126.951,
+  },
+];
+
 /** 장소 목록 클릭 시 실제로 어디로 이동했는지 확인하기 위한 `/map` 자리의 더미 화면. */
 function MapRouteProbe() {
   const location = useLocation();
@@ -164,10 +197,6 @@ async function renderPost(postId: number, search = '', initialEntries?: string[]
 }
 
 describe('게시물 상세', () => {
-  // "게시물에 포함된 장소" 섹션 자체는 그대로 보이고, 그 안의 "찾는 장소가 없으신가요? 직접 추가"
-  // 배너만 잠시 숨겨져 있다(RelatedPlacesSection.tsx 의 SHOW_DIRECT_ADD_BANNER TODO
-  // 참고). 그 배너가 있어야만 가능한 상호작용을 검증하던 아래 it.skip 들은 플래그가
-  // 다시 켜지면 함께 되살린다.
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.fetchPostDetail.mockImplementation((postId: number) => Promise.resolve(POSTS[postId]));
@@ -179,6 +208,8 @@ describe('게시물 상세', () => {
     });
     mocks.updatePostMemo.mockResolvedValue(undefined);
     mocks.updatePlaceBookmark.mockResolvedValue(undefined);
+    mocks.searchConnectablePlaces.mockResolvedValue(SEARCHED_PLACES);
+    mocks.connectPostPlace.mockResolvedValue(501);
   });
 
   it('헤더를 화면에 고정하고 콘텐츠는 그 아래에서 시작한다', async () => {
@@ -297,7 +328,7 @@ describe('게시물 상세', () => {
     await waitFor(() =>
       expect(screen.getByText('게시물에 포함된 장소를 찾는 중…')).toBeInTheDocument(),
     );
-    expect(screen.queryByRole('button', { name: /직접 추가/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /직접추가/ })).not.toBeInTheDocument();
 
     await waitFor(() =>
       expect(screen.queryByText('게시물에 포함된 장소를 찾는 중…')).not.toBeInTheDocument(),
@@ -313,10 +344,9 @@ describe('게시물 상세', () => {
   });
 
   it('썸네일 파싱이 끝나기 전에는 고스트를 보여주고, 완성되면 폴링으로 반영한 뒤 멈춘다', async () => {
-    // 파싱 중엔 thumbnail 이 미리 내려와도 무시해야 한다 — 첫 응답에 일부러 넣어둔다.
     const parsingPlace = {
       ...PLACES[0],
-      thumbnail: 'too-early.png',
+      thumbnail: undefined,
       thumbnailParsingStatus: 'PROCESSING' as const,
     };
     const completedPlace = {
@@ -342,6 +372,35 @@ describe('게시물 상세', () => {
       );
 
       // 모든 썸네일이 종료 상태면 폴링을 멈춘다.
+      const settledCalls = mocks.fetchPlaceParsing.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(9000);
+      expect(mocks.fetchPlaceParsing.mock.calls.length).toBe(settledCalls);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('썸네일 파싱이 안 끝났어도 썸네일 URL 이 있으면 그대로 보여주고 폴링하지 않는다', async () => {
+    // 직접 연결한 장소는 서버가 thumbnailUrl 을 채워둔 채 thumbnailParsingStatus 를
+    // PENDING 으로 내려두는 경우가 있다 — 값이 있으면 완료로 취급한다.
+    mocks.fetchPlaceParsing.mockResolvedValue({
+      ...PLACE_PARSING[1],
+      places: [
+        {
+          ...PLACES[0],
+          thumbnail: 'direct-connected.png',
+          thumbnailParsingStatus: 'PENDING' as const,
+        },
+      ],
+    });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    try {
+      await renderPost(1);
+
+      const row = screen.getByRole('button', { name: /아이소 카페/ });
+      expect(row.querySelector('img')?.getAttribute('src')).toBe('direct-connected.png');
+
       const settledCalls = mocks.fetchPlaceParsing.mock.calls.length;
       await vi.advanceTimersByTimeAsync(9000);
       expect(mocks.fetchPlaceParsing.mock.calls.length).toBe(settledCalls);
@@ -383,21 +442,18 @@ describe('게시물 상세', () => {
     expect(screen.getByText('장소가 삭제 됐어요.')).toBeInTheDocument();
   });
 
-  it('매칭된 장소가 없으면 섹션은 보이되 목록도 직접 추가 배너도 없다', async () => {
+  it('매칭된 장소가 없으면 섹션은 보이되 목록 없이 직접 추가 배너만 남는다', async () => {
     await renderPost(2);
 
     expect(screen.getByRole('heading', { name: '게시물에 포함된 장소' })).toBeInTheDocument();
     expect(screen.queryByText('아이소')).not.toBeInTheDocument();
-    // "직접 추가" 배너는 잠시 숨겨져 있다(RelatedPlacesSection.tsx SHOW_DIRECT_ADD_BANNER).
-    expect(screen.queryByRole('button', { name: /직접 추가/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /직접추가/ })).toBeInTheDocument();
   });
 
   it('장소 파싱이 실패하면 에러 스낵바를 보여준다', async () => {
     await renderPost(3);
 
     expect(screen.getByRole('heading', { name: '게시물에 포함된 장소' })).toBeInTheDocument();
-    // "직접 추가" 배너는 잠시 숨겨져 있어 검증하지 않는다 — 이 스낵바는 그 배너와
-    // 무관하게 PostDetailPage 가 독립적으로 띄운다.
     expect(screen.getByText('위치를 찾지 못 했어요')).toBeInTheDocument();
   });
 
@@ -474,42 +530,116 @@ describe('게시물 상세', () => {
     expect(screen.getByPlaceholderText('추가로 메모하고 싶은 내용이 있나요?')).toBeInTheDocument();
   });
 
-  it.skip('직접 추가 배너를 누르면 장소 검색 드로어가 열린다', async () => {
+  it('직접 추가 배너를 누르면 장소 검색 드로어가 열린다', async () => {
     await renderPost(1);
 
-    fireEvent.click(screen.getByRole('button', { name: /직접 추가/ }));
+    // 시안 카피 (183:23093) — 문구 뒤 액션은 "직접추가" 칩 버튼.
+    expect(screen.getByText(/찾는 장소가 없으신가요\?/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /직접추가/ }));
 
     expect(screen.getByPlaceholderText('장소명을 입력해주세요')).toBeInTheDocument();
   });
 
-  it.skip('드로어에 검색어를 입력하면 이름이 일치하는 장소 목록이 뜬다', async () => {
+  it('드로어에 검색어를 입력하면 디바운스 후 검색 API 결과 목록이 뜬다', async () => {
     await renderPost(1);
 
-    fireEvent.click(screen.getByRole('button', { name: /직접 추가/ }));
+    fireEvent.click(screen.getByRole('button', { name: /직접추가/ }));
     fireEvent.change(screen.getByPlaceholderText('장소명을 입력해주세요'), {
       target: { value: '앤미' },
     });
 
-    expect(screen.getByText('앤미용실')).toBeInTheDocument();
+    // 위치 권한이 없는 환경(jsdom 에는 geolocation 이 없다)에서는 좌표 없이 검색한다.
+    await waitFor(() => expect(mocks.searchConnectablePlaces).toHaveBeenCalledWith('앤미', null));
+    expect(await screen.findByText('앤미용실')).toBeInTheDocument();
+    expect(screen.getAllByText(/16\.2km/)).toHaveLength(2);
   });
 
-  it.skip('검색 결과에서 장소를 확정하면 장소 목록에 연결되고 드로어가 닫힌다', async () => {
-    await renderPost(3); // 파싱 실패 케이스 — 직접 추가가 실제로 필요한 시나리오
+  it('검색 결과에서 장소를 확정하면 서버에 연결되고 드로어가 닫힌다', async () => {
+    // 파싱이 장소를 못 찾은 게시물 — 직접 추가가 실제로 필요한 시나리오. 직접 연결한
+    // 장소가 파싱 응답에는 없어도, 재조회한 게시물 상세가 내려주면 목록에 보인다.
+    const connected: PlaceParsingResult['places'][number] = {
+      id: 501,
+      provider: 'kakao',
+      externalPlaceId: 'kakao-501',
+      name: '앤미',
+      address: '서울 관악구 관악로 12길 47 (봉천동)',
+      latitude: 37.478,
+      longitude: 126.951,
+      category: '일식',
+      phoneNumber: null,
+      bookmarked: true,
+      thumbnailParsingStatus: 'COMPLETED',
+    };
+    mocks.fetchPostDetail
+      .mockImplementationOnce(() => Promise.resolve(POSTS[2]))
+      .mockImplementation(() => Promise.resolve({ ...POSTS[2], places: [connected] }));
 
-    fireEvent.click(screen.getByRole('button', { name: /직접 추가/ }));
+    await renderPost(2);
+
+    fireEvent.click(screen.getByRole('button', { name: /직접추가/ }));
     fireEvent.change(screen.getByPlaceholderText('장소명을 입력해주세요'), {
       target: { value: '앤미' },
     });
-    fireEvent.click(screen.getByText('앤미'));
+    fireEvent.click(await screen.findByText('앤미'));
     // Drawer(vaul→Radix Dialog)가 열려 있으면 Radix 가 이 형제 버튼을 aria-hidden 처리한다
     // (PlaceDirectInputDrawer 주석 참고) — RTL 기본 getByRole 은 이를 제외하므로 hidden:true 로 포함시킨다.
-    fireEvent.click(screen.getByRole('button', { name: '추가하기', hidden: true }));
+    fireEvent.click(screen.getByRole('button', { name: '장소 추가', hidden: true }));
 
-    expect(screen.queryByPlaceholderText('장소명을 입력해주세요')).not.toBeInTheDocument();
-    expect(screen.getByText('앤미')).toBeInTheDocument();
+    await waitFor(() => expect(mocks.connectPostPlace).toHaveBeenCalledWith(2, 'token-앤미'));
+    // 시안: 직접 추가한 장소는 저장(파란 북마크) 상태로 시작한다 — 연결 직후 북마크를 이어 건다.
+    await waitFor(() => expect(mocks.updatePlaceBookmark).toHaveBeenCalledWith(501, true));
+
+    await waitFor(() =>
+      expect(screen.queryByPlaceholderText('장소명을 입력해주세요')).not.toBeInTheDocument(),
+    );
+    expect(await screen.findByText('아카이브에 저장됐어요')).toBeInTheDocument();
+    expect(await screen.findByText('앤미')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '앤미 즐겨찾기' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
+  });
+
+  it('장소 연결에 실패하면 안내 토스트를 띄우고 드로어를 유지한다', async () => {
+    mocks.connectPostPlace.mockRejectedValue(new Error('선택 토큰 만료'));
+    await renderPost(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /직접추가/ }));
+    fireEvent.change(screen.getByPlaceholderText('장소명을 입력해주세요'), {
+      target: { value: '앤미' },
+    });
+    fireEvent.click(await screen.findByText('앤미'));
+    fireEvent.click(screen.getByRole('button', { name: '장소 추가', hidden: true }));
+
+    expect(await screen.findByText('장소를 추가하지 못했어요')).toBeInTheDocument();
+    // 드로어(장소 상세)는 그대로 남아 바로 다시 시도할 수 있다.
+    expect(screen.getByRole('button', { name: '장소 추가', hidden: true })).toBeInTheDocument();
+  });
+
+  it('게시물 상세에만 있는 장소도 목록에 보이고, 파싱 응답과 겹치는 장소는 한 번만 보인다', async () => {
+    const parsedAiso = PLACES[0];
+    if (!parsedAiso) throw new Error('파싱 장소 픽스처가 비어 있다.');
+    const manuallyConnected: PlaceParsingResult['places'][number] = {
+      ...parsedAiso,
+      id: 502,
+      externalPlaceId: 'kakao-502',
+      name: '하우스오브와일드',
+    };
+    mocks.fetchPostDetail.mockImplementation(() =>
+      Promise.resolve({ ...POSTS[1], places: [parsedAiso, manuallyConnected] }),
+    );
+
+    await renderPost(1);
+
+    expect(screen.getByText('하우스오브와일드')).toBeInTheDocument();
+    expect(screen.getAllByText('아이소')).toHaveLength(1);
+  });
+
+  it('북마크를 토글하면 게시물 상세도 다시 불러온다', async () => {
+    await renderPost(1);
+
+    fireEvent.click(screen.getByRole('button', { name: '탐석과 사랑 즐겨찾기' }));
+
+    await waitFor(() => expect(mocks.fetchPostDetail).toHaveBeenCalledTimes(2));
   });
 });
