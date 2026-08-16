@@ -1,8 +1,9 @@
 import type { Place } from '@/features/place';
-import { PlaceDetailHeader } from '@/features/place';
+import { PlaceDetailHeader, PlaceInfo } from '@/features/place';
 import type { Post } from '@/features/post';
 import { cn } from '@/shared/lib/utils';
 import { Carousel } from '@/shared/ui';
+import { buildNaverMapSearchUrl } from '../lib/naverMapLink';
 
 export interface PlaceSearchResultDetailProps {
   place: Place;
@@ -11,6 +12,8 @@ export interface PlaceSearchResultDetailProps {
   /** collapsed 면 가로 스크롤 캐러셀, expanded 면 2열 그리드로 게시물을 보여준다. */
   expanded: boolean;
   onSelectPost: (post: Post) => void;
+  /** 주소 복사 성공 시 호출된다(토스트는 사용처 책임 — `PlaceInfo` 계약 그대로). */
+  onAddressCopied?: () => void;
 }
 
 function PostThumbnailButton({
@@ -58,12 +61,27 @@ function PlaceSearchResultDetail({
   posts,
   expanded,
   onSelectPost,
+  onAddressCopied,
 }: PlaceSearchResultDetailProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* 하단 fixed 바에 가리지 않도록 스크롤 영역 자체에 여유 패딩을 둔다. */}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-20">
-        <PlaceDetailHeader place={place} className="pt-4 pb-4" />
+        <PlaceDetailHeader
+          place={place}
+          className="pt-4 pb-4"
+          // 시안 `장소 info` 의 주소 줄(거리 · 주소 + 복사) — 검색 응답엔 영업시간·메모가
+          // 없어 주소 줄만 남는다.
+          info={
+            <PlaceInfo
+              address={place.address}
+              distance={place.distance}
+              onAddressCopied={onAddressCopied}
+              // 하단 "지도에서 보기" 버튼과 같은 곳으로 나간다.
+              mapHref={buildNaverMapSearchUrl(place)}
+            />
+          }
+        />
 
         {posts.length > 0 ? (
           expanded ? (
