@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
-import type { Place } from '@/features/place';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
@@ -11,6 +10,8 @@ import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
 import { BackButton, Header } from '@/shared/ui';
 import {
+  toPlace,
+  useConnectPlace,
   usePostDetail,
   useRelatedPlaces,
   useUpdatePlaceBookmark,
@@ -26,6 +27,7 @@ import { PostImageViewer } from './components/PostImageViewer';
 import { PostInfo } from './components/PostInfo';
 import { GoHomeTooltip, PostParsingView } from './components/PostParsingView';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
+import type { SearchedPlace } from './types';
 
 /**
  * Figma `아카이브 > 게시물 상세` (연관 장소 O / X, 메모 최대글자수, 이미지 확대 뷰)
@@ -88,21 +90,10 @@ export function PostDetailPage() {
     }, [isProcessing, enteredFromShare, viewerOpen, navigate, shareEntryBackTarget]),
   );
 
-  // "직접 추가"로 확정한 장소 — 파싱 상태와 무관하게 항상 장소 목록에 보여준다.
-  const [manualPlaces, setManualPlaces] = useState<Place[]>([]);
-
-  // 직접 추가한 장소 전용 로컬 북마크 상태. 파싱된 장소는 서버 상태
-  // (`bookmarkedPlaceIds` + 토글 시 북마크 API)를 따르지만, 직접 추가 장소는 아직
-  // 서버에 연결(connectPlace)되지 않은 목 검색 결과라(id 가 'search-1' 등 가짜) 북마크
-  // API 를 부를 수 없다 — TODO(api): 장소 직접 연결 연동 때 이 상태도 함께 걷어낸다.
-  const [bookmarkOverrides, setBookmarkOverrides] = useState<Record<string, boolean>>({});
   const updateBookmarkMutation = useUpdatePlaceBookmark(postId);
+  const connectPlaceMutation = useConnectPlace(postId);
 
   const toggleBookmark = (placeId: string, next: boolean) => {
-    if (manualPlaces.some((place) => place.id === placeId)) {
-      setBookmarkOverrides((prev) => ({ ...prev, [placeId]: next }));
-      return;
-    }
     updateBookmarkMutation.mutate(
       { placeId: Number(placeId), bookmarked: next },
       {
@@ -117,38 +108,37 @@ export function PostDetailPage() {
     );
   };
 
-  // 직접 추가한 장소(가짜 id, 예: 'search-1')는 아직 지도 쪽 실제 장소와 연결돼 있지
-  // 않으니 이동하지 않는다 — 파싱된 실제 장소(숫자 id)만 지도의 선택된 장소 뷰로 넘긴다.
   function handleRelatedPlaceClick(placeId: string) {
-    const numericPlaceId = Number(placeId);
-    if (!Number.isFinite(numericPlaceId)) return;
-    navigate(`/map?placeId=${numericPlaceId}`);
+    navigate(`/map?placeId=${Number(placeId)}`);
   }
 
-  function handlePlaceConfirmed(place: Place) {
-    // TODO(api): 장소 연결은 실제로는 서버에 저장해야 한다. 지금은 화면 상태(manualPlaces)만 갱신해 새로고침/재방문 시 사라진다.
-    setManualPlaces((prev) =>
-      prev.some((existing) => existing.id === place.id) ? prev : [...prev, place],
-    );
-    // 시안: 직접 추가한 장소는 항상 파란 북마크(저장됨) 상태로 시작한다.
-    setBookmarkOverrides((prev) => ({ ...prev, [place.id]: true }));
-    capturePostHogEvent('place_directly_added', { post_id: postId, place_id: place.id });
-    setDirectInputOpen(false);
+  function handlePlaceConfirmed(place: SearchedPlace) {
+    connectPlaceMutation.mutate(place.selectionToken, {
+      onSuccess: (placeId) => {
+        capturePostHogEvent('place_directly_added', { post_id: postId, place_id: placeId });
+        showToast({ variant: 'simple', title: '아카이브에 저장됐어요' });
+        setDirectInputOpen(false);
+      },
+      onError: () => {
+        // 드로어를 유지해 그대로 다시 시도할 수 있게 한다(selectionToken 은 만료형이라
+        // 시간이 지났으면 재검색이 필요할 수 있다).
+        showToast({
+          variant: 'description',
+          title: '장소를 추가하지 못했어요',
+          description: '잠시 후 다시 시도해주세요',
+        });
+      },
+    });
   }
 
-  const allPlaceIds = [
-    ...(relatedPlacesState.status === 'success'
-      ? relatedPlacesState.places.map((place) => place.id)
-      : []),
-    ...manualPlaces.map((place) => place.id),
+  // 직접 연결한 장소는 파싱 응답(place-parsing)에 없을 수 있다(파싱 FAILED 게시물 등) —
+  // 게시물 상세 응답의 장소를 함께 넘겨 어느 쪽에 실려와도 목록에 보이게 한다.
+  const detailPlaces = postDetailState.status === 'success' ? postDetailState.detail.places : [];
+
+  const bookmarkedPlaceIds = [
+    ...(relatedPlacesState.status === 'success' ? relatedPlacesState.bookmarkedPlaceIds : []),
+    ...detailPlaces.filter((place) => place.bookmarked).map((place) => String(place.id)),
   ];
-
-  const bookmarkedPlaceIds = allPlaceIds.filter(
-    (id) =>
-      bookmarkOverrides[id] ??
-      (relatedPlacesState.status === 'success' &&
-        relatedPlacesState.bookmarkedPlaceIds.includes(id)),
-  );
 
   useEffect(() => {
     if (relatedPlacesState.status !== 'error') return;
@@ -234,7 +224,7 @@ export function PostDetailPage() {
 
         <RelatedPlacesSection
           state={relatedPlacesState}
-          manualPlaces={manualPlaces}
+          postPlaces={detailPlaces.map(toPlace)}
           bookmarkedPlaceIds={bookmarkedPlaceIds}
           onBookmarkedChange={toggleBookmark}
           onDirectAddClick={() => setDirectInputOpen(true)}
@@ -263,6 +253,7 @@ export function PostDetailPage() {
         open={directInputOpen}
         onOpenChange={setDirectInputOpen}
         onPlaceConfirmed={handlePlaceConfirmed}
+        confirmPending={connectPlaceMutation.isPending}
       />
     </PinnedHeaderLayout>
   );

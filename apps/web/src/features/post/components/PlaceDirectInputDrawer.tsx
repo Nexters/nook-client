@@ -1,22 +1,37 @@
 import { Dialog } from 'radix-ui';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { Place } from '@/features/place';
+import { PlacePreviewMap } from '@/features/map/components/PlacePreviewMap';
 import type { Post } from '@/features/post';
 import { Icon16Location, Icon18MagnifyingGlass, Icon24Delete } from '@/shared/icons/NookIcons';
+import { type Coordinates, getCurrentPosition } from '@/shared/lib/geolocation';
+import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { cn } from '@/shared/lib/utils';
+import { useToast } from '@/shared/toast';
 import { Button, Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
-import { getMockPlacePosts } from '../mock/placePosts';
-import { searchMockPlaces } from '../mock/placeSearchResults';
+import { usePlaceSearch } from '../api/queries';
+import { buildNaverMapSearchUrl } from '../lib/naverMapLink';
+import type { SearchedPlace } from '../types';
 import { PlaceSearchResultDetail } from './PlaceSearchResultDetail';
 import { PostImageViewer } from './PostImageViewer';
 
 export interface PlaceDirectInputDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** 장소 상세에서 "추가하기"를 눌렀을 때 호출된다. 이 드로어는 그 후 스스로 닫는다. */
-  onPlaceConfirmed: (place: Place) => void;
+  /** 장소 상세에서 "추가하기"를 눌렀을 때 호출된다. 연결(서버 저장)과 닫기는 부모 책임이다. */
+  onPlaceConfirmed: (place: SearchedPlace) => void;
+  /** 부모의 연결 요청이 진행 중인 동안 "추가하기"를 눌리지 않게 한다. */
+  confirmPending?: boolean;
 }
+
+/** 검색어 입력 → 검색 API 호출 사이의 디바운스. */
+const SEARCH_DEBOUNCE_MS = 300;
+
+/**
+ * 검색 단계의 장소는 아직 서버에 연결되지 않아 "이 장소에 연결된 게시물"을 조회할 API 가
+ * 없다(검색 응답엔 placeId 가 없다) — 서버가 내려주게 되면 이 빈 목록만 실 데이터로 바꾼다.
+ */
+const NO_CONNECTED_POSTS: Post[] = [];
 
 /**
  * 검색 목록 모드 전용 스냅(고정 90% 하나뿐) — `snapPoints` 를 이 모드에서도 항상 정의해
@@ -42,15 +57,33 @@ function PlaceDirectInputDrawer({
   open,
   onOpenChange,
   onPlaceConfirmed,
+  confirmPending = false,
 }: PlaceDirectInputDrawerProps) {
+  const { showToast } = useToast();
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
-  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<SearchedPlace | null>(null);
   const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(
     PLACE_LIST_SNAP_POINTS[0],
   );
   const [viewingPost, setViewingPost] = useState<Post | null>(null);
-  const results = searchMockPlaces(query);
+
+  // 검색 기준 좌표 — 드로어가 열릴 때 1회 조회한다. 권한 거부/미지원이면 null 그대로
+  // 좌표 없이 검색해 거리 표기만 빠진다(다이얼로그 없음, geolocation.ts 계약).
+  const [coords, setCoords] = useState<Coordinates | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    getCurrentPosition().then((position) => {
+      if (!cancelled) setCoords(position);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
+  const results = usePlaceSearch(debouncedQuery, coords);
 
   // "추가하기" 확정처럼 부모가 `open` prop 을 직접 false 로 바꿔 닫는 경우, vaul 의
   // onOpenChange 콜백은 호출되지 않는다(그건 드로어 스스로 닫힐 때만 불린다) — 닫히는
@@ -65,6 +98,30 @@ function PlaceDirectInputDrawer({
 
   return (
     <>
+      {/* 장소 상세 모드에서 드로어(시트) 뒤에 깔리는 지도 프리뷰 — 시안의 "지도 위
+          바텀시트" 모양을 재현한다. z-40 으로 드로어(z-50)보다 아래, 게시물 상세보다
+          위에 둔다. 딤 대신 이 지도가 배경이라 상세 모드에선 오버레이를 끈다(아래
+          DrawerContent 의 overlay prop). pointer-events 는 살리지 않는다 — 모달 드로어가
+          떠 있는 동안 바깥 클릭은 닫기(dismiss)로 해석되므로 프리뷰는 조작 불가로 둔다. */}
+      {open && selectedPlace
+        ? createPortal(
+            <div className="fixed inset-x-0 top-0 bottom-0 z-40 mx-auto max-w-[450px] bg-gray-10">
+              {/* 네이버 지도 스크립트 로드까지(useNavermaps suspend) 회색 배경만 보인다. */}
+              <Suspense fallback={null}>
+                <PlacePreviewMap
+                  place={{
+                    name: selectedPlace.name,
+                    lat: selectedPlace.latitude,
+                    lng: selectedPlace.longitude,
+                  }}
+                  sheetSnapPoint={PLACE_DETAIL_SNAP_POINTS[0]}
+                />
+              </Suspense>
+            </div>,
+            document.body,
+          )
+        : null}
+
       {/* 셸 컨테이너가 아니라 기본값(body)으로 포탈한다 — 게시물 상세가 문서 흐름을 따라
           셸이 콘텐츠만큼 길어지므로, 셸 기준으로는 fixed 위치도 snapPoints 비율(vaul 은
           container 박스 높이로 계산한다)도 전부 틀어진다. body 포탈이면 둘 다 뷰포트
@@ -77,6 +134,7 @@ function PlaceDirectInputDrawer({
         setActiveSnapPoint={setActiveSnapPoint}
       >
         <DrawerContent
+          overlay={!selectedPlace}
           className={cn(
             'mx-auto flex max-w-[450px] flex-col',
             // 드로어 엘리먼트 자체는 항상 뷰포트 전체 높이(h-dvh)여야 vaul 의 스냅 계산이
@@ -92,9 +150,12 @@ function PlaceDirectInputDrawer({
           {selectedPlace ? (
             <PlaceSearchResultDetail
               place={selectedPlace}
-              posts={getMockPlacePosts(selectedPlace.id)}
+              posts={NO_CONNECTED_POSTS}
               expanded={activeSnapPoint === PLACE_DETAIL_SNAP_POINTS[1]}
               onSelectPost={setViewingPost}
+              onAddressCopied={() =>
+                showToast({ variant: 'simple', title: '클립보드에 복사되었습니다.' })
+              }
             />
           ) : (
             // h-[90dvh] 는 PLACE_LIST_SNAP_POINTS[0](0.9) 와 맞물려 있다 — flex-1 로 두면
@@ -157,7 +218,10 @@ function PlaceDirectInputDrawer({
                             </span>
                           </div>
                           <p className="truncate text-b3 font-medium text-gray-80">
-                            {place.address} · {place.distance}
+                            {/* 좌표 없이 검색하면 거리가 없다 — 구분점째 생략한다. */}
+                            {place.distance
+                              ? `${place.address} · ${place.distance}`
+                              : place.address}
                           </p>
                         </div>
                       </button>
@@ -189,18 +253,31 @@ function PlaceDirectInputDrawer({
           // 도달할 수 없다 — "일부 제한"이 아니라 완전히 막힌 상태다(후속 과제로 남겨둔다).
           createPortal(
             <div
-              className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] mx-auto flex max-w-[450px] items-center gap-2.5 border-t border-gray-10 bg-gray-0 px-4 pt-2"
+              // flex-1 로는 정확히 반반이 안 된다 — flex-basis 0 이어도 각 아이템의
+              // 패딩이 바닥 크기로 남아, 패딩이 있는 쪽(공용 Button 의 px-4)이 그만큼
+              // 더 넓어진다. grid-cols-2(= minmax(0,1fr) 2칸)는 패딩과 무관하게 반반이다.
+              className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] mx-auto grid max-w-[450px] grid-cols-2 items-center gap-3 border-t border-gray-10 bg-gray-0 px-4 pt-2"
               style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
             >
-              <p className="pointer-events-auto flex-1 text-b2 font-semibold text-gray-80">
-                이 장소가 맞나요?
-              </p>
-              <Button
-                size="md"
-                onClick={() => onPlaceConfirmed(selectedPlace)}
-                className="pointer-events-auto flex-1"
+              {/* 시안 2Button_52 의 좌측(Button_Secondary_52)은 gray-20 배경/gray-90 라벨 —
+                  공용 Button 은 전 variant 라벨이 흰색 고정이라 여기서만 지역 스타일로 그린다.
+                  https 링크라 웹은 새 탭, 네이티브 셸은 내비게이션 정책대로 시스템 브라우저로
+                  열린다(nmap:// 앱 스킴은 셸이 차단 — naverMapLink.ts 주석 참고). */}
+              <a
+                href={buildNaverMapSearchUrl(selectedPlace)}
+                target="_blank"
+                rel="noreferrer"
+                className="pointer-events-auto flex h-13 items-center justify-center rounded-lg bg-gray-20 text-b1 font-semibold text-gray-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-2"
               >
-                추가하기
+                지도에서 보기
+              </a>
+              <Button
+                size="lg"
+                onClick={() => onPlaceConfirmed(selectedPlace)}
+                disabled={confirmPending}
+                className="pointer-events-auto"
+              >
+                장소 추가
               </Button>
             </div>,
             document.body,

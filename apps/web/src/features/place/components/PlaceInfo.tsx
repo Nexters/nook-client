@@ -24,6 +24,8 @@ export interface PlaceInfoProps {
   distance?: string;
   /** 넘기면 주소 우측에 복사 버튼이 생긴다. 복사 성공 후 호출된다(토스트는 사용처가 띄운다). */
   onAddressCopied?: () => void;
+  /** 넘기면 주소 줄 끝에 파란 "지도" 링크가 생겨 새 탭으로 연다(시안 `장소 info`). */
+  mapHref?: string;
   /** 영업 상태 (예: "영업중") */
   businessStatus?: string;
   /** 영업 시간 (예: "11:00 - 19:30") */
@@ -47,6 +49,7 @@ function PlaceInfo({
   address,
   distance,
   onAddressCopied,
+  mapHref,
   businessStatus,
   businessHours,
   memo,
@@ -79,11 +82,23 @@ function PlaceInfo({
               <Icon16Copy />
             </button>
           ) : null}
-          {/* 펼치면 지도 앱 링크가 나오는 자리. 시안이 확정 전이라 자리만 잡아두고
-              비활성으로 둔다(보조기기에도 노출하지 않는다). */}
-          <span aria-hidden="true" className="shrink-0 opacity-40">
-            <Icon16ArrowDown />
-          </span>
+          {mapHref ? (
+            // 시안 `장소 info` 의 파란 "지도" — 외부 지도(네이버) 검색 링크로 새 탭에 연다.
+            <a
+              href={mapHref}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 text-b2 font-medium text-nook-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+            >
+              지도
+            </a>
+          ) : (
+            // mapHref 를 안 넘긴 화면(지도 홈 장소 상세)의 자리 표시 — 링크 확정 전 상태
+            // 그대로 비활성으로 둔다(보조기기에도 노출하지 않는다).
+            <span aria-hidden="true" className="shrink-0 opacity-40">
+              <Icon16ArrowDown />
+            </span>
+          )}
         </div>
       ) : null}
 

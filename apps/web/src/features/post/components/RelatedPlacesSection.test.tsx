@@ -22,7 +22,7 @@ describe('RelatedPlacesSection', () => {
     renderSection(
       <RelatedPlacesSection
         state={{ status: 'success', places: [PLACE], bookmarkedPlaceIds: [] }}
-        manualPlaces={[]}
+        postPlaces={[]}
         bookmarkedPlaceIds={[]}
         onBookmarkedChange={() => {}}
         onDirectAddClick={() => {}}
@@ -40,7 +40,7 @@ describe('RelatedPlacesSection', () => {
     renderSection(
       <RelatedPlacesSection
         state={{ status: 'success', places: [PLACE], bookmarkedPlaceIds: [] }}
-        manualPlaces={[]}
+        postPlaces={[]}
         bookmarkedPlaceIds={[]}
         onBookmarkedChange={() => {}}
         onDirectAddClick={() => {}}
