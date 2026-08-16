@@ -29,4 +29,10 @@ export const env = {
   posthogHost: import.meta.env.VITE_PUBLIC_POSTHOG_HOST ?? '',
   isDev: import.meta.env.DEV,
   enableDevRoutes: import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_ROUTES === 'true',
+  /**
+   * 지도 바텀시트의 "저장한 공간 검색" — 서버 검색 API 연동 전이라 배포에선 숨긴다.
+   * 진입점(검색 아이콘)만 이 플래그로 가리면 검색 UI 전체가 함께 숨는다.
+   * 연동이 끝나면 이 값을 `true` 로 바꾸는 것이 켜는 스위치다.
+   */
+  enablePlaceSearch: import.meta.env.DEV,
 } as const;

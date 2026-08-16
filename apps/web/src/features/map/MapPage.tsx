@@ -5,7 +5,12 @@ import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
-import { DETAIL_PAGE_SNAP_POINT, PEEK_SNAP_POINT } from '@/features/map/constants';
+import {
+  DETAIL_PAGE_SNAP_POINT,
+  FULL_SNAP_POINT,
+  MID_SNAP_POINT,
+  PEEK_SNAP_POINT,
+} from '@/features/map/constants';
 import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
 import type { MapBounds } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
@@ -48,6 +53,7 @@ export function MapPage() {
   // null로 남아 있고, 그동안은 아래 `effectiveBounds`가 현재 위치 기준 근사값으로 대신한다
   // — 그래서 실제 idle을 영영 못 받아도 핀 조회 자체가 멈추지 않는다.
   const [bounds, setBounds] = useState<MapBounds | null>(null);
+  const [isSearchMode, setIsSearchMode] = useState(false);
 
   const fallbackCenter =
     location.status === 'resolved' ? (location.coords ?? FALLBACK_CENTER) : FALLBACK_CENTER;
@@ -83,9 +89,10 @@ export function MapPage() {
       : bboxPins;
 
   useEffect(() => {
-    setBottomMenuHidden(selectedPlaceId !== null);
+    // 검색 모드도 상세처럼 시트가 화면을 채우는 상태라 하단 탭바를 함께 숨긴다(Figma `검색 추가`).
+    setBottomMenuHidden(selectedPlaceId !== null || isSearchMode);
     return () => setBottomMenuHidden(false);
-  }, [selectedPlaceId, setBottomMenuHidden]);
+  }, [selectedPlaceId, isSearchMode, setBottomMenuHidden]);
 
   // 딥링크로 들어온 placeId 는 최초 상태에 한 번만 반영하고 주소는 정리한다 — 남겨두면
   // 이 장소를 선택 해제한 뒤 새로고침/뒤로가기 시 같은 장소가 다시 강제 선택된다.
@@ -105,6 +112,8 @@ export function MapPage() {
   function handlePlaceClick(id: number) {
     setSelectedPlaceId(id);
     setSnap(DETAIL_PAGE_SNAP_POINT); // detailPage 스냅으로 열어 상세를 보여준다
+    // 검색 결과에서 골랐어도 상세가 콘텐츠를 통째로 대체하므로 검색은 그대로 닫는다.
+    setIsSearchMode(false);
   }
 
   function handleSnapChange(next: number | string | null) {
@@ -118,6 +127,22 @@ export function MapPage() {
   /** 상세 헤더의 닫기/뒤로 — 시트를 내리는 것과 같은 상태로 되돌린다. */
   function handleCloseDetail() {
     handleSnapChange(PEEK_SNAP_POINT);
+  }
+
+  function handleEnterSearch() {
+    setIsSearchMode(true);
+    // 진입 시 full 로 강제하지 않는다 — 이미 full 이면 그대로 두고, 그 아래(peek 등)에서
+    // 들어오면 탐색 스냅의 중간 단계(mid)까지만 올린다. 모드 전환과 스냅 변경은 같은
+    // 핸들러에서 함께 해야 스냅이 튀지 않는다(§PlaceDirectInputDrawer 의 목록→상세 전환).
+    setSnap(snap === FULL_SNAP_POINT ? FULL_SNAP_POINT : MID_SNAP_POINT);
+  }
+
+  /**
+   * 검색 패널의 슬라이드 아웃이 끝난 뒤 호출된다(PlaceSheet 의 useSlideScreen 계약).
+   * 스냅은 건드리지 않는다 — 검색을 닫아도 보던 높이(mid/full)를 그대로 유지한다.
+   */
+  function handleExitSearch() {
+    setIsSearchMode(false);
   }
 
   return (
@@ -148,9 +173,12 @@ export function MapPage() {
           isPlaceDetailError={selectedPlaceId !== null && placeDetailQuery.isError}
           snap={snap}
           userCoords={location.coords}
+          isSearchMode={isSearchMode}
           onSnapChange={handleSnapChange}
           onSelectPlace={handlePlaceClick}
           onClose={handleCloseDetail}
+          onEnterSearch={handleEnterSearch}
+          onExitSearch={handleExitSearch}
         />
       </div>
     </MainTabPageLayout>

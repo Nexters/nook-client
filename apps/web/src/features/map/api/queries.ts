@@ -1,4 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { searchSavedPlacesMock } from '../mock/savedPlaceSearch';
 import type { MapBounds } from '../types';
 import {
   fetchMapPins,
@@ -13,6 +14,7 @@ export const mapQueryKeys = {
   pins: (bounds: MapBounds) => ['map', 'pins', bounds] as const,
   recent: ['map', 'recent'] as const,
   detail: (placeId: number) => ['map', 'detail', placeId] as const,
+  search: (query: string, archiveId: number | null) => ['map', 'search', query, archiveId] as const,
 };
 
 /** 지도 핀(bbox 안의 북마크 장소). 실제 idle 이벤트를 못 받은 동안엔 호출부가 근사 bbox를 대신 넘긴다. */
@@ -32,6 +34,19 @@ export function useRecentPlaces() {
   return useQuery({
     queryKey: mapQueryKeys.recent,
     queryFn: fetchRecentPlaces,
+  });
+}
+
+/**
+ * 저장한 공간 검색 — 검색 모드의 결과 목록. 서버 검색 API 가 아직 없어 mock 을
+ * 물려두었다. 연동 시 queryFn 만 `../api` 의 실제 fetch 로 바꾸면 된다(키·시그니처 유지).
+ */
+export function useSearchSavedPlaces(query: string, archiveId: number | null) {
+  return useQuery({
+    queryKey: mapQueryKeys.search(query, archiveId),
+    queryFn: () => searchSavedPlacesMock(query, archiveId),
+    // 타이핑마다 쿼리 키가 통째로 바뀐다 — 직전 결과를 유지해 목록 깜빡임을 없앤다(useMapPins 와 동일).
+    placeholderData: keepPreviousData,
   });
 }
 
