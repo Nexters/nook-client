@@ -19,7 +19,11 @@ import { postQueryKeys } from '@/features/post/api/queries';
 import { type Coordinates, formatDistance } from '@/shared/lib/geolocation';
 import { useToast } from '@/shared/toast';
 import { Badge } from '@/shared/ui';
-import { useUpdatePlaceBookmark, useUpdatePlaceMemo } from '../api/queries';
+import {
+  useDisconnectPlaceFromPosts,
+  useUpdatePlaceBookmark,
+  useUpdatePlaceMemo,
+} from '../api/queries';
 
 /** 대표 이미지가 없는 게시물 카드에 쓰는 회색 플레이스홀더(140x175, gray-20). */
 const SAVED_POST_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(
@@ -107,9 +111,27 @@ function RelatedPlacesSection({
   // 위 섹션과 같은 쿼리 키라 요청은 한 번만 나간다(캐시 공유).
   const postDetailQueries = usePostDetails(place.posts);
   const updateBookmark = useUpdatePlaceBookmark();
-  const deletion = usePlaceDeletion();
+  const disconnectPlace = useDisconnectPlaceFromPosts();
 
-  // 여러 게시물이 같은 장소를 가리킬 수 있어 id 로 중복을 제거한다.
+  // 여러 게시물이 같은 장소를 가리킬 수 있어 id 로 중복을 제거한다. 삭제는 게시물↔장소
+  // 연결을 끊는 것이라, 그 장소를 담고 있던 게시물이 어느 것들인지도 함께 들고 있어야 한다.
+  const postIdsByPlaceId = new Map<number, number[]>();
+  postDetailQueries.forEach((query, index) => {
+    const postId = place.posts[index]?.id;
+    if (postId === undefined) return;
+    for (const related of query.data?.places ?? []) {
+      postIdsByPlaceId.set(related.id, [...(postIdsByPlaceId.get(related.id) ?? []), postId]);
+    }
+  });
+
+  const deletion = usePlaceDeletion({
+    onDelete: (placeId) =>
+      disconnectPlace.mutateAsync({
+        placeId: Number(placeId),
+        postIds: postIdsByPlaceId.get(Number(placeId)) ?? [],
+      }),
+  });
+
   const relatedPlaces = [
     ...new Map(
       postDetailQueries

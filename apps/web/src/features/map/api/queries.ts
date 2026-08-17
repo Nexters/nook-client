@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { searchSavedPlacesMock } from '../mock/savedPlaceSearch';
 import type { MapBounds } from '../types';
 import {
+  disconnectPostPlace,
   fetchMapPins,
   fetchPlaceDetail,
   fetchRecentPlaces,
@@ -90,6 +91,31 @@ export function useUpdatePlaceMemo(placeId: number) {
     mutationFn: (memo: string) => updatePlaceMemo(placeId, memo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: mapQueryKeys.detail(placeId) });
+    },
+  });
+}
+
+/**
+ * 장소 삭제 = 그 장소를 가리키던 저장 게시물들과의 연결 끊기.
+ * 지도 장소 상세의 "게시물에 포함된 장소"는 여러 게시물에서 모아 보여주므로, 화면이
+ * 넘겨준 게시물마다 한 번씩 끊는다. 하나라도 실패하면 실패로 본다(호출부가 목록을 되돌린다).
+ */
+export function useDisconnectPlaceFromPosts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ placeId, postIds }: { placeId: number; postIds: number[] }) =>
+      Promise.all(postIds.map((postId) => disconnectPostPlace(postId, placeId))),
+    onSuccess: (_data, { placeId, postIds }) => {
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll });
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.recent });
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.detail(placeId) });
+      for (const postId of postIds) {
+        // 게시물 상세는 post feature 소유지만 키 접두사가 같아 여기서 무효화한다
+        // (map → post 방향 import 가 이미 있어 순환을 피해 접두사를 직접 쓴다).
+        queryClient.invalidateQueries({ queryKey: ['posts', postId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['archives'] });
     },
   });
 }

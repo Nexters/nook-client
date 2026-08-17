@@ -2,9 +2,11 @@ import type { Place } from '@/features/place';
 import { PlaceDeletePopup, PlaceRow } from '@/features/place';
 import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
 import { Icon16ExclamationCircle } from '@/shared/icons/NookIcons';
-import type { RelatedPlacesState } from '../api/queries';
+import { type RelatedPlacesState, useDisconnectPostPlace } from '../api/queries';
 
 export interface RelatedPlacesSectionProps {
+  /** 이 섹션이 속한 게시물 — 장소 삭제(게시물↔장소 연결 끊기)에 필요하다. */
+  postId: number | undefined;
   state: RelatedPlacesState;
   /**
    * 게시물 상세 응답(`PostDetail.places`)의 장소 — 직접 연결한 장소가 파싱 응답에는
@@ -28,6 +30,7 @@ export interface RelatedPlacesSectionProps {
  * 실패했다는 사실 자체를 알리는 스낵바는 상위(PostDetailPage)책임이다 — 이 섹션은 배너만 그린다.
  */
 function RelatedPlacesSection({
+  postId,
   state,
   postPlaces,
   bookmarkedPlaceIds,
@@ -35,7 +38,10 @@ function RelatedPlacesSection({
   onDirectAddClick,
   onPlaceClick,
 }: RelatedPlacesSectionProps) {
-  const deletion = usePlaceDeletion();
+  const disconnectPlace = useDisconnectPostPlace(postId);
+  const deletion = usePlaceDeletion({
+    onDelete: (placeId) => disconnectPlace.mutateAsync(Number(placeId)),
+  });
   const parsedPlaces = state.status === 'success' ? state.places : [];
   const places = [
     ...parsedPlaces,

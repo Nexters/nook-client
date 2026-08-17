@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   updatePlaceBookmark: vi.fn(),
   searchConnectablePlaces: vi.fn(),
   connectPostPlace: vi.fn(),
+  disconnectPostPlace: vi.fn(),
 }));
 
 vi.mock('@/features/post/api', () => mocks);
@@ -210,6 +211,7 @@ describe('게시물 상세', () => {
     mocks.updatePlaceBookmark.mockResolvedValue(undefined);
     mocks.searchConnectablePlaces.mockResolvedValue(SEARCHED_PLACES);
     mocks.connectPostPlace.mockResolvedValue(501);
+    mocks.disconnectPostPlace.mockResolvedValue(undefined);
   });
 
   it('헤더를 화면에 고정하고 콘텐츠는 그 아래에서 시작한다', async () => {
@@ -430,7 +432,7 @@ describe('게시물 상세', () => {
     }
   });
 
-  it('장소 행을 스와이프해 삭제하면 확인 모달을 거쳐 목록에서 사라진다', async () => {
+  it('장소 행을 스와이프해 삭제하면 확인 모달을 거쳐 목록에서 사라지고, 실행취소 창이 닫힌 뒤 연결을 끊는다', async () => {
     await renderPost(1);
 
     fireEvent.click(screen.getByRole('button', { name: '아이소 삭제' }));
@@ -440,6 +442,27 @@ describe('게시물 상세', () => {
 
     expect(screen.queryByText('아이소')).not.toBeInTheDocument();
     expect(screen.getByText('장소가 삭제 됐어요.')).toBeInTheDocument();
+    // 실행취소를 받아주는 동안에는 아직 서버로 보내지 않는다.
+    expect(mocks.disconnectPostPlace).not.toHaveBeenCalled();
+
+    // 실행취소 창(토스트 3초 + 퇴장 0.2초)이 닫혀야 실제 호출이 나간다.
+    await waitFor(() => expect(mocks.disconnectPostPlace).toHaveBeenCalledWith(1, 101), {
+      timeout: 5000,
+    });
+  });
+
+  it('실행취소를 누르면 장소가 돌아오고 연결은 끊지 않는다', async () => {
+    await renderPost(1);
+
+    fireEvent.click(screen.getByRole('button', { name: '아이소 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
+    fireEvent.click(screen.getByRole('button', { name: '실행취소' }));
+
+    expect(screen.getByText('아이소')).toBeInTheDocument();
+
+    // 유예 시간이 지나도 호출은 없어야 한다.
+    await new Promise((resolve) => setTimeout(resolve, 3400));
+    expect(mocks.disconnectPostPlace).not.toHaveBeenCalled();
   });
 
   it('매칭된 장소가 없으면 섹션은 보이되 목록 없이 직접 추가 배너만 남는다', async () => {

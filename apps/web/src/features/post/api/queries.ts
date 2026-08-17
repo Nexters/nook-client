@@ -1,10 +1,12 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { archiveQueryKeys } from '@/features/archive/api/queries';
 import { mapQueryKeys } from '@/features/map/api/queries';
 import type { Place } from '@/features/place';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import type { ParsedPlace, PostDetail, SearchedPlace } from '../types';
 import {
   connectPostPlace,
+  disconnectPostPlace,
   fetchPlaceParsing,
   fetchPostDetail,
   searchConnectablePlaces,
@@ -204,6 +206,31 @@ export function useConnectPlace(postId: number | undefined) {
       }
       queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll });
       queryClient.invalidateQueries({ queryKey: mapQueryKeys.detail(placeId) });
+    },
+  });
+}
+
+/**
+ * 장소 삭제 = 이 게시물과 장소의 연결 끊기.
+ * 끊긴 장소는 게시물 상세·파싱 목록에서 빠지고, 다른 게시물에 남아 있지 않으면 지도 핀과
+ * 최근 저장 공간·아카이브 목록에서도 사라진다 — 어디까지 사라지는지는 서버가 정하므로
+ * 관련 캐시를 모두 무효화해 다시 읽는다.
+ */
+export function useDisconnectPostPlace(postId: number | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (placeId: number) => disconnectPostPlace(postId as number, placeId),
+    onSuccess: (_data, placeId) => {
+      if (postId !== undefined) {
+        queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(postId) });
+        queryClient.invalidateQueries({ queryKey: postQueryKeys.placeParsing(postId) });
+      }
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll });
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.recent });
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.detail(placeId) });
+      // ['archives'] 프리픽스라 아카이브 목록·게시물·장소 캐시가 함께 무효화된다.
+      queryClient.invalidateQueries({ queryKey: archiveQueryKeys.list });
     },
   });
 }
