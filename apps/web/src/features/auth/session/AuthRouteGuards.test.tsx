@@ -114,3 +114,42 @@ describe('인증 라우트 가드', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/login');
   });
 });
+
+describe('RedirectAuthenticated returnTo', () => {
+  function renderGuardWithReturnTo(initialPath: string) {
+    return render(
+      <MemoryRouter initialEntries={[initialPath]}>
+        <Routes>
+          <Route
+            path="/login"
+            element={<RedirectAuthenticated>로그인 화면</RedirectAuthenticated>}
+          />
+          <Route path="/map" element={<div>지도</div>} />
+          <Route path="/shared/:token" element={<div>공유 아카이브</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+  }
+
+  afterEach(() => {
+    session.status = 'anonymous';
+  });
+
+  it('returnTo 내부 경로가 있으면 그리로 복귀한다', () => {
+    session.status = 'authenticated';
+    renderGuardWithReturnTo(`/login?returnTo=${encodeURIComponent('/shared/tok-123')}`);
+    expect(screen.getByText('공유 아카이브')).toBeInTheDocument();
+  });
+
+  it('returnTo 가 없으면 기존대로 지도로 보낸다', () => {
+    session.status = 'authenticated';
+    renderGuardWithReturnTo('/login');
+    expect(screen.getByText('지도')).toBeInTheDocument();
+  });
+
+  it('외부 URL 성 returnTo(// 시작)는 무시하고 지도로 보낸다', () => {
+    session.status = 'authenticated';
+    renderGuardWithReturnTo(`/login?returnTo=${encodeURIComponent('//evil.example')}`);
+    expect(screen.getByText('지도')).toBeInTheDocument();
+  });
+});
