@@ -14,7 +14,8 @@ export interface PostImageViewerProps {
 
 function PostImageViewer({ images, onClose }: PostImageViewerProps) {
   return (
-    <div className="fixed inset-0 z-50 bg-gray-0">
+    // z-70: 전체화면 뷰어라 탭바(60)까지 덮는다.
+    <div className="fixed inset-0 z-[70] bg-gray-0">
       {/* body 포탈로 뜨면 fixed 기준이 뷰포트 전체 폭이라, 데스크톱에서도 셸 폭
           (max-w-[450px], providers.tsx)을 넘지 않게 안쪽에서 다시 묶는다. */}
       <div

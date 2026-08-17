@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { useAppShellContainer } from '@/app/providers';
-import emptyIllustration from '@/assets/images/200_empty.svg';
+import { useSlideScreen } from '@/app/slide-screen';
+import { EmptySavedPlaces } from '@/features/map/components/EmptySavedPlaces';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
+import { PlaceSearchPanel } from '@/features/map/components/PlaceSearchPanel';
 import { getPlaceSheetLayoutClassNames } from '@/features/map/components/place-sheet-layout';
 import {
   BROWSE_SNAP_POINTS,
@@ -13,7 +15,8 @@ import {
 } from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
-import { Icon16ArrowDown, Icon24Back } from '@/shared/icons/NookIcons';
+import { env } from '@/shared/config/env';
+import { Icon16ArrowDown, Icon18MagnifyingGlass, Icon24Back } from '@/shared/icons/NookIcons';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import { cn } from '@/shared/lib/utils';
 import { Drawer, DrawerContent, FloatingButton, Header } from '@/shared/ui';
@@ -21,25 +24,20 @@ import { Drawer, DrawerContent, FloatingButton, Header } from '@/shared/ui';
 /** 이 값을 넘겨 스크롤된 것으로 판단한다(0 근처의 미세한 바운스/오차 무시). */
 const SCROLL_HIDE_HANDLE_THRESHOLD = 4;
 
-function EmptySavedPlaces() {
-  return (
-    <div className="flex flex-1 flex-col items-center mt-[60px] gap-5">
-      <img src={emptyIllustration} alt="" className="size-[200px]" />
-      <p className="text-b1 font-medium text-gray-70">아직 저장한 공간이 없어요</p>
-    </div>
-  );
-}
-
 export function PlaceSheet({
   recentPlaces,
   selectedPlace,
   isPlaceDetailPending,
   isPlaceDetailError,
   snap,
+  instantOpen = false,
   userCoords,
+  isSearchMode,
   onSnapChange,
   onSelectPlace,
   onClose,
+  onEnterSearch,
+  onExitSearch,
 }: {
   recentPlaces: RecentPlace[];
   selectedPlace: PlaceDetailModel | null;
@@ -47,11 +45,17 @@ export function PlaceSheet({
   isPlaceDetailPending: boolean;
   isPlaceDetailError: boolean;
   snap: number | string | null;
+  /** true 면 마운트 시 아래에서 올라오는 오프닝 모션 없이 현재 스냅 높이에 즉시 둔다(뒤로가기 복원용). */
+  instantOpen?: boolean;
   /** 현재 위치 — 장소까지의 거리 표기에 쓴다. 없으면 거리를 보여주지 않는다. */
   userCoords?: Coordinates | null;
+  /** 저장한 공간 검색 모드 — 탐색 콘텐츠 위로 검색 패널이 슬라이드되어 덮는다. */
+  isSearchMode: boolean;
   onSnapChange: (snap: number | string | null) => void;
   onSelectPlace: (id: number) => void;
   onClose: () => void;
+  onEnterSearch: () => void;
+  onExitSearch: () => void;
 }) {
   const shellContainer = useAppShellContainer();
   // BottomMenu 를 숨기는 조건은 MapPage(선택된 장소 유무)가 정하고, 여기선 그 결과값만
@@ -69,6 +73,26 @@ export function PlaceSheet({
   // 맨 위로 되돌아오면 다시 핸들로 바뀐다.
   const showStickyHeader = isFull && isScrolled && selectedPlace !== null;
   const layoutClassNames = getPlaceSheetLayoutClassNames(bottomMenuHidden, snap, showStickyHeader);
+  // 검색 패널의 오른쪽→왼쪽 슬라이드 — 전체화면 전환(slide-screen)과 같은 전환/뒤로가기
+  // 계약을 그대로 쓴다(Android 하드웨어 백도 검색 닫기로 수렴). 패널이 탐색 콘텐츠 위를
+  // 덮는 오버레이라, 닫힘은 슬라이드가 끝난 뒤(onExitSearch)에 실제로 일어난다.
+  const { slidIn: searchSlidIn, slideOut: slideOutSearch } = useSlideScreen({
+    open: isSearchMode,
+    close: onExitSearch,
+  });
+  // 스크롤 영역과 검색 오버레이가 같은 높이를 공유해야 해서, 높이만 래퍼로 올린다.
+  const { height: contentHeight, ...scrollerStyle } = layoutClassNames.scroller.style ?? {};
+
+  // instantOpen: 마운트 직후 잠깐 transform transition 을 꺼서 vaul 의 오프닝 모션(화면
+  // 아래 100% → 스냅 위치로 transition)을 생략한다. vaul 이 스냅 배치를 inline style 로
+  // 덮어쓰므로 !important(transition-none!)가 필요하고, 첫 배치가 끝날 만큼(vaul 의
+  // transition 시간 500ms)만 끈 뒤 되돌린다 — 이후 드래그/스냅 애니메이션은 정상이다.
+  const [suppressTransition, setSuppressTransition] = useState(instantOpen);
+  useEffect(() => {
+    if (!suppressTransition) return;
+    const timer = setTimeout(() => setSuppressTransition(false), 500);
+    return () => clearTimeout(timer);
+  }, [suppressTransition]);
 
   // 스크롤이 "불가 → 가능"으로 바뀌는 순간과 보는 장소가 바뀔 때만 맨 위로 되돌린다.
   // isFull 이 아니라 canScroll 을 트리거로 쓰는 이유: 탐색 모드 mid ↔ full 은 둘 다
@@ -93,7 +117,11 @@ export function PlaceSheet({
         overlay={false}
         showHandle={!isFull || !isScrolled}
         style={layoutClassNames.drawer.style}
-        className={cn('overflow-hidden', layoutClassNames.drawer.className)}
+        className={cn(
+          'overflow-hidden',
+          suppressTransition && 'transition-none!',
+          layoutClassNames.drawer.className,
+        )}
       >
         {showStickyHeader && selectedPlace ? (
           <Header
@@ -117,57 +145,89 @@ export function PlaceSheet({
             }
           />
         ) : null}
-        <div
-          ref={scrollRef}
-          onScroll={(e) => {
-            if (!isFull) return;
-            setIsScrolled(e.currentTarget.scrollTop > SCROLL_HIDE_HANDLE_THRESHOLD);
-          }}
-          style={layoutClassNames.scroller.style}
-          className={cn(
-            'flex flex-col gap-3 px-4',
-            canScroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
-            layoutClassNames.scroller.className,
-          )}
-        >
-          {hasSelection ? (
-            isPlaceDetailError ? (
-              <p className="pt-10 text-center text-b2 text-gray-60">장소를 불러오지 못했어요</p>
-            ) : selectedPlace ? (
-              <PlaceDetail
-                key={selectedPlace.id}
-                place={selectedPlace}
-                expanded={isFull}
-                userCoords={userCoords}
-                onClose={onClose}
+        <div className="relative" style={{ height: contentHeight }}>
+          <div
+            ref={scrollRef}
+            onScroll={(e) => {
+              if (!isFull) return;
+              setIsScrolled(e.currentTarget.scrollTop > SCROLL_HIDE_HANDLE_THRESHOLD);
+            }}
+            style={scrollerStyle}
+            className={cn(
+              'flex h-full flex-col gap-3 px-4',
+              canScroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
+              layoutClassNames.scroller.className,
+            )}
+          >
+            {hasSelection ? (
+              isPlaceDetailError ? (
+                <p className="pt-10 text-center text-b2 text-gray-60">장소를 불러오지 못했어요</p>
+              ) : selectedPlace ? (
+                <PlaceDetail
+                  key={selectedPlace.id}
+                  place={selectedPlace}
+                  expanded={isFull}
+                  userCoords={userCoords}
+                  onClose={onClose}
+                  onSelectPlace={onSelectPlace}
+                />
+              ) : // isPlaceDetailPending — 아직 상세 응답 전이라 아무것도 그리지 않는다
+              // (ArchivePage 와 같은 정책: 로딩 문구가 잠깐 스쳐 지나가지 않게 한다).
+              null
+            ) : (
+              <>
+                <div className="flex shrink-0 items-center justify-between">
+                  <p className="text-b1 font-medium text-gray-90">최근 저장한 공간</p>
+                  {/* 검색 API 미연동 — 진입점을 숨기면 검색 UI 전체가 숨는다(env 주석 참고). */}
+                  {env.enablePlaceSearch ? (
+                    <button
+                      type="button"
+                      aria-label="저장한 공간 검색"
+                      onClick={onEnterSearch}
+                      className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                    >
+                      <Icon18MagnifyingGlass size={20} />
+                    </button>
+                  ) : null}
+                </div>
+                {recentPlaces.length === 0 ? (
+                  <EmptySavedPlaces />
+                ) : (
+                  <div className="grid grid-cols-2 justify-items-center gap-2">
+                    {recentPlaces.map((place) => (
+                      <PlaceCard
+                        key={place.id}
+                        place={{
+                          id: String(place.id),
+                          name: place.name,
+                          category: place.category ?? '',
+                          thumbnail: place.thumbnail,
+                        }}
+                        onClick={() => onSelectPlace(place.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* 검색 패널 — 탐색 콘텐츠 위를 오른쪽에서 슬라이드해 덮는다(Figma `검색 추가`). */}
+          {isSearchMode ? (
+            <div
+              className={cn(
+                'absolute inset-0 bg-gray-0',
+                'transition-transform duration-300 ease-out motion-reduce:transition-none',
+                searchSlidIn ? 'translate-x-0' : 'translate-x-full',
+              )}
+            >
+              <PlaceSearchPanel
+                canScroll={canScroll}
+                onExit={slideOutSearch}
                 onSelectPlace={onSelectPlace}
               />
-            ) : // isPlaceDetailPending — 아직 상세 응답 전이라 아무것도 그리지 않는다
-            // (ArchivePage 와 같은 정책: 로딩 문구가 잠깐 스쳐 지나가지 않게 한다).
-            null
-          ) : (
-            <>
-              <p className="text-b1 font-medium text-gray-90">최근 저장한 공간</p>
-              {recentPlaces.length === 0 ? (
-                <EmptySavedPlaces />
-              ) : (
-                <div className="grid grid-cols-2 justify-items-center gap-2">
-                  {recentPlaces.map((place) => (
-                    <PlaceCard
-                      key={place.id}
-                      place={{
-                        id: String(place.id),
-                        name: place.name,
-                        category: place.category ?? '',
-                        thumbnail: place.thumbnail,
-                      }}
-                      onClick={() => onSelectPlace(place.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+            </div>
+          ) : null}
         </div>
 
         {/* 스크롤을 내린 동안만 뜨는 "위로가기"(Figma `Button/48_up`). */}

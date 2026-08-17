@@ -4,16 +4,26 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { GroupOwnerResponse } from './groupOwnerResponse.generated';
+import type { GroupResponseAccessType } from './groupResponseAccessType.generated';
 
 export interface GroupResponse {
+  /** 그룹 접근 유형 */
+  accessType: GroupResponseAccessType;
   /** 그룹 색상 코드 */
   color: string;
   /** 그룹 식별자 */
   id: number;
   /** 그룹명 */
   name: string;
+  owner?: GroupOwnerResponse | null;
   /** 그룹에 포함된 저장 게시물 수 */
   postCount: number;
+  /**
+   * 공유 그룹 접근 토큰. 내 그룹이면 null
+   * @nullable
+   */
+  shareToken?: string | null;
   /** 이미지가 있는 최신 저장 게시물의 대표 이미지 URL 목록. 최신순으로 최대 3개입니다. */
   thumbnailUrls: string[];
 }

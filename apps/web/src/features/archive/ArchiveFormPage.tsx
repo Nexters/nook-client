@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { cn } from '@/shared/lib/utils';
+import { useToast } from '@/shared/toast';
 import {
   ARCHIVE_COLORS,
   type ArchiveColor,
@@ -33,6 +34,7 @@ export interface ArchiveFormPageProps {
 export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
   const { archiveId } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   useHideBottomMenu();
 
   const editing = mode === 'edit';
@@ -109,6 +111,7 @@ export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
       onSuccess: () => {
         capturePostHogEvent('archive_deleted', { archive_id: archive.id });
         navigate('/archive', { replace: true });
+        showToast({ variant: 'simple', title: `"${archive.name}" 아카이브가 삭제 됐어요.` });
       },
     });
   };
@@ -117,7 +120,7 @@ export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
     <main
       // 슬라이드 동안 문서가 아래로 늘어나지 않도록 뷰포트에 고정한다(내용이 넘치면 안에서 스크롤).
       className={cn(
-        'fixed inset-0 flex flex-col overflow-y-auto bg-gray-0',
+        'fixed inset-0 flex flex-col overflow-hidden bg-gray-0',
         'transition-transform duration-300 ease-out motion-reduce:transition-none',
         slidIn ? 'translate-y-0' : 'translate-y-full',
       )}
@@ -125,57 +128,60 @@ export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
     >
       <Header left={<BackButton />} title={editing ? '아카이브 편집' : '새 아카이브 생성'} />
 
-      {/* 시안 수치: 좌우 16 / 상하 12 여백, 라벨-입력 사이 8 */}
-      <div className="flex flex-col gap-2 px-4 py-3">
-        <label htmlFor="archive-name" className="text-b2 font-medium text-gray-70">
-          아카이브 이름
-        </label>
-        <Input
-          id="archive-name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          onClear={() => setName('')}
-          maxLength={NAME_MAX_LENGTH}
-          placeholder="새 아카이브명을 입력해주세요"
-        />
-      </div>
-
-      {/* 시안 수치: 팔레트 줄은 상하 20 여백에 가운데 정렬, 스와치 간격 20 */}
-      <fieldset className="flex items-center justify-center gap-5 px-4 py-5">
-        <legend className="sr-only">아카이브 색상</legend>
-        {ARCHIVE_COLORS.map((archiveColor) => (
-          <ColorChip
-            key={archiveColor}
-            color={archiveColor}
-            selected={archiveColor === color}
-            onClick={() => setColor(archiveColor)}
+      {/* 헤더는 위에 남기고, 넘치는 만큼은 이 안에서만 스크롤한다. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+        {/* 시안 수치: 좌우 16 / 상하 12 여백, 라벨-입력 사이 8 */}
+        <div className="flex flex-col gap-2 px-4 py-3">
+          <label htmlFor="archive-name" className="text-b2 font-medium text-gray-70">
+            아카이브 이름
+          </label>
+          <Input
+            id="archive-name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onClear={() => setName('')}
+            maxLength={NAME_MAX_LENGTH}
+            placeholder="새 아카이브명을 입력해주세요"
           />
-        ))}
-      </fieldset>
+        </div>
 
-      {/* 하단 고정 액션. 키보드가 올라오면 네이티브 WebView 가 뷰포트를 줄여 함께 올라온다. */}
-      <div
-        className="mt-auto flex flex-col items-center gap-4 px-4 pt-4"
-        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
-      >
-        {editing ? (
-          <button
-            type="button"
-            onClick={() => setDeleteOpen(true)}
-            className="text-b2 font-medium text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-          >
-            아카이브 삭제
-          </button>
-        ) : null}
-        {/* ApiClientError 의 메시지는 사용자에게 그대로 보여줄 수 있는 한국어다. */}
-        {requestError ? (
-          <p role="alert" className="text-b3 text-error">
-            {requestError.message}
-          </p>
-        ) : null}
-        <Button size="lg" fullWidth disabled={!canSubmit} onClick={handleSubmit}>
-          {editing ? '저장하기' : '아카이브 만들기'}
-        </Button>
+        {/* 시안 수치: 팔레트 줄은 상하 20 여백에 가운데 정렬, 스와치 간격 20 */}
+        <fieldset className="flex items-center justify-center gap-5 px-4 py-5">
+          <legend className="sr-only">아카이브 색상</legend>
+          {ARCHIVE_COLORS.map((archiveColor) => (
+            <ColorChip
+              key={archiveColor}
+              color={archiveColor}
+              selected={archiveColor === color}
+              onClick={() => setColor(archiveColor)}
+            />
+          ))}
+        </fieldset>
+
+        {/* 하단 고정 액션. 키보드가 올라오면 네이티브 WebView 가 뷰포트를 줄여 함께 올라온다. */}
+        <div
+          className="mt-auto flex flex-col items-center gap-4 px-4 pt-4"
+          style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+        >
+          {editing ? (
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(true)}
+              className="text-b2 font-medium text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+            >
+              아카이브 삭제
+            </button>
+          ) : null}
+          {/* ApiClientError 의 메시지는 사용자에게 그대로 보여줄 수 있는 한국어다. */}
+          {requestError ? (
+            <p role="alert" className="text-b3 text-error">
+              {requestError.message}
+            </p>
+          ) : null}
+          <Button size="lg" fullWidth disabled={!canSubmit} onClick={handleSubmit}>
+            {editing ? '저장하기' : '아카이브 만들기'}
+          </Button>
+        </div>
       </div>
 
       <Popup

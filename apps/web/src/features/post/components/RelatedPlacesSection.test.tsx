@@ -1,12 +1,19 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/shared/toast';
 import { RelatedPlacesSection } from './RelatedPlacesSection';
 
-// 장소 삭제(실행취소 토스트)를 위해 섹션이 useToast 를 쓴다 — 앱과 같은 provider 를 씌운다.
+// 장소 삭제가 실행취소 토스트(useToast)와 연결 끊기 mutation(useQueryClient)을 쓴다 —
+// 앱과 같은 provider 를 씌운다.
 function renderSection(ui: ReactNode) {
-  return render(<ToastProvider>{ui}</ToastProvider>);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <ToastProvider>{ui}</ToastProvider>
+    </QueryClientProvider>,
+  );
 }
 
 const PLACE = {
@@ -21,8 +28,9 @@ describe('RelatedPlacesSection', () => {
     const onPlaceClick = vi.fn();
     renderSection(
       <RelatedPlacesSection
+        postId={1}
         state={{ status: 'success', places: [PLACE], bookmarkedPlaceIds: [] }}
-        manualPlaces={[]}
+        postPlaces={[]}
         bookmarkedPlaceIds={[]}
         onBookmarkedChange={() => {}}
         onDirectAddClick={() => {}}
@@ -39,8 +47,9 @@ describe('RelatedPlacesSection', () => {
   it('onPlaceClick 이 없으면 장소 행이 버튼이 아니라 그냥 텍스트로 렌더된다', () => {
     renderSection(
       <RelatedPlacesSection
+        postId={1}
         state={{ status: 'success', places: [PLACE], bookmarkedPlaceIds: [] }}
-        manualPlaces={[]}
+        postPlaces={[]}
         bookmarkedPlaceIds={[]}
         onBookmarkedChange={() => {}}
         onDirectAddClick={() => {}}

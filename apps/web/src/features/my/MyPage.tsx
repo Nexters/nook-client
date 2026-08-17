@@ -135,11 +135,8 @@ export function MyPage() {
 
   // 슬라이드 동안 뒤로 마이페이지 목록이 비쳐야 해서, 분기 대신 목록 위에 얹는다.
   const profileEditScreen = editingProfile ? (
-    <SlideScreen
-      slidIn={slidIn}
-      className="overflow-y-auto overscroll-contain"
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
-    >
+    // 스크롤은 헤더 아래 본문에서만 일어난다 — 키보드로 뷰포트가 줄어도 헤더는 남는다.
+    <SlideScreen slidIn={slidIn} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <Header
         title="회원 정보"
         left={
@@ -154,7 +151,7 @@ export function MyPage() {
         }
       />
 
-      <section className="flex flex-1 flex-col px-4 pt-6">
+      <section className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pt-6">
         <div className="flex justify-center">
           <Avatar
             size="lg"

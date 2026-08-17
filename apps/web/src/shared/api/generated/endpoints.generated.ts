@@ -12,6 +12,7 @@ import type {
   ApiResponseGroupPlacePageResponse,
   ApiResponseGroupPostPageResponse,
   ApiResponseGroupResponse,
+  ApiResponseGroupShareLinkResponse,
   ApiResponseListGroupResponse,
   ApiResponseListMapPlaceResponse,
   ApiResponseMemberActionResponse,
@@ -37,6 +38,9 @@ import type {
   ListPlacesParams,
   ListPostsParams,
   ListSavedPostsParams,
+  PlaceDetailParams,
+  PlacesParams,
+  PostsParams,
   RefreshTokenRequest,
   ReplaceSavedPostGroupsRequest,
   SearchPlacesParams,
@@ -47,6 +51,132 @@ import type {
   UpdatePlaceMemoRequest,
   UpdatePostMemoRequest,
 } from './models';
+export const getGetUrl = (token: string) => {
+  return `/api/public/v1/groups/${token}`;
+};
+
+/**
+ * @summary 공유 그룹 정보 조회
+ */
+export const get = async (
+  token: string,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseGroupResponse> => {
+  return orvalMutator<ApiResponseGroupResponse>(getGetUrl(token), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getPlacesUrl = (token: string, params?: PlacesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/public/v1/groups/${token}/places?${stringifiedParams}`
+    : `/api/public/v1/groups/${token}/places`;
+};
+
+/**
+ * @summary 공유 그룹 장소 목록 조회
+ */
+export const places = async (
+  token: string,
+  params?: PlacesParams,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseGroupPlacePageResponse> => {
+  return orvalMutator<ApiResponseGroupPlacePageResponse>(getPlacesUrl(token, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getPlaceDetailUrl = (token: string, placeId: number, params?: PlaceDetailParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/public/v1/groups/${token}/places/${placeId}?${stringifiedParams}`
+    : `/api/public/v1/groups/${token}/places/${placeId}`;
+};
+
+/**
+ * @summary 공유 그룹 장소 상세 조회
+ */
+export const placeDetail = async (
+  token: string,
+  placeId: number,
+  params?: PlaceDetailParams,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponsePlaceDetailResponse> => {
+  return orvalMutator<ApiResponsePlaceDetailResponse>(getPlaceDetailUrl(token, placeId, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getPostsUrl = (token: string, params?: PostsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/public/v1/groups/${token}/posts?${stringifiedParams}`
+    : `/api/public/v1/groups/${token}/posts`;
+};
+
+/**
+ * @summary 공유 그룹 게시물 목록 조회
+ */
+export const posts = async (
+  token: string,
+  params?: PostsParams,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseGroupPostPageResponse> => {
+  return orvalMutator<ApiResponseGroupPostPageResponse>(getPostsUrl(token, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getPostDetailUrl = (token: string, postId: number) => {
+  return `/api/public/v1/groups/${token}/posts/${postId}`;
+};
+
+/**
+ * @summary 공유 그룹 게시물 상세 조회
+ */
+export const postDetail = async (
+  token: string,
+  postId: number,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseSavedPostDetailResponse> => {
+  return orvalMutator<ApiResponseSavedPostDetailResponse>(getPostDetailUrl(token, postId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
 export const getLogoutUrl = () => {
   return `/api/v1/auth/logout`;
 };
@@ -230,6 +360,40 @@ export const listPosts = async (
   return orvalMutator<ApiResponseGroupPostPageResponse>(getListPostsUrl(groupId, params), {
     ...options,
     method: 'GET',
+  });
+};
+
+export const getRevokeUrl = (groupId: number) => {
+  return `/api/v1/groups/${groupId}/share-link`;
+};
+
+/**
+ * @summary 그룹 공유 링크 해제
+ */
+export const revoke = async (
+  groupId: number,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<void> => {
+  return orvalMutator<void>(getRevokeUrl(groupId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getIssueUrl = (groupId: number) => {
+  return `/api/v1/groups/${groupId}/share-link`;
+};
+
+/**
+ * @summary 그룹 공유 링크 발급
+ */
+export const issue = async (
+  groupId: number,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseGroupShareLinkResponse> => {
+  return orvalMutator<ApiResponseGroupShareLinkResponse>(getIssueUrl(groupId), {
+    ...options,
+    method: 'PUT',
   });
 };
 
@@ -614,5 +778,57 @@ export const connectPlace = async (
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(connectPostPlaceRequest),
+  });
+};
+
+export const getDisconnectPlaceUrl = (postId: number, placeId: number) => {
+  return `/api/v1/posts/${postId}/places/${placeId}`;
+};
+
+/**
+ * @summary 저장 게시물의 장소 연결 삭제
+ */
+export const disconnectPlace = async (
+  postId: number,
+  placeId: number,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseUnit> => {
+  return orvalMutator<ApiResponseUnit>(getDisconnectPlaceUrl(postId, placeId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getUnsubscribeUrl = (groupId: number) => {
+  return `/api/v1/shared-groups/${groupId}`;
+};
+
+/**
+ * @summary 공유 그룹을 내 아카이브에서 제거
+ */
+export const unsubscribe = async (
+  groupId: number,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseUnit> => {
+  return orvalMutator<ApiResponseUnit>(getUnsubscribeUrl(groupId), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getSubscribeUrl = (token: string) => {
+  return `/api/v1/shared-groups/${token}`;
+};
+
+/**
+ * @summary 공유 그룹을 내 아카이브에 추가
+ */
+export const subscribe = async (
+  token: string,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseUnit> => {
+  return orvalMutator<ApiResponseUnit>(getSubscribeUrl(token), {
+    ...options,
+    method: 'PUT',
   });
 };

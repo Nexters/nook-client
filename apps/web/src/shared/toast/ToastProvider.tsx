@@ -3,13 +3,15 @@ import type { ReactNode } from 'react';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/shared/lib/utils';
+import { BOTTOM_BAR_INSET_VAR, BOTTOM_INSET_VAR } from '@/shared/ui/bottom-menu';
 import { Button } from '@/shared/ui/button';
 
-const TOAST_DURATION_MS = 3000;
+/** 토스트가 떠 있는 시간. 되돌릴 수 있는 동작은 이 창이 닫힐 때까지 실행을 미룬다. */
+export const TOAST_DURATION_MS = 3000;
 /** `undo` 토스트의 고정 라벨 — 문구를 사용처가 바꾸지 못하게 여기서 소유한다. */
 const UNDO_LABEL = '실행취소';
 /** CSS `--animate-toast-out` 길이(global.css)와 맞춰야 잔상 없이 큐가 넘어간다. */
-const TOAST_EXIT_MS = 200;
+export const TOAST_EXIT_MS = 200;
 
 export type ToastRequest =
   | { variant: 'description'; title: string; description: string }
@@ -97,8 +99,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           // 셸 높이는 페이지 콘텐츠만큼 늘어난다 — 뷰포트보다 긴 페이지에선 fixed 하단이
           // 화면 밖 문서 맨 아래로 밀려난다. body 로 포탈해 항상 실제 화면 기준으로 고정한다.
           <ToastPrimitive.Viewport
-            className="fixed inset-x-0 z-50 flex justify-center px-4"
-            style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+            // 토스트는 무엇에도 가리지 않는 최상단 레이어다(탭바 60, 모달·뷰어 70 위).
+            className="fixed inset-x-0 z-[100] flex justify-center px-4"
+            style={{
+              // 하단을 차지한 것 중 큰 쪽만큼 띄운다 — 탭바(ProtectedAppLayout)와
+              // 화면별 하단 바(선택 삭제 CTA 등)는 주인이 달라 변수를 나눠 쓴다.
+              bottom: `calc(1.5rem + max(var(${BOTTOM_INSET_VAR}, env(safe-area-inset-bottom)), var(${BOTTOM_BAR_INSET_VAR}, 0px)))`,
+            }}
           />,
           document.body,
         )}

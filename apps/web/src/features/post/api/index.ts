@@ -1,16 +1,27 @@
 import {
   type CreateGroupRequestColor,
+  connectPlace,
+  disconnectPlace as disconnectPlaceEndpoint,
   findPlaceParsing,
   getSavedPostDetail,
   type PlaceResponse,
+  type PlaceSearchResponse,
   type SavedPostDetailResponse,
   type SavedPostGroupResponse,
+  searchPlaces,
   unwrapApiResponse,
   updateBookmark,
   updateMemo,
 } from '@/shared/api';
+import { type Coordinates, formatDistanceFromMeters } from '@/shared/lib/geolocation';
 import type { ArchiveColor } from '@/shared/ui';
-import type { ParsedPlace, PlaceParsingResult, PostArchive, PostDetail } from '../types';
+import type {
+  ParsedPlace,
+  PlaceParsingResult,
+  PostArchive,
+  PostDetail,
+  SearchedPlace,
+} from '../types';
 
 /**
  * 게시물 도메인 BE 호출. 응답은 공통 envelope(`resultType`/`success`/`error`)로
@@ -137,6 +148,52 @@ export async function fetchPlaceParsing(postId: number): Promise<PlaceParsingRes
   };
 }
 
+/** 서버 검색 DTO → 화면 모델. 식별은 selectionToken 으로만 한다(`SearchedPlace` 주석 참고). */
+export function toSearchedPlace(dto: PlaceSearchResponse): SearchedPlace {
+  return {
+    id: dto.selectionToken,
+    selectionToken: dto.selectionToken,
+    name: dto.name,
+    category: dto.category ?? '',
+    address: dto.address,
+    distance: dto.distanceMeters != null ? formatDistanceFromMeters(dto.distanceMeters) : undefined,
+    latitude: dto.latitude,
+    longitude: dto.longitude,
+  };
+}
+
+/**
+ * `GET /api/v1/places/search` — 직접 연결할 장소 검색.
+ * 페이지당 상한(15)까지 첫 페이지만 가져온다 — 장소명 검색에서 그 밖까지 내려가는
+ * 일이 드물어 페이지네이션 UI 는 두지 않았다. 좌표를 주면 서버가 거리를 계산해준다
+ * (없으면 `distanceMeters` 가 비어 거리 표기를 생략한다).
+ */
+export async function searchConnectablePlaces(
+  query: string,
+  coords: Coordinates | null,
+): Promise<SearchedPlace[]> {
+  const dto = unwrapApiResponse(
+    await searchPlaces(
+      {
+        query,
+        size: 15,
+        ...(coords ? { latitude: coords.lat, longitude: coords.lng } : {}),
+      },
+      { auth: 'required' },
+    ),
+  );
+  return (dto?.items ?? []).map(toSearchedPlace);
+}
+
+/** `POST /api/v1/posts/{postId}/places` — 저장 게시물에 장소 직접 연결. 발급된 실 placeId 를 반환한다. */
+export async function connectPostPlace(postId: number, selectionToken: string): Promise<number> {
+  const dto = unwrapApiResponse(
+    await connectPlace(postId, { selectionToken }, { auth: 'required' }),
+  );
+  if (!dto) throw new Error('장소 연결 응답이 비어 있습니다.');
+  return dto.placeId;
+}
+
 /** `PATCH /api/v1/posts/{postId}/memo` — 저장 게시물 메모 변경. 빈 문자열은 삭제(null)로 보낸다. */
 export async function updatePostMemo(postId: number, memo: string): Promise<void> {
   const trimmed = memo.trim();
@@ -150,4 +207,13 @@ export async function updatePostMemo(postId: number, memo: string): Promise<void
  */
 export async function updatePlaceBookmark(placeId: number, bookmarked: boolean): Promise<void> {
   await updateBookmark(placeId, { bookmarked }, { auth: 'required' });
+}
+
+/**
+ * `DELETE /api/v1/posts/{postId}/places/{placeId}` — 저장 게시물의 장소 연결 삭제.
+ * 화면에서 말하는 "장소 삭제"가 이것이다 — 장소 자체가 아니라 이 사용자의 게시물↔장소
+ * 연결을 끊는다.
+ */
+export async function disconnectPostPlace(postId: number, placeId: number): Promise<void> {
+  await disconnectPlaceEndpoint(postId, placeId, { auth: 'required' });
 }

@@ -156,7 +156,7 @@ function PlaceRow({
           if (swipeRef.current) swipeRef.current.scrollLeft = 0;
           onDelete();
         }}
-        className="flex h-16 w-12 shrink-0 snap-start flex-col items-center justify-center gap-0.5 bg-error"
+        className="flex h-16 w-15 shrink-0 snap-start flex-col items-center justify-center gap-0.5 bg-error"
       >
         <Icon20Delete />
         <span className="text-b3 font-medium text-gray-0">삭제</span>

@@ -1,6 +1,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { searchSavedPlacesMock } from '../mock/savedPlaceSearch';
 import type { MapBounds } from '../types';
 import {
+  disconnectPostPlace,
   fetchMapPins,
   fetchPlaceDetail,
   fetchRecentPlaces,
@@ -13,6 +15,7 @@ export const mapQueryKeys = {
   pins: (bounds: MapBounds) => ['map', 'pins', bounds] as const,
   recent: ['map', 'recent'] as const,
   detail: (placeId: number) => ['map', 'detail', placeId] as const,
+  search: (query: string, archiveId: number | null) => ['map', 'search', query, archiveId] as const,
 };
 
 /** 지도 핀(bbox 안의 북마크 장소). 실제 idle 이벤트를 못 받은 동안엔 호출부가 근사 bbox를 대신 넘긴다. */
@@ -32,6 +35,19 @@ export function useRecentPlaces() {
   return useQuery({
     queryKey: mapQueryKeys.recent,
     queryFn: fetchRecentPlaces,
+  });
+}
+
+/**
+ * 저장한 공간 검색 — 검색 모드의 결과 목록. 서버 검색 API 가 아직 없어 mock 을
+ * 물려두었다. 연동 시 queryFn 만 `../api` 의 실제 fetch 로 바꾸면 된다(키·시그니처 유지).
+ */
+export function useSearchSavedPlaces(query: string, archiveId: number | null) {
+  return useQuery({
+    queryKey: mapQueryKeys.search(query, archiveId),
+    queryFn: () => searchSavedPlacesMock(query, archiveId),
+    // 타이핑마다 쿼리 키가 통째로 바뀐다 — 직전 결과를 유지해 목록 깜빡임을 없앤다(useMapPins 와 동일).
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -75,6 +91,31 @@ export function useUpdatePlaceMemo(placeId: number) {
     mutationFn: (memo: string) => updatePlaceMemo(placeId, memo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: mapQueryKeys.detail(placeId) });
+    },
+  });
+}
+
+/**
+ * 장소 삭제 = 그 장소를 가리키던 저장 게시물들과의 연결 끊기.
+ * 지도 장소 상세의 "게시물에 포함된 장소"는 여러 게시물에서 모아 보여주므로, 화면이
+ * 넘겨준 게시물마다 한 번씩 끊는다. 하나라도 실패하면 실패로 본다(호출부가 목록을 되돌린다).
+ */
+export function useDisconnectPlaceFromPosts() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ placeId, postIds }: { placeId: number; postIds: number[] }) =>
+      Promise.all(postIds.map((postId) => disconnectPostPlace(postId, placeId))),
+    onSuccess: (_data, { placeId, postIds }) => {
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll });
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.recent });
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.detail(placeId) });
+      for (const postId of postIds) {
+        // 게시물 상세는 post feature 소유지만 키 접두사가 같아 여기서 무효화한다
+        // (map → post 방향 import 가 이미 있어 순환을 피해 접두사를 직접 쓴다).
+        queryClient.invalidateQueries({ queryKey: ['posts', postId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['archives'] });
     },
   });
 }

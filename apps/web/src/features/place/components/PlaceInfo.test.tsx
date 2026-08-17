@@ -126,4 +126,14 @@ describe('PlaceInfo 주소 줄', () => {
     expect(writeText).toHaveBeenCalledWith('서울 성동구');
     vi.unstubAllGlobals();
   });
+
+  it('"지도" 링크는 mapHref 를 넘겼을 때만 생기고 새 탭으로 연다', () => {
+    const { rerender } = render(<PlaceInfo address="서울 성동구" />);
+    expect(screen.queryByRole('link', { name: '지도' })).not.toBeInTheDocument();
+
+    rerender(<PlaceInfo address="서울 성동구" mapHref="https://map.naver.com/p/search/앤미" />);
+    const link = screen.getByRole('link', { name: '지도' });
+    expect(link).toHaveAttribute('href', 'https://map.naver.com/p/search/앤미');
+    expect(link).toHaveAttribute('target', '_blank');
+  });
 });

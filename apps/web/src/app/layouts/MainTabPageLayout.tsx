@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import nookLogo from '@/assets/logo/header_logo.svg';
 import { env } from '@/shared/config/env';
 import { cn } from '@/shared/lib/utils';
@@ -87,27 +87,11 @@ export function MainTabPageLayout({ children, variant = 'gray' }: MainTabPageLay
     );
   }
 
-  // gray(아카이브·마이)는 콘텐츠를 문서 흐름에 두고 #root 가 스크롤한다(global.css) —
-  // 스크롤 끝 러버밴드가 여기서 나온다. 헤더는 화면에 붙어 있어야 하니 body 로 포탈해
-  // 뷰포트 기준 fixed 로 띄운다(셸의 will-change-transform 을 피하는 이유는
-  // ProtectedAppLayout 의 탭바와 같다). 콘텐츠는 그 높이만큼 내려서 시작한다.
-  // +1px: 콘텐츠가 뷰포트보다 짧으면 스크롤 자체가 없어 러버밴드도 안 나온다 —
-  // iOS 네이티브(alwaysBounceVertical)처럼 짧은 화면도 당겨지도록 최소 스크롤을 만든다.
+  // gray(아카이브·마이)는 상세 화면들과 같은 구조다 — 콘텐츠는 문서 흐름(#root 스크롤)에 두고
+  // 헤더만 화면에 고정한다.
   return (
-    <div className="min-h-[calc(100dvh+1px)] w-full bg-gray-10">
-      {createPortal(
-        <div className="fixed inset-x-0 top-0 z-40">
-          <div
-            className="mx-auto w-full max-w-[450px] bg-gray-10"
-            style={{ paddingTop: 'env(safe-area-inset-top)' }}
-          >
-            {header}
-          </div>
-        </div>,
-        document.body,
-      )}
-      {/* 54px = Header/54 고정 높이(header.tsx). */}
-      <div style={{ paddingTop: 'calc(env(safe-area-inset-top) + 54px)' }}>{children}</div>
-    </div>
+    <PinnedHeaderLayout header={header} background="gray">
+      {children}
+    </PinnedHeaderLayout>
   );
 }
