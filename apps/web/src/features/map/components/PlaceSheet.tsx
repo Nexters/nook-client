@@ -30,6 +30,7 @@ export function PlaceSheet({
   isPlaceDetailPending,
   isPlaceDetailError,
   snap,
+  instantOpen = false,
   userCoords,
   isSearchMode,
   onSnapChange,
@@ -44,6 +45,8 @@ export function PlaceSheet({
   isPlaceDetailPending: boolean;
   isPlaceDetailError: boolean;
   snap: number | string | null;
+  /** true 면 마운트 시 아래에서 올라오는 오프닝 모션 없이 현재 스냅 높이에 즉시 둔다(뒤로가기 복원용). */
+  instantOpen?: boolean;
   /** 현재 위치 — 장소까지의 거리 표기에 쓴다. 없으면 거리를 보여주지 않는다. */
   userCoords?: Coordinates | null;
   /** 저장한 공간 검색 모드 — 탐색 콘텐츠 위로 검색 패널이 슬라이드되어 덮는다. */
@@ -80,6 +83,17 @@ export function PlaceSheet({
   // 스크롤 영역과 검색 오버레이가 같은 높이를 공유해야 해서, 높이만 래퍼로 올린다.
   const { height: contentHeight, ...scrollerStyle } = layoutClassNames.scroller.style ?? {};
 
+  // instantOpen: 마운트 직후 잠깐 transform transition 을 꺼서 vaul 의 오프닝 모션(화면
+  // 아래 100% → 스냅 위치로 transition)을 생략한다. vaul 이 스냅 배치를 inline style 로
+  // 덮어쓰므로 !important(transition-none!)가 필요하고, 첫 배치가 끝날 만큼(vaul 의
+  // transition 시간 500ms)만 끈 뒤 되돌린다 — 이후 드래그/스냅 애니메이션은 정상이다.
+  const [suppressTransition, setSuppressTransition] = useState(instantOpen);
+  useEffect(() => {
+    if (!suppressTransition) return;
+    const timer = setTimeout(() => setSuppressTransition(false), 500);
+    return () => clearTimeout(timer);
+  }, [suppressTransition]);
+
   // 스크롤이 "불가 → 가능"으로 바뀌는 순간과 보는 장소가 바뀔 때만 맨 위로 되돌린다.
   // isFull 이 아니라 canScroll 을 트리거로 쓰는 이유: 탐색 모드 mid ↔ full 은 둘 다
   // 스크롤 가능한 스냅이라, 그 사이를 오갈 때 보던 위치를 잃지 않아야 한다.
@@ -103,7 +117,11 @@ export function PlaceSheet({
         overlay={false}
         showHandle={!isFull || !isScrolled}
         style={layoutClassNames.drawer.style}
-        className={cn('overflow-hidden', layoutClassNames.drawer.className)}
+        className={cn(
+          'overflow-hidden',
+          suppressTransition && 'transition-none!',
+          layoutClassNames.drawer.className,
+        )}
       >
         {showStickyHeader && selectedPlace ? (
           <Header

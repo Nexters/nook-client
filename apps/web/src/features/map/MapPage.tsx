@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigationType, useSearchParams } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { MapView, type MapViewHandle } from '@/features/map/components/MapView';
@@ -29,11 +29,21 @@ function toInitialBounds(center: Coordinates): MapBounds {
   };
 }
 
-/** `/map?placeId=123` 형태의 딥링크(연관 장소 클릭 등)로 들어왔을 때만 값을 준다. */
+/** `/map?placeId=123` 의 placeId 파라미터를 파싱한다. 없거나 숫자가 아니면 null. */
 function parsePlaceIdParam(raw: string | null): number | null {
   if (!raw) return null;
   const parsed = Number(raw);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * 상세 높이 복원용 `?snap=` 파라미터 — 상세 모드에서 머무를 수 있는 스냅만 유효값으로
+ * 인정한다(peek 은 선택 해제라 기록될 일이 없다). 그 외 값이면 무시하고 기본 높이로 연다.
+ */
+function parseSnapParam(raw: string | null): number | null {
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return parsed === DETAIL_PAGE_SNAP_POINT || parsed === FULL_SNAP_POINT ? parsed : null;
 }
 
 export function MapPage() {
@@ -41,13 +51,21 @@ export function MapPage() {
   const { setHidden: setBottomMenuHidden } = useBottomMenuVisibility();
   const mapRef = useRef<MapViewHandle>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  // 다른 화면(연관 장소 클릭 등)에서 `/map?placeId=123` 으로 들어오면 핀을 직접 클릭한
-  // 것과 같은 상태(선택됨 + detailPage 스냅)로 최초 렌더에 반영한다.
-  const initialPlaceId = parsePlaceIdParam(searchParams.get('placeId'));
-  const [selectedPlaceId, setSelectedPlaceId] = useState<number | null>(initialPlaceId);
-  const [snap, setSnap] = useState<number | string | null>(
-    initialPlaceId !== null ? DETAIL_PAGE_SNAP_POINT : PEEK_SNAP_POINT,
-  );
+  // 선택된 장소는 컴포넌트 state 가 아니라 URL(`?placeId=`)이 원본이다 — 딥링크(연관 장소
+  // 클릭 등)로 들어와도 핀을 직접 클릭한 것과 같고, 아카이브 상세 등으로 나갔다 뒤로
+  // 돌아오면 히스토리 엔트리의 URL 로 보던 장소 상세가 그대로 복원되며, 새로고침에도
+  // 살아남는다. 상세를 펼쳐 본(`?snap=`) 높이도 같은 이유로 URL 에 실려 함께 복원된다.
+  const selectedPlaceId = parsePlaceIdParam(searchParams.get('placeId'));
+  const [snap, setSnap] = useState<number | string | null>(() => {
+    if (selectedPlaceId === null) return PEEK_SNAP_POINT;
+    return parseSnapParam(searchParams.get('snap')) ?? DETAIL_PAGE_SNAP_POINT;
+  });
+  // 뒤로가기(POP)로 장소가 선택된 채 마운트됐다면 보던 화면으로 "돌아온" 것이지 시트가
+  // 새로 "열린" 게 아니다 — 시트가 아래에서 올라오는 오프닝 모션을 생략하고 보던 높이에
+  // 즉시 둔다. 앞으로 가기(딥링크 push 등) 진입은 지금처럼 슬라이드로 연다. 마운트
+  // 시점의 판정만 쓰므로 useState 초기값으로 고정한다(새로고침도 POP 이라 함께 즉시 뜬다).
+  const navigationType = useNavigationType();
+  const [instantSheetOpen] = useState(navigationType === 'POP' && selectedPlaceId !== null);
   // 지도의 실제 idle 이벤트로 받은 경계. 아직 한 번도 못 받았으면(최초 마운트 직후,
   // 혹은 최초 idle이 지도 생성과 한 프레임 차이로 마운트와 경합해 유실됐을 경우 포함)
   // null로 남아 있고, 그동안은 아래 `effectiveBounds`가 현재 위치 기준 근사값으로 대신한다
@@ -94,18 +112,40 @@ export function MapPage() {
     return () => setBottomMenuHidden(false);
   }, [selectedPlaceId, isSearchMode, setBottomMenuHidden]);
 
-  // 딥링크로 들어온 placeId 는 최초 상태에 한 번만 반영하고 주소는 정리한다 — 남겨두면
-  // 이 장소를 선택 해제한 뒤 새로고침/뒤로가기 시 같은 장소가 다시 강제 선택된다.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 마운트 시 한 번만 정리한다
+  // 핸들러를 거치지 않고 URL 에서 ?placeId 만 사라지는 경우가 있다 — 장소 선택 상태에서
+  // 하단 탭 "지도"를 다시 누르면 같은 라우트로의 이동이라 remount 없이 파라미터만 빠진다.
+  // 그때 상세 전용 스냅(detailPage)은 목록 모드 스냅 배열(BROWSE_SNAP_POINTS)에 없으므로
+  // peek 으로 되돌린다.
   useEffect(() => {
-    if (initialPlaceId !== null) setSearchParams({}, { replace: true });
-  }, []);
+    if (selectedPlaceId === null) {
+      setSnap((prev) => (prev === DETAIL_PAGE_SNAP_POINT ? PEEK_SNAP_POINT : prev));
+    }
+  }, [selectedPlaceId]);
 
   if (location.status === 'loading') {
     return (
       <div className="flex h-dvh w-full items-center justify-center">
         <p className="text-b2 text-gray-60">위치 확인 중…</p>
       </div>
+    );
+  }
+
+  /**
+   * 선택 변경은 URL 에 replace 로 반영한다 — 히스토리를 쌓지 않아 뒤로가기는 지도
+   * "이전 화면"으로 나가는 기존 동작 그대로고, 아카이브 상세처럼 push 로 떠난 화면에서
+   * 뒤로 돌아올 때만 마지막 선택이 복원된다.
+   */
+  function setSelectedPlaceId(id: number | null) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        // 스냅 기록은 보고 있던 장소에 대한 것이라, 선택이 바뀌거나 풀리면 함께 버린다.
+        next.delete('snap');
+        if (id === null) next.delete('placeId');
+        else next.set('placeId', String(id));
+        return next;
+      },
+      { replace: true },
     );
   }
 
@@ -121,6 +161,21 @@ export function MapPage() {
     // peek(최소 높이)까지 내려가면 상세를 접고 기본 목록으로 되돌린다.
     if (next === PEEK_SNAP_POINT) {
       setSelectedPlaceId(null);
+      return;
+    }
+    // 상세를 보는 동안 스냅이 바뀌면 URL 에 기록한다(다른 화면으로 갔다 뒤로 돌아올 때
+    // 보던 높이 그대로 복원). 기본 높이(detailPage)는 파라미터 없이도 같으므로 지워서
+    // 평소 URL 을 깨끗하게 유지한다.
+    if (selectedPlaceId !== null) {
+      setSearchParams(
+        (prev) => {
+          const params = new URLSearchParams(prev);
+          if (next === DETAIL_PAGE_SNAP_POINT) params.delete('snap');
+          else params.set('snap', String(next));
+          return params;
+        },
+        { replace: true },
+      );
     }
   }
 
@@ -172,6 +227,7 @@ export function MapPage() {
           isPlaceDetailPending={selectedPlaceId !== null && placeDetailQuery.isPending}
           isPlaceDetailError={selectedPlaceId !== null && placeDetailQuery.isError}
           snap={snap}
+          instantOpen={instantSheetOpen}
           userCoords={location.coords}
           isSearchMode={isSearchMode}
           onSnapChange={handleSnapChange}
