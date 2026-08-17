@@ -26,13 +26,13 @@ enum NookIconName {
     case icon18MagnifyingGlass
     case icon200Empty
     case icon200Fail
-    case icon20Frame
     case icon20ArrowUp
     case icon20Camera
     case icon20Delete
+    case icon20ExclamationCircle
+    case icon20History
     case icon20Images
     case icon20Next
-    case icon20Outline
     case icon20Picture
     case icon24Add
     case icon24Archive
@@ -56,8 +56,6 @@ enum NookIconName {
     case icon32MySelected
     case icon32MyUnselected
     case icon32PinGray
-    case icon32StarOff
-    case icon32StarOn
     case icon40Location
     case icon44Error
     case icon44Fail
@@ -118,19 +116,19 @@ enum NookIconName {
             return (CGSize(width: 200, height: 200), CGSize(width: 200, height: 200))
         case .icon200Fail:
             return (CGSize(width: 200, height: 200), CGSize(width: 200, height: 200))
-        case .icon20Frame:
-            return (CGSize(width: 20, height: 20), CGSize(width: 20, height: 20))
         case .icon20ArrowUp:
             return (CGSize(width: 20, height: 20), CGSize(width: 20, height: 20))
         case .icon20Camera:
             return (CGSize(width: 20, height: 20), CGSize(width: 20, height: 20))
         case .icon20Delete:
             return (CGSize(width: 20, height: 20), CGSize(width: 20, height: 20))
+        case .icon20ExclamationCircle:
+            return (CGSize(width: 20, height: 20), CGSize(width: 20, height: 20))
+        case .icon20History:
+            return (CGSize(width: 20, height: 20), CGSize(width: 20, height: 20))
         case .icon20Images:
             return (CGSize(width: 20, height: 20), CGSize(width: 20, height: 20))
         case .icon20Next:
-            return (CGSize(width: 20, height: 20), CGSize(width: 20, height: 20))
-        case .icon20Outline:
             return (CGSize(width: 20, height: 20), CGSize(width: 20, height: 20))
         case .icon20Picture:
             return (CGSize(width: 20, height: 20), CGSize(width: 20, height: 20))
@@ -177,10 +175,6 @@ enum NookIconName {
         case .icon32MyUnselected:
             return (CGSize(width: 32, height: 32), CGSize(width: 32, height: 32))
         case .icon32PinGray:
-            return (CGSize(width: 32, height: 32), CGSize(width: 32, height: 32))
-        case .icon32StarOff:
-            return (CGSize(width: 32, height: 32), CGSize(width: 32, height: 32))
-        case .icon32StarOn:
             return (CGSize(width: 32, height: 32), CGSize(width: 32, height: 32))
         case .icon40Location:
             return (CGSize(width: 40, height: 40), CGSize(width: 40, height: 40))
@@ -1753,51 +1747,6 @@ struct NookIcon: View {
             path6.addCurve(to: CGPoint(x: 197.56, y: 89.4271), control1: CGPoint(x: 192.73, y: 89.7614), control2: CGPoint(x: 195.914, y: 91.6937))
             path6.closeSubpath()
             context.fill(path6, with: .color(Color(red: 0.901961, green: 0.921569, blue: 0.945098)))
-        case .icon20Frame:
-            var path0 = Path()
-            path0.move(to: CGPoint(x: 17.2157, y: 5.83377))
-            path0.addCurve(to: CGPoint(x: 14.1657, y: 17.2171), control1: CGPoint(x: 19.5174, y: 9.81961), control2: CGPoint(x: 18.1516, y: 14.9171))
-            path0.addCurve(to: CGPoint(x: 3.88656, y: 15.6671), control1: CGPoint(x: 10.7299, y: 19.2004), control2: CGPoint(x: 6.47156, y: 18.4596))
-            path0.addCurve(to: CGPoint(x: 3.67384, y: 15.0716), control1: CGPoint(x: 3.74018, y: 15.5043), control2: CGPoint(x: 3.66377, y: 15.2904))
-            path0.addCurve(to: CGPoint(x: 3.9404, y: 14.4983), control1: CGPoint(x: 3.68391, y: 14.8529), control2: CGPoint(x: 3.77967, y: 14.6469))
-            path0.addCurve(to: CGPoint(x: 4.53277, y: 14.2771), control1: CGPoint(x: 4.10113, y: 14.3496), control2: CGPoint(x: 4.31392, y: 14.2701))
-            path0.addCurve(to: CGPoint(x: 5.10989, y: 14.5354), control1: CGPoint(x: 4.75162, y: 14.284), control2: CGPoint(x: 4.95893, y: 14.3768))
-            path0.addCurve(to: CGPoint(x: 9.01412, y: 16.5961), control1: CGPoint(x: 6.1395, y: 15.6458), control2: CGPoint(x: 7.51645, y: 16.3726))
-            path0.addCurve(to: CGPoint(x: 13.3499, y: 15.7654), control1: CGPoint(x: 10.5118, y: 16.8197), control2: CGPoint(x: 12.041, y: 16.5267))
-            path0.addCurve(to: CGPoint(x: 16.2161, y: 12.4076), control1: CGPoint(x: 14.6589, y: 15.0042), control2: CGPoint(x: 15.6698, y: 13.8199))
-            path0.addCurve(to: CGPoint(x: 16.3556, y: 7.99516), control1: CGPoint(x: 16.7624, y: 10.9953), control2: CGPoint(x: 16.8116, y: 9.43915))
-            path0.addCurve(to: CGPoint(x: 13.7075, y: 4.46293), control1: CGPoint(x: 15.8997, y: 6.55117), control2: CGPoint(x: 14.9657, y: 5.30542))
-            path0.addCurve(to: CGPoint(x: 9.4328, y: 3.35988), control1: CGPoint(x: 12.4492, y: 3.62045), control2: CGPoint(x: 10.9416, y: 3.23142))
-            path0.addCurve(to: CGPoint(x: 5.40615, y: 5.1697), control1: CGPoint(x: 7.92399, y: 3.48834), control2: CGPoint(x: 6.50387, y: 4.12663))
-            path0.addCurve(to: CGPoint(x: 3.39323, y: 9.09877), control1: CGPoint(x: 4.30842, y: 6.21278), control2: CGPoint(x: 3.5985, y: 7.59848))
-            path0.addLine(to: CGPoint(x: 4.46073, y: 8.81961))
-            path0.addCurve(to: CGPoint(x: 5.38406, y: 10.3088), control1: CGPoint(x: 5.33323, y: 8.59211), control2: CGPoint(x: 5.97573, y: 9.62794))
-            path0.addLine(to: CGPoint(x: 3.50739, y: 12.4646))
-            path0.addCurve(to: CGPoint(x: 1.93073, y: 12.0946), control1: CGPoint(x: 3.03406, y: 13.0079), control2: CGPoint(x: 2.11989, y: 12.8229))
-            path0.addCurve(to: CGPoint(x: 2.31179, y: 6.78138), control1: CGPoint(x: 1.47321, y: 10.3295), control2: CGPoint(x: 1.60707, y: 8.46311))
-            path0.addCurve(to: CGPoint(x: 5.83239, y: 2.78377), control1: CGPoint(x: 3.01651, y: 5.09966), control2: CGPoint(x: 4.25322, y: 3.69539))
-            path0.addCurve(to: CGPoint(x: 17.2157, y: 5.83377), control1: CGPoint(x: 9.81823, y: 0.482939), control2: CGPoint(x: 14.9149, y: 1.84794))
-            path0.closeSubpath()
-            path0.move(to: CGPoint(x: 9.99906, y: 5.00044))
-            path0.addCurve(to: CGPoint(x: 10.5883, y: 5.24452), control1: CGPoint(x: 10.2201, y: 5.00044), control2: CGPoint(x: 10.432, y: 5.08824))
-            path0.addCurve(to: CGPoint(x: 10.8324, y: 5.83377), control1: CGPoint(x: 10.7446, y: 5.4008), control2: CGPoint(x: 10.8324, y: 5.61276))
-            path0.addLine(to: CGPoint(x: 10.8324, y: 9.65544))
-            path0.addLine(to: CGPoint(x: 13.0882, y: 11.9113))
-            path0.addCurve(to: CGPoint(x: 13.275, y: 12.1818), control1: CGPoint(x: 13.1678, y: 11.9881), control2: CGPoint(x: 13.2313, y: 12.0801))
-            path0.addCurve(to: CGPoint(x: 13.3426, y: 12.5034), control1: CGPoint(x: 13.3187, y: 12.2834), control2: CGPoint(x: 13.3416, y: 12.3928))
-            path0.addCurve(to: CGPoint(x: 13.2806, y: 12.8262), control1: CGPoint(x: 13.3436, y: 12.6141), control2: CGPoint(x: 13.3225, y: 12.7238))
-            path0.addCurve(to: CGPoint(x: 13.0986, y: 13.0999), control1: CGPoint(x: 13.2387, y: 12.9286), control2: CGPoint(x: 13.1768, y: 13.0217))
-            path0.addCurve(to: CGPoint(x: 12.8249, y: 13.282), control1: CGPoint(x: 13.0203, y: 13.1782), control2: CGPoint(x: 12.9273, y: 13.2401))
-            path0.addCurve(to: CGPoint(x: 12.5021, y: 13.344), control1: CGPoint(x: 12.7224, y: 13.3239), control2: CGPoint(x: 12.6127, y: 13.3449))
-            path0.addCurve(to: CGPoint(x: 12.1804, y: 13.2764), control1: CGPoint(x: 12.3914, y: 13.343), control2: CGPoint(x: 12.2821, y: 13.32))
-            path0.addCurve(to: CGPoint(x: 11.9099, y: 13.0896), control1: CGPoint(x: 12.0787, y: 13.2327), control2: CGPoint(x: 11.9868, y: 13.1692))
-            path0.addLine(to: CGPoint(x: 9.40989, y: 10.5896))
-            path0.addCurve(to: CGPoint(x: 9.16573, y: 10.0004), control1: CGPoint(x: 9.2536, y: 10.4334), control2: CGPoint(x: 9.16577, y: 10.2214))
-            path0.addLine(to: CGPoint(x: 9.16573, y: 5.83377))
-            path0.addCurve(to: CGPoint(x: 9.40981, y: 5.24452), control1: CGPoint(x: 9.16573, y: 5.61276), control2: CGPoint(x: 9.25353, y: 5.4008))
-            path0.addCurve(to: CGPoint(x: 9.99906, y: 5.00044), control1: CGPoint(x: 9.56609, y: 5.08824), control2: CGPoint(x: 9.77805, y: 5.00044))
-            path0.closeSubpath()
-            context.fill(path0, with: .color(Color(red: 0.517647, green: 0.545098, blue: 0.588235)))
         case .icon20ArrowUp:
             var path0 = Path()
             path0.move(to: CGPoint(x: 13.5, y: 6.5))
@@ -1922,28 +1871,7 @@ struct NookIcon: View {
             path0.addLine(to: CGPoint(x: 11.9, y: 3.33268))
             path0.closeSubpath()
             context.fill(path0, with: .color(Color(red: 1.000000, green: 1.000000, blue: 1.000000)), style: FillStyle(eoFill: true))
-        case .icon20Images:
-            var path0 = Path()
-            path0.move(to: CGPoint(x: 16.3008, y: 14))
-            path0.addLine(to: CGPoint(x: 16.3008, y: 7))
-            path0.addCurve(to: CGPoint(x: 17.001, y: 6.2998), control1: CGPoint(x: 16.3008, y: 6.6134), control2: CGPoint(x: 16.6144, y: 6.2998))
-            path0.addCurve(to: CGPoint(x: 17.7012, y: 7), control1: CGPoint(x: 17.3876, y: 6.2998), control2: CGPoint(x: 17.7012, y: 6.6134))
-            path0.addLine(to: CGPoint(x: 17.7012, y: 14))
-            path0.addCurve(to: CGPoint(x: 14.001, y: 17.7002), control1: CGPoint(x: 17.7012, y: 16.0435), control2: CGPoint(x: 16.0444, y: 17.7002))
-            path0.addLine(to: CGPoint(x: 7.00098, y: 17.7002))
-            path0.addCurve(to: CGPoint(x: 6.30078, y: 17), control1: CGPoint(x: 6.61438, y: 17.7002), control2: CGPoint(x: 6.30078, y: 17.3866))
-            path0.addCurve(to: CGPoint(x: 7.00098, y: 16.2998), control1: CGPoint(x: 6.30078, y: 16.6134), control2: CGPoint(x: 6.61438, y: 16.2998))
-            path0.addLine(to: CGPoint(x: 14.001, y: 16.2998))
-            path0.addCurve(to: CGPoint(x: 16.3008, y: 14), control1: CGPoint(x: 15.2712, y: 16.2998), control2: CGPoint(x: 16.3008, y: 15.2703))
-            path0.closeSubpath()
-            context.fill(path0, with: .color(Color(red: 1.000000, green: 1.000000, blue: 1.000000)))
-        case .icon20Next:
-            var path0 = Path()
-            path0.move(to: CGPoint(x: 9.99923, y: 3.3335))
-            path0.addLine(to: CGPoint(x: 16.666, y: 10))
-            path0.addLine(to: CGPoint(x: 9.99923, y: 16.6668))
-            context.stroke(path0, with: .color(Color(red: 0.517647, green: 0.545098, blue: 0.588235)), style: StrokeStyle(lineWidth: 1.25, lineCap: .butt))
-        case .icon20Outline:
+        case .icon20ExclamationCircle:
             var path0 = Path()
             path0.move(to: CGPoint(x: 10, y: 7.5))
             path0.addLine(to: CGPoint(x: 10, y: 10.625))
@@ -1968,6 +1896,72 @@ struct NookIcon: View {
             path0.addLine(to: CGPoint(x: 10, y: 13.125))
             path0.closeSubpath()
             context.stroke(path0, with: .color(Color(red: 0.305882, green: 0.337255, blue: 0.384314)), style: StrokeStyle(lineWidth: 1.25, lineCap: .round))
+        case .icon20History:
+            var path0 = Path()
+            path0.move(to: CGPoint(x: 17.2157, y: 5.83377))
+            path0.addCurve(to: CGPoint(x: 14.1657, y: 17.2171), control1: CGPoint(x: 19.5174, y: 9.81961), control2: CGPoint(x: 18.1516, y: 14.9171))
+            path0.addCurve(to: CGPoint(x: 3.88656, y: 15.6671), control1: CGPoint(x: 10.7299, y: 19.2004), control2: CGPoint(x: 6.47156, y: 18.4596))
+            path0.addCurve(to: CGPoint(x: 3.67384, y: 15.0716), control1: CGPoint(x: 3.74018, y: 15.5043), control2: CGPoint(x: 3.66377, y: 15.2904))
+            path0.addCurve(to: CGPoint(x: 3.9404, y: 14.4983), control1: CGPoint(x: 3.68391, y: 14.8529), control2: CGPoint(x: 3.77967, y: 14.6469))
+            path0.addCurve(to: CGPoint(x: 4.53277, y: 14.2771), control1: CGPoint(x: 4.10113, y: 14.3496), control2: CGPoint(x: 4.31392, y: 14.2701))
+            path0.addCurve(to: CGPoint(x: 5.10989, y: 14.5354), control1: CGPoint(x: 4.75162, y: 14.284), control2: CGPoint(x: 4.95893, y: 14.3768))
+            path0.addCurve(to: CGPoint(x: 9.01412, y: 16.5961), control1: CGPoint(x: 6.1395, y: 15.6458), control2: CGPoint(x: 7.51645, y: 16.3726))
+            path0.addCurve(to: CGPoint(x: 13.3499, y: 15.7654), control1: CGPoint(x: 10.5118, y: 16.8197), control2: CGPoint(x: 12.041, y: 16.5267))
+            path0.addCurve(to: CGPoint(x: 16.2161, y: 12.4076), control1: CGPoint(x: 14.6589, y: 15.0042), control2: CGPoint(x: 15.6698, y: 13.8199))
+            path0.addCurve(to: CGPoint(x: 16.3556, y: 7.99516), control1: CGPoint(x: 16.7624, y: 10.9953), control2: CGPoint(x: 16.8116, y: 9.43915))
+            path0.addCurve(to: CGPoint(x: 13.7075, y: 4.46293), control1: CGPoint(x: 15.8997, y: 6.55117), control2: CGPoint(x: 14.9657, y: 5.30542))
+            path0.addCurve(to: CGPoint(x: 9.4328, y: 3.35988), control1: CGPoint(x: 12.4492, y: 3.62045), control2: CGPoint(x: 10.9416, y: 3.23142))
+            path0.addCurve(to: CGPoint(x: 5.40615, y: 5.1697), control1: CGPoint(x: 7.92399, y: 3.48834), control2: CGPoint(x: 6.50387, y: 4.12663))
+            path0.addCurve(to: CGPoint(x: 3.39323, y: 9.09877), control1: CGPoint(x: 4.30842, y: 6.21278), control2: CGPoint(x: 3.5985, y: 7.59848))
+            path0.addLine(to: CGPoint(x: 4.46073, y: 8.81961))
+            path0.addCurve(to: CGPoint(x: 5.38406, y: 10.3088), control1: CGPoint(x: 5.33323, y: 8.59211), control2: CGPoint(x: 5.97573, y: 9.62794))
+            path0.addLine(to: CGPoint(x: 3.50739, y: 12.4646))
+            path0.addCurve(to: CGPoint(x: 1.93073, y: 12.0946), control1: CGPoint(x: 3.03406, y: 13.0079), control2: CGPoint(x: 2.11989, y: 12.8229))
+            path0.addCurve(to: CGPoint(x: 2.31179, y: 6.78138), control1: CGPoint(x: 1.47321, y: 10.3295), control2: CGPoint(x: 1.60707, y: 8.46311))
+            path0.addCurve(to: CGPoint(x: 5.83239, y: 2.78377), control1: CGPoint(x: 3.01651, y: 5.09966), control2: CGPoint(x: 4.25322, y: 3.69539))
+            path0.addCurve(to: CGPoint(x: 17.2157, y: 5.83377), control1: CGPoint(x: 9.81823, y: 0.482939), control2: CGPoint(x: 14.9149, y: 1.84794))
+            path0.closeSubpath()
+            path0.move(to: CGPoint(x: 9.99906, y: 5.00044))
+            path0.addCurve(to: CGPoint(x: 10.5883, y: 5.24452), control1: CGPoint(x: 10.2201, y: 5.00044), control2: CGPoint(x: 10.432, y: 5.08824))
+            path0.addCurve(to: CGPoint(x: 10.8324, y: 5.83377), control1: CGPoint(x: 10.7446, y: 5.4008), control2: CGPoint(x: 10.8324, y: 5.61276))
+            path0.addLine(to: CGPoint(x: 10.8324, y: 9.65544))
+            path0.addLine(to: CGPoint(x: 13.0882, y: 11.9113))
+            path0.addCurve(to: CGPoint(x: 13.275, y: 12.1818), control1: CGPoint(x: 13.1678, y: 11.9881), control2: CGPoint(x: 13.2313, y: 12.0801))
+            path0.addCurve(to: CGPoint(x: 13.3426, y: 12.5034), control1: CGPoint(x: 13.3187, y: 12.2834), control2: CGPoint(x: 13.3416, y: 12.3928))
+            path0.addCurve(to: CGPoint(x: 13.2806, y: 12.8262), control1: CGPoint(x: 13.3436, y: 12.6141), control2: CGPoint(x: 13.3225, y: 12.7238))
+            path0.addCurve(to: CGPoint(x: 13.0986, y: 13.0999), control1: CGPoint(x: 13.2387, y: 12.9286), control2: CGPoint(x: 13.1768, y: 13.0217))
+            path0.addCurve(to: CGPoint(x: 12.8249, y: 13.282), control1: CGPoint(x: 13.0203, y: 13.1782), control2: CGPoint(x: 12.9273, y: 13.2401))
+            path0.addCurve(to: CGPoint(x: 12.5021, y: 13.344), control1: CGPoint(x: 12.7224, y: 13.3239), control2: CGPoint(x: 12.6127, y: 13.3449))
+            path0.addCurve(to: CGPoint(x: 12.1804, y: 13.2764), control1: CGPoint(x: 12.3914, y: 13.343), control2: CGPoint(x: 12.2821, y: 13.32))
+            path0.addCurve(to: CGPoint(x: 11.9099, y: 13.0896), control1: CGPoint(x: 12.0787, y: 13.2327), control2: CGPoint(x: 11.9868, y: 13.1692))
+            path0.addLine(to: CGPoint(x: 9.40989, y: 10.5896))
+            path0.addCurve(to: CGPoint(x: 9.16573, y: 10.0004), control1: CGPoint(x: 9.2536, y: 10.4334), control2: CGPoint(x: 9.16577, y: 10.2214))
+            path0.addLine(to: CGPoint(x: 9.16573, y: 5.83377))
+            path0.addCurve(to: CGPoint(x: 9.40981, y: 5.24452), control1: CGPoint(x: 9.16573, y: 5.61276), control2: CGPoint(x: 9.25353, y: 5.4008))
+            path0.addCurve(to: CGPoint(x: 9.99906, y: 5.00044), control1: CGPoint(x: 9.56609, y: 5.08824), control2: CGPoint(x: 9.77805, y: 5.00044))
+            path0.closeSubpath()
+            context.fill(path0, with: .color(Color(red: 0.517647, green: 0.545098, blue: 0.588235)))
+        case .icon20Images:
+            var path0 = Path()
+            path0.move(to: CGPoint(x: 16.3008, y: 14))
+            path0.addLine(to: CGPoint(x: 16.3008, y: 7))
+            path0.addCurve(to: CGPoint(x: 17.001, y: 6.2998), control1: CGPoint(x: 16.3008, y: 6.6134), control2: CGPoint(x: 16.6144, y: 6.2998))
+            path0.addCurve(to: CGPoint(x: 17.7012, y: 7), control1: CGPoint(x: 17.3876, y: 6.2998), control2: CGPoint(x: 17.7012, y: 6.6134))
+            path0.addLine(to: CGPoint(x: 17.7012, y: 14))
+            path0.addCurve(to: CGPoint(x: 14.001, y: 17.7002), control1: CGPoint(x: 17.7012, y: 16.0435), control2: CGPoint(x: 16.0444, y: 17.7002))
+            path0.addLine(to: CGPoint(x: 7.00098, y: 17.7002))
+            path0.addCurve(to: CGPoint(x: 6.30078, y: 17), control1: CGPoint(x: 6.61438, y: 17.7002), control2: CGPoint(x: 6.30078, y: 17.3866))
+            path0.addCurve(to: CGPoint(x: 7.00098, y: 16.2998), control1: CGPoint(x: 6.30078, y: 16.6134), control2: CGPoint(x: 6.61438, y: 16.2998))
+            path0.addLine(to: CGPoint(x: 14.001, y: 16.2998))
+            path0.addCurve(to: CGPoint(x: 16.3008, y: 14), control1: CGPoint(x: 15.2712, y: 16.2998), control2: CGPoint(x: 16.3008, y: 15.2703))
+            path0.closeSubpath()
+            context.fill(path0, with: .color(Color(red: 1.000000, green: 1.000000, blue: 1.000000)))
+        case .icon20Next:
+            var path0 = Path()
+            path0.move(to: CGPoint(x: 9.99923, y: 3.3335))
+            path0.addLine(to: CGPoint(x: 16.666, y: 10))
+            path0.addLine(to: CGPoint(x: 9.99923, y: 16.6668))
+            context.stroke(path0, with: .color(Color(red: 0.517647, green: 0.545098, blue: 0.588235)), style: StrokeStyle(lineWidth: 1.25, lineCap: .butt))
         case .icon20Picture:
             var path0 = Path()
             path0.move(to: CGPoint(x: 16.667, y: 2.5))
@@ -2922,72 +2916,6 @@ struct NookIcon: View {
             path1.addCurve(to: CGPoint(x: 16, y: 12.6665), control1: CGPoint(x: 17.2989, y: 12.9299), control2: CGPoint(x: 16.663, y: 12.6665))
             path1.closeSubpath()
             context.fill(path1, with: .color(Color(red: 0.709804, green: 0.733333, blue: 0.764706)))
-        case .icon32StarOff:
-            let path0 = Path(ellipseIn: CGRect(x: 0, y: 0, width: 32, height: 32))
-            context.fill(path0, with: .color(Color(red: 0.956863, green: 0.960784, blue: 0.968627)))
-            var path1 = Path()
-            path1.move(to: CGPoint(x: 20.6433, y: 9.49927))
-            path1.addLine(to: CGPoint(x: 22.5, y: 9.49927))
-            path1.addLine(to: CGPoint(x: 22.5, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 20.6433, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 20.6433, y: 24.356))
-            path1.addLine(to: CGPoint(x: 18.7856, y: 24.356))
-            path1.addLine(to: CGPoint(x: 18.7856, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 16.9289, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 16.9289, y: 20.6426))
-            path1.addLine(to: CGPoint(x: 15.0711, y: 20.6426))
-            path1.addLine(to: CGPoint(x: 15.0711, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 13.2144, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 13.2144, y: 24.356))
-            path1.addLine(to: CGPoint(x: 11.3567, y: 24.356))
-            path1.addLine(to: CGPoint(x: 11.3567, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 9.5, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 9.5, y: 9.49927))
-            path1.addLine(to: CGPoint(x: 11.3567, y: 9.49927))
-            path1.addLine(to: CGPoint(x: 11.3567, y: 7.64258))
-            path1.addLine(to: CGPoint(x: 20.6433, y: 7.64258))
-            path1.addLine(to: CGPoint(x: 20.6433, y: 9.49927))
-            path1.closeSubpath()
-            path1.move(to: CGPoint(x: 15.0711, y: 13.2137))
-            path1.addLine(to: CGPoint(x: 16.9289, y: 13.2137))
-            path1.addLine(to: CGPoint(x: 16.9289, y: 11.356))
-            path1.addLine(to: CGPoint(x: 15.0711, y: 11.356))
-            path1.addLine(to: CGPoint(x: 15.0711, y: 13.2137))
-            path1.closeSubpath()
-            context.fill(path1, with: .color(Color(red: 0.709804, green: 0.733333, blue: 0.764706)), style: FillStyle(eoFill: true))
-        case .icon32StarOn:
-            let path0 = Path(ellipseIn: CGRect(x: 0, y: 0, width: 32, height: 32))
-            context.fill(path0, with: .color(Color(red: 0.956863, green: 0.960784, blue: 0.968627)))
-            var path1 = Path()
-            path1.move(to: CGPoint(x: 20.6433, y: 9.49927))
-            path1.addLine(to: CGPoint(x: 22.5, y: 9.49927))
-            path1.addLine(to: CGPoint(x: 22.5, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 20.6433, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 20.6433, y: 24.356))
-            path1.addLine(to: CGPoint(x: 18.7856, y: 24.356))
-            path1.addLine(to: CGPoint(x: 18.7856, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 16.9289, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 16.9289, y: 20.6426))
-            path1.addLine(to: CGPoint(x: 15.0711, y: 20.6426))
-            path1.addLine(to: CGPoint(x: 15.0711, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 13.2144, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 13.2144, y: 24.356))
-            path1.addLine(to: CGPoint(x: 11.3567, y: 24.356))
-            path1.addLine(to: CGPoint(x: 11.3567, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 9.5, y: 22.4993))
-            path1.addLine(to: CGPoint(x: 9.5, y: 9.49927))
-            path1.addLine(to: CGPoint(x: 11.3567, y: 9.49927))
-            path1.addLine(to: CGPoint(x: 11.3567, y: 7.64258))
-            path1.addLine(to: CGPoint(x: 20.6433, y: 7.64258))
-            path1.addLine(to: CGPoint(x: 20.6433, y: 9.49927))
-            path1.closeSubpath()
-            path1.move(to: CGPoint(x: 15.0711, y: 13.2137))
-            path1.addLine(to: CGPoint(x: 16.9289, y: 13.2137))
-            path1.addLine(to: CGPoint(x: 16.9289, y: 11.356))
-            path1.addLine(to: CGPoint(x: 15.0711, y: 11.356))
-            path1.addLine(to: CGPoint(x: 15.0711, y: 13.2137))
-            path1.closeSubpath()
-            context.fill(path1, with: .color(Color(red: 0.333333, green: 0.556863, blue: 1.000000)), style: FillStyle(eoFill: true))
         case .icon40Location:
             let path0 = Path(ellipseIn: CGRect(x: 0, y: 0, width: 40, height: 40))
             context.fill(path0, with: .color(Color(red: 1.000000, green: 1.000000, blue: 1.000000)))

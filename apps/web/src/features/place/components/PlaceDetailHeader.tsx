@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import { Icon32StarOff, Icon32StarOn } from '@/shared/icons/NookIcons';
+import { Icon32MappinOff, Icon32MappinOn } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { Badge, Thumbnail } from '@/shared/ui';
 import type { Place } from '../types';
@@ -73,7 +73,7 @@ function PlaceDetailHeader({
               aria-label={`${place.name} 즐겨찾기`}
               className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-2"
             >
-              {bookmarked ? <Icon32StarOn /> : <Icon32StarOff />}
+              {bookmarked ? <Icon32MappinOn /> : <Icon32MappinOff />}
             </button>
           ) : null}
         </div>
