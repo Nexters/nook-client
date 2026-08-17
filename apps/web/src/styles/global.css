@@ -103,10 +103,10 @@
 
   /* ── Animation: 지도의 현재 위치 마커 파장(네이버 지도 스타일).
      파장 3번을 한 타임라인에 이어 붙였다(1.3s × 3 = 3.9s, 1회 재생 + forwards) —
-     회차마다 다르게 끝나야 해서 iteration-count 로는 만들 수 없다.
-       1·2번째: 퍼지면서 바깥에서 옅어져 사라진다(다음 회차 시작이 안 보이게 opacity 0 에서 되감는다).
-       3번째: 옅어지지 않고 퍼진 자리(scale 1.4)에 머물러 그대로 고정 파장이 된다.
-     세 회차 모두 같은 크기(1.4)까지 퍼진다 — 1·2번째는 그 자리에서 사라질 뿐이다.
+     회차 사이 되감기(다음 회차 시작이 안 보이게 opacity 0 에서 시작)가 필요해서
+     iteration-count 로는 만들 수 없다. 세 회차 모두 같은 크기(1.4)까지 퍼지며
+     옅어져 사라진다 — 정지 상태의 헤일로는 CurrentLocationDot 의 상시 헤일로
+     레이어(시안 139:16746, 40px 15%)가 따로 담당한다.
      구간별 가감속은 각 키프레임의 animation-timing-function 이 정하므로 단축 속성은 linear. ── */
   --animate-location-ripple: location-ripple 3.9s linear 1 forwards;
 
@@ -134,10 +134,9 @@
       opacity: 0.5;
       animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
     }
-    /* 고정 파장의 크기 = 이 scale (요소 기준 -inset-2, 32px × 1.4 ≈ 45px). */
     100% {
       transform: scale(1.4);
-      opacity: 0.2;
+      opacity: 0;
     }
   }
 
