@@ -84,7 +84,7 @@ function OnboardingSlide({
         ) : null}
       </div>
 
-      <h2 className="mt-2 text-center text-h1 text-gray-100">{title}</h2>
+      <h2 className="mt-2 text-center text-h1 font-extrabold text-gray-100">{title}</h2>
       <p className="mt-3 whitespace-pre-line text-center text-b2 text-gray-50">{description}</p>
     </div>
   );

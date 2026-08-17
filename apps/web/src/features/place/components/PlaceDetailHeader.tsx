@@ -54,7 +54,7 @@ function PlaceDetailHeader({
       <div className={cn('flex w-full flex-col', recognized ? 'gap-1' : 'gap-3')}>
         <div className="flex w-full items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <h2 className="shrink-0 text-h1 text-gray-100">{place.name}</h2>
+            <h2 className="shrink-0 text-h1 font-semibold text-gray-100">{place.name}</h2>
             <p
               className={cn(
                 'truncate text-b2 font-semibold',

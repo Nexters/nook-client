@@ -51,7 +51,7 @@ export function ContactPage() {
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-6"
         style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
       >
-        <h1 className="text-h1 text-gray-100">누크에 무엇이든 물어보세요!</h1>
+        <h1 className="text-h1 font-semibold text-gray-100">누크에 무엇이든 물어보세요!</h1>
         <p className="mt-3 text-b1 text-gray-80">
           누크를 이용하다 궁금한 점이나 불편한 점이 있다면 아래 링크로 문의를 남겨주세요.
         </p>
@@ -81,7 +81,7 @@ export function ContactPage() {
           </ul>
         </section>
 
-        <h2 className="mt-10 text-h1 text-gray-100">자주 묻는 질문</h2>
+        <h2 className="mt-10 text-h1 font-semibold text-gray-100">자주 묻는 질문</h2>
         {FAQS.map((faq) => (
           <section key={faq.question} className="mt-6">
             <h3 className="text-b1 font-semibold text-gray-100">{faq.question}</h3>

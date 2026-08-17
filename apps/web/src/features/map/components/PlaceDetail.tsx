@@ -218,7 +218,7 @@ export function PlaceDetail({
       <div className="flex w-full flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <p className="min-w-0 truncate text-h1 text-gray-100">{place.name}</p>
+            <p className="min-w-0 truncate text-h1 font-semibold text-gray-100">{place.name}</p>
             {place.category ? (
               <p className="shrink-0 text-b2 text-gray-80">{place.category}</p>
             ) : null}
