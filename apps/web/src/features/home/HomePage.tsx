@@ -10,7 +10,7 @@ export function HomePage() {
         paddingBottom: 'calc(5.25rem + env(safe-area-inset-bottom))',
       }}
     >
-      <h1 className="text-h1">nook</h1>
+      <h1 className="text-h1 font-semibold">nook</h1>
       <p className="text-b2 mt-1 text-gray-60">취향 기반 장소 아카이빙</p>
       {/* 탭바(archive/map/my) 붙기 전까지 지도 화면 확인용 임시 링크 */}
       <Link

@@ -157,7 +157,7 @@ function DevPostCreator() {
     <div className="flex flex-1 flex-col gap-8">
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-h4 font-bold text-gray-100">테스트 게시글 생성</h2>
+          <h2 className="text-h2 font-bold text-gray-100">테스트 게시글 생성</h2>
           <button
             type="button"
             className="text-b3 font-semibold text-gray-60 underline underline-offset-4"

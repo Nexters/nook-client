@@ -16,7 +16,7 @@ import {
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
 import { env } from '@/shared/config/env';
-import { Icon16ArrowDown, Icon18MagnifyingGlass, Icon24Back } from '@/shared/icons/NookIcons';
+import { Icon16ArrowDown, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import { cn } from '@/shared/lib/utils';
 import { Drawer, DrawerContent, FloatingButton, Header } from '@/shared/ui';
@@ -186,7 +186,7 @@ export function PlaceSheet({
                       onClick={onEnterSearch}
                       className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
                     >
-                      <Icon18MagnifyingGlass size={20} />
+                      <Icon24MagnifyingGlass />
                     </button>
                   ) : null}
                 </div>

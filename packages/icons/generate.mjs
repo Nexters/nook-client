@@ -119,6 +119,29 @@ function parseDimension(value, fallback, file, attribute) {
   return Number(match[1]);
 }
 
+function parseLength(value, file, attribute) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) throw new Error(`${file}: rect ${attribute} must be a number`);
+  return number;
+}
+
+/**
+ * 지원하지 않는 요소를 만나면 조용히 빠뜨리지 않고 여기서 멈춘다. 예전에는 그냥 무시해서
+ * `20_images`(rect 로 그린 앞장)가 반쪽만 생성된 채 커밋되고 검사도 통과했다.
+ */
+function assertSupported(drawable, file) {
+  const element = drawable.match(/<(ellipse|line|polyline|polygon|text|image|use|symbol)\b/);
+  if (element) {
+    throw new Error(`${file}: unsupported <${element[1]}>; convert it to path, circle, or rect`);
+  }
+  const transformed = drawable.match(/<(path|circle|rect)\b[^>]*\btransform="/);
+  if (transformed) {
+    throw new Error(
+      `${file}: transform on <${transformed[1]}> is not supported; bake it into the coordinates`,
+    );
+  }
+}
+
 async function loadIcons() {
   const files = (await readdir(sourceDirectory)).filter((file) => file.endsWith('.svg')).sort();
   return Promise.all(
@@ -128,7 +151,11 @@ async function loadIcons() {
       const viewBox = parseViewBox(rootAttributes.viewBox, file);
       const defaultWidth = parseDimension(rootAttributes.width, viewBox.width, file, 'width');
       const defaultHeight = parseDimension(rootAttributes.height, viewBox.height, file, 'height');
-      const elements = [...svg.matchAll(/<(path|circle)\b([^>]*)\/>/g)].map((match) => {
+      // <defs>는 clipPath·mask 정의라 그리는 도형이 아니다. rect 를 읽기 시작한 뒤로는 먼저
+      // 걷어내지 않으면 clipPath 안의 rect 가 아이콘 위에 통째로 칠해진다.
+      const drawable = svg.replace(/<defs>[\s\S]*?<\/defs>/g, '');
+      assertSupported(drawable, file);
+      const elements = [...drawable.matchAll(/<(path|circle|rect)\b([^>]*)\/>/g)].map((match) => {
         const elementAttributes = attributes(match[2]);
         const common = {
           fill: parseColor(elementAttributes.fill, rootAttributes.fill),
@@ -146,6 +173,28 @@ async function loadIcons() {
             ...common,
           };
         }
+        if (match[1] === 'rect') {
+          const width = parseLength(elementAttributes.width, file, 'width');
+          const height = parseLength(elementAttributes.height, file, 'height');
+          if (width <= 0 || height <= 0) throw new Error(`${file}: rect size must be positive`);
+          const rx = Number(elementAttributes.rx ?? elementAttributes.ry ?? 0);
+          const ry = Number(elementAttributes.ry ?? elementAttributes.rx ?? 0);
+          // 세 플랫폼 모두 모서리를 하나의 반지름으로만 그린다(SwiftUI cornerRadius,
+          // Compose CornerRadius). 타원형 모서리는 결과가 갈라지므로 받지 않는다.
+          if (rx !== ry) throw new Error(`${file}: rect rx and ry must be equal`);
+          if (rx < 0 || rx > width / 2 || rx > height / 2) {
+            throw new Error(`${file}: rect rx must be between 0 and half of its shorter side`);
+          }
+          return {
+            kind: 'rect',
+            x: Number(elementAttributes.x ?? 0),
+            y: Number(elementAttributes.y ?? 0),
+            width,
+            height,
+            radius: rx,
+            ...common,
+          };
+        }
         if (!elementAttributes.d) throw new Error(`${file}: path is missing d`);
         return {
           kind: 'path',
@@ -154,7 +203,7 @@ async function loadIcons() {
           ...common,
         };
       });
-      if (elements.length === 0) throw new Error(`${file}: no supported path or circle elements`);
+      if (elements.length === 0) throw new Error(`${file}: no supported drawing elements`);
       return {
         type: typeName(file),
         case: caseName(typeName(file)),
@@ -168,6 +217,23 @@ async function loadIcons() {
 }
 
 function webElement(element) {
+  if (element.kind === 'rect') {
+    const parts = [
+      `x="${element.x}"`,
+      `y="${element.y}"`,
+      `width="${element.width}"`,
+      `height="${element.height}"`,
+      element.radius > 0 && `rx="${element.radius}"`,
+      `fill="${element.fill ?? 'none'}"`,
+      element.stroke && `stroke="${element.stroke}"`,
+      element.stroke && `strokeWidth="${element.strokeWidth}"`,
+    ].filter(Boolean);
+    const compact = `      <rect ${parts.join(' ')} />`;
+    if (compact.length <= 100) return compact;
+    return `      <rect
+${parts.map((part) => `        ${part}`).join('\n')}
+      />`;
+  }
   if (element.kind === 'circle') {
     if (!element.stroke) {
       return `      <circle cx="${element.cx}" cy="${element.cy}" r="${element.radius}" fill="${element.fill ?? 'none'}" />`;
@@ -261,7 +327,9 @@ function swiftElement(element, index, viewBox) {
   const path =
     element.kind === 'circle'
       ? `let path${index} = Path(ellipseIn: CGRect(x: ${element.cx - viewBox.minX - element.radius}, y: ${element.cy - viewBox.minY - element.radius}, width: ${element.radius * 2}, height: ${element.radius * 2}))`
-      : `var path${index} = Path()
+      : element.kind === 'rect'
+        ? `let path${index} = Path(roundedRect: CGRect(x: ${element.x - viewBox.minX}, y: ${element.y - viewBox.minY}, width: ${element.width}, height: ${element.height}), cornerRadius: ${element.radius})`
+        : `var path${index} = Path()
 ${element.commands.map((command) => `            ${swiftPathCommand(command, viewBox).replaceAll('path.', `path${index}.`)}`).join('\n')}`;
   const drawing = [];
   if (element.fill) {
@@ -343,21 +411,25 @@ function kotlinPathCommand(command, viewBox) {
 
 function kotlinElement(element, index, viewBox) {
   const path =
-    element.kind === 'circle'
-      ? null
-      : `val path${index} = Path().apply {
+    element.kind === 'path'
+      ? `val path${index} = Path().apply {
 ${element.fillRule === 'evenodd' ? '                fillType = PathFillType.EvenOdd\n' : ''}
 ${element.commands.map((command) => `                ${kotlinPathCommand(command, viewBox)}`).join('\n')}
-            }`;
+            }`
+      : null;
   const target =
     element.kind === 'circle'
       ? `center = Offset(${element.cx - viewBox.minX}f, ${element.cy - viewBox.minY}f), radius = ${element.radius}f`
-      : `path = path${index}`;
+      : element.kind === 'rect'
+        ? `topLeft = Offset(${element.x - viewBox.minX}f, ${element.y - viewBox.minY}f), size = Size(${element.width}f, ${element.height}f), cornerRadius = CornerRadius(${element.radius}f)`
+        : `path = path${index}`;
+  const draw =
+    element.kind === 'circle' ? 'drawCircle' : element.kind === 'rect' ? 'drawRoundRect' : null;
   const calls = [];
   if (element.fill) {
     calls.push(
-      element.kind === 'circle'
-        ? `drawCircle(color = ${kotlinColor(element.fill)}, ${target})`
+      draw
+        ? `${draw}(color = ${kotlinColor(element.fill)}, ${target})`
         : `drawPath(${target}, color = ${kotlinColor(element.fill)})`,
     );
   }
@@ -366,8 +438,8 @@ ${element.commands.map((command) => `                ${kotlinPathCommand(command
       element.lineCap === 'square' ? 'Square' : element.lineCap === 'round' ? 'Round' : 'Butt';
     const style = `Stroke(width = ${element.strokeWidth}f, cap = StrokeCap.${cap})`;
     calls.push(
-      element.kind === 'circle'
-        ? `drawCircle(color = ${kotlinColor(element.stroke)}, ${target}, style = ${style})`
+      draw
+        ? `${draw}(color = ${kotlinColor(element.stroke)}, ${target}, style = ${style})`
         : `drawPath(${target}, color = ${kotlinColor(element.stroke)}, style = ${style})`,
     );
   }
@@ -389,7 +461,9 @@ package com.nook.app.share.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType

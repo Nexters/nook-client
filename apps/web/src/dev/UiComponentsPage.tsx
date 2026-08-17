@@ -250,7 +250,7 @@ export function UiComponentsPage() {
   return (
     <main className="mx-auto max-w-2xl px-5 py-8 pb-24">
       <header>
-        <h1 className="text-h1 text-gray-100">UI Components</h1>
+        <h1 className="text-h1 font-semibold text-gray-100">UI Components</h1>
         <p className="mt-1 text-b2 text-gray-60">
           공용 UI 컴포넌트(<code className="font-mono text-e2">src/shared/ui</code>)의 모양과 동작을
           확인합니다. 개발 환경 전용 페이지입니다.
