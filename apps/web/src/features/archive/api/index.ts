@@ -36,13 +36,18 @@ const UI_TO_SERVER_COLOR = Object.fromEntries(
 ) as Record<ArchiveColor, CreateGroupRequestColor>;
 
 /** 서버 DTO → 화면 모델. 서버의 `postCount`가 카드 배지의 개수다. */
-function toArchive(dto: GroupResponse): Archive {
+export function toArchive(dto: GroupResponse): Archive {
   return {
     id: dto.id,
     name: dto.name,
     color: SERVER_TO_UI_COLOR[dto.color as CreateGroupRequestColor] ?? 'cement',
     placeCount: dto.postCount,
     thumbnails: dto.thumbnailUrls,
+    accessType: dto.accessType,
+    owner: dto.owner
+      ? { nickname: dto.owner.nickname, profileImageUrl: dto.owner.profileImageUrl ?? undefined }
+      : undefined,
+    shareToken: dto.shareToken ?? undefined,
   };
 }
 

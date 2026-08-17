@@ -20,8 +20,8 @@ const PROFILE: MyProfile = {
 const PICKED_IMAGE = { base64: 'aGk=', mimeType: 'image/png', width: 600, height: 600 };
 const UPLOADED_URL = 'https://cdn.example.com/profile/1.png';
 const ARCHIVES: Archive[] = [
-  { id: 1, name: '카페', color: 'yellow', placeCount: 30 },
-  { id: 2, name: '독립영화관', color: 'blue', placeCount: 2 },
+  { id: 1, name: '카페', color: 'yellow', placeCount: 30, accessType: 'OWNED' },
+  { id: 2, name: '독립영화관', color: 'blue', placeCount: 2, accessType: 'OWNED' },
 ];
 
 // HTTP 전송이 아니라 화면 ↔ Query ↔ feature API 배선만 검증한다.

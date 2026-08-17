@@ -11,8 +11,8 @@ import type { Archive } from '@/features/archive/types';
 import { ToastProvider } from '@/shared/toast';
 
 const ARCHIVES: Archive[] = [
-  { id: 1, name: '카페', color: 'yellow', placeCount: 114 },
-  { id: 2, name: '독립영화관', color: 'blue', placeCount: 3 },
+  { id: 1, name: '카페', color: 'yellow', placeCount: 114, accessType: 'OWNED' },
+  { id: 2, name: '독립영화관', color: 'blue', placeCount: 3, accessType: 'OWNED' },
 ];
 
 // HTTP 전송이 아니라 화면 ↔ Query ↔ feature API 배선만 검증한다.

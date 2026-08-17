@@ -1,5 +1,11 @@
 import type { ArchiveColor } from '@/shared/ui';
 
+/** 공유 아카이브(SHARED)의 원 소유자 표시용. */
+export interface ArchiveOwner {
+  nickname: string;
+  profileImageUrl?: string;
+}
+
 /**
  * 취향 아카이브 — 사용자가 장소를 담는 단위.
  * 컴포넌트 표시에 필요한 최소 형태만 둔다. 서버 응답(`GroupResponse`)은
@@ -15,6 +21,12 @@ export interface Archive {
   thumbnails?: string[];
   /** 공개 아카이브를 만든 계정 표기 (예: "@abcde"). 내 아카이브에는 없다. */
   authorHandle?: string;
+  /** 소유 관계 — SHARED 면 읽기 전용 카드로 동작한다. */
+  accessType: 'OWNED' | 'SHARED';
+  /** SHARED 아카이브의 원 소유자. OWNED 에는 없다. */
+  owner?: ArchiveOwner;
+  /** 공유 상세 진입용 토큰. 내(OWNED) 아카이브에는 없다. */
+  shareToken?: string;
 }
 
 /**
