@@ -96,7 +96,7 @@ export async function deleteArchivePosts(postIds: number[]): Promise<void> {
 }
 
 /** 그리드 한 칸에 필요한 만큼만 옮긴다. 대표 미디어 1장이 커버가 된다. */
-function toArchivePost(dto: GroupPostSummaryResponse): ArchivePost {
+export function toArchivePost(dto: GroupPostSummaryResponse): ArchivePost {
   return {
     id: dto.postId,
     // 제목이 없는 게시물(메모만 저장 등)도 카드가 비어 보이지 않게 메모로 대체한다.
@@ -147,7 +147,7 @@ export async function fetchArchivePosts(archiveId: number, page = 0): Promise<Ar
 }
 
 /** 장소 카드(`PlaceCard` — 썸네일 + 이름 + 지역·업종)가 그리는 데 필요한 만큼만 옮긴다. */
-function toArchivePlace(dto: GroupPlaceSummaryResponse): Place {
+export function toArchivePlace(dto: GroupPlaceSummaryResponse): Place {
   return {
     // Place.id 는 화면 전반에서 문자열이다 — 지도 딥링크(`/map?placeId=`)에서 다시 숫자로 쓴다.
     id: String(dto.id),
