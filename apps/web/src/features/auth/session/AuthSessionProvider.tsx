@@ -200,3 +200,18 @@ export function useAuthSession(): SessionContextValue {
   if (!value) throw new Error('AuthSessionProvider가 필요합니다.');
   return value;
 }
+
+/**
+ * 계정 API 를 호출해도 되는 상태인지. 게스트도 앱을 둘러볼 수 있게 되면서 계정 쿼리가
+ * 토큰 없이 실행될 수 있는데, 그 요청들은 `auth: 'required'` 라 네트워크도 타지 않고
+ * 바로 던진다 — 화면에는 "불러오지 못했어요" 만 남는다. 조회 훅의 `enabled` 에 걸어
+ * 애초에 실행되지 않게 한다.
+ *
+ * `useAuthSession` 과 달리 프로바이더가 없어도 던지지 않는다. 화면 조각만 떼어 렌더하는
+ * 단위 테스트가 많은데, 그 테스트들이 검증하는 건 세션이 아니라서 세션 설정까지 지고
+ * 가게 만들 이유가 없다. 실제 앱에서는 프로바이더가 항상 있고(App.tsx), 없으면 라우트
+ * 가드의 `useAuthSession` 이 먼저 던지므로 이 폴백이 진짜 설정 누락을 가리지 못한다.
+ */
+export function useIsAuthenticated(): boolean {
+  return useContext(SessionContext)?.status !== 'anonymous';
+}

@@ -1,4 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { searchSavedPlacesMock } from '../mock/savedPlaceSearch';
 import type { MapBounds } from '../types';
 import {
@@ -20,9 +21,13 @@ export const mapQueryKeys = {
 
 /** 지도 핀(bbox 안의 북마크 장소). 실제 idle 이벤트를 못 받은 동안엔 호출부가 근사 bbox를 대신 넘긴다. */
 export function useMapPins(bounds: MapBounds) {
+  const isAuthenticated = useIsAuthenticated();
+
   return useQuery({
     queryKey: mapQueryKeys.pins(bounds),
     queryFn: () => fetchMapPins(bounds),
+    // 게스트에게는 찍을 핀이 없다 — 지도만 보이고 목록은 로그인 월이 막는다.
+    enabled: isAuthenticated,
     // bbox 가 바뀔 때마다 쿼리 키가 통째로 바뀐다 — placeholder 없이는 새 응답이 올
     // 때까지 data 가 undefined 로 떨어져, 팬/줌 때마다 화면의 핀이 전부 사라졌다가
     // 다시 찍힌다. 직전 bbox 의 핀을 유지해 그 깜빡임을 없앤다.
@@ -32,9 +37,12 @@ export function useMapPins(bounds: MapBounds) {
 
 /** "최근 저장한 공간" — 장소 미선택 상태의 목록 모드. */
 export function useRecentPlaces() {
+  const isAuthenticated = useIsAuthenticated();
+
   return useQuery({
     queryKey: mapQueryKeys.recent,
     queryFn: fetchRecentPlaces,
+    enabled: isAuthenticated,
   });
 }
 
@@ -43,19 +51,24 @@ export function useRecentPlaces() {
  * 물려두었다. 연동 시 queryFn 만 `../api` 의 실제 fetch 로 바꾸면 된다(키·시그니처 유지).
  */
 export function useSearchSavedPlaces(query: string, archiveId: number | null) {
+  const isAuthenticated = useIsAuthenticated();
+
   return useQuery({
     queryKey: mapQueryKeys.search(query, archiveId),
     queryFn: () => searchSavedPlacesMock(query, archiveId),
+    enabled: isAuthenticated,
     // 타이핑마다 쿼리 키가 통째로 바뀐다 — 직전 결과를 유지해 목록 깜빡임을 없앤다(useMapPins 와 동일).
     placeholderData: keepPreviousData,
   });
 }
 
 export function usePlaceDetail(placeId: number | null) {
+  const isAuthenticated = useIsAuthenticated();
+
   return useQuery({
     queryKey: mapQueryKeys.detail(placeId ?? -1),
     queryFn: () => fetchPlaceDetail(placeId as number),
-    enabled: placeId !== null,
+    enabled: isAuthenticated && placeId !== null,
   });
 }
 

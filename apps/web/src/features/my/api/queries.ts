@@ -1,5 +1,6 @@
 import type { PickedImage } from '@nook/bridge-contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import {
   fetchMyProfile,
   requestLogout,
@@ -13,9 +14,12 @@ export const myQueryKeys = {
 };
 
 export function useMyProfile() {
+  const isAuthenticated = useIsAuthenticated();
+
   return useQuery({
     queryKey: myQueryKeys.profile,
     queryFn: fetchMyProfile,
+    enabled: isAuthenticated,
   });
 }
 

@@ -27,6 +27,18 @@ export function LoginPage() {
         paddingBottom: 'max(1rem, calc(0.5rem + env(safe-area-inset-bottom)))',
       }}
     >
+      {/* 로그인하지 않고 앱을 둘러보는 출구. 계정이 필요한 동작에서만 로그인 월이 뜨므로
+          여기서 나가도 지도·아카이브는 그대로 볼 수 있다. */}
+      <div className="flex justify-end px-4 pt-2">
+        <Link
+          to="/map"
+          replace
+          className="rounded-sm px-1 py-1 text-b2 text-gray-50 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+        >
+          둘러보기
+        </Link>
+      </div>
+
       <OnboardingCarousel />
 
       <div className="flex flex-col gap-2 px-4 pt-8">

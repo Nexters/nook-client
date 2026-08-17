@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
+import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { PlaceCard } from '@/features/place';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
@@ -25,6 +26,7 @@ import {
 import { ArchiveDetailMenu } from './components/ArchiveDetailMenu';
 import { ArchiveEmpty } from './components/ArchiveEmpty';
 import { CollectionCard } from './components/CollectionCard';
+import { GUEST_ARCHIVE } from './guest';
 
 type DetailTab = 'posts' | 'places';
 
@@ -44,9 +46,14 @@ export function ArchiveDetailPage() {
   const [selectedPostIds, setSelectedPostIds] = useState<ReadonlySet<number>>(new Set());
   const [deletePostsPopupOpen, setDeletePostsPopupOpen] = useState(false);
 
-  // 상세 전용 API가 아직 없어 목록 캐시에서 고른다.
+  const isAuthenticated = useIsAuthenticated();
+
+  // 상세 전용 API가 아직 없어 목록 캐시에서 고른다. 게스트는 그 쿼리가 막혀 있어
+  // 목록 화면과 같은 기본 아카이브를 그대로 쓴다(빈 상세로 열린다).
   const { data: archives, isPending } = useArchives();
-  const archive = archives?.find((item) => String(item.id) === archiveId);
+  const archive = isAuthenticated
+    ? archives?.find((item) => String(item.id) === archiveId)
+    : GUEST_ARCHIVE;
 
   const postsQuery = useArchivePosts(archive?.id);
   const posts = postsQuery.data?.posts;
@@ -58,7 +65,8 @@ export function ArchiveDetailPage() {
 
   // 게시물이 하나도 없으면 시안대로 탭 없이 빈 상태만 보여준다 — 장소는 게시물에서
   // 파생되므로 게시물이 없으면 장소도 없다. 로딩 중(undefined)에는 판단을 미룬다.
-  const isEmpty = posts !== undefined && posts.length === 0;
+  // 게스트는 게시물 쿼리도 막혀 있어 영영 undefined 다 — 빈 아카이브로 확정한다.
+  const isEmpty = !isAuthenticated || (posts !== undefined && posts.length === 0);
 
   // 선택 모드 동안은 하단 탭바 대신 삭제 CTA 바가 자리를 차지한다.
   const { setHidden: setBottomMenuHidden } = useBottomMenuVisibility();
@@ -112,7 +120,7 @@ export function ArchiveDetailPage() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  if (isPending) return null;
+  if (isAuthenticated && isPending) return null;
 
   if (!archive) {
     return (
@@ -143,13 +151,17 @@ export function ArchiveDetailPage() {
             // 선택 모드의 뒤로가기는 페이지 이탈이 아니라 모드 종료다.
             left={<BackButton onClick={selecting ? exitSelecting : undefined} />}
             right={
-              <ArchiveDetailMenu
-                onEdit={() => navigate(`/archive/${archive.id}/edit`)}
-                // 선택 삭제는 게시물 전용이다 — 장소 탭에서는 항목 자체를 내리고,
-                // 탭을 바꿔서 억지로 되돌리지도 않는다(아카이브에서 장소를 빼는 API 가 없다).
-                onSelectDelete={activeTab === 'posts' ? () => setSelecting(true) : undefined}
-                onDelete={() => setDeletePopupOpen(true)}
-              />
+              // 게스트에게는 더보기 자체를 내린다 — 편집·삭제·선택 삭제가 전부 계정
+              // 동작이라, 열어봐야 누르는 족족 월이 뜨는 메뉴가 된다.
+              isAuthenticated ? (
+                <ArchiveDetailMenu
+                  onEdit={() => navigate(`/archive/${archive.id}/edit`)}
+                  // 선택 삭제는 게시물 전용이다 — 장소 탭에서는 항목 자체를 내리고,
+                  // 탭을 바꿔서 억지로 되돌리지도 않는다(아카이브에서 장소를 빼는 API 가 없다).
+                  onSelectDelete={activeTab === 'posts' ? () => setSelecting(true) : undefined}
+                  onDelete={() => setDeletePopupOpen(true)}
+                />
+              ) : null
             }
           />
 
