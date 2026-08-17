@@ -215,6 +215,8 @@ describe('아카이브 화면', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
     await vi.waitFor(() => expect(mocks.deleteArchive.mock.calls[0]?.[0]).toBe(1));
+    // 목록으로 돌아간 뒤에도 무엇을 지웠는지 이름으로 알려준다.
+    expect(await screen.findByText('"카페" 아카이브가 삭제 됐어요.')).toBeInTheDocument();
   });
 
   it('선택 삭제는 고른 게시물을 확인 팝업을 거쳐 일괄 삭제 요청으로 보낸다', async () => {
@@ -318,5 +320,6 @@ describe('아카이브 화면', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
     await vi.waitFor(() => expect(mocks.deleteArchive.mock.calls[0]?.[0]).toBe(1));
+    expect(await screen.findByText('"카페" 아카이브가 삭제 됐어요.')).toBeInTheDocument();
   });
 });

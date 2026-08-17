@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { cn } from '@/shared/lib/utils';
+import { useToast } from '@/shared/toast';
 import {
   ARCHIVE_COLORS,
   type ArchiveColor,
@@ -33,6 +34,7 @@ export interface ArchiveFormPageProps {
 export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
   const { archiveId } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   useHideBottomMenu();
 
   const editing = mode === 'edit';
@@ -109,6 +111,7 @@ export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
       onSuccess: () => {
         capturePostHogEvent('archive_deleted', { archive_id: archive.id });
         navigate('/archive', { replace: true });
+        showToast({ variant: 'simple', title: `"${archive.name}" 아카이브가 삭제 됐어요.` });
       },
     });
   };

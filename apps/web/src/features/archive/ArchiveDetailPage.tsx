@@ -363,7 +363,10 @@ export function ArchiveDetailPage() {
         variant="warning"
         onConfirm={() =>
           deleteArchive.mutate(archive.id, {
-            onSuccess: () => navigate('/archive', { replace: true }),
+            onSuccess: () => {
+              navigate('/archive', { replace: true });
+              showToast({ variant: 'simple', title: `"${archive.name}" 아카이브가 삭제 됐어요.` });
+            },
           })
         }
       />
