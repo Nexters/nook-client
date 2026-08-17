@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { useAppShellContainer } from '@/app/providers';
-import emptySavedPlacesIllustration from '@/assets/illustrations/empty-saved-places.svg';
+import emptyIllustration from '@/assets/images/200_empty.svg';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { getPlaceSheetLayoutClassNames } from '@/features/map/components/place-sheet-layout';
@@ -24,7 +24,7 @@ const SCROLL_HIDE_HANDLE_THRESHOLD = 4;
 function EmptySavedPlaces() {
   return (
     <div className="flex flex-1 flex-col items-center mt-[60px] gap-5">
-      <img src={emptySavedPlacesIllustration} alt="" className="size-[200px]" />
+      <img src={emptyIllustration} alt="" className="size-[200px]" />
       <p className="text-b1 font-medium text-gray-70">아직 저장한 공간이 없어요</p>
     </div>
   );
