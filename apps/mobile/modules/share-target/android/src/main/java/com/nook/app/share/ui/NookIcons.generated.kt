@@ -4,7 +4,9 @@ package com.nook.app.share.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
@@ -1808,7 +1810,9 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             drawPath(path = path59, color = Color(0xFFCACED4))
         }
         NookIconName.Icon200Fail -> {
-            val path0 = Path().apply {
+            drawRoundRect(color = Color(0xFFEFF2F6), topLeft = Offset(20.3164f, 2.55762f), size = Size(155.908f, 194.885f), cornerRadius = CornerRadius(7.79538f))
+            drawRoundRect(color = Color(0xFFDEE2E9), topLeft = Offset(30.0605f, 12.3018f), size = Size(136.419f, 136.419f), cornerRadius = CornerRadius(3.89769f))
+            val path2 = Path().apply {
 
                 moveTo(140.927f, 95.0899f)
                 lineTo(140.927f, 92.5555f)
@@ -1899,24 +1903,24 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
                 lineTo(108.14f, 87.4839f)
                 close()
             }
-            drawPath(path = path0, color = Color(0xFFC9CFD7))
-            val path1 = Path().apply {
+            drawPath(path = path2, color = Color(0xFFC9CFD7))
+            val path3 = Path().apply {
 
                 moveTo(60.8956f, 177.994f)
                 cubicTo(46.7913f, 173.351f, 24.3031f, 158.868f, 35.9268f, 147.336f)
                 cubicTo(49.4749f, 133.894f, 64.9405f, 169.6f, 28.475f, 166.248f)
                 cubicTo(0.0037419f, 163.631f, 4.40736f, 136.249f, 10.1681f, 122.886f)
             }
-            drawPath(path = path1, color = Color(0xFFC9CFD7), style = Stroke(width = 2.33861f, cap = StrokeCap.Round))
-            val path2 = Path().apply {
+            drawPath(path = path3, color = Color(0xFFC9CFD7), style = Stroke(width = 2.33861f, cap = StrokeCap.Round))
+            val path4 = Path().apply {
 
                 moveTo(187.754f, 98.001f)
                 cubicTo(181.257f, 112.942f, 163.36f, 139.973f, 147.802f, 124.31f)
                 cubicTo(131.235f, 107.631f, 168.681f, 96.084f, 162.978f, 127.794f)
                 cubicTo(160.307f, 142.647f, 148.791f, 153.403f, 132.959f, 157.166f)
             }
-            drawPath(path = path2, color = Color(0xFFC9CFD7), style = Stroke(width = 2.33861f, cap = StrokeCap.Round))
-            val path3 = Path().apply {
+            drawPath(path = path4, color = Color(0xFFC9CFD7), style = Stroke(width = 2.33861f, cap = StrokeCap.Round))
+            val path5 = Path().apply {
 
                 moveTo(72.906f, 173.763f)
                 cubicTo(75.6954f, 173.504f, 78.8523f, 178.697f, 78.8102f, 182.287f)
@@ -1924,8 +1928,8 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
                 cubicTo(70.1538f, 177.746f, 70.1165f, 174.022f, 72.906f, 173.763f)
                 close()
             }
-            drawPath(path = path3, color = Color(0xFFDDE1E8))
-            val path4 = Path().apply {
+            drawPath(path = path5, color = Color(0xFFDDE1E8))
+            val path6 = Path().apply {
 
                 moveTo(68.1658f, 188.252f)
                 cubicTo(70.2625f, 190.11f, 75.8786f, 187.788f, 77.9671f, 184.867f)
@@ -1933,8 +1937,20 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
                 cubicTo(68.3004f, 183.413f, 66.0692f, 186.394f, 68.1658f, 188.252f)
                 close()
             }
-            drawPath(path = path4, color = Color(0xFFDDE1E8))
-            val path5 = Path().apply {
+            drawPath(path = path6, color = Color(0xFFDDE1E8))
+            val path7 = Path().apply {
+
+                moveTo(68.6159f, 178.951f)
+                lineTo(79.5068f, 182.5147f)
+                cubicTo(80.2191f, 182.7478f, 80.6076f, 183.5141f, 80.3745f, 184.2264f)
+                cubicTo(80.1414f, 184.9386f, 79.3751f, 185.3271f, 78.6628f, 185.094f)
+                lineTo(67.7719f, 181.5303f)
+                cubicTo(67.0596f, 181.2973f, 66.6711f, 180.5309f, 66.9042f, 179.8187f)
+                cubicTo(67.1373f, 179.1064f, 67.9036f, 178.7179f, 68.6159f, 178.951f)
+                close()
+            }
+            drawPath(path = path7, color = Color(0xFFC1C9D4))
+            val path8 = Path().apply {
 
                 moveTo(182.68f, 86.1101f)
                 cubicTo(182.153f, 83.3588f, 187.016f, 79.7144f, 190.593f, 79.4089f)
@@ -1942,8 +1958,8 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
                 cubicTo(186.911f, 88.4641f, 183.208f, 88.8615f, 182.68f, 86.1101f)
                 close()
             }
-            drawPath(path = path5, color = Color(0xFFE6EBF1))
-            val path6 = Path().apply {
+            drawPath(path = path8, color = Color(0xFFE6EBF1))
+            val path9 = Path().apply {
 
                 moveTo(197.56f, 89.4271f)
                 cubicTo(199.206f, 87.1605f, 196.352f, 81.7955f, 193.242f, 79.9993f)
@@ -1951,7 +1967,19 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
                 cubicTo(192.73f, 89.7614f, 195.914f, 91.6937f, 197.56f, 89.4271f)
                 close()
             }
-            drawPath(path = path6, color = Color(0xFFE6EBF1))
+            drawPath(path = path9, color = Color(0xFFE6EBF1))
+            val path10 = Path().apply {
+
+                moveTo(188.2603f, 89.8797f)
+                lineTo(190.7536f, 78.695f)
+                cubicTo(190.9167f, 77.9635f, 191.6418f, 77.5028f, 192.3733f, 77.6658f)
+                cubicTo(193.1048f, 77.8289f, 193.5656f, 78.554f, 193.4025f, 79.2855f)
+                lineTo(190.9092f, 90.4702f)
+                cubicTo(190.7461f, 91.2016f, 190.0209f, 91.6624f, 189.2894f, 91.4994f)
+                cubicTo(188.558f, 91.3363f, 188.0972f, 90.6111f, 188.2603f, 89.8797f)
+                close()
+            }
+            drawPath(path = path10, color = Color(0xFFCCD3DD))
         }
         NookIconName.Icon20ArrowUp -> {
             val path0 = Path().apply {
@@ -2212,7 +2240,8 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             drawPath(path = path0, color = Color(0xFF848B96))
         }
         NookIconName.Icon20Images -> {
-            val path0 = Path().apply {
+            drawRoundRect(color = Color(0xFFFFFFFF), topLeft = Offset(3f, 3f), size = Size(12f, 12f), cornerRadius = CornerRadius(2f))
+            val path1 = Path().apply {
 
                 moveTo(16.3008f, 14f)
                 lineTo(16.3008f, 7f)
@@ -2227,7 +2256,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
                 cubicTo(15.2712f, 16.2998f, 16.3008f, 15.2703f, 16.3008f, 14f)
                 close()
             }
-            drawPath(path = path0, color = Color(0xFFFFFFFF))
+            drawPath(path = path1, color = Color(0xFFFFFFFF))
         }
         NookIconName.Icon20Next -> {
             val path0 = Path().apply {
@@ -3944,7 +3973,9 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             drawPath(path = path6, color = Color(0xFF1F1F1F))
         }
         NookIconName.Icon48Up -> {
-            val path0 = Path().apply {
+            drawRoundRect(color = Color(0xFFFFFFFF), topLeft = Offset(0.5f, 0.5f), size = Size(47f, 47f), cornerRadius = CornerRadius(23.5f))
+            drawRoundRect(color = Color(0xFFE4E6E9), topLeft = Offset(0.5f, 0.5f), size = Size(47f, 47f), cornerRadius = CornerRadius(23.5f), style = Stroke(width = 1f, cap = StrokeCap.Butt))
+            val path2 = Path().apply {
 
                 moveTo(27.5f, 20.5f)
                 lineTo(24f, 16.5f)
@@ -3952,7 +3983,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
                 moveTo(24f, 16.5f)
                 lineTo(24f, 31.5f)
             }
-            drawPath(path = path0, color = Color(0xFF4E5662), style = Stroke(width = 1.5f, cap = StrokeCap.Round))
+            drawPath(path = path2, color = Color(0xFF4E5662), style = Stroke(width = 1.5f, cap = StrokeCap.Round))
         }
         NookIconName.CheckBtnSelected -> {
             drawCircle(color = Color(0xFF1F1F1F), center = Offset(12f, 12f), radius = 11f)
