@@ -90,6 +90,23 @@ describe('PlaceDirectInputDrawer', () => {
     expect(screen.getByPlaceholderText('장소명을 입력해주세요')).toBeInTheDocument();
   });
 
+  it('검색어가 있으면 포커스 없이도 지우기 버튼이 보이고, 누르면 입력이 초기화된다', async () => {
+    renderWithQuery(
+      <PlaceDirectInputDrawer open onOpenChange={() => {}} onPlaceConfirmed={() => {}} />,
+    );
+
+    const input = screen.getByPlaceholderText('장소명을 입력해주세요');
+    expect(screen.queryByRole('button', { name: '입력 지우기' })).not.toBeInTheDocument();
+
+    // 값만 바꾸고 포커스는 주지 않는다 — 모바일에서 키보드를 내린(blur) 상태를 흉내낸다.
+    fireEvent.change(input, { target: { value: '앤미' } });
+    const clear = screen.getByRole('button', { name: '입력 지우기' });
+
+    fireEvent.click(clear);
+    expect(input).toHaveValue('');
+    expect(screen.queryByRole('button', { name: '입력 지우기' })).not.toBeInTheDocument();
+  });
+
   it('검색어를 입력하면 디바운스 후 검색 API 결과 목록이 뜬다', async () => {
     renderWithQuery(
       <PlaceDirectInputDrawer open onOpenChange={() => {}} onPlaceConfirmed={() => {}} />,

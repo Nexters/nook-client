@@ -61,7 +61,6 @@ function PlaceDirectInputDrawer({
 }: PlaceDirectInputDrawerProps) {
   const { showToast } = useToast();
   const [query, setQuery] = useState('');
-  const [focused, setFocused] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<SearchedPlace | null>(null);
   const [activeSnapPoint, setActiveSnapPoint] = useState<number | string | null>(
     PLACE_LIST_SNAP_POINTS[0],
@@ -164,19 +163,18 @@ function PlaceDirectInputDrawer({
             // 않는 죽은 영역이 된다. 래퍼 자체를 보이는 비율(90dvh)만큼만 잡아야 내부
             // `overflow-y-auto` 가 실제로 전부 스크롤해서 보여줄 수 있다.
             <div className="flex h-[90dvh] flex-col px-4 pb-11">
-              {/* 앞에 돋보기 아이콘 슬롯이 필요해 공용 `Input` (@/shared/ui) 을 못 쓰고 직접 구현한다 —
-                  대신 포커스 보더/클리어 버튼 동작은 `Input` 과 동일하게 맞춘다. */}
+              {/* 앞에 돋보기 아이콘 슬롯이 필요해 공용 `Input` (@/shared/ui) 을 못 쓰고 직접 구현한다.
+                  클리어 버튼은 `Input`(포커스 중에만)과 달리 값이 있으면 항상 보인다 — 모바일에서
+                  키보드를 내리면 blur 로 X 가 사라져, 남은 검색어를 지울 방법이 없어지기 때문. */}
               <div className="flex h-11 w-full shrink-0 items-center gap-2 rounded-lg border border-gray-30 px-3 transition-colors focus-within:border-gray-100">
                 <Icon18MagnifyingGlass className="shrink-0" />
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  onFocus={() => setFocused(true)}
-                  onBlur={() => setFocused(false)}
                   placeholder="장소명을 입력해주세요"
                   className="min-w-0 flex-1 bg-transparent text-b2 font-medium text-gray-100 outline-none placeholder:text-gray-50"
                 />
-                {focused && query.length > 0 ? (
+                {query.length > 0 ? (
                   <button
                     type="button"
                     aria-label="입력 지우기"
@@ -191,8 +189,8 @@ function PlaceDirectInputDrawer({
 
               {results.length > 0 ? (
                 <ul className="mt-5 flex w-full flex-1 flex-col overflow-y-auto overscroll-contain">
-                  {results.map((place, index) => (
-                    <li key={place.id} className={cn(index > 0 && 'border-t border-gray-10')}>
+                  {results.map((place) => (
+                    <li key={place.id}>
                       <button
                         type="button"
                         onClick={() => {
@@ -203,13 +201,13 @@ function PlaceDirectInputDrawer({
                           setSelectedPlace(place);
                           setActiveSnapPoint(PLACE_DETAIL_SNAP_POINTS[0]);
                         }}
-                        className="flex w-full items-center gap-2 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset"
+                        className="flex w-full items-center gap-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset"
                       >
                         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-gray-10">
                           <Icon16Location />
                         </span>
                         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                          <div className="flex items-end gap-0.5">
+                          <div className="flex items-center gap-0.5">
                             <span className="truncate text-b2 font-semibold text-gray-90">
                               {place.name}
                             </span>
