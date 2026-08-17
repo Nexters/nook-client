@@ -17,6 +17,7 @@ vi.mock('@/native-bridge', () => ({
 }));
 
 vi.mock('@/features/auth/session/AuthSessionProvider', () => ({
+  useIsAuthenticated: () => sessionState.status === 'authenticated',
   useAuthSession: () => ({
     status: sessionState.status,
     accessToken: sessionState.status === 'authenticated' ? 'access-token' : null,

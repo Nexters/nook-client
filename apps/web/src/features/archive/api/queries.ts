@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { mapQueryKeys } from '@/features/map/api/queries';
 import {
   createArchive,
@@ -21,9 +22,13 @@ const POLL_INTERVAL_MS = 3000;
 
 /** 아카이브 목록. 목록/상세/편집 화면이 같은 캐시를 공유한다. */
 export function useArchives() {
+  const isAuthenticated = useIsAuthenticated();
+
   return useQuery({
     queryKey: archiveQueryKeys.list,
     queryFn: fetchArchives,
+    // 게스트 목록은 서버가 아니라 화면이 안내용 기본 아카이브 하나로 채운다(ArchivePage).
+    enabled: isAuthenticated,
   });
 }
 
@@ -34,6 +39,8 @@ export function useArchives() {
  * 처리 중인 게시물이 하나라도 있으면 끝날 때까지 폴링해 카드를 실시간으로 채운다.
  */
 export function useArchivePosts(archiveId: number | undefined) {
+  const isAuthenticated = useIsAuthenticated();
+
   return useInfiniteQuery({
     queryKey: archiveQueryKeys.posts(archiveId ?? -1),
     queryFn: ({ pageParam }) => fetchArchivePosts(archiveId as number, pageParam),
@@ -44,7 +51,7 @@ export function useArchivePosts(archiveId: number | undefined) {
       ownerNickname: data.pages[0]?.ownerNickname,
       totalElements: data.pages[0]?.totalElements ?? 0,
     }),
-    enabled: archiveId !== undefined,
+    enabled: isAuthenticated && archiveId !== undefined,
     refetchInterval: (query) => {
       const anyProcessing = query.state.data?.pages.some((page) =>
         page.posts.some((post) => post.processingState === 'processing'),
@@ -56,6 +63,8 @@ export function useArchivePosts(archiveId: number | undefined) {
 
 /** 아카이브에 저장된 장소 — 상세 "장소" 탭 목록. 게시물처럼 페이지를 이어 붙인다. */
 export function useArchivePlaces(archiveId: number | undefined) {
+  const isAuthenticated = useIsAuthenticated();
+
   return useInfiniteQuery({
     queryKey: archiveQueryKeys.places(archiveId ?? -1),
     queryFn: ({ pageParam }) => fetchArchivePlaces(archiveId as number, pageParam),
@@ -65,7 +74,7 @@ export function useArchivePlaces(archiveId: number | undefined) {
       places: data.pages.flatMap((page) => page.places),
       totalElements: data.pages[0]?.totalElements ?? 0,
     }),
-    enabled: archiveId !== undefined,
+    enabled: isAuthenticated && archiveId !== undefined,
   });
 }
 

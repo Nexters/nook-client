@@ -8,8 +8,8 @@ import { ArchivePage } from '@/features/archive/ArchivePage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import {
   AuthEntryRedirect,
+  AwaitSession,
   RedirectAuthenticated,
-  RequireAuth,
 } from '@/features/auth/session/AuthRouteGuards';
 import { MapPage } from '@/features/map/MapPage';
 import { ContactPage } from '@/features/my/ContactPage';
@@ -67,9 +67,9 @@ export const router = createBrowserRouter([
       },
       {
         element: (
-          <RequireAuth>
+          <AwaitSession>
             <ProtectedAppLayout />
-          </RequireAuth>
+          </AwaitSession>
         ),
         children: [
           {

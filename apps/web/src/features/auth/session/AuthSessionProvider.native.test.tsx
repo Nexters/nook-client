@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { RequireAuth } from '@/features/auth/session/AuthRouteGuards';
+import { AwaitSession } from '@/features/auth/session/AuthRouteGuards';
 import { AuthSessionProvider, useAuthSession } from '@/features/auth/session/AuthSessionProvider';
 
 const holder = vi.hoisted(() => ({
@@ -64,9 +64,9 @@ describe('AuthSessionProvider 네이티브 세션 만료', () => {
             <Route
               path="/map"
               element={
-                <RequireAuth>
+                <AwaitSession>
                   <SessionProbe />
-                </RequireAuth>
+                </AwaitSession>
               }
             />
             <Route path="/login" element={<p>로그인 화면</p>} />
@@ -86,6 +86,9 @@ describe('AuthSessionProvider 네이티브 세션 만료', () => {
     expect(refreshedToken).toBeNull();
     expect(holder.cancelQueries).toHaveBeenCalledOnce();
     expect(holder.clearQueryCache).toHaveBeenCalledOnce();
-    expect(screen.getByText('로그인 화면')).toBeInTheDocument();
+    // 만료됐다고 로그인 화면으로 쫓아내지 않는다 — 게스트로 내려앉아 보던 화면에 그대로
+    // 남고, 계정이 필요한 동작을 다시 시도할 때 로그인 월이 뜬다.
+    expect(screen.getByText('보호 화면: anonymous')).toBeInTheDocument();
+    expect(screen.queryByText('로그인 화면')).not.toBeInTheDocument();
   });
 });
