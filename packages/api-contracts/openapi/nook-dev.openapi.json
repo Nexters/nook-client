@@ -685,6 +685,43 @@
         ],
         "type": "object"
       },
+      "ApiResponseSaveSharedPostResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SaveSharedPostResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
       "ApiResponseSocialAuthResponse": {
         "description": "공통 API 응답",
         "properties": {
@@ -2554,6 +2591,34 @@
         ],
         "type": "object"
       },
+      "SaveSharedPostRequest": {
+        "properties": {
+          "groupIds": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "groupIds"
+        ],
+        "type": "object"
+      },
+      "SaveSharedPostResponse": {
+        "properties": {
+          "postId": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "postId"
+        ],
+        "type": "object"
+      },
       "SocialAuthRequest": {
         "properties": {
           "accessToken": {
@@ -4235,6 +4300,59 @@
         "summary": "공유 그룹을 내 아카이브에 추가",
         "tags": [
           "Shared Group"
+        ]
+      }
+    },
+    "/api/v1/shared-posts/{shareToken}/{sharedPostId}/save": {
+      "post": {
+        "operationId": "save",
+        "parameters": [
+          {
+            "description": "공유 링크 토큰",
+            "in": "path",
+            "name": "shareToken",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "공유자의 저장 게시물 식별자",
+            "in": "path",
+            "name": "sharedPostId",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveSharedPostRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSaveSharedPostResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "공유 게시물을 내 아카이브에 저장",
+        "tags": [
+          "Shared Post"
         ]
       }
     }
