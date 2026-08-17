@@ -104,17 +104,23 @@ describe('인증 라우트 가드', () => {
     expect(screen.getByText('앱 화면')).toBeInTheDocument();
   });
 
-  it.each(['anonymous', 'authenticated'] as const)(
-    '%s 사용자가 루트에 접근하면 지도로 이동한다',
-    (status) => {
-      session.status = status;
+  it('게스트가 루트에 접근하면 온보딩·로그인 화면을 먼저 본다', () => {
+    session.status = 'anonymous';
 
-      renderRoutes('/');
+    renderRoutes('/');
 
-      expect(screen.getByText('앱 화면')).toBeInTheDocument();
-      expect(screen.getByTestId('location')).toHaveTextContent('/map');
-    },
-  );
+    expect(screen.getByText('로그인 화면')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/login');
+  });
+
+  it('인증 사용자가 루트에 접근하면 지도로 바로 간다', () => {
+    session.status = 'authenticated';
+
+    renderRoutes('/');
+
+    expect(screen.getByText('앱 화면')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/map');
+  });
 
   it('인증 사용자가 로그인 화면에 접근하면 지도로 이동한다', () => {
     session.status = 'authenticated';

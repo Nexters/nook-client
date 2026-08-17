@@ -8,8 +8,8 @@ const ENTRY_PATH = '/map';
  * 세션 판별이 끝날 때까지만 렌더를 미룬다.
  *
  * 게스트(anonymous)도 앱을 둘러볼 수 있어야 해서 여기서 로그인으로 돌려보내지 않는다 —
- * 계정이 필요한 동작은 화면마다 로그인 월(`useLoginGate`)이 막는다. 로그인 화면은
- * 이제 앱의 입구가 아니라 그 월에서만 도달하는 화면이다.
+ * 계정이 필요한 동작은 화면마다 로그인 월(`useLoginGate`)이 막는다. 로그인 화면을 거쳐
+ * 들어오든("둘러보기") 월에서 나갔다 돌아오든, 이 안쪽 화면들은 늘 열려 있다.
  */
 export function AwaitSession({ children }: { children: ReactNode }) {
   const { status } = useAuthSession();
@@ -32,10 +32,13 @@ export function RedirectAuthenticated({ children }: { children: ReactNode }) {
   return children;
 }
 
-/** 루트(`/`) 진입. 로그인 여부와 무관하게 지도에서 시작한다. */
+/**
+ * 루트(`/`) 진입. 게스트는 온보딩과 로그인 화면을 먼저 보고, 거기 "둘러보기" 로 앱에
+ * 들어온다 — 앱이 무엇을 하는 물건인지 한 번은 보여주고 나서 선택하게 하려는 것이다.
+ */
 export function AuthEntryRedirect() {
   const { status } = useAuthSession();
 
   if (status === 'bootstrapping') return null;
-  return <Navigate to={ENTRY_PATH} replace />;
+  return <Navigate to={status === 'authenticated' ? ENTRY_PATH : '/login'} replace />;
 }
