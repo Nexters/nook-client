@@ -43,7 +43,6 @@ function MemoSheet({ open, onOpenChange, memo, onSave }: MemoSheetProps) {
         <Button
           size="lg"
           fullWidth
-          disabled={draft.trim().length === 0}
           onClick={() => {
             onSave(draft.trim());
             onOpenChange(false);
