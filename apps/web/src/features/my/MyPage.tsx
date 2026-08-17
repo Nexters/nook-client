@@ -5,7 +5,7 @@ import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { SlideScreen, useSlideScreen } from '@/app/slide-screen';
 import { useArchives } from '@/features/archive/api/queries';
-import { useAuthSession } from '@/features/auth/session/AuthSessionProvider';
+import { useAuthSession, useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { useLogout, useMyProfile, useSaveProfile, useWithdraw } from '@/features/my/api/queries';
 import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
@@ -28,6 +28,7 @@ type Dialog = 'logout' | 'withdraw' | null;
 
 export function MyPage() {
   const navigate = useNavigate();
+  const isAuthenticated = useIsAuthenticated();
   // 뒤로가기(버튼·하드웨어 백·스와이프)로 닫혀야 해서 히스토리 엔트리로 승격한다.
   const [editingProfile, openEditingProfile, closeEditingProfile] =
     useHistoryBackedFlag('profileEdit');
@@ -204,9 +205,19 @@ export function MyPage() {
             className="bg-gray-10"
             style={{ paddingBottom: 'calc(3.75rem + env(safe-area-inset-bottom))' }}
           >
-            {/* 로딩 중에는 빈 이름이 잠깐 스쳐 지나가지 않도록 카드를 그리지 않는다. */}
-            {/* 로딩 중에도 카드 자리를 같은 크기로 채워 레이아웃 시프트를 막는다. */}
-            {profilePending ? (
+            {/* 게스트에게는 프로필 자리에 로그인 안내를 둔다 — 마이 탭을 통째로 막으면
+                게스트가 앱 안에서 읽을 수 있는 화면(약관·개인정보·문의)까지 닫혀버린다. */}
+            {!isAuthenticated ? (
+              <div className="mx-4 flex flex-col items-center gap-4 rounded-sm bg-gray-0 px-4 py-6">
+                <p className="text-center text-b2 text-gray-60">
+                  로그인하고 나만의 아카이브를 만들어보세요.
+                </p>
+                <Button size="lg" fullWidth onClick={() => navigate('/login')}>
+                  로그인하기
+                </Button>
+              </div>
+            ) : /* 로딩 중에도 카드 자리를 같은 크기로 채워 레이아웃 시프트를 막는다. */
+            profilePending ? (
               <div className="mx-4 flex h-25 items-center gap-4 rounded-sm bg-gray-0 px-4">
                 <Skeleton className="size-15 shrink-0 rounded-full" />
                 <div className="min-w-0 flex-1">
@@ -240,9 +251,11 @@ export function MyPage() {
             )}
 
             <div className="mt-6 flex flex-col gap-5 px-4">
-              <MyMenuSection title="계정 정보">
-                <MyMenuRow icon={<Icon16User />} label="로그인 정보" value={providerLabel} />
-              </MyMenuSection>
+              {isAuthenticated ? (
+                <MyMenuSection title="계정 정보">
+                  <MyMenuRow icon={<Icon16User />} label="로그인 정보" value={providerLabel} />
+                </MyMenuSection>
+              ) : null}
 
               <MyMenuSection title="앱 정보">
                 {/* TODO: "최신버전" 배지는 아직 하드코딩이다 — 스토어 최신 버전을 알려주는
@@ -271,7 +284,11 @@ export function MyPage() {
               </MyMenuSection>
             </div>
 
-            <div className="flex h-14 items-center justify-center px-4 text-b2 font-semibold">
+            {/* 로그아웃·탈퇴는 계정이 있어야 의미가 있다 — 게스트에게는 아예 보이지 않는다. */}
+            <div
+              className="flex h-14 items-center justify-center px-4 text-b2 font-semibold"
+              hidden={!isAuthenticated}
+            >
               <button
                 type="button"
                 onClick={() => setDialog('logout')}

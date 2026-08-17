@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigationType, useSearchParams } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
+import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
+import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
@@ -55,7 +57,12 @@ export function MapPage() {
   // 클릭 등)로 들어와도 핀을 직접 클릭한 것과 같고, 아카이브 상세 등으로 나갔다 뒤로
   // 돌아오면 히스토리 엔트리의 URL 로 보던 장소 상세가 그대로 복원되며, 새로고침에도
   // 살아남는다. 상세를 펼쳐 본(`?snap=`) 높이도 같은 이유로 URL 에 실려 함께 복원된다.
-  const selectedPlaceId = parsePlaceIdParam(searchParams.get('placeId'));
+  const isAuthenticated = useIsAuthenticated();
+  const { open: openLoginWall, wall: loginWall } = useLoginGate();
+  const requestedPlaceId = parsePlaceIdParam(searchParams.get('placeId'));
+  // 게스트는 상세 쿼리가 막혀 있어 그릴 내용이 없다 — 선택을 무시해 평범한 지도로 두고,
+  // 대신 아래 effect 가 왜 안 열리는지 월로 알려준다(취소해도 빈 상세에 갇히지 않는다).
+  const selectedPlaceId = isAuthenticated ? requestedPlaceId : null;
   const [snap, setSnap] = useState<number | string | null>(() => {
     if (selectedPlaceId === null) return PEEK_SNAP_POINT;
     return parseSnapParam(searchParams.get('snap')) ?? DETAIL_PAGE_SNAP_POINT;
@@ -72,6 +79,12 @@ export function MapPage() {
   // — 그래서 실제 idle을 영영 못 받아도 핀 조회 자체가 멈추지 않는다.
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   const [isSearchMode, setIsSearchMode] = useState(false);
+
+  // 공유 링크(`?placeId=`)로 들어온 게스트에게 왜 상세가 안 열리는지 알려준다.
+  useEffect(() => {
+    if (isAuthenticated || requestedPlaceId === null) return;
+    openLoginWall('저장한 장소를 보려면 로그인이 필요해요');
+  }, [isAuthenticated, requestedPlaceId, openLoginWall]);
 
   const fallbackCenter =
     location.status === 'resolved' ? (location.coords ?? FALLBACK_CENTER) : FALLBACK_CENTER;
@@ -157,6 +170,12 @@ export function MapPage() {
   }
 
   function handleSnapChange(next: number | string | null) {
+    // 게스트가 시트를 끌어올리면 목록 대신 월이 뜬다. snap 은 그대로 두므로 시트는 peek 에 남는다.
+    if (!isAuthenticated) {
+      openLoginWall('저장한 공간을 보려면 로그인이 필요해요');
+      return;
+    }
+
     setSnap(next);
     // peek(최소 높이)까지 내려가면 상세를 접고 기본 목록으로 되돌린다.
     if (next === PEEK_SNAP_POINT) {
@@ -185,6 +204,12 @@ export function MapPage() {
   }
 
   function handleEnterSearch() {
+    // 검색은 스냅을 직접 올려서 handleSnapChange 를 타지 않는다 — 여기서도 따로 막는다.
+    if (!isAuthenticated) {
+      openLoginWall('공간을 검색하려면 로그인이 필요해요');
+      return;
+    }
+
     setIsSearchMode(true);
     // 진입 시 full 로 강제하지 않는다 — 이미 full 이면 그대로 두고, 그 아래(peek 등)에서
     // 들어오면 탐색 스냅의 중간 단계(mid)까지만 올린다. 모드 전환과 스냅 변경은 같은
@@ -236,6 +261,7 @@ export function MapPage() {
           onEnterSearch={handleEnterSearch}
           onExitSearch={handleExitSearch}
         />
+        {loginWall}
       </div>
     </MainTabPageLayout>
   );

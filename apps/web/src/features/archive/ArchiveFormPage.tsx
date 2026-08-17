@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
+import { EntryLoginWall } from '@/features/auth/components/LoginWall';
+import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
@@ -37,6 +39,7 @@ export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
   const { showToast } = useToast();
   useHideBottomMenu();
 
+  const isAuthenticated = useIsAuthenticated();
   const editing = mode === 'edit';
   const { data: archives } = useArchives();
   const archive = editing ? archives?.find((item) => String(item.id) === archiveId) : undefined;
@@ -115,6 +118,18 @@ export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
       },
     });
   };
+
+  // 목록의 FAB·더보기 메뉴에서 이미 막지만 URL 로 직접 올 수 있다. 계정 없이는 저장할
+  // 곳이 없는 화면이라 진입 자체를 월로 막고, 취소하면 왔던 화면으로 돌려보낸다.
+  if (!isAuthenticated) {
+    return (
+      <EntryLoginWall
+        description={
+          editing ? '아카이브 편집에 로그인이 필요해요' : '아카이브를 만들려면 로그인이 필요해요'
+        }
+      />
+    );
+  }
 
   return (
     <main
