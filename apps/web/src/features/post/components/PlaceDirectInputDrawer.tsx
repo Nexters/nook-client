@@ -3,7 +3,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PlacePreviewMap } from '@/features/map/components/PlacePreviewMap';
 import type { Post } from '@/features/post';
-import { Icon16Location, Icon18MagnifyingGlass, Icon24Delete } from '@/shared/icons/NookIcons';
+import { Icon16Location, Icon24Delete, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
 import { type Coordinates, getCurrentPosition } from '@/shared/lib/geolocation';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { cn } from '@/shared/lib/utils';
@@ -167,7 +167,7 @@ function PlaceDirectInputDrawer({
               {/* 앞에 돋보기 아이콘 슬롯이 필요해 공용 `Input` (@/shared/ui) 을 못 쓰고 직접 구현한다 —
                   대신 포커스 보더/클리어 버튼 동작은 `Input` 과 동일하게 맞춘다. */}
               <div className="flex h-11 w-full shrink-0 items-center gap-2 rounded-lg border border-gray-30 px-3 transition-colors focus-within:border-gray-100">
-                <Icon18MagnifyingGlass className="shrink-0" />
+                <Icon24MagnifyingGlass className="shrink-0" />
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
