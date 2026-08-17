@@ -119,4 +119,21 @@ describe('LoginPage', () => {
 
     expect(screen.queryByRole('button', { name: /테스트 토큰/ })).not.toBeInTheDocument();
   });
+
+  it('동의 문구와 약관·개인정보처리방침 링크를 노출한다', () => {
+    renderLoginPage();
+
+    const terms = screen.getByRole('link', { name: '이용약관' });
+    expect(terms).toHaveAttribute('href', '/terms');
+    expect(screen.getByRole('link', { name: '개인정보처리방침' })).toHaveAttribute(
+      'href',
+      '/privacy',
+    );
+
+    // getByText 는 직접 자식 텍스트 노드만 보므로 링크 안의 글자가 빠진다 —
+    // 문단을 잡아 textContent 로 문구 전체를 확인한다.
+    expect(terms.closest('p')).toHaveTextContent(
+      '계속하면 이용약관과 개인정보처리방침에 동의하게 됩니다.',
+    );
+  });
 });
