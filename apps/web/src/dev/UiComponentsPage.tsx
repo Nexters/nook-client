@@ -17,6 +17,7 @@ import {
   PlacePhotoViewer,
   PlaceRow,
 } from '@/features/place';
+import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import type { Post } from '@/features/post';
 import { OriginalPostLink, PostInfo, SavedPostCard, SavedPostContext } from '@/features/post';
 import {
@@ -843,6 +844,10 @@ export function UiComponentsPage() {
             address="서울 성동구 서울숲7길 9 4층"
             distance="4.6km"
             onAddressCopied={() => setLastAction('주소 복사됨')}
+            mapHref={buildNaverMapSearchUrl({
+              name: '누크',
+              address: '서울 성동구 서울숲7길 9 4층',
+            })}
             businessStatus="영업중"
             businessHours="11:00 - 19:30"
             memo={memo}

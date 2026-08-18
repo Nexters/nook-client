@@ -247,3 +247,18 @@ describe('PlaceDetail 장소 삭제', () => {
     expect(screen.queryByText('게시물에 포함된 장소')).not.toBeInTheDocument();
   });
 });
+
+describe('PlaceDetail 지도 링크', () => {
+  it('"지도"는 주소+상호로 검색한 네이버 지도를 새 탭에 연다', async () => {
+    mocks.fetchPostDetail.mockResolvedValue(postDetail([]));
+
+    renderDetail();
+
+    const link = await screen.findByRole('link', { name: '지도' });
+    expect(link).toHaveAttribute(
+      'href',
+      `https://map.naver.com/p/search/${encodeURIComponent('서울 어딘가 아이소')}`,
+    );
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+});

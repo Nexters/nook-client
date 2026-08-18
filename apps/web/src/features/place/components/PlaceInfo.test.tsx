@@ -95,8 +95,8 @@ describe('PlaceInfo 메모 인라인 편집', () => {
     const { rerender } = render(
       <PlaceInfo address="서울 성동구" businessStatus="영업중" memo="메모만" />,
     );
-    // 주소·영업시간·메모 세 줄 → 아이콘 3개 + 주소 줄 우측의 펼침 화살표
-    expect(screen.getAllByRole('presentation', { hidden: true })).toHaveLength(4);
+    // 주소·영업시간·메모 세 줄 → 줄머리 아이콘 3개
+    expect(screen.getAllByRole('presentation', { hidden: true })).toHaveLength(3);
 
     rerender(<PlaceInfo memo="메모만" />);
     // 메모 줄만 남는다

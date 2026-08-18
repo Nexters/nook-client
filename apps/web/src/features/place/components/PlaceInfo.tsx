@@ -1,11 +1,5 @@
 import type * as React from 'react';
-import {
-  Icon16ArrowDown,
-  Icon16Clock,
-  Icon16Copy,
-  Icon16Location,
-  Icon16Pen,
-} from '@/shared/icons/NookIcons';
+import { Icon16Clock, Icon16Copy, Icon16Location, Icon16Pen } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { EditableTextRow } from '@/shared/ui';
 
@@ -24,7 +18,7 @@ export interface PlaceInfoProps {
   distance?: string;
   /** 넘기면 주소 우측에 복사 버튼이 생긴다. 복사 성공 후 호출된다(토스트는 사용처가 띄운다). */
   onAddressCopied?: () => void;
-  /** 넘기면 주소 줄 끝에 파란 "지도" 링크가 생겨 새 탭으로 연다(시안 `장소 info`). */
+  /** 넘기면 주소 줄 끝에 파란 "지도" 링크가 생겨 새 탭으로 연다(시안 `장소 info`). 없으면 줄에서 빠진다. */
   mapHref?: string;
   /** 영업 상태 (예: "영업중") */
   businessStatus?: string;
@@ -92,13 +86,7 @@ function PlaceInfo({
             >
               지도
             </a>
-          ) : (
-            // mapHref 를 안 넘긴 화면(지도 홈 장소 상세)의 자리 표시 — 링크 확정 전 상태
-            // 그대로 비활성으로 둔다(보조기기에도 노출하지 않는다).
-            <span aria-hidden="true" className="shrink-0 opacity-40">
-              <Icon16ArrowDown />
-            </span>
-          )}
+          ) : null}
         </div>
       ) : null}
 
