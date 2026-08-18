@@ -1,9 +1,9 @@
 import type { Place } from '@/features/place';
 import { PlaceDetailHeader, PlaceInfo } from '@/features/place';
+import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import type { Post } from '@/features/post';
 import { cn } from '@/shared/lib/utils';
 import { Carousel } from '@/shared/ui';
-import { buildNaverMapSearchUrl } from '../lib/naverMapLink';
 
 export interface PlaceSearchResultDetailProps {
   place: Place;
