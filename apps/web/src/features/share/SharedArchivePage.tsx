@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { useArchives } from '@/features/archive/api/queries';
 import { ArchiveEmpty } from '@/features/archive/components/ArchiveEmpty';
@@ -16,7 +16,6 @@ import {
   useSubscribeSharedArchive,
 } from './api/queries';
 import { OpenInAppBanner } from './components/OpenInAppBanner';
-import { SharedPlaceSheet } from './components/SharedPlaceSheet';
 import { ShareSheet } from './components/ShareSheet';
 import { shareErrorMessage } from './lib/shareError';
 import { buildShareUrl } from './lib/shareUrl';
@@ -29,7 +28,6 @@ type DetailTab = 'posts' | 'places';
  */
 export function SharedArchivePage() {
   const { token = '' } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<DetailTab>('posts');
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const { showToast } = useToast();
@@ -38,35 +36,11 @@ export function SharedArchivePage() {
   const { gate, wall: loginWall } = useLoginGate();
   const subscribe = useSubscribeSharedArchive();
 
-  // 장소 상세 시트 — `?placeId=` 쿼리 파라미터가 열림/닫힘을 결정한다(MapPage 의
-  // `?placeId=` 딥링크와 같은 패턴). 잘못된 값(숫자가 아님)이면 닫힌 것으로 본다.
-  const placeIdParam = searchParams.get('placeId');
-  const selectedPlaceId =
-    placeIdParam !== null && /^\d+$/.test(placeIdParam) ? Number(placeIdParam) : null;
-
+  // 장소 상세는 지도 화면이 소유한다 — 아카이브 상세의 장소 탭과 같은 `/map?placeId=`
+  // 딥링크. 지도는 로그인 전용 화면이라 게이트를 먼저 태운다(게스트는 이동 없이
+  // 제자리에서 월만 보고, 취소하면 공유 화면에 그대로 남는다).
   const openPlace = (placeId: string) =>
-    gate('장소를 확인하려면 로그인이 필요해요', () =>
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          next.set('placeId', placeId);
-          return next;
-        },
-        // replace: MapPage 의 `?placeId=` 컨벤션과 동일 — 열고 닫는 매번 히스토리를
-        // 쌓으면 닫은 뒤 뒤로가기가 시트를 다시 열어버린다.
-        { replace: true },
-      ),
-    );
-
-  const closePlace = () =>
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        next.delete('placeId');
-        return next;
-      },
-      { replace: true },
-    );
+    gate('장소를 확인하려면 로그인이 필요해요', () => navigate(`/map?placeId=${placeId}`));
 
   // 공유 링크로 앱을 처음 연 경우엔 돌아갈 히스토리가 없다(`key === 'default'`) —
   // 그때는 뒤로 대신 지도로 보낸다(`EntryLoginWall` 과 같은 패턴).
@@ -248,9 +222,6 @@ export function SharedArchivePage() {
         url={buildShareUrl(token)}
         archive={archive}
       />
-      {selectedPlaceId !== null ? (
-        <SharedPlaceSheet token={token} placeId={selectedPlaceId} onClose={closePlace} />
-      ) : null}
     </>
   );
 }

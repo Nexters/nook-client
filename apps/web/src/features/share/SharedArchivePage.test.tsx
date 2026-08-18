@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Archive } from '@/features/archive/types';
 import { AwaitSession } from '@/features/auth/session/AuthRouteGuards';
@@ -9,11 +9,16 @@ import { ApiClientError } from '@/shared/api';
 import { ToastProvider } from '@/shared/toast';
 import { SharedArchivePage } from './SharedArchivePage';
 
+/** `/map` 착지 확인용 — 실제 화면 대신 쿼리스트링을 그대로 보여준다. */
+function MapRouteProbe() {
+  const location = useLocation();
+  return <div>지도 화면{location.search}</div>;
+}
+
 const mocks = vi.hoisted(() => ({
   fetchSharedArchive: vi.fn(),
   fetchSharedArchivePosts: vi.fn(),
   fetchSharedArchivePlaces: vi.fn(),
-  fetchSharedPlaceDetail: vi.fn(),
   subscribeSharedArchive: vi.fn(),
 }));
 vi.mock('@/features/share/api', () => mocks);
@@ -62,7 +67,7 @@ function renderPage(token = 'tok-123', options: { withAwaitSession?: boolean } =
           <Route path="/shared/:token" element={element} />
           <Route path="/shared/:token/post/:postId" element={<div>공유 게시물 상세</div>} />
           <Route path="/login" element={<div>로그인 화면</div>} />
-          <Route path="/map" element={<div>지도 화면</div>} />
+          <Route path="/map" element={<MapRouteProbe />} />
         </Routes>
       </MemoryRouter>,
     ),
@@ -85,7 +90,6 @@ describe('SharedArchivePage', () => {
       totalElements: 0,
     });
     mocks.subscribeSharedArchive.mockReset().mockResolvedValue(undefined);
-    mocks.fetchSharedPlaceDetail.mockReset();
     archivesMock.mockReset().mockResolvedValue([]);
   });
 
@@ -187,55 +191,17 @@ describe('SharedArchivePage', () => {
     expect(screen.getByText('로그인하시겠어요?')).toBeInTheDocument();
   });
 
-  it('로그인 장소 카드 탭은 공유 장소 시트를 연다', async () => {
+  it('로그인 장소 카드 탭은 지도의 장소 상세로 이동한다', async () => {
     session.status = 'authenticated';
     mocks.fetchSharedArchivePlaces.mockResolvedValue({
       places: [{ id: '42', name: '을지다락', category: '카페', region: '서울' }],
       nextPage: undefined,
       totalElements: 1,
     });
-    mocks.fetchSharedPlaceDetail.mockResolvedValue({
-      id: 42,
-      name: '을지다락',
-      address: '서울 중구 을지로',
-      lat: 37.5,
-      lng: 127.0,
-      bookmarked: false,
-      photos: [],
-      tags: [],
-      posts: [],
-    });
     renderPage();
     fireEvent.click(await screen.findByRole('tab', { name: /장소/ }));
     fireEvent.click(await screen.findByText('을지다락'));
 
-    expect(await screen.findByText('서울 중구 을지로')).toBeInTheDocument();
-    expect(mocks.fetchSharedPlaceDetail).toHaveBeenCalledWith('tok-123', 42);
-  });
-
-  it('공유 장소 시트의 저장한 게시물 타일을 누르면 같은 토큰의 공유 게시물 상세로 이동한다', async () => {
-    session.status = 'authenticated';
-    mocks.fetchSharedArchivePlaces.mockResolvedValue({
-      places: [{ id: '42', name: '을지다락', category: '카페', region: '서울' }],
-      nextPage: undefined,
-      totalElements: 1,
-    });
-    mocks.fetchSharedPlaceDetail.mockResolvedValue({
-      id: 42,
-      name: '을지다락',
-      address: '서울 중구 을지로',
-      lat: 37.5,
-      lng: 127.0,
-      bookmarked: false,
-      photos: [],
-      tags: [],
-      posts: [{ id: 5, title: '초록뷰 카페', savedAt: '2026-08-20T00:00:00Z' }],
-    });
-    renderPage();
-    fireEvent.click(await screen.findByRole('tab', { name: /장소/ }));
-    fireEvent.click(await screen.findByText('을지다락'));
-
-    fireEvent.click(await screen.findByText('초록뷰 카페'));
-    expect(await screen.findByText('공유 게시물 상세')).toBeInTheDocument();
+    expect(await screen.findByText('지도 화면?placeId=42')).toBeInTheDocument();
   });
 });

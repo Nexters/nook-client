@@ -10,10 +10,10 @@ import { ArchivePage } from '@/features/archive/ArchivePage';
 import type { Archive } from '@/features/archive/types';
 import { ToastProvider } from '@/shared/toast';
 
-/** `/shared/:token` 착지 확인용 — 실제 화면 대신 쿼리스트링을 그대로 보여준다. */
-function SharedArchiveRouteProbe() {
+/** `/map` 착지 확인용 — 실제 화면 대신 쿼리스트링을 그대로 보여준다. */
+function MapRouteProbe() {
   const location = useLocation();
-  return <div>공유 아카이브 상세{location.search}</div>;
+  return <div>지도 화면{location.search}</div>;
 }
 
 const ARCHIVES: Archive[] = [
@@ -69,7 +69,7 @@ function renderArchiveRoutes(initialPath: string) {
           <Route path="/archive/:archiveId" element={<ArchiveDetailPage />} />
           <Route path="/archive/:archiveId/edit" element={<ArchiveFormPage mode="edit" />} />
           <Route path="/shared/:token/post/:postId" element={<div>공유 게시물 상세</div>} />
-          <Route path="/shared/:token" element={<SharedArchiveRouteProbe />} />
+          <Route path="/map" element={<MapRouteProbe />} />
         </Routes>
       </MemoryRouter>,
     ),
@@ -415,7 +415,7 @@ describe('아카이브 화면', () => {
     expect(screen.queryByRole('button', { name: /처리 실패/ })).not.toBeInTheDocument();
   });
 
-  it('공유받은 아카이브 상세의 장소 카드는 공유 아카이브의 장소 시트로 이동한다', async () => {
+  it('공유받은 아카이브 상세의 장소 카드도 지도의 장소 상세로 이동한다', async () => {
     mocks.fetchArchivePosts.mockResolvedValue({
       posts: [
         { id: 7, name: '초록뷰 카페', placeCount: 3, authorHandle: '@abcde', thumbnails: [] },
@@ -434,7 +434,7 @@ describe('아카이브 화면', () => {
     fireEvent.click(await screen.findByRole('tab', { name: /장소/ }));
     fireEvent.click(await screen.findByText('을지다락'));
 
-    expect(await screen.findByText('공유 아카이브 상세?placeId=42')).toBeInTheDocument();
+    expect(await screen.findByText('지도 화면?placeId=42')).toBeInTheDocument();
   });
 
   it('공유받은 아카이브 상세 메뉴는 제거만 제공하고, 제거하면 구독 해제를 호출한다', async () => {
