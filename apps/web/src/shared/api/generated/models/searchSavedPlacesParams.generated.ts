@@ -13,6 +13,11 @@ export type SearchSavedPlacesParams = {
    */
   query: string;
   /**
+   * 검색 결과를 제한할 내 그룹 식별자
+   * @exclusiveMinimum 0
+   */
+  groupId?: number;
+  /**
    * 조회할 페이지 번호. 0부터 시작합니다.
    * @minimum 0
    */
