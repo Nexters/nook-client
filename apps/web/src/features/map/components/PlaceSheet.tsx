@@ -15,7 +15,6 @@ import {
 } from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
-import { env } from '@/shared/config/env';
 import { Icon16ArrowDown, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import { cn } from '@/shared/lib/utils';
@@ -186,17 +185,14 @@ export function PlaceSheet({
               <>
                 <div className="flex shrink-0 items-center justify-between">
                   <p className="text-b1 font-medium text-gray-90">최근 저장한 공간</p>
-                  {/* 검색 API 미연동 — 진입점을 숨기면 검색 UI 전체가 숨는다(env 주석 참고). */}
-                  {env.enablePlaceSearch ? (
-                    <button
-                      type="button"
-                      aria-label="저장한 공간 검색"
-                      onClick={onEnterSearch}
-                      className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-                    >
-                      <Icon24MagnifyingGlass />
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    aria-label="저장한 공간 검색"
+                    onClick={onEnterSearch}
+                    className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                  >
+                    <Icon24MagnifyingGlass />
+                  </button>
                 </div>
                 {recentPlaces.length === 0 ? (
                   <EmptySavedPlaces />
@@ -231,6 +227,9 @@ export function PlaceSheet({
             >
               <PlaceSearchPanel
                 canScroll={canScroll}
+                // 오버레이는 탐색 스크롤러와 같은 높이 래퍼를 쓰지만 스크롤 영역은 제 것이라,
+                // 스냅 보정 패딩(scrollerStyle)을 직접 넘겨야 mid 스냅에서도 목록 끝에 닿는다.
+                scrollPaddingBottom={scrollerStyle.paddingBottom}
                 onExit={slideOutSearch}
                 onSelectPlace={onSelectPlace}
               />

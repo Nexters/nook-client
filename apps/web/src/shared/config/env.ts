@@ -30,12 +30,6 @@ export const env = {
   isDev: import.meta.env.DEV,
   enableDevRoutes: import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_ROUTES === 'true',
   /**
-   * 지도 바텀시트의 "저장한 공간 검색" — 서버 검색 API 연동 전이라 배포에선 숨긴다.
-   * 진입점(검색 아이콘)만 이 플래그로 가리면 검색 UI 전체가 함께 숨는다.
-   * 연동이 끝나면 이 값을 `true` 로 바꾸는 것이 켜는 스위치다.
-   */
-  enablePlaceSearch: import.meta.env.DEV,
-  /**
    * 공유 링크에 쓰는 웹 오리진. 셸 웹뷰에서도 링크는 항상 공개 웹 주소여야 하므로
    * 배포 환경 변수로 고정하고, 미설정 시(로컬 등) 현재 오리진으로 대체한다.
    */

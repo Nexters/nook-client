@@ -1,12 +1,12 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
-import { searchSavedPlacesMock } from '../mock/savedPlaceSearch';
-import type { MapBounds } from '../types';
+import type { MapBounds, SavedPlaceSearchPage } from '../types';
 import {
   disconnectPostPlace,
   fetchMapPins,
   fetchPlaceDetail,
   fetchRecentPlaces,
+  fetchSavedPlaceSearch,
   fetchSharedPlaceDetail,
   updatePlaceBookmark,
   updatePlaceMemo,
@@ -22,7 +22,7 @@ export const mapQueryKeys = {
     shareToken
       ? (['shared', shareToken, 'places', placeId] as const)
       : (['map', 'detail', placeId] as const),
-  search: (query: string, archiveId: number | null) => ['map', 'search', query, archiveId] as const,
+  search: (query: string, groupId: number | null) => ['map', 'search', query, groupId] as const,
 };
 
 /** 지도 핀(bbox 안의 북마크 장소). 실제 idle 이벤트를 못 받은 동안엔 호출부가 근사 bbox를 대신 넘긴다. */
@@ -53,19 +53,28 @@ export function useRecentPlaces() {
 }
 
 /**
- * 저장한 공간 검색 — 검색 모드의 결과 목록. 서버 검색 API 가 아직 없어 mock 을
- * 물려두었다. 연동 시 queryFn 만 `../api` 의 실제 fetch 로 바꾸면 된다(키·시그니처 유지).
+ * 저장한 공간 검색 — 검색 모드의 결과 목록. 검색어가 비면 조회하지 않는다.
+ * 타이핑 중 이전 결과를 유지(`keepPreviousData`)해 목록 깜빡임을 없앤다 — 디바운스는
+ * 입력 쪽(`useDebouncedValue`) 책임이다(post 의 `usePlaceSearch` 와 동일 컨벤션).
+ *
+ * 첫 검색이 도착하기 전에는 undefined 를 준다 — 빈 페이지를 주면 결과가 오기도 전에
+ * "0건 + 빈 상태 일러스트"가 깜빡인다. 호출부는 undefined 동안 결과 영역을 그리지 않는다.
  */
-export function useSearchSavedPlaces(query: string, archiveId: number | null) {
+export function useSearchSavedPlaces(
+  query: string,
+  groupId: number | null,
+): SavedPlaceSearchPage | undefined {
   const isAuthenticated = useIsAuthenticated();
-
-  return useQuery({
-    queryKey: mapQueryKeys.search(query, archiveId),
-    queryFn: () => searchSavedPlacesMock(query, archiveId),
-    enabled: isAuthenticated,
-    // 타이핑마다 쿼리 키가 통째로 바뀐다 — 직전 결과를 유지해 목록 깜빡임을 없앤다(useMapPins 와 동일).
+  const trimmed = query.trim();
+  const result = useQuery({
+    queryKey: mapQueryKeys.search(trimmed, groupId),
+    queryFn: () => fetchSavedPlaceSearch(trimmed, groupId),
+    enabled: isAuthenticated && trimmed.length > 0,
     placeholderData: keepPreviousData,
   });
+  // keepPreviousData 는 검색어를 지워 비활성화된 뒤에도 직전 데이터를 물고 있다 —
+  // 빈 검색어에서는 명시적으로 비워야 지운 즉시 결과가 사라진다.
+  return trimmed.length > 0 ? result.data : undefined;
 }
 
 /**
