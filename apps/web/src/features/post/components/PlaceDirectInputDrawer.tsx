@@ -3,7 +3,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PlacePreviewMap } from '@/features/map/components/PlacePreviewMap';
 import type { Post } from '@/features/post';
-import { Icon16Location, Icon18MagnifyingGlass, Icon24Delete } from '@/shared/icons/NookIcons';
+import { Icon16Location, Icon24Delete, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
 import { type Coordinates, getCurrentPosition } from '@/shared/lib/geolocation';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { cn } from '@/shared/lib/utils';
@@ -167,7 +167,7 @@ function PlaceDirectInputDrawer({
                   클리어 버튼은 `Input`(포커스 중에만)과 달리 값이 있으면 항상 보인다 — 모바일에서
                   키보드를 내리면 blur 로 X 가 사라져, 남은 검색어를 지울 방법이 없어지기 때문. */}
               <div className="flex h-11 w-full shrink-0 items-center gap-2 rounded-lg border border-gray-30 px-3 transition-colors focus-within:border-gray-100">
-                <Icon18MagnifyingGlass className="shrink-0" />
+                <Icon24MagnifyingGlass className="shrink-0" />
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}

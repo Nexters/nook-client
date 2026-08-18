@@ -25,6 +25,7 @@ import type {
   ApiResponseRecentPlaceSliceResponse,
   ApiResponseSavedPostDetailResponse,
   ApiResponseSavedPostPageResponse,
+  ApiResponseSaveSharedPostResponse,
   ApiResponseSocialAuthResponse,
   ApiResponseTokenResponse,
   ApiResponseUnit,
@@ -43,6 +44,7 @@ import type {
   PostsParams,
   RefreshTokenRequest,
   ReplaceSavedPostGroupsRequest,
+  SaveSharedPostRequest,
   SearchPlacesParams,
   SocialAuthRequest,
   UpdateGroupRequest,
@@ -830,5 +832,26 @@ export const subscribe = async (
   return orvalMutator<ApiResponseUnit>(getSubscribeUrl(token), {
     ...options,
     method: 'PUT',
+  });
+};
+
+export const getSaveUrl = (shareToken: string, sharedPostId: number) => {
+  return `/api/v1/shared-posts/${shareToken}/${sharedPostId}/save`;
+};
+
+/**
+ * @summary 공유 게시물을 내 아카이브에 저장
+ */
+export const save = async (
+  shareToken: string,
+  sharedPostId: number,
+  saveSharedPostRequest: SaveSharedPostRequest,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseSaveSharedPostResponse> => {
+  return orvalMutator<ApiResponseSaveSharedPostResponse>(getSaveUrl(shareToken, sharedPostId), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(saveSharedPostRequest),
   });
 };

@@ -46,6 +46,7 @@ vi.mock('@/features/my/api', () => ({
 }));
 vi.mock('@/features/archive/api', () => ({ fetchArchives: mocks.fetchArchives }));
 vi.mock('@/features/auth/session/AuthSessionProvider', () => ({
+  useIsAuthenticated: () => true,
   useAuthSession: () => ({
     status: 'authenticated',
     accessToken: 'token',

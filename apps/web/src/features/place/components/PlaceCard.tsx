@@ -1,4 +1,3 @@
-import { Icon24CheckOff, Icon24CheckOn } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { Thumbnail } from '@/shared/ui';
 import type { Place } from '../types';
@@ -16,21 +15,15 @@ import type { Place } from '../types';
 export interface PlaceCardProps {
   place: Place;
   onClick?: () => void;
-  /**
-   * 선택 삭제 모드 — 정의하면 썸네일 우상단에 체크가 뜨고 선택된 카드는 흰색 딤으로
-   * 표시된다(`CollectionCard` 와 같은 표기). 토글 동작 자체는 onClick 책임이다.
-   */
-  selected?: boolean;
   className?: string;
 }
 
-function PlaceCard({ place, onClick, selected, className }: PlaceCardProps) {
+function PlaceCard({ place, onClick, className }: PlaceCardProps) {
   const Comp = onClick ? 'button' : 'div';
 
   return (
     <Comp
       {...(onClick ? { type: 'button' as const, onClick } : {})}
-      {...(selected !== undefined ? { 'aria-pressed': selected } : {})}
       className={cn(
         'flex w-full flex-col items-start gap-1 bg-gray-0 pb-2 text-left',
         onClick &&
@@ -39,19 +32,7 @@ function PlaceCard({ place, onClick, selected, className }: PlaceCardProps) {
       )}
     >
       {/* 시안 167x208. 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
-      <span className="relative w-full">
-        <Thumbnail src={place.thumbnail} alt="" className="aspect-[167/208] h-auto w-full" />
-        {selected !== undefined ? (
-          <>
-            {selected ? (
-              <span aria-hidden="true" className="absolute inset-0 rounded-sm bg-gray-0/40" />
-            ) : null}
-            <span aria-hidden="true" className="absolute top-2 right-2">
-              {selected ? <Icon24CheckOn /> : <Icon24CheckOff />}
-            </span>
-          </>
-        ) : null}
-      </span>
+      <Thumbnail src={place.thumbnail} alt="" className="aspect-[167/208] h-auto w-full" />
       <div className="flex w-full flex-col gap-0.5 p-1">
         <p className="line-clamp-2 text-b2 font-semibold text-gray-90">{place.name}</p>
         <p className="truncate text-b3 font-medium text-gray-60">

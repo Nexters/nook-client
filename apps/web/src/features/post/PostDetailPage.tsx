@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
+import { EntryLoginWall } from '@/features/auth/components/LoginWall';
+import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
@@ -41,6 +43,7 @@ export function PostDetailPage() {
   const { postId: postIdParam } = useParams();
   const postId = postIdParam ? Number(postIdParam) : undefined;
   const navigate = useNavigate();
+  const isAuthenticated = useIsAuthenticated();
   const [searchParams] = useSearchParams();
   const enteredFromShare = searchParams.get('entry') === 'share';
   useHideBottomMenu();
@@ -148,6 +151,12 @@ export function PostDetailPage() {
       description: '게시물은 저장됐지만 지도에는 표시되지 않아요',
     });
   }, [relatedPlacesState.status, showToast]);
+
+  // 게스트가 닿는 경로는 공유 확장의 "앱에서 보기" 딥링크뿐이다. 게시물은 저장한
+  // 사람만 볼 수 있어 그릴 내용이 없으니 진입을 월로 막는다.
+  if (!isAuthenticated) {
+    return <EntryLoginWall description="게시물을 보려면 로그인이 필요해요" />;
+  }
 
   // 로딩·파싱·에러는 스켈레톤과 안내 문구뿐이라 문서를 늘리지 않고 뷰포트에 가둔다 —
   // 헤더는 흐름 그대로 위에 남고, 넘치는 만큼만 아래 영역이 스크롤된다.

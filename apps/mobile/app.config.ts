@@ -69,6 +69,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         {
           photosPermission: '프로필 이미지를 앨범에서 선택하기 위해 사진에 접근해요.',
           cameraPermission: '프로필 이미지를 촬영하기 위해 카메라를 사용해요.',
+          // 프로필 이미지는 사진만 다뤄(mediaTypes: ['images']) 마이크를 쓰지 않는다.
+          // 비워두면 플러그인이 영문 기본 문구로 NSMicrophoneUsageDescription 을 채워
+          // 쓰지도 않는 권한을 요구하게 된다 — false 는 문구가 아니라 키 자체를 지운다.
+          microphonePermission: false,
         },
       ],
       [
@@ -91,10 +95,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         // 미설정이면 EAS 가 매 빌드마다 물어보고 그 답을 app config 에 되쓴다. HTTPS 만
         // 쓰므로 수출 규제 면제 대상이고, 값을 박아두면 App Store Connect 수동 설정도 없다.
         ITSAppUsesNonExemptEncryption: false,
-        NSLocalNetworkUsageDescription: '개발용 로컬 웹 서버에 연결하기 위해 사용합니다.',
+        // NSLocalNetworkUsageDescription 은 여기서 지정하지 않는다. Metro 검색용이라
+        // 개발 빌드에만 필요한데, expo-dev-launcher 가 자기 기본 문구로 넣고 Release
+        // 빌드에서 도로 지운다 — 단, 그 정리 스크립트는 "Expo Dev Launcher" 가 들어간
+        // 자기 문구일 때만 지운다. 우리 문구로 덮어쓰면 정리를 피해 스토어 빌드까지
+        // 따라 들어가고, 사용자는 "개발용" 이라는 알 수 없는 설명을 보게 된다.
         // WebView(WKWebView) 내 지도 화면의 navigator.geolocation 호출용.
         NSLocationWhenInUseUsageDescription:
-          '내 주변 장소를 지도에 표시하기 위해 위치 정보를 사용해요.',
+          '지도에서 현재 위치와 저장한 장소까지의 거리를 보여주기 위해 위치 정보를 사용해요.',
         NookSessionAccessGroup: sessionAccessGroup,
         NookApiBaseUrl: apiBaseUrl,
         NookAppGroup: `group.${appId}`,

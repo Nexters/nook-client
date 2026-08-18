@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { archiveQueryKeys } from '@/features/archive/api/queries';
+import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { mapQueryKeys } from '@/features/map/api/queries';
 import type { Place } from '@/features/place';
 import type { Coordinates } from '@/shared/lib/geolocation';
@@ -36,10 +37,11 @@ export type PostDetailState =
  * (PostDetailPage)가 쿼리 객체 전체에 의존하지 않게 하기 위해서다.
  */
 export function usePostDetail(postId: number | undefined): PostDetailState {
+  const isAuthenticated = useIsAuthenticated();
   const query = useQuery({
     queryKey: postQueryKeys.detail(postId ?? -1),
     queryFn: () => fetchPostDetail(postId as number),
-    enabled: postId !== undefined,
+    enabled: isAuthenticated && postId !== undefined,
     refetchInterval: (current) => {
       const status = current.state.data?.processingStatus;
       return status === 'PENDING' || status === 'PROCESSING' ? POLL_INTERVAL_MS : false;
@@ -84,10 +86,11 @@ export function toPlace(parsed: ParsedPlace): Place {
  * 소비처(RelatedPlacesSection)가 쿼리 객체 전체에 의존하지 않게 하기 위해서다.
  */
 export function useRelatedPlaces(postId: number | undefined): RelatedPlacesState {
+  const isAuthenticated = useIsAuthenticated();
   const query = useQuery({
     queryKey: postQueryKeys.placeParsing(postId ?? -1),
     queryFn: () => fetchPlaceParsing(postId as number),
-    enabled: postId !== undefined,
+    enabled: isAuthenticated && postId !== undefined,
     refetchInterval: (current) => {
       const result = current.state.data;
       if (!result) return false;
@@ -133,11 +136,12 @@ export function useRelatedPlaces(postId: number | undefined): RelatedPlacesState
  * 디바운스는 입력 쪽(`useDebouncedValue`) 책임이다.
  */
 export function usePlaceSearch(query: string, coords: Coordinates | null): SearchedPlace[] {
+  const isAuthenticated = useIsAuthenticated();
   const trimmed = query.trim();
   const result = useQuery({
     queryKey: ['places', 'search', trimmed, coords?.lat ?? null, coords?.lng ?? null],
     queryFn: () => searchConnectablePlaces(trimmed, coords),
-    enabled: trimmed.length > 0,
+    enabled: isAuthenticated && trimmed.length > 0,
     placeholderData: keepPreviousData,
   });
   // keepPreviousData 는 검색어를 지워 비활성화된 뒤에도 직전 데이터를 물고 있다 — 빈
