@@ -8,7 +8,7 @@ import {
 } from '.';
 
 export const sharedQueryKeys = {
-  meta: (token: string) => ['shared', token] as const,
+  meta: (token: string) => ['shared', token, 'meta'] as const,
   posts: (token: string) => ['shared', token, 'posts'] as const,
   places: (token: string) => ['shared', token, 'places'] as const,
 };
