@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   fetchMapPins: vi.fn(),
   fetchRecentPlaces: vi.fn(),
   fetchPlaceDetail: vi.fn(),
+  fetchSharedPlaceDetail: vi.fn(),
   disconnectPostPlace: vi.fn(),
   updatePlaceBookmark: vi.fn(),
   updatePlaceMemo: vi.fn(),
@@ -111,6 +112,18 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
         thumbnail: null,
       }),
     );
+    // shareToken 이 있으면 이 쪽만 불린다(내 API 는 아예 안 탄다) — 이름을 다르게 둬서
+    // 어느 경로로 조회됐는지 텍스트로 구분할 수 있게 한다.
+    mocks.fetchSharedPlaceDetail.mockImplementation((_token: string, id: number) =>
+      Promise.resolve({
+        id,
+        name: `공유 장소 ${id}`,
+        lat: 37.478,
+        lng: 126.951,
+        bookmarked: false,
+        thumbnail: null,
+      }),
+    );
   });
 
   it('?placeId= 로 들어오면 해당 장소를 선택하고, 파라미터를 URL 에 유지한다', async () => {
@@ -168,6 +181,42 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '핀 7 클릭' }));
 
+    await screen.findByText('선택됨: 장소 7');
+    expect(screen.getByTestId('search-params')).toHaveTextContent(/^\?placeId=7$/);
+  });
+
+  it('?shareToken= 동반 진입은 항상 공유 공개 API 로 조회한다 — 이미 저장한 장소라도 공유자 기준으로 본다', async () => {
+    mocks.fetchSharedPlaceDetail.mockResolvedValue({
+      id: 5,
+      name: '공유 장소 5',
+      lat: 37.478,
+      lng: 126.951,
+      bookmarked: false,
+      thumbnail: null,
+    });
+
+    renderMapAt('/map?placeId=5&shareToken=tok-123');
+
+    expect(await screen.findByText('선택됨: 공유 장소 5')).toBeInTheDocument();
+    expect(mocks.fetchSharedPlaceDetail).toHaveBeenCalledWith('tok-123', 5);
+    expect(mocks.fetchPlaceDetail).not.toHaveBeenCalled();
+  });
+
+  it('?shareToken= 없이 들어오면 내 상세 API 만 쓴다', async () => {
+    renderMapAt('/map?placeId=5');
+
+    expect(await screen.findByText('선택됨: 장소 5')).toBeInTheDocument();
+    expect(mocks.fetchSharedPlaceDetail).not.toHaveBeenCalled();
+  });
+
+  it('다른 장소를 선택하면 공유 토큰은 새 장소와 무관하므로 함께 버린다', async () => {
+    renderMapAt('/map?placeId=5&shareToken=tok-123');
+    // shareToken 이 있는 동안엔 공유 공개 API 로 조회된다.
+    await screen.findByText('선택됨: 공유 장소 5');
+
+    fireEvent.click(screen.getByRole('button', { name: '핀 7 클릭' }));
+
+    // 토큰이 버려졌으니 이후 선택은 내 상세 API 로 조회된다.
     await screen.findByText('선택됨: 장소 7');
     expect(screen.getByTestId('search-params')).toHaveTextContent(/^\?placeId=7$/);
   });

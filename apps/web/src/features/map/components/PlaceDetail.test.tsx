@@ -9,12 +9,17 @@ import { ToastProvider } from '@/shared/toast';
 // HTTP 전송이 아니라 "게시물 상세의 places → 게시물에 포함된 장소 섹션" 배선만 검증한다.
 const mocks = vi.hoisted(() => ({
   fetchPostDetail: vi.fn(),
+  fetchSharedPostDetail: vi.fn(),
   updatePlaceMemo: vi.fn().mockResolvedValue(undefined),
   disconnectPostPlace: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('@/features/post/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/post/api')>()),
   fetchPostDetail: mocks.fetchPostDetail,
+}));
+vi.mock('@/features/share/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/share/api')>()),
+  fetchSharedPostDetail: mocks.fetchSharedPostDetail,
 }));
 vi.mock('@/features/map/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/map/api')>()),
@@ -67,7 +72,11 @@ const PLACE: PlaceDetailModel = {
   postsTotal: 2,
 };
 
-function renderDetail(onSelectPlace?: (id: number) => void, place: PlaceDetailModel = PLACE) {
+function renderDetail(
+  onSelectPlace?: (id: number) => void,
+  place: PlaceDetailModel = PLACE,
+  shareToken?: string,
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
@@ -80,6 +89,7 @@ function renderDetail(onSelectPlace?: (id: number) => void, place: PlaceDetailMo
                 <PlaceDetail
                   place={place}
                   expanded
+                  shareToken={shareToken}
                   onClose={() => {}}
                   onSelectPlace={onSelectPlace}
                 />
@@ -131,6 +141,29 @@ describe('PlaceDetail 게시물에 포함된 장소', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '카페' }));
     expect(screen.getByText('아카이브 상세 화면')).toBeInTheDocument();
+  });
+
+  it('shareToken 이 있으면 항상 공유 공개 API 로 게시물 상세를 조회한다', async () => {
+    mocks.fetchPostDetail.mockClear();
+    mocks.fetchSharedPostDetail.mockResolvedValue(postDetail([parsedPlace(2, '퍼머넌트해비탯')]));
+
+    renderDetail(undefined, PLACE, 'tok-123');
+
+    expect(await screen.findByText('게시물에 포함된 장소')).toBeInTheDocument();
+    expect(screen.getByText('퍼머넌트해비탯')).toBeInTheDocument();
+    expect(mocks.fetchSharedPostDetail).toHaveBeenCalledWith('tok-123', 11);
+    expect(mocks.fetchSharedPostDetail).toHaveBeenCalledWith('tok-123', 12);
+    expect(mocks.fetchPostDetail).not.toHaveBeenCalled();
+  });
+
+  it('shareToken 이 없으면 내 게시물 상세 API 만 쓴다', async () => {
+    mocks.fetchSharedPostDetail.mockClear();
+    mocks.fetchPostDetail.mockResolvedValue(postDetail([parsedPlace(2, '퍼머넌트해비탯')]));
+
+    renderDetail();
+
+    expect(await screen.findByText('퍼머넌트해비탯')).toBeInTheDocument();
+    expect(mocks.fetchSharedPostDetail).not.toHaveBeenCalled();
   });
 
   it('게시물에 포함된 장소가 없으면 섹션 자체를 그리지 않는다', async () => {
@@ -244,6 +277,40 @@ describe('PlaceDetail 장소 삭제', () => {
     fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
 
     expect(screen.queryByText('게시물에 포함된 장소')).not.toBeInTheDocument();
+  });
+});
+
+describe('PlaceDetail 공유 링크 진입(shareToken) — 읽기 전용', () => {
+  it('저장 토글이 사라지고 닫기만 남는다', async () => {
+    mocks.fetchSharedPostDetail.mockResolvedValue(postDetail([]));
+
+    renderDetail(undefined, PLACE, 'tok-123');
+
+    await screen.findByText('아이소');
+    expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '저장 취소' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '닫기' })).toBeInTheDocument();
+  });
+
+  it('메모가 있어도 "수정"이나 작성 유도 문구 없이 텍스트만 보여준다', async () => {
+    mocks.fetchSharedPostDetail.mockResolvedValue(postDetail([]));
+
+    renderDetail(undefined, { ...PLACE, memo: '창가 자리 좋음' }, 'tok-123');
+
+    expect(await screen.findByText('창가 자리 좋음')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '수정' })).not.toBeInTheDocument();
+  });
+
+  it('게시물에 포함된 장소는 북마크 토글·스와이프 삭제 없이 행만 보여준다', async () => {
+    mocks.fetchSharedPostDetail.mockResolvedValue(postDetail([parsedPlace(2, '퍼머넌트해비탯')]));
+
+    renderDetail(undefined, PLACE, 'tok-123');
+
+    expect(await screen.findByText('퍼머넌트해비탯')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '퍼머넌트해비탯 즐겨찾기' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '퍼머넌트해비탯 삭제' })).not.toBeInTheDocument();
   });
 });
 

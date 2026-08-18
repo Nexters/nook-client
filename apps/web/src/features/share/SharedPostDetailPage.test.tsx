@@ -6,10 +6,10 @@ import type { PostDetail } from '@/features/post/types';
 import { ToastProvider } from '@/shared/toast';
 import { SharedPostDetailPage } from './SharedPostDetailPage';
 
-/** `/shared/:token` 착지 확인용 — 실제 화면 대신 쿼리스트링을 그대로 보여준다. */
-function SharedArchiveRouteProbe() {
+/** `/map` 착지 확인용 — 실제 화면 대신 쿼리스트링을 그대로 보여준다. */
+function MapRouteProbe() {
   const location = useLocation();
-  return <div>공유 아카이브 화면{location.search}</div>;
+  return <div>지도 화면{location.search}</div>;
 }
 
 const mocks = vi.hoisted(() => ({
@@ -66,7 +66,7 @@ function renderPage() {
         <MemoryRouter initialEntries={['/shared/tok-123/post/5']}>
           <Routes>
             <Route path="/shared/:token/post/:postId" element={<SharedPostDetailPage />} />
-            <Route path="/shared/:token" element={<SharedArchiveRouteProbe />} />
+            <Route path="/map" element={<MapRouteProbe />} />
             <Route path="/post/:postId" element={<div>내 게시물 상세</div>} />
             <Route path="/login" element={<div>로그인 화면</div>} />
           </Routes>
@@ -116,11 +116,12 @@ describe('SharedPostDetailPage', () => {
     });
   });
 
-  it('로그인 상태에서 포함된 장소를 누르면 공유 아카이브의 장소 상세로 이동한다', async () => {
+  it('로그인 상태에서 포함된 장소를 누르면 지도의 장소 상세로 이동한다', async () => {
     session.status = 'authenticated';
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: /을지다락/ }));
-    expect(await screen.findByText('공유 아카이브 화면?placeId=42')).toBeInTheDocument();
+    // 저장 안 한 장소의 상세 404 우회용 공유 토큰이 함께 실린다.
+    expect(await screen.findByText('지도 화면?placeId=42&shareToken=tok-123')).toBeInTheDocument();
   });
 
   it('비로그인 상태에서 포함된 장소를 누르면 로그인 월을 띄운다', async () => {

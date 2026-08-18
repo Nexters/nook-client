@@ -153,8 +153,10 @@ export function SharedPostDetailPage() {
                     key={place.id}
                     place={toPlace(place)}
                     onClick={() =>
+                      // 장소 상세는 지도 화면이 소유한다 — 아카이브 상세의 장소 탭과 같은
+                      // 딥링크. 저장 안 한 장소의 404 우회용 공유 토큰을 함께 실어 보낸다.
                       gate('장소를 확인하려면 로그인이 필요해요', () =>
-                        navigate(`/shared/${token}?placeId=${place.id}`),
+                        navigate(`/map?placeId=${place.id}&shareToken=${token}`),
                       )
                     }
                   />

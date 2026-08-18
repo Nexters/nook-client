@@ -35,18 +35,32 @@ export interface RecentPlace {
 
 /**
  * 저장한 공간 검색 결과 한 건 — 검색 모드의 장소 카드가 그리는 최소 형태.
- * 아직 서버 검색 API 가 없어 mock(`mock/savedPlaceSearch.ts`)이 이 모양으로 내려주고,
- * 연동 시 서버 응답을 이 형태로 변환한다.
+ * `SavedPlaceSearchItemResponse`를 옮긴 형태다.
  */
 export interface SavedPlaceSearchResult {
   id: number;
   name: string;
   category?: string;
-  /** 카드의 지역 표기(예: "서울"). */
+  /** 카드의 지역 표기(예: "서울") — 주소의 첫 토큰. */
   region?: string;
-  /** 이 장소가 담긴 아카이브 — 칩 필터의 기준. */
-  archiveId: number;
   thumbnail?: string;
+}
+
+/** 검색어와 일치하는 장소가 담긴 그룹 한 건 — 그룹 칩 필터가 그리는 형태. */
+export interface SavedPlaceSearchGroup {
+  id: number;
+  name: string;
+  color: ArchiveColor;
+}
+
+/**
+ * 저장한 공간 검색 한 페이지 — 목록과 별개로 전체 건수(`N건` 표기)와
+ * 칩 필터용 그룹 목록을 함께 나른다.
+ */
+export interface SavedPlaceSearchPage {
+  items: SavedPlaceSearchResult[];
+  groups: SavedPlaceSearchGroup[];
+  totalCount: number;
 }
 
 /** 장소 상세에 연결된 저장 게시물 한 건 — `PlacePostResponse`를 옮긴 형태. */

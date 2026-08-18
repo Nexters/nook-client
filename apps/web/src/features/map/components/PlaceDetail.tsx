@@ -1,3 +1,4 @@
+import { useQueries } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
@@ -14,9 +15,11 @@ import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
 import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
 import { MemoSheet, SavedPostCard } from '@/features/post';
-import { formatAuthorHandle } from '@/features/post/api';
-import { usePostDetails } from '@/features/post/api/queries';
+import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
+import { postQueryKeys } from '@/features/post/api/queries';
 import type { PostDetail } from '@/features/post/types';
+import { fetchSharedPostDetail } from '@/features/share/api';
+import { sharedQueryKeys } from '@/features/share/api/queries';
 import { Icon16ArrowRight, Icon20Images } from '@/shared/icons/NookIcons';
 import { type Coordinates, formatDistance } from '@/shared/lib/geolocation';
 import { cn } from '@/shared/lib/utils';
@@ -35,6 +38,35 @@ import {
  */
 function SectionDivider() {
   return <div className="-mx-4 -my-3 h-1.5 shrink-0 bg-gray-10" />;
+}
+
+/**
+ * 이 장소에 연결된 저장 게시물 — 목데이터 시절과 같은 `SavedPostCard` 를 그대로 쓴다.
+ *
+ * `PlacePostResponse`(장소 상세 응답)는 제목·작성자·대표 이미지 1장까지만 준다 —
+ * 본문 전체·이미지 전체·원본 링크·아카이브는 없다. 그 값들은 이미 게시물 상세가 갖고 있으므로
+ * (`GET /posts/{postId}`) postId 로 병렬 추가 조회해서 채운다. `postQueryKeys.detail` 을
+ * 그대로 재사용해 게시물 상세 페이지와 캐시를 공유한다 — 여기서 한 번 로드해두면 그
+ * 게시물 상세로 들어갔을 때 재요청 없이 바로 뜬다(반대 방향도 마찬가지).
+ * 상세가 오기 전(또는 아직 없음)엔 장소 상세 응답의 얇은 정보로 채운 카드를 우선 보여준다
+ * (아카이브 태그는 상세가 올 때까지 비어 있다).
+ *
+ * 공유 아카이브 딥링크(`shareToken` 동반 진입)로 들어온 경우엔 항상 공유 토큰 스코프의
+ * 공개 API 로 조회한다 — 공유 링크로 들어온 화면은 (이미 저장해 둔 장소·게시물이라도)
+ * 공유자 기준 읽기 전용으로 보여주는 게 정책이다. 그래서 캐시 키도 내 게시물 상세
+ * (`postQueryKeys.detail`, `PostDetailPage` 와 공유)와는 분리해 서로 덮어쓰지 않게 하고,
+ * 대신 `SharedPostDetailPage` 와 같은 키(`sharedQueryKeys.postDetail`)를 써서 캐시를 나눠 쓴다.
+ */
+function usePostDetails(posts: PlaceDetailPost[], shareToken?: string | null) {
+  return useQueries({
+    queries: posts.map((post) => ({
+      queryKey: shareToken
+        ? sharedQueryKeys.postDetail(shareToken, post.id)
+        : postQueryKeys.detail(post.id),
+      queryFn: () =>
+        shareToken ? fetchSharedPostDetail(shareToken, post.id) : fetchPostDetail(post.id),
+    })),
+  });
 }
 
 function SavedPostTile({
@@ -73,26 +105,37 @@ function SavedPostTile({
   );
 }
 
-function SavedPostsSection({ place }: { place: PlaceDetailModel }) {
+function SavedPostsSection({
+  place,
+  shareToken,
+}: {
+  place: PlaceDetailModel;
+  shareToken?: string | null;
+}) {
   const posts = place.posts;
-  const postDetailQueries = usePostDetails(posts.map((post) => post.id));
+  const postDetailQueries = usePostDetails(posts, shareToken);
   const navigate = useNavigate();
 
   if (posts.length === 0) return null;
 
   const detailAt = (index: number) => postDetailQueries[index]?.data;
-  const onlyPost = posts.length === 1 ? posts[0] : undefined;
+  // 모아보기 페이지는 내 API 만 쓴다 — 공유 링크로 들어온(아직 저장 안 한) 장소는 그쪽에서
+  // 404 가 난다. 그래서 공유 진입일 땐 넘기지 않고 예전처럼 카드를 전부 펼친다.
+  const expandAll = Boolean(shareToken) || posts.length === 1;
 
   return (
     <>
       <SectionDivider />
-      {onlyPost ? (
+      {expandAll ? (
         <div className="flex w-full flex-col">
-          <SavedPostCard
-            post={toDisplayPost(onlyPost, detailAt(0))}
-            archives={detailAt(0)?.archives ?? []}
-            onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
-          />
+          {posts.map((post, index) => (
+            <SavedPostCard
+              key={post.id}
+              post={toDisplayPost(post, detailAt(index))}
+              archives={detailAt(index)?.archives ?? []}
+              onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
+            />
+          ))}
         </div>
       ) : (
         <div className="flex w-full flex-col">
@@ -134,15 +177,20 @@ function SavedPostsSection({ place }: { place: PlaceDetailModel }) {
  */
 function RelatedPlacesSection({
   place,
+  shareToken,
   userCoords,
   onSelectPlace,
 }: {
   place: PlaceDetailModel;
+  shareToken?: string | null;
   userCoords?: Coordinates | null;
   onSelectPlace?: (placeId: number) => void;
 }) {
+  // 공유 링크로 들어온 화면은 공유자 기준 읽기 전용이다 — 북마크 토글·스와이프 삭제를
+  // 아예 보여주지 않는다(내 소유가 아닌 장소·연결에 내 API 를 쓸 수 없다).
+  const readOnly = Boolean(shareToken);
   // 위 섹션과 같은 쿼리 키라 요청은 한 번만 나간다(캐시 공유).
-  const postDetailQueries = usePostDetails(place.posts.map((post) => post.id));
+  const postDetailQueries = usePostDetails(place.posts, shareToken);
   const updateBookmark = useUpdatePlaceBookmark();
   const disconnectPlace = useDisconnectPlaceFromPosts();
 
@@ -198,13 +246,17 @@ function RelatedPlacesSection({
                   : undefined,
               }}
               bookmarked={related.bookmarked}
-              onBookmarkedChange={(next) =>
-                updateBookmark.mutate({ placeId: related.id, bookmarked: next })
+              onBookmarkedChange={
+                readOnly
+                  ? undefined
+                  : (next) => updateBookmark.mutate({ placeId: related.id, bookmarked: next })
               }
               // 같은 지도 화면 안에서 선택 장소만 바뀌므로 라우팅은 필요 없다.
               onClick={onSelectPlace ? () => onSelectPlace(related.id) : undefined}
-              onDelete={() =>
-                deletion.requestDelete({ id: String(related.id), name: related.name })
+              onDelete={
+                readOnly
+                  ? undefined
+                  : () => deletion.requestDelete({ id: String(related.id), name: related.name })
               }
             />
           ))}
@@ -224,12 +276,18 @@ function RelatedPlacesSection({
 export function PlaceDetail({
   place,
   expanded,
+  shareToken,
   userCoords,
   onClose,
   onSelectPlace,
 }: {
   place: PlaceDetailModel;
   expanded: boolean;
+  /**
+   * 공유 아카이브 딥링크로 들어온 경우의 토큰. 있으면 상세를 공유자 기준 읽기 전용으로
+   * 그린다 — 저장 토글·메모 편집·게시물에 포함된 장소의 북마크/스와이프 삭제를 숨긴다.
+   */
+  shareToken?: string | null;
   /** 현재 위치. 없으면(권한 거부 등) 거리 표기를 생략한다. */
   userCoords?: Coordinates | null;
   /** 헤더의 닫기 버튼 — 선택을 풀고 목록으로 되돌린다. */
@@ -237,6 +295,7 @@ export function PlaceDetail({
   /** "게시물에 포함된 장소" 행을 눌렀을 때 그 장소로 선택을 옮긴다. */
   onSelectPlace?: (placeId: number) => void;
 }) {
+  const readOnly = Boolean(shareToken);
   const { showToast } = useToast();
   const [photosOpen, setPhotosOpen] = useState(false);
   const [memoOpen, setMemoOpen] = useState(false);
@@ -256,7 +315,12 @@ export function PlaceDetail({
               <p className="shrink-0 text-b2 text-gray-80">{place.category}</p>
             ) : null}
           </div>
-          <PlaceActions placeId={place.id} bookmarked={place.bookmarked} onClose={onClose} />
+          <PlaceActions
+            placeId={place.id}
+            bookmarked={place.bookmarked}
+            onClose={onClose}
+            readOnly={readOnly}
+          />
         </div>
         {/* 꽉 찬 스냅에서는 아래 `PlaceInfo` 가 같은 줄을 보여줘서 여기선 뺀다. */}
         {!expanded && (
@@ -292,13 +356,14 @@ export function PlaceDetail({
             businessStatus={formatBusinessStatus(place.openNow)}
             businessHours={formatBusinessHours(place.openingHours)}
             memo={place.memo}
-            onMemoEdit={() => setMemoOpen(true)}
+            onMemoEdit={readOnly ? undefined : () => setMemoOpen(true)}
             className="mb-4"
           />
 
-          <SavedPostsSection place={place} />
+          <SavedPostsSection place={place} shareToken={shareToken} />
           <RelatedPlacesSection
             place={place}
+            shareToken={shareToken}
             userCoords={userCoords}
             onSelectPlace={onSelectPlace}
           />
@@ -313,13 +378,16 @@ export function PlaceDetail({
         />
       )}
 
-      {/* 게시물 상세와 같은 `메모하기` 바텀시트를 그대로 쓴다 — 저장 대상만 장소 메모다. */}
-      <MemoSheet
-        open={memoOpen}
-        onOpenChange={setMemoOpen}
-        memo={place.memo}
-        onSave={(memo) => updateMemo.mutate(memo)}
-      />
+      {/* 게시물 상세와 같은 `메모하기` 바텀시트를 그대로 쓴다 — 저장 대상만 장소 메모다.
+          읽기 전용에서는 여는 트리거 자체가 없어 항상 닫힌 채로 둔다. */}
+      {readOnly ? null : (
+        <MemoSheet
+          open={memoOpen}
+          onOpenChange={setMemoOpen}
+          memo={place.memo}
+          onSave={(memo) => updateMemo.mutate(memo)}
+        />
+      )}
     </div>
   );
 }

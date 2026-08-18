@@ -15,7 +15,6 @@ import {
 } from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
-import { env } from '@/shared/config/env';
 import { Icon16ArrowDown, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import { cn } from '@/shared/lib/utils';
@@ -27,6 +26,7 @@ const SCROLL_HIDE_HANDLE_THRESHOLD = 4;
 export function PlaceSheet({
   recentPlaces,
   selectedPlace,
+  shareToken,
   isPlaceDetailPending,
   isPlaceDetailError,
   snap,
@@ -41,6 +41,11 @@ export function PlaceSheet({
 }: {
   recentPlaces: RecentPlace[];
   selectedPlace: PlaceDetailModel | null;
+  /**
+   * 공유 아카이브 딥링크로 들어온 경우의 토큰 — 있으면 상세를 공유자 기준 읽기 전용으로
+   * 그린다(공개 API 조회, 저장 토글·메모 편집 등 숨김). `PlaceDetail` 로 그대로 내려간다.
+   */
+  shareToken?: string | null;
   /** true 인 동안은 상세를 아직 못 받았지만(선택은 됐지만) 상세 레이아웃으로는 이미 전환해야 한다. */
   isPlaceDetailPending: boolean;
   isPlaceDetailError: boolean;
@@ -141,6 +146,7 @@ export function PlaceSheet({
                 placeId={selectedPlace.id}
                 bookmarked={selectedPlace.bookmarked}
                 onClose={onClose}
+                readOnly={Boolean(shareToken)}
               />
             }
           />
@@ -167,6 +173,7 @@ export function PlaceSheet({
                   key={selectedPlace.id}
                   place={selectedPlace}
                   expanded={isFull}
+                  shareToken={shareToken}
                   userCoords={userCoords}
                   onClose={onClose}
                   onSelectPlace={onSelectPlace}
@@ -178,17 +185,14 @@ export function PlaceSheet({
               <>
                 <div className="flex shrink-0 items-center justify-between">
                   <p className="text-b1 font-medium text-gray-90">최근 저장한 공간</p>
-                  {/* 검색 API 미연동 — 진입점을 숨기면 검색 UI 전체가 숨는다(env 주석 참고). */}
-                  {env.enablePlaceSearch ? (
-                    <button
-                      type="button"
-                      aria-label="저장한 공간 검색"
-                      onClick={onEnterSearch}
-                      className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-                    >
-                      <Icon24MagnifyingGlass />
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    aria-label="저장한 공간 검색"
+                    onClick={onEnterSearch}
+                    className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                  >
+                    <Icon24MagnifyingGlass />
+                  </button>
                 </div>
                 {recentPlaces.length === 0 ? (
                   <EmptySavedPlaces />
@@ -223,6 +227,9 @@ export function PlaceSheet({
             >
               <PlaceSearchPanel
                 canScroll={canScroll}
+                // 오버레이는 탐색 스크롤러와 같은 높이 래퍼를 쓰지만 스크롤 영역은 제 것이라,
+                // 스냅 보정 패딩(scrollerStyle)을 직접 넘겨야 mid 스냅에서도 목록 끝에 닿는다.
+                scrollPaddingBottom={scrollerStyle.paddingBottom}
                 onExit={slideOutSearch}
                 onSelectPlace={onSelectPlace}
               />

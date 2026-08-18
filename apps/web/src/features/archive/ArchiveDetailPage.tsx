@@ -275,15 +275,15 @@ export function ArchiveDetailPage() {
               <PlaceCard
                 key={place.id}
                 place={place}
-                onClick={
-                  isShared
-                    ? // 공유(SHARED) 아카이브의 장소는 공유 장소 시트로 — shareToken 이 없으면
-                      // (비정상 데이터) 기존처럼 undefined 로 둔다.
-                      archive.shareToken
-                      ? () => navigate(`/shared/${archive.shareToken}?placeId=${place.id}`)
-                      : undefined
-                    : // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
-                      () => navigate(`/map?placeId=${place.id}`)
+                // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
+                // 공유(SHARED) 아카이브의 장소는 내 상세 API 로는 404 라(내 저장 장소
+                // 기준), 공개 API 우회용 공유 토큰을 함께 실어 보낸다.
+                onClick={() =>
+                  navigate(
+                    isShared && archive.shareToken
+                      ? `/map?placeId=${place.id}&shareToken=${archive.shareToken}`
+                      : `/map?placeId=${place.id}`,
+                  )
                 }
               />
             ))}

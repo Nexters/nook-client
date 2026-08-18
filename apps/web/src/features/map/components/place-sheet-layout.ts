@@ -51,20 +51,27 @@ export function getPlaceSheetLayoutClassNames(
 } {
   const safeAreaTop = snap === FULL_SNAP_POINT ? 'env(safe-area-inset-top)' : '0px';
   const minusHeader = stickyHeader ? ` - ${PLACE_SHEET_HEADER_HEIGHT}` : '';
+  // 스냅을 모르는 상태(초기 null 등)에서는 가장 보수적으로 mid 만큼 밀렸다고 본다 —
+  // 패딩이 남으면 스크롤 끝에 여백이 생길 뿐이지만, 모자라면 콘텐츠가 가려진다.
+  const snapRatio = typeof snap === 'number' ? snap : MID_SNAP_POINT;
+  // vaul 이 현재 스냅에서 드로어를 아래로 밀어둔 몫(위 3번 주석) — 양쪽 분기 공통이다.
+  const snapOffset = `${100 - snapRatio * 100}dvh`;
 
   if (bottomMenuHidden) {
     return {
       drawer: { className: 'bottom-0 max-h-dvh', style: { paddingTop: safeAreaTop } },
       scroller: {
-        className: 'pb-[calc(1.25rem+env(safe-area-inset-bottom))]',
-        style: { height: `calc(100dvh - ${safeAreaTop}${minusHeader})` },
+        className: '',
+        style: {
+          height: `calc(100dvh - ${safeAreaTop}${minusHeader})`,
+          // 검색 모드는 full 이 아닌 스냅(mid)에서도 스크롤되므로 밀린 몫을 보정해야
+          // 맨 아래 장소까지 닿는다. BottomMenu 가 없으니 홈 인디케이터 자리도 직접 비운다.
+          paddingBottom: `calc(${snapOffset} + 1.25rem + env(safe-area-inset-bottom))`,
+        },
       },
     };
   }
 
-  // 스냅을 모르는 상태(초기 null 등)에서는 가장 보수적으로 mid 만큼 밀렸다고 본다 —
-  // 패딩이 남으면 스크롤 끝에 여백이 생길 뿐이지만, 모자라면 콘텐츠가 가려진다.
-  const snapRatio = typeof snap === 'number' ? snap : MID_SNAP_POINT;
   const drawerHeight = `calc(100dvh - ${BOTTOM_MENU_HEIGHT})`;
   return {
     drawer: {
@@ -75,7 +82,7 @@ export function getPlaceSheetLayoutClassNames(
       className: '',
       style: {
         height: `calc(100dvh - ${BOTTOM_MENU_HEIGHT} - ${safeAreaTop}${minusHeader})`,
-        paddingBottom: `calc(${100 - snapRatio * 100}dvh + 1.25rem)`,
+        paddingBottom: `calc(${snapOffset} + 1.25rem)`,
       },
     },
   };

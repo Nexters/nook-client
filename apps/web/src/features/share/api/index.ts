@@ -6,8 +6,6 @@ import {
   toArchivePost,
 } from '@/features/archive/api';
 import type { Archive } from '@/features/archive/types';
-import { toPlaceDetail } from '@/features/map/api';
-import type { PlaceDetail } from '@/features/map/types';
 import { toPostDetail, updatePostMemo } from '@/features/post/api';
 import type { PostDetail } from '@/features/post/types';
 import {
@@ -15,7 +13,6 @@ import {
   places as listSharedPlacesEndpoint,
   posts as listSharedPostsEndpoint,
   save as saveSharedPostEndpoint,
-  placeDetail as sharedPlaceDetailEndpoint,
   postDetail as sharedPostDetailEndpoint,
   subscribe as subscribeEndpoint,
   unwrapApiResponse,
@@ -72,12 +69,6 @@ export async function fetchSharedPostDetail(token: string, postId: number): Prom
   );
   if (!dto) throw new Error('공유 게시물 응답이 비어 있어요');
   return toPostDetail(dto);
-}
-
-export async function fetchSharedPlaceDetail(token: string, placeId: number): Promise<PlaceDetail> {
-  const dto = unwrapApiResponse(await sharedPlaceDetailEndpoint(token, placeId));
-  if (!dto) throw new Error('공유 장소 응답이 비어 있어요');
-  return toPlaceDetail(dto);
 }
 
 /**
