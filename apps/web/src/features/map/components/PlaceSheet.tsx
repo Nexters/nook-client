@@ -227,6 +227,9 @@ export function PlaceSheet({
             >
               <PlaceSearchPanel
                 canScroll={canScroll}
+                // 오버레이는 탐색 스크롤러와 같은 높이 래퍼를 쓰지만 스크롤 영역은 제 것이라,
+                // 스냅 보정 패딩(scrollerStyle)을 직접 넘겨야 mid 스냅에서도 목록 끝에 닿는다.
+                scrollPaddingBottom={scrollerStyle.paddingBottom}
                 onExit={slideOutSearch}
                 onSelectPlace={onSelectPlace}
               />

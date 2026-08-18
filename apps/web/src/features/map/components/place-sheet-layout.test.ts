@@ -39,6 +39,20 @@ describe('getPlaceSheetLayoutClassNames', () => {
     expect(layout.scroller.style?.height).toBe('calc(100dvh - env(safe-area-inset-top))');
   });
 
+  it('BottomMenu 숨김(검색 모드)에서도 스냅으로 밀린 몫을 하단 패딩으로 보정한다 — mid 스냅 스크롤이 맨 아래 장소까지 닿아야 한다', () => {
+    const layout = getPlaceSheetLayoutClassNames(true, MID_SNAP_POINT);
+
+    expect(layout.scroller.style?.paddingBottom).toContain(`${100 - MID_SNAP_POINT * 100}dvh`);
+    // BottomMenu 가 없으니 홈 인디케이터 자리는 직접 비운다.
+    expect(layout.scroller.style?.paddingBottom).toContain('env(safe-area-inset-bottom)');
+  });
+
+  it('BottomMenu 숨김 + full 스냅에서는 밀린 몫이 없어 여유분 패딩만 남는다', () => {
+    const layout = getPlaceSheetLayoutClassNames(true, FULL_SNAP_POINT);
+
+    expect(layout.scroller.style?.paddingBottom).toContain('0dvh');
+  });
+
   it('full 스냅에서는 상단 safe-area 만큼 드로어 패딩을 주고 스크롤 높이를 그만큼 줄인다', () => {
     const layout = getPlaceSheetLayoutClassNames(false, FULL_SNAP_POINT);
 

@@ -94,12 +94,18 @@ function toSavedPlaceSearchResult(dto: SavedPlaceSearchItemResponse): SavedPlace
     name: dto.name,
     category: dto.category ?? undefined,
     region: region || undefined,
+    thumbnail: dto.thumbnailUrl ?? undefined,
   };
 }
 
 export function toSavedPlaceSearchPage(dto: SavedPlaceSearchPageResponse): SavedPlaceSearchPage {
   return {
     items: dto.items.map(toSavedPlaceSearchResult),
+    groups: dto.groups.map((group) => ({
+      id: group.id,
+      name: group.name,
+      color: SERVER_TO_UI_COLOR[group.color as CreateGroupRequestColor] ?? 'cement',
+    })),
     totalCount: dto.totalElements,
   };
 }
@@ -109,11 +115,17 @@ export function toSavedPlaceSearchPage(dto: SavedPlaceSearchPageResponse): Saved
  * 첫 페이지만 조회한다 — 검색 UI 가 페이지네이션 없이 한 목록으로 그리고, 저장 장소가
  * 검색어까지 걸러 100건을 넘는 경우는 실사용에서 없다고 본다(넘치면 건수만 전체를 가리킨다).
  */
-export async function fetchSavedPlaceSearch(query: string): Promise<SavedPlaceSearchPage> {
+export async function fetchSavedPlaceSearch(
+  query: string,
+  groupId: number | null,
+): Promise<SavedPlaceSearchPage> {
   const response = unwrapApiResponse(
-    await searchSavedPlacesEndpoint({ query, page: 0, size: 100 }, { auth: 'required' }),
+    await searchSavedPlacesEndpoint(
+      { query, page: 0, size: 100, ...(groupId !== null && { groupId }) },
+      { auth: 'required' },
+    ),
   );
-  if (!response) return { items: [], totalCount: 0 };
+  if (!response) return { items: [], groups: [], totalCount: 0 };
   return toSavedPlaceSearchPage(response);
 }
 
