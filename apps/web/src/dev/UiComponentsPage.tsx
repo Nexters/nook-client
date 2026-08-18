@@ -731,6 +731,23 @@ export function UiComponentsPage() {
             ))}
           </Carousel>
         </div>
+        <p className="text-b3 text-gray-50">
+          6장부터는 점을 다 늘어놓지 않고 최대 6개까지만 보여줍니다 — 아래 20장을 끝까지 밀어보면 안
+          보이는 슬라이드가 남은 쪽 끝점이 작아집니다. 인스타그램처럼 풀사이즈 세 칸 안에서는 점
+          묶음이 멈춰 있어서, 같은 장이라도 앞에서 왔는지 뒤에서 왔는지에 따라 배치가 달라집니다.
+        </p>
+        <div className="mx-auto w-full max-w-[375px] rounded-lg border border-gray-20">
+          <Carousel padded={false}>
+            {Array.from({ length: 20 }, (_, index) => index + 1).map((page) => (
+              <div
+                key={page}
+                className="grid h-[120px] w-full place-items-center bg-gray-10 text-h2 text-gray-50"
+              >
+                {page}
+              </div>
+            ))}
+          </Carousel>
+        </div>
       </Section>
 
       <Section title="Avatar (Img/Profile)">

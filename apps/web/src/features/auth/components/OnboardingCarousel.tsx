@@ -138,10 +138,9 @@ export function OnboardingCarousel() {
       <CarouselIndicator
         count={SLIDES.length}
         activeIndex={activeIndex}
-        size="md"
         onIndexChange={setActiveIndex}
         getItemLabel={(index) => `${index + 1}번째 온보딩 보기`}
-        className="mt-10 h-1.5"
+        className="mt-10"
         aria-label="온보딩 페이지 선택"
       />
     </section>
