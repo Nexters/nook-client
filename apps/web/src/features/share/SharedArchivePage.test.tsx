@@ -60,6 +60,7 @@ function renderPage(token = 'tok-123', options: { withAwaitSession?: boolean } =
       <MemoryRouter initialEntries={[`/shared/${token}`]}>
         <Routes>
           <Route path="/shared/:token" element={element} />
+          <Route path="/shared/:token/post/:postId" element={<div>공유 게시물 상세</div>} />
           <Route path="/login" element={<div>로그인 화면</div>} />
           <Route path="/map" element={<div>지도 화면</div>} />
         </Routes>
@@ -93,6 +94,12 @@ describe('SharedArchivePage', () => {
     expect(await screen.findByRole('heading', { name: '카페' })).toBeInTheDocument();
     expect(screen.getByText('by ehoidi')).toBeInTheDocument();
     expect(screen.getByText('지금 가기 좋은 초록뷰 카페')).toBeInTheDocument();
+  });
+
+  it('게시물 카드를 누르면 같은 토큰의 공유 게시물 상세로 이동한다', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /지금 가기 좋은 초록뷰 카페/ }));
+    expect(await screen.findByText('공유 게시물 상세')).toBeInTheDocument();
   });
 
   it('장소 탭으로 전환하면 장소 목록 조회 결과를 그린다', async () => {
@@ -204,5 +211,31 @@ describe('SharedArchivePage', () => {
 
     expect(await screen.findByText('서울 중구 을지로')).toBeInTheDocument();
     expect(mocks.fetchSharedPlaceDetail).toHaveBeenCalledWith('tok-123', 42);
+  });
+
+  it('공유 장소 시트의 저장한 게시물 타일을 누르면 같은 토큰의 공유 게시물 상세로 이동한다', async () => {
+    session.status = 'authenticated';
+    mocks.fetchSharedArchivePlaces.mockResolvedValue({
+      places: [{ id: '42', name: '을지다락', category: '카페', region: '서울' }],
+      nextPage: undefined,
+      totalElements: 1,
+    });
+    mocks.fetchSharedPlaceDetail.mockResolvedValue({
+      id: 42,
+      name: '을지다락',
+      address: '서울 중구 을지로',
+      lat: 37.5,
+      lng: 127.0,
+      bookmarked: false,
+      photos: [],
+      tags: [],
+      posts: [{ id: 5, title: '초록뷰 카페', savedAt: '2026-08-20T00:00:00Z' }],
+    });
+    renderPage();
+    fireEvent.click(await screen.findByRole('tab', { name: /장소/ }));
+    fireEvent.click(await screen.findByText('을지다락'));
+
+    fireEvent.click(await screen.findByText('초록뷰 카페'));
+    expect(await screen.findByText('공유 게시물 상세')).toBeInTheDocument();
   });
 });

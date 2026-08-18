@@ -101,6 +101,16 @@ export async function saveSharedPost(input: {
   );
   if (!response?.postId) throw new Error('게시물을 저장하지 못했어요');
   const memo = input.memo?.trim();
-  if (memo) await updatePostMemo(response.postId, memo);
+  if (memo) {
+    try {
+      await updatePostMemo(response.postId, memo);
+    } catch {
+      // 저장 자체는 이미 성공했다 — 메모만 실패했다고 전체를 실패로 보고하면
+      // 호출부가 "저장 실패" 토스트를 띄우고, 사용자는 재시도할 텐데 이미 저장된
+      // 공유 게시물의 재저장/재그룹 동작은 서버 계약이 아직 불확실하다(스펙 §13).
+      // 여기서 삼켜서 postId 를 정상 반환하면, 이동할 `/post/{id}` 상세가 이미
+      // 편집 가능하므로 사용자가 거기서 다시 메모를 넣을 수 있다.
+    }
+  }
   return response.postId;
 }

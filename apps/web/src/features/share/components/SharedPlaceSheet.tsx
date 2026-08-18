@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArchiveEmpty } from '@/features/archive/components/ArchiveEmpty';
 import { PlaceInfo, PlacePhotos } from '@/features/place';
 import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
-import { Badge, Drawer, DrawerContent, Thumbnail } from '@/shared/ui';
+import { Badge, Drawer, DrawerContent, DrawerTitle, Thumbnail } from '@/shared/ui';
 import { useSharedPlaceDetail } from '../api/queries';
 import { shareErrorMessage } from '../lib/shareError';
 
@@ -28,6 +28,7 @@ export function SharedPlaceSheet({
   return (
     <Drawer open onOpenChange={(open) => !open && onClose()}>
       <DrawerContent className="max-h-[85vh]">
+        <DrawerTitle className="sr-only">장소 상세</DrawerTitle>
         <div className="flex w-full flex-col gap-3 overflow-y-auto px-4 pb-6">
           {isError ? (
             <ArchiveEmpty message={shareErrorMessage(error)} />

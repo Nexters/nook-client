@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
+import { ArchiveEmpty } from '@/features/archive/components/ArchiveEmpty';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { PlaceRow } from '@/features/place';
 import { toPlace } from '@/features/post/api/queries';
@@ -25,6 +26,7 @@ export function SharedPostDetailPage() {
   const { token = '', postId: postIdParam } = useParams();
   const sharedPostId = Number(postIdParam);
   const navigate = useNavigate();
+  const location = useLocation();
   const { showToast } = useToast();
   const { gate, wall: loginWall } = useLoginGate();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -35,7 +37,11 @@ export function SharedPostDetailPage() {
   const detailQuery = useSharedPostDetail(token, sharedPostId);
   const savePost = useSaveSharedPost();
 
-  const goBack = () => navigate(-1);
+  // 공유 게시물 상세는 북마크·공유 장소 시트의 게시물 타일 등으로 콜드 스타트 진입이
+  // 가능하다 — 돌아갈 히스토리가 없으면(`key === 'default'`) 뒤로 대신 지도로 보낸다
+  // (SharedArchivePage 의 goBack 과 같은 패턴).
+  const goBack = () =>
+    location.key === 'default' ? navigate('/map', { replace: true }) : navigate(-1);
 
   if (detailQuery.isPending) return null;
 
@@ -46,9 +52,7 @@ export function SharedPostDetailPage() {
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <Header left={<BackButton onClick={goBack} />} />
-        <p className="flex flex-1 items-center justify-center text-b2 font-medium text-gray-60">
-          {shareErrorMessage(detailQuery.error)}
-        </p>
+        <ArchiveEmpty message={shareErrorMessage(detailQuery.error)} />
       </main>
     );
   }
@@ -70,7 +74,11 @@ export function SharedPostDetailPage() {
           setSheetOpen(false);
           // 저장한 순간부터 내 게시물이다 — 편집 가능한 기존 상세로 전환한다.
           // replace: 뒤로가기가 "저장 전 공유 상세"로 돌아가 상태가 어긋나지 않게.
-          navigate(`/post/${myPostId}?entry=share`, { replace: true });
+          // entry=share 는 붙이지 않는다 — 그건 네이티브 공유 확장 딥링크 전용 마커라
+          // (appLink.ts/PostDetailPage.tsx) 여기서 재사용하면 뒤로가기가 엉뚱하게
+          // /map 으로 튄다. 파라미터 없이 replace 하면 히스토리가
+          // [/shared/tok, /post/123] 이 되어 평범한 뒤로가기로 공유 아카이브 상세로 돌아간다.
+          navigate(`/post/${myPostId}`, { replace: true });
         },
         onError: () => showToast({ variant: 'simple', title: '게시물을 저장하지 못했어요' }),
       },
@@ -140,7 +148,7 @@ export function SharedPostDetailPage() {
                     key={place.id}
                     place={toPlace(place)}
                     onClick={() =>
-                      gate('아카이브 서비스는 로그인이 필요해요', () =>
+                      gate('장소를 확인하려면 로그인이 필요해요', () =>
                         navigate(`/shared/${token}?placeId=${place.id}`),
                       )
                     }

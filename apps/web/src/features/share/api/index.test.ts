@@ -120,4 +120,16 @@ describe('share fetchers', () => {
     await saveSharedPost({ shareToken: 'tok-123', sharedPostId: 5, groupIds: [1] });
     expect(postMemoMock).not.toHaveBeenCalled();
   });
+
+  it('저장은 성공했는데 메모 수정만 실패해도 postId 를 그대로 반환한다', async () => {
+    endpoints.save.mockResolvedValue({ resultType: 'SUCCESS', success: { postId: 123 } });
+    postMemoMock.mockRejectedValue(new Error('네트워크 오류'));
+    const postId = await saveSharedPost({
+      shareToken: 'tok-123',
+      sharedPostId: 5,
+      groupIds: [1],
+      memo: '지우랑 가면 좋겠다',
+    });
+    expect(postId).toBe(123);
+  });
 });

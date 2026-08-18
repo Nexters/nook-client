@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import { ArchiveDetailPage } from '@/features/archive/ArchiveDetailPage';
@@ -9,6 +9,12 @@ import { ArchiveFormPage } from '@/features/archive/ArchiveFormPage';
 import { ArchivePage } from '@/features/archive/ArchivePage';
 import type { Archive } from '@/features/archive/types';
 import { ToastProvider } from '@/shared/toast';
+
+/** `/shared/:token` 착지 확인용 — 실제 화면 대신 쿼리스트링을 그대로 보여준다. */
+function SharedArchiveRouteProbe() {
+  const location = useLocation();
+  return <div>공유 아카이브 상세{location.search}</div>;
+}
 
 const ARCHIVES: Archive[] = [
   { id: 1, name: '카페', color: 'yellow', placeCount: 114, accessType: 'OWNED' },
@@ -62,6 +68,8 @@ function renderArchiveRoutes(initialPath: string) {
           <Route path="/archive/new" element={<ArchiveFormPage mode="create" />} />
           <Route path="/archive/:archiveId" element={<ArchiveDetailPage />} />
           <Route path="/archive/:archiveId/edit" element={<ArchiveFormPage mode="edit" />} />
+          <Route path="/shared/:token/post/:postId" element={<div>공유 게시물 상세</div>} />
+          <Route path="/shared/:token" element={<SharedArchiveRouteProbe />} />
         </Routes>
       </MemoryRouter>,
     ),
@@ -367,6 +375,44 @@ describe('아카이브 화면', () => {
   it('공유받은 아카이브 카드는 소유자 닉네임을 보여준다', async () => {
     renderArchiveRoutes('/archive');
     expect(await screen.findByText('by ehoidi')).toBeInTheDocument();
+  });
+
+  it('공유받은 아카이브 상세의 게시물 카드는 공유 게시물 상세로 이동한다', async () => {
+    mocks.fetchArchivePosts.mockResolvedValue({
+      posts: [
+        { id: 7, name: '초록뷰 카페', placeCount: 3, authorHandle: '@abcde', thumbnails: [] },
+      ],
+      nextPage: undefined,
+      ownerNickname: 'ehoidi',
+      totalElements: 1,
+    });
+
+    renderArchiveRoutes('/archive/3');
+    fireEvent.click(await screen.findByRole('button', { name: /초록뷰 카페/ }));
+
+    expect(await screen.findByText('공유 게시물 상세')).toBeInTheDocument();
+  });
+
+  it('공유받은 아카이브 상세의 장소 카드는 공유 아카이브의 장소 시트로 이동한다', async () => {
+    mocks.fetchArchivePosts.mockResolvedValue({
+      posts: [
+        { id: 7, name: '초록뷰 카페', placeCount: 3, authorHandle: '@abcde', thumbnails: [] },
+      ],
+      nextPage: undefined,
+      ownerNickname: 'ehoidi',
+      totalElements: 1,
+    });
+    mocks.fetchArchivePlaces.mockResolvedValue({
+      places: [{ id: '42', name: '을지다락', category: '카페', region: '서울' }],
+      nextPage: undefined,
+      totalElements: 1,
+    });
+
+    renderArchiveRoutes('/archive/3');
+    fireEvent.click(await screen.findByRole('tab', { name: /장소/ }));
+    fireEvent.click(await screen.findByText('을지다락'));
+
+    expect(await screen.findByText('공유 아카이브 상세?placeId=42')).toBeInTheDocument();
   });
 
   it('공유받은 아카이브 상세 메뉴는 제거만 제공하고, 제거하면 구독 해제를 호출한다', async () => {

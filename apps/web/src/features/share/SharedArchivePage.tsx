@@ -46,19 +46,27 @@ export function SharedArchivePage() {
 
   const openPlace = (placeId: string) =>
     gate('장소를 확인하려면 로그인이 필요해요', () =>
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.set('placeId', placeId);
-        return next;
-      }),
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('placeId', placeId);
+          return next;
+        },
+        // replace: MapPage 의 `?placeId=` 컨벤션과 동일 — 열고 닫는 매번 히스토리를
+        // 쌓으면 닫은 뒤 뒤로가기가 시트를 다시 열어버린다.
+        { replace: true },
+      ),
     );
 
   const closePlace = () =>
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete('placeId');
-      return next;
-    });
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('placeId');
+        return next;
+      },
+      { replace: true },
+    );
 
   // 공유 링크로 앱을 처음 연 경우엔 돌아갈 히스토리가 없다(`key === 'default'`) —
   // 그때는 뒤로 대신 지도로 보낸다(`EntryLoginWall` 과 같은 패턴).
