@@ -8,7 +8,6 @@ import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider'
 import { capturePostHogEvent } from '@/lib/posthog';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
-import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
 import { BackButton, Header } from '@/shared/ui';
 import {
@@ -19,6 +18,7 @@ import {
   useUpdatePlaceBookmark,
   useUpdatePostMemo,
 } from './api/queries';
+import { ExpandableCaption } from './components/ExpandableCaption';
 import { MemoSheet } from './components/MemoSheet';
 import { OriginalPostLink } from './components/OriginalPostLink';
 import { PlaceDirectInputDrawer } from './components/PlaceDirectInputDrawer';
@@ -51,7 +51,6 @@ export function PostDetailPage() {
   const postDetailState = usePostDetail(postId);
   const updateMemoMutation = useUpdatePostMemo(postId);
   const [memoOpen, setMemoOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   // 뒤로가기(버튼·하드웨어 백·스와이프)로 닫혀야 해서 히스토리 엔트리로 승격한다.
   const [viewerOpen, openViewer, closeViewer] = useHistoryBackedFlag('imageViewer');
   const relatedPlacesState = useRelatedPlaces(postId);
@@ -198,25 +197,7 @@ export function PostDetailPage() {
         <div className="flex flex-col gap-2 px-4 pt-1">
           <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
 
-          {post.caption ? (
-            <div className="flex flex-col">
-              <p
-                className={cn(
-                  'whitespace-pre-wrap text-b2 font-normal text-gray-80',
-                  expanded ? '' : 'line-clamp-1',
-                )}
-              >
-                {post.caption}
-              </p>
-              <button
-                type="button"
-                onClick={() => setExpanded((prev) => !prev)}
-                className="self-start text-b2 font-medium text-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-              >
-                {expanded ? '접기' : '더보기'}
-              </button>
-            </div>
-          ) : null}
+          {post.caption ? <ExpandableCaption caption={post.caption} /> : null}
 
           <PostInfo
             archives={archives}
