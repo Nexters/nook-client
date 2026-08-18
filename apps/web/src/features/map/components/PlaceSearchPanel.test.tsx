@@ -1,18 +1,26 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Archive } from '@/features/archive/types';
+import type { SavedPlaceSearchPage } from '@/features/map/types';
 import { PlaceSearchPanel } from './PlaceSearchPanel';
 
-const ARCHIVES: Archive[] = [
-  { id: 1, name: '카페', color: 'yellow', placeCount: 3, accessType: 'OWNED' },
-  { id: 2, name: '밥집', color: 'blue', placeCount: 2, accessType: 'OWNED' },
-];
+// HTTP 전송이 아니라 배선만 검증한다 — feature api 모듈 단위로 모킹하는 컨벤션.
+// queries.ts 가 같은 모듈에서 다른 fetch 들도 가져오므로 함께 vi.fn 으로 채운다.
+const mocks = vi.hoisted(() => ({
+  disconnectPostPlace: vi.fn(),
+  fetchMapPins: vi.fn(),
+  fetchPlaceDetail: vi.fn(),
+  fetchRecentPlaces: vi.fn(),
+  fetchSavedPlaceSearch: vi.fn(),
+  updatePlaceBookmark: vi.fn(),
+  updatePlaceMemo: vi.fn(),
+}));
+vi.mock('@/features/map/api', () => mocks);
 
-// 아카이브 칩은 실제 목록 API 를 쓴다 — HTTP 전송이 아니라 배선만 검증한다.
-// 검색 자체는 mock(`savedPlaceSearch`)이 실제 구현이라 그대로 태운다.
-const mocks = vi.hoisted(() => ({ fetchArchives: vi.fn() }));
-vi.mock('@/features/archive/api', () => mocks);
+const PAGE: SavedPlaceSearchPage = {
+  items: [{ id: 11, name: '하우스 오브 와일드', category: '카페', region: '서울' }],
+  totalCount: 1,
+};
 
 function renderPanel(props: Partial<React.ComponentProps<typeof PlaceSearchPanel>> = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -31,27 +39,40 @@ function typeQuery(value: string) {
 
 describe('PlaceSearchPanel', () => {
   beforeEach(() => {
-    mocks.fetchArchives.mockReset().mockResolvedValue(ARCHIVES);
+    mocks.fetchSavedPlaceSearch.mockReset().mockResolvedValue(PAGE);
   });
 
-  it('검색 전(빈 검색어)에는 칩·건수를 보여주지 않는다', () => {
+  it('검색 전(빈 검색어)에는 건수를 보여주지 않고 API 도 부르지 않는다', () => {
     renderPanel();
 
-    expect(screen.queryByRole('button', { name: '전체' })).not.toBeInTheDocument();
     expect(screen.queryByText('건')).not.toBeInTheDocument();
+    expect(mocks.fetchSavedPlaceSearch).not.toHaveBeenCalled();
   });
 
-  it('검색어를 입력하면 일치하는 장소 카드와 건수가 보인다', async () => {
+  it('검색어를 입력하면 디바운스 뒤 검색 API 를 부르고 장소 카드와 건수가 보인다', async () => {
     renderPanel();
 
-    typeQuery('하우스오브');
+    typeQuery('하우스');
+    // 디바운스 — 타이핑 직후에는 아직 부르지 않는다.
+    expect(mocks.fetchSavedPlaceSearch).not.toHaveBeenCalled();
 
     expect(await screen.findByText('하우스 오브 와일드')).toBeInTheDocument();
+    expect(mocks.fetchSavedPlaceSearch).toHaveBeenCalledWith('하우스');
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getByText('건')).toBeInTheDocument();
   });
 
+  it('건수는 목록 길이가 아니라 서버 전체 건수를 보여준다', async () => {
+    mocks.fetchSavedPlaceSearch.mockResolvedValue({ ...PAGE, totalCount: 120 });
+    renderPanel();
+
+    typeQuery('하우스');
+
+    expect(await screen.findByText('120')).toBeInTheDocument();
+  });
+
   it('일치하는 장소가 없으면 빈 상태 문구를 보여준다', async () => {
+    mocks.fetchSavedPlaceSearch.mockResolvedValue({ items: [], totalCount: 0 });
     renderPanel();
 
     typeQuery('존재하지않는장소이름');
@@ -59,22 +80,13 @@ describe('PlaceSearchPanel', () => {
     expect(await screen.findByText('아직 저장한 공간이 없어요')).toBeInTheDocument();
   });
 
-  it('아카이브 칩을 누르면 그 아카이브의 장소만 남는다', async () => {
+  it('아카이브 칩 필터는 서버 미지원이라 그리지 않는다', async () => {
     renderPanel();
 
-    typeQuery('성수');
-    // mock 데이터 기준 '성수'는 여러 아카이브에 걸쳐 있다.
-    expect(await screen.findByText('성수 세터커피')).toBeInTheDocument();
-    expect(screen.getByText('성수동 비터앤츠')).toBeInTheDocument();
+    typeQuery('하우스');
+    await screen.findByText('하우스 오브 와일드');
 
-    // 정확 일치 — 장소 카드의 접근성 이름에도 카테고리("카페")가 들어가 정규식이면 겹친다.
-    fireEvent.click(await screen.findByRole('button', { name: '카페' }));
-
-    // keepPreviousData 로 직전 결과가 잠깐 유지되므로, 필터된 새 결과가 반영될 때까지 기다린다.
-    await waitFor(() => {
-      expect(screen.queryByText('성수동 비터앤츠')).not.toBeInTheDocument();
-    });
-    expect(screen.getByText('성수 세터커피')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '전체' })).not.toBeInTheDocument();
   });
 
   it('뒤로가기를 누르면 onExit 을 호출한다', () => {
@@ -90,9 +102,9 @@ describe('PlaceSearchPanel', () => {
     const onSelectPlace = vi.fn();
     renderPanel({ onSelectPlace });
 
-    typeQuery('하우스오브');
+    typeQuery('하우스');
     fireEvent.click(await screen.findByRole('button', { name: /하우스 오브 와일드/ }));
 
-    expect(onSelectPlace).toHaveBeenCalledWith(1);
+    expect(onSelectPlace).toHaveBeenCalledWith(11);
   });
 });

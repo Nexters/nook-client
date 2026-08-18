@@ -8,13 +8,24 @@ import {
   type PlaceDetailResponse,
   type PlacePostResponse,
   type RecentPlaceResponse,
+  type SavedPlaceSearchItemResponse,
+  type SavedPlaceSearchPageResponse,
+  searchSavedPlaces as searchSavedPlacesEndpoint,
   unwrapApiResponse,
   updateBookmark as updateBookmarkEndpoint,
   // 생성기가 `/posts/{postId}/memo` 와 이름이 겹쳐 붙인 `_1` 접미사다 — 여기서만 풀어준다.
   updateMemo1 as updateMemoEndpoint,
 } from '@/shared/api';
 import type { ArchiveColor } from '@/shared/ui';
-import type { MapBounds, MapPin, PlaceDetail, PlaceDetailPost, RecentPlace } from '../types';
+import type {
+  MapBounds,
+  MapPin,
+  PlaceDetail,
+  PlaceDetailPost,
+  RecentPlace,
+  SavedPlaceSearchPage,
+  SavedPlaceSearchResult,
+} from '../types';
 
 /**
  * 서버 색상 코드 ↔ 디자인 토큰 색상. `features/archive/api`·`features/post/api`의 매핑과
@@ -73,6 +84,36 @@ export async function fetchRecentPlaces(): Promise<RecentPlace[]> {
     await getRecentPlacesEndpoint(undefined, { auth: 'required' }),
   );
   return (response?.items ?? []).map(toRecentPlace);
+}
+
+function toSavedPlaceSearchResult(dto: SavedPlaceSearchItemResponse): SavedPlaceSearchResult {
+  const [region] = dto.address.split(' ');
+  return {
+    id: dto.id,
+    name: dto.name,
+    category: dto.category ?? undefined,
+    region: region || undefined,
+  };
+}
+
+export function toSavedPlaceSearchPage(dto: SavedPlaceSearchPageResponse): SavedPlaceSearchPage {
+  return {
+    items: dto.items.map(toSavedPlaceSearchResult),
+    totalCount: dto.totalElements,
+  };
+}
+
+/**
+ * `GET /api/v1/places/saved/search` — 저장한 공간 검색. 서버 최대 페이지 크기(100)로
+ * 첫 페이지만 조회한다 — 검색 UI 가 페이지네이션 없이 한 목록으로 그리고, 저장 장소가
+ * 검색어까지 걸러 100건을 넘는 경우는 실사용에서 없다고 본다(넘치면 건수만 전체를 가리킨다).
+ */
+export async function fetchSavedPlaceSearch(query: string): Promise<SavedPlaceSearchPage> {
+  const response = unwrapApiResponse(
+    await searchSavedPlacesEndpoint({ query, page: 0, size: 100 }, { auth: 'required' }),
+  );
+  if (!response) return { items: [], totalCount: 0 };
+  return toSavedPlaceSearchPage(response);
 }
 
 function toPlaceDetailPost(dto: PlacePostResponse): PlaceDetailPost {
