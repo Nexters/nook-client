@@ -17,4 +17,9 @@ export interface SavedPlaceSearchItemResponse {
   id: number;
   /** 장소명 */
   name: string;
+  /**
+   * 장소 대표 썸네일 URL
+   * @nullable
+   */
+  thumbnailUrl?: string | null;
 }
