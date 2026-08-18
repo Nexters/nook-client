@@ -37,7 +37,7 @@ export function ShareSheet({ open, onOpenChange, url, archive }: ShareSheetProps
           variant: 'simple',
           title: copied ? '링크를 복사했어요' : '링크를 복사하지 못했어요',
         });
-        if (copied) onOpenChange(false);
+        // 링크 복사는 시트 안에서 계속 다른 공유 수단을 고를 수 있게 닫지 않는다.
       },
     },
     {

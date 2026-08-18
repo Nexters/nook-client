@@ -264,8 +264,9 @@ export function ArchiveDetailPage() {
                 onClick={
                   isShared
                     ? // `/post/{id}`는 소유 데이터 전용이라 공유 게시물에선 404 다 — 공유 상세로 보낸다.
-                      // shareToken 이 없으면(비정상 데이터) 기존처럼 undefined 로 둔다.
-                      archive.shareToken
+                      // shareToken 이 없거나(비정상 데이터) 처리 중·실패 게시물(상세에 보여줄
+                      // 데이터가 없다)이면 기존처럼 undefined 로 둔다.
+                      archive.shareToken && !post.processingState
                       ? () => navigate(`/shared/${archive.shareToken}/post/${post.id}`)
                       : undefined
                     : selecting

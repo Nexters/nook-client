@@ -9,10 +9,11 @@ import { toPlace } from '@/features/post/api/queries';
 import { OriginalPostLink } from '@/features/post/components/OriginalPostLink';
 import { PostImages } from '@/features/post/components/PostImages';
 import { PostImageViewer } from '@/features/post/components/PostImageViewer';
+import { Icon16Archive, Icon16ArrowDown, Icon16Pen } from '@/shared/icons/NookIcons';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
-import { BackButton, Button, Header } from '@/shared/ui';
+import { BackButton, COLOR_BG_CLASS, EditableTextRow, Header } from '@/shared/ui';
 import { useSaveSharedPost, useSharedPostDetail } from './api/queries';
 import { SavePostSheet } from './components/SavePostSheet';
 import { shareErrorMessage } from './lib/shareError';
@@ -115,21 +116,44 @@ export function SharedPostDetailPage() {
             </div>
           ) : null}
 
-          <div className="pt-2">
+          {/* Figma `게시물 정보 > 공유받은화면` — 아카이브 칩과 메모 줄. */}
+          <div className="flex min-h-6 items-center gap-2 pt-2">
+            <Icon16Archive className="size-4 shrink-0" />
             {firstSavedArchive ? (
-              <span className="text-b2 font-medium text-gray-60">
-                「{firstSavedArchive.name}」
-                {archives.length > 1 ? ` 외 ${archives.length - 1}개` : ''}에 저장
-              </span>
+              <>
+                {/* Figma `게시물 정보 > 그룹여러개` — 칩엔 실제 저장 색이 실린다. 재저장
+                    시트를 열 postId 가 이 응답엔 없어(§13) 칩은 표시만 하고 탭은 없다. */}
+                <span className="inline-flex h-[26px] w-fit items-center gap-1 rounded-md border border-gray-20 pl-2.5 pr-2.5">
+                  <span
+                    className={`size-2 shrink-0 ${COLOR_BG_CLASS[firstSavedArchive.color]}`}
+                    aria-hidden="true"
+                  />
+                  <span className="text-b3 font-semibold text-gray-80">
+                    {firstSavedArchive.name}
+                  </span>
+                </span>
+                <span className="text-b2 font-medium text-gray-80">
+                  {archives.length > 1 ? `외 ${archives.length - 1}곳에 저장` : '에 저장'}
+                </span>
+              </>
             ) : (
-              <Button size="sm" variant="secondary" onClick={handleSaveChip}>
-                아카이브에 저장 +
-              </Button>
+              <button
+                type="button"
+                onClick={handleSaveChip}
+                className="inline-flex h-[26px] w-fit items-center gap-1 rounded-md border border-gray-20 py-0 pr-1.5 pl-2.5 text-b3 font-semibold text-gray-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+              >
+                아카이브에 저장
+                <Icon16ArrowDown className="size-4" />
+              </button>
             )}
           </div>
 
           {memo ? (
-            <p className="whitespace-pre-wrap text-b2 font-normal text-gray-80">{memo}</p>
+            <EditableTextRow
+              icon={<Icon16Pen className="size-4 shrink-0" />}
+              value={memo}
+              inputLabel="메모"
+            />
           ) : null}
 
           {post.originalUrl ? (

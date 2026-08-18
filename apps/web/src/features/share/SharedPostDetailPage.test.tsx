@@ -136,7 +136,8 @@ describe('SharedPostDetailPage', () => {
       archives: [{ id: 1, name: '카페', color: 'yellow' }],
     });
     renderPage();
-    expect(await screen.findByText(/「카페」에 저장/)).toBeInTheDocument();
+    expect(await screen.findByText('카페')).toBeInTheDocument();
+    expect(screen.getByText('에 저장')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /아카이브에 저장/ })).not.toBeInTheDocument();
   });
 });

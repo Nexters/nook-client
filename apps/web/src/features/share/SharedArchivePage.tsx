@@ -218,7 +218,13 @@ export function SharedArchivePage() {
                   <CollectionCard
                     key={post.id}
                     archive={post}
-                    onClick={() => navigate(`/shared/${token}/post/${post.id}`)}
+                    // 처리 중·실패 게시물은 상세에 보여줄 데이터(제목·이미지 등)가 아직
+                    // 없거나 영영 없다 — 카드에도 "처리 중…"/"처리 실패"만 보이니 탭도 막는다.
+                    onClick={
+                      post.processingState
+                        ? undefined
+                        : () => navigate(`/shared/${token}/post/${post.id}`)
+                    }
                   />
                 ))}
               </div>

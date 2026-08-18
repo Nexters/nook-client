@@ -393,6 +393,28 @@ describe('아카이브 화면', () => {
     expect(await screen.findByText('공유 게시물 상세')).toBeInTheDocument();
   });
 
+  it('공유받은 아카이브 상세의 처리 중·실패 게시물 카드는 탭해도 이동하지 않는다', async () => {
+    mocks.fetchArchivePosts.mockResolvedValue({
+      posts: [
+        {
+          id: 7,
+          name: '',
+          placeCount: 0,
+          thumbnails: [],
+          processingState: 'failed',
+        },
+      ],
+      nextPage: undefined,
+      ownerNickname: 'ehoidi',
+      totalElements: 1,
+    });
+
+    renderArchiveRoutes('/archive/3');
+    // 처리 실패 카드는 onClick 이 없어 button 이 아니라 div 로 렌더된다 — 탭할 버튼 자체가 없다.
+    expect(await screen.findByText('처리 실패')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /처리 실패/ })).not.toBeInTheDocument();
+  });
+
   it('공유받은 아카이브 상세의 장소 카드는 공유 아카이브의 장소 시트로 이동한다', async () => {
     mocks.fetchArchivePosts.mockResolvedValue({
       posts: [
