@@ -7,6 +7,7 @@ import {
   fetchMapPins,
   fetchPlaceDetail,
   fetchRecentPlaces,
+  fetchSharedPlaceDetail,
   updatePlaceBookmark,
   updatePlaceMemo,
 } from '.';
@@ -15,7 +16,12 @@ export const mapQueryKeys = {
   pinsAll: ['map', 'pins'] as const,
   pins: (bounds: MapBounds) => ['map', 'pins', bounds] as const,
   recent: ['map', 'recent'] as const,
-  detail: (placeId: number) => ['map', 'detail', placeId] as const,
+  // 공유 토큰이 있으면 공유자 기준 읽기 전용 상세라 별도 캐시 키를 쓴다 — 내 상세(북마크·메모
+  // 포함)와 모양이 다르니 같은 장소를 두 경로로 봤을 때 서로 캐시를 덮어쓰면 안 된다.
+  detail: (placeId: number, shareToken?: string | null) =>
+    shareToken
+      ? (['shared', shareToken, 'places', placeId] as const)
+      : (['map', 'detail', placeId] as const),
   search: (query: string, archiveId: number | null) => ['map', 'search', query, archiveId] as const,
 };
 
@@ -62,12 +68,21 @@ export function useSearchSavedPlaces(query: string, archiveId: number | null) {
   });
 }
 
-export function usePlaceDetail(placeId: number | null) {
+/**
+ * 장소 상세. 공유 아카이브 딥링크(`?shareToken=` 동반 진입)로 들어온 경우엔 항상
+ * 공유 토큰 스코프의 공개 API 로 조회한다 — 이미 내가 저장한 장소라도 공유 링크로
+ * 들어온 화면은 공유자 기준 읽기 전용으로 보여주는 게 맞다는 정책이다. `GET
+ * /places/{placeId}`(내 API)는 애초에 저장 안 한 장소면 404 가 나므로도 필요하다.
+ */
+export function usePlaceDetail(placeId: number | null, shareToken?: string | null) {
   const isAuthenticated = useIsAuthenticated();
 
   return useQuery({
-    queryKey: mapQueryKeys.detail(placeId ?? -1),
-    queryFn: () => fetchPlaceDetail(placeId as number),
+    queryKey: mapQueryKeys.detail(placeId ?? -1, shareToken),
+    queryFn: () =>
+      shareToken
+        ? fetchSharedPlaceDetail(shareToken, placeId as number)
+        : fetchPlaceDetail(placeId as number),
     enabled: isAuthenticated && placeId !== null,
   });
 }

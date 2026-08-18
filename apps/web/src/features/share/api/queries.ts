@@ -4,7 +4,6 @@ import {
   fetchSharedArchive,
   fetchSharedArchivePlaces,
   fetchSharedArchivePosts,
-  fetchSharedPlaceDetail,
   fetchSharedPostDetail,
   saveSharedPost,
   subscribeSharedArchive,
@@ -15,7 +14,6 @@ export const sharedQueryKeys = {
   posts: (token: string) => ['shared', token, 'posts'] as const,
   places: (token: string) => ['shared', token, 'places'] as const,
   postDetail: (token: string, postId: number) => ['shared', token, 'posts', postId] as const,
-  placeDetail: (token: string, placeId: number) => ['shared', token, 'places', placeId] as const,
 };
 
 /** 공유 아카이브 메타 — 잘못된/해제된 토큰이면 에러로 떨어진다(화면이 코드별 안내를 그린다). */
@@ -67,16 +65,6 @@ export function useSharedPostDetail(token: string, postId: number) {
   return useQuery({
     queryKey: sharedQueryKeys.postDetail(token, postId),
     queryFn: () => fetchSharedPostDetail(token, postId),
-    retry: false,
-  });
-}
-
-/** placeId 는 ?placeId= 쿼리에서 오므로 없을 수 있다 — 그동안은 조회를 끈다. */
-export function useSharedPlaceDetail(token: string, placeId: number | null) {
-  return useQuery({
-    queryKey: sharedQueryKeys.placeDetail(token, placeId ?? -1),
-    queryFn: () => fetchSharedPlaceDetail(token, placeId as number),
-    enabled: placeId !== null,
     retry: false,
   });
 }

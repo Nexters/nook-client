@@ -18,12 +18,14 @@ interface OpenInAppBannerProps {
 export function OpenInAppBanner({ token }: OpenInAppBannerProps) {
   const { showToast } = useToast();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cleanupVisibilityRef = useRef<(() => void) | null>(null);
 
   // 타이머가 살아있는 동안 화면을 벗어나면(다른 라우트로 이동) 정리해 —
   // 언마운트 뒤 엉뚱한 화면에 "앱이 설치되어 있지 않아요" 토스트가 뜨는 걸 막는다.
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      cleanupVisibilityRef.current?.();
     };
   }, []);
 
@@ -35,9 +37,22 @@ export function OpenInAppBanner({ token }: OpenInAppBannerProps) {
       <Button
         size="sm"
         onClick={() => {
+          // 판정 시점의 document.hidden 값만 보면, 앱이 열렸다가 타이머가 끝나기 전에
+          // 사용자가 브라우저로 돌아온 경우 "설치 안 됨"으로 오판한다 — 창이 한 번이라도
+          // 숨었었는지(스킴 이동이 실제로 있었는지)를 따로 기록해 그 값으로 판정한다.
+          let wasHidden = false;
+          const onVisibilityChange = () => {
+            if (document.hidden) wasHidden = true;
+          };
+          document.addEventListener('visibilitychange', onVisibilityChange);
+          cleanupVisibilityRef.current = () =>
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+
           window.location.href = buildAppSharedLink(token);
           timeoutRef.current = setTimeout(() => {
-            if (!document.hidden) {
+            cleanupVisibilityRef.current?.();
+            cleanupVisibilityRef.current = null;
+            if (!wasHidden && !document.hidden) {
               showToast({ variant: 'simple', title: '앱이 설치되어 있지 않아요' });
             }
           }, OPEN_TIMEOUT_MS);

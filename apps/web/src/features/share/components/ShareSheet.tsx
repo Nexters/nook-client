@@ -1,6 +1,6 @@
 import type { Archive } from '@/features/archive/types';
 import { copyText, shareViaSystem } from '@/features/share/lib/shareUrl';
-import { Icon16Link, Icon24More } from '@/shared/icons/NookIcons';
+import { Icon24Link, Icon24More } from '@/shared/icons/NookIcons';
 import { useToast } from '@/shared/toast';
 import {
   BOTTOM_INSET_VAR,
@@ -30,7 +30,7 @@ export function ShareSheet({ open, onOpenChange, url, archive }: ShareSheetProps
   const actions = [
     {
       label: '링크 복사',
-      icon: <Icon16Link />,
+      icon: <Icon24Link />,
       onSelect: async () => {
         const copied = await copyText(url);
         showToast({

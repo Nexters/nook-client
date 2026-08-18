@@ -6,7 +6,6 @@ const endpoints = vi.hoisted(() => ({
   places: vi.fn(),
   subscribe: vi.fn(),
   postDetail: vi.fn(),
-  placeDetail: vi.fn(),
   save: vi.fn(),
 }));
 
