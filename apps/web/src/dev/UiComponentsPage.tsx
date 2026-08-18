@@ -17,8 +17,10 @@ import {
   PlacePhotoViewer,
   PlaceRow,
 } from '@/features/place';
+import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import type { Post } from '@/features/post';
 import { OriginalPostLink, PostInfo, SavedPostCard, SavedPostContext } from '@/features/post';
+import { ExpandableCaption } from '@/features/post/components/ExpandableCaption';
 import {
   Icon16Chat,
   Icon16Info,
@@ -843,6 +845,10 @@ export function UiComponentsPage() {
             address="서울 성동구 서울숲7길 9 4층"
             distance="4.6km"
             onAddressCopied={() => setLastAction('주소 복사됨')}
+            mapHref={buildNaverMapSearchUrl({
+              name: '누크',
+              address: '서울 성동구 서울숲7길 9 4층',
+            })}
             businessStatus="영업중"
             businessHours="11:00 - 19:30"
             memo={memo}
@@ -961,6 +967,15 @@ export function UiComponentsPage() {
         </div>
         <p className="text-b3 text-gray-50">
           이미지 줄은 공용 Carousel(scroll-snap)이고, 본문은 2줄로 접힙니다. "더보기"로 펼칩니다.
+        </p>
+      </Section>
+
+      <Section title="post — ExpandableCaption (게시물 본문)">
+        <div className="mx-auto w-full max-w-[343px]">
+          <ExpandableCaption caption={MOCK_POST.caption ?? ''} />
+        </div>
+        <p className="text-b3 text-gray-50">
+          한 줄로 접혀 있고 "더보기"로 펼칩니다. 펼친 뒤엔 "접기" 말고 본문을 눌러도 접힙니다.
         </p>
       </Section>
 

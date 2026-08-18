@@ -3,6 +3,7 @@ import type { SavedPlaceSearchPageResponse } from '@/shared/api';
 import { toSavedPlaceSearchPage } from '.';
 
 const PAGE: SavedPlaceSearchPageResponse = {
+  groups: [],
   hasNext: false,
   items: [
     { id: 11, name: '하우스 오브 와일드', address: '서울 성동구 성수이로 118', category: '카페' },

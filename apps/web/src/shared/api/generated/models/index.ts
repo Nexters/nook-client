@@ -108,6 +108,7 @@ export * from './recentPlaceResponse.generated';
 export * from './recentPlaceSliceResponse.generated';
 export * from './refreshTokenRequest.generated';
 export * from './replaceSavedPostGroupsRequest.generated';
+export * from './savedPlaceSearchGroupResponse.generated';
 export * from './savedPlaceSearchItemResponse.generated';
 export * from './savedPlaceSearchPageResponse.generated';
 export * from './savedPostDetailResponse.generated';

@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Android 11+ 패키지 가시성 제한 때문에 이 선언이 없으면 WebView 안의
+       navigator.share() 가 ACTION_SEND 를 받을 앱을 하나도 찾지 못해 공유 시트가
+       비거나 조용히 실패한다(§공유 드로어 "더보기"). -->
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.SEND" />
+      <data android:mimeType="text/plain" />
+    </intent>
+  </queries>
   <application>
     <activity
       android:name="com.nook.app.share.ShareActivity"

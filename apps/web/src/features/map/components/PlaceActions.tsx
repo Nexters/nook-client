@@ -25,6 +25,7 @@ export function PlaceActions({
   onClose,
   size = 'lg',
   className,
+  readOnly = false,
 }: {
   placeId: number;
   bookmarked: boolean;
@@ -32,21 +33,25 @@ export function PlaceActions({
   /** `lg` = 상세 본문 헤더(32px), `sm` = 스크롤 고정 헤더(24px) */
   size?: 'lg' | 'sm';
   className?: string;
+  /** 공유 링크로 들어온 읽기 전용 상세 — 저장 토글을 아예 그리지 않는다(닫기만 남는다). */
+  readOnly?: boolean;
 }) {
   const updateBookmark = useUpdatePlaceBookmark();
   const { on: MappinOn, off: MappinOff, close: Close } = ICONS[size];
 
   return (
     <div className={cn('flex shrink-0 items-center gap-3', className)}>
-      <button
-        type="button"
-        onClick={() => updateBookmark.mutate({ placeId, bookmarked: !bookmarked })}
-        disabled={updateBookmark.isPending}
-        aria-pressed={bookmarked}
-        aria-label={bookmarked ? '저장 취소' : '저장'}
-      >
-        {bookmarked ? <MappinOn /> : <MappinOff />}
-      </button>
+      {readOnly ? null : (
+        <button
+          type="button"
+          onClick={() => updateBookmark.mutate({ placeId, bookmarked: !bookmarked })}
+          disabled={updateBookmark.isPending}
+          aria-pressed={bookmarked}
+          aria-label={bookmarked ? '저장 취소' : '저장'}
+        >
+          {bookmarked ? <MappinOn /> : <MappinOff />}
+        </button>
+      )}
       <button type="button" onClick={onClose} aria-label="닫기">
         <Close />
       </button>

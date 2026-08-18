@@ -11,6 +11,7 @@ import {
   type SavedPlaceSearchItemResponse,
   type SavedPlaceSearchPageResponse,
   searchSavedPlaces as searchSavedPlacesEndpoint,
+  placeDetail as sharedPlaceDetailEndpoint,
   unwrapApiResponse,
   updateBookmark as updateBookmarkEndpoint,
   // 생성기가 `/posts/{postId}/memo` 와 이름이 겹쳐 붙인 `_1` 접미사다 — 여기서만 풀어준다.
@@ -155,6 +156,17 @@ export async function fetchPlaceDetail(placeId: number): Promise<PlaceDetail> {
   );
   if (!response) throw new Error('장소 상세 응답이 비어 있습니다.');
   return toPlaceDetail(response);
+}
+
+/**
+ * 공유 아카이브 토큰 스코프의 장소 상세(`GET /api/public/v1/groups/{token}/places/{placeId}`).
+ * `GET /places/{placeId}` 는 내가 저장한 장소 기준이라 공유 아카이브에서 딥링크로 들어온,
+ * 아직 저장하지 않은 장소는 404 가 난다 — 그 폴백 전용이다(`usePlaceDetail`).
+ */
+export async function fetchSharedPlaceDetail(token: string, placeId: number): Promise<PlaceDetail> {
+  const dto = unwrapApiResponse(await sharedPlaceDetailEndpoint(token, placeId));
+  if (!dto) throw new Error('공유 장소 응답이 비어 있어요');
+  return toPlaceDetail(dto);
 }
 
 export async function updatePlaceBookmark(placeId: number, bookmarked: boolean): Promise<void> {
