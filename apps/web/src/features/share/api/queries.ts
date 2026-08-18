@@ -4,10 +4,10 @@ import {
   fetchSharedArchive,
   fetchSharedArchivePlaces,
   fetchSharedArchivePosts,
-  subscribeSharedArchive,
-  fetchSharedPostDetail,
   fetchSharedPlaceDetail,
+  fetchSharedPostDetail,
   saveSharedPost,
+  subscribeSharedArchive,
 } from '.';
 
 export const sharedQueryKeys = {

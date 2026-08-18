@@ -6,18 +6,18 @@ import {
   toArchivePost,
 } from '@/features/archive/api';
 import type { Archive } from '@/features/archive/types';
-import { toPostDetail, updatePostMemo } from '@/features/post/api';
-import type { PostDetail } from '@/features/post/types';
 import { toPlaceDetail } from '@/features/map/api';
 import type { PlaceDetail } from '@/features/map/types';
+import { toPostDetail, updatePostMemo } from '@/features/post/api';
+import type { PostDetail } from '@/features/post/types';
 import {
   get as getSharedArchiveEndpoint,
   places as listSharedPlacesEndpoint,
   posts as listSharedPostsEndpoint,
-  subscribe as subscribeEndpoint,
+  save as saveSharedPostEndpoint,
   placeDetail as sharedPlaceDetailEndpoint,
   postDetail as sharedPostDetailEndpoint,
-  save as saveSharedPostEndpoint,
+  subscribe as subscribeEndpoint,
   unwrapApiResponse,
 } from '@/shared/api';
 
@@ -67,7 +67,9 @@ export async function subscribeSharedArchive(token: string): Promise<void> {
  * "내가 같은 원본을 저장해 둔 아카이브 목록"이 담긴다 — 저장 전/후 판별에 쓴다.
  */
 export async function fetchSharedPostDetail(token: string, postId: number): Promise<PostDetail> {
-  const dto = unwrapApiResponse(await sharedPostDetailEndpoint(token, postId, { auth: 'optional' }));
+  const dto = unwrapApiResponse(
+    await sharedPostDetailEndpoint(token, postId, { auth: 'optional' }),
+  );
   if (!dto) throw new Error('공유 게시물 응답이 비어 있어요');
   return toPostDetail(dto);
 }

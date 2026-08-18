@@ -25,9 +25,9 @@ vi.mock('@/features/post/api', async (importOriginal) => ({
 import {
   fetchSharedArchive,
   fetchSharedArchivePosts,
-  subscribeSharedArchive,
   fetchSharedPostDetail,
   saveSharedPost,
+  subscribeSharedArchive,
 } from '.';
 
 const META_RESPONSE = {
