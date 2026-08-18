@@ -153,4 +153,16 @@ describe('SharedArchivePage', () => {
     expect(mocks.fetchSharedArchive).not.toHaveBeenCalled();
     expect(archivesMock).not.toHaveBeenCalled();
   });
+
+  it('공유 버튼을 누르면 공유 시트가 열리고 프리뷰 카드에 아카이브 정보를 보여준다', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: '공유' }));
+
+    // 프리뷰 카드 — 아카이브 이름과 소유자, 개수 요약.
+    // 유일한 텍스트는 "@ehoidi • 12 Places" 이므로 이것으로 프리뷰 카드 렌더 여부를 확인한다.
+    expect(screen.getByText('@ehoidi • 12 Places')).toBeInTheDocument();
+    // 공유 수단.
+    expect(screen.getByText('링크 복사')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '더보기' })).toBeInTheDocument();
+  });
 });
