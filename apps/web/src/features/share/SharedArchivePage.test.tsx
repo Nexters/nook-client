@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   fetchSharedArchive: vi.fn(),
   fetchSharedArchivePosts: vi.fn(),
   fetchSharedArchivePlaces: vi.fn(),
+  fetchSharedPlaceDetail: vi.fn(),
   subscribeSharedArchive: vi.fn(),
 }));
 vi.mock('@/features/share/api', () => mocks);
@@ -83,6 +84,7 @@ describe('SharedArchivePage', () => {
       totalElements: 0,
     });
     mocks.subscribeSharedArchive.mockReset().mockResolvedValue(undefined);
+    mocks.fetchSharedPlaceDetail.mockReset();
     archivesMock.mockReset().mockResolvedValue([]);
   });
 
@@ -164,5 +166,43 @@ describe('SharedArchivePage', () => {
     // 공유 수단.
     expect(screen.getByText('링크 복사')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '더보기' })).toBeInTheDocument();
+  });
+
+  it('비로그인 장소 카드 탭은 로그인 월을 띄운다', async () => {
+    mocks.fetchSharedArchivePlaces.mockResolvedValue({
+      places: [{ id: '42', name: '을지다락', category: '카페', region: '서울' }],
+      nextPage: undefined,
+      totalElements: 1,
+    });
+    renderPage();
+    fireEvent.click(await screen.findByRole('tab', { name: /장소/ }));
+    fireEvent.click(await screen.findByText('을지다락'));
+    expect(screen.getByText('로그인하시겠어요?')).toBeInTheDocument();
+  });
+
+  it('로그인 장소 카드 탭은 공유 장소 시트를 연다', async () => {
+    session.status = 'authenticated';
+    mocks.fetchSharedArchivePlaces.mockResolvedValue({
+      places: [{ id: '42', name: '을지다락', category: '카페', region: '서울' }],
+      nextPage: undefined,
+      totalElements: 1,
+    });
+    mocks.fetchSharedPlaceDetail.mockResolvedValue({
+      id: 42,
+      name: '을지다락',
+      address: '서울 중구 을지로',
+      lat: 37.5,
+      lng: 127.0,
+      bookmarked: false,
+      photos: [],
+      tags: [],
+      posts: [],
+    });
+    renderPage();
+    fireEvent.click(await screen.findByRole('tab', { name: /장소/ }));
+    fireEvent.click(await screen.findByText('을지다락'));
+
+    expect(await screen.findByText('서울 중구 을지로')).toBeInTheDocument();
+    expect(mocks.fetchSharedPlaceDetail).toHaveBeenCalledWith('tok-123', 42);
   });
 });

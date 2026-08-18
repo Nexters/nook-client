@@ -287,9 +287,12 @@ export function ArchiveDetailPage() {
                 place={place}
                 onClick={
                   isShared
-                    ? undefined
-                    : // TODO(4단계): 공유 장소 시트(`?placeId=`)가 생기면 연결한다.
-                      // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
+                    ? // 공유(SHARED) 아카이브의 장소는 공유 장소 시트로 — shareToken 이 없으면
+                      // (비정상 데이터) 기존처럼 undefined 로 둔다.
+                      archive.shareToken
+                      ? () => navigate(`/shared/${archive.shareToken}?placeId=${place.id}`)
+                      : undefined
+                    : // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
                       () => navigate(`/map?placeId=${place.id}`)
                 }
               />
