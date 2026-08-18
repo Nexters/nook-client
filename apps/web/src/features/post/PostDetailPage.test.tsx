@@ -532,6 +532,15 @@ describe('게시물 상세', () => {
     expect(screen.getByRole('button', { name: '접기' })).toBeInTheDocument();
   });
 
+  it('펼친 본문을 다시 누르면 접힌다', async () => {
+    await renderPost(1);
+
+    fireEvent.click(screen.getByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByRole('button', { name: /초록뷰가 아름다운 카페 공간/ }));
+
+    expect(screen.getByRole('button', { name: '더보기' })).toBeInTheDocument();
+  });
+
   it('메모하기에서 저장하면 postId 와 새 메모로 updatePostMemo 를 호출한다', async () => {
     await renderPost(1);
 

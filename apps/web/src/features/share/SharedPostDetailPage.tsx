@@ -6,12 +6,12 @@ import { ArchiveEmpty } from '@/features/archive/components/ArchiveEmpty';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { PlaceRow } from '@/features/place';
 import { toPlace } from '@/features/post/api/queries';
+import { ExpandableCaption } from '@/features/post/components/ExpandableCaption';
 import { OriginalPostLink } from '@/features/post/components/OriginalPostLink';
 import { PostImages } from '@/features/post/components/PostImages';
 import { PostImageViewer } from '@/features/post/components/PostImageViewer';
 import { Icon16Archive, Icon16ArrowDown, Icon16Pen } from '@/shared/icons/NookIcons';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
-import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
 import { BackButton, COLOR_BG_CLASS, EditableTextRow, Header } from '@/shared/ui';
 import { useSaveSharedPost, useSharedPostDetail } from './api/queries';
@@ -31,7 +31,6 @@ export function SharedPostDetailPage() {
   const { showToast } = useToast();
   const { gate, wall: loginWall } = useLoginGate();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   // 뒤로가기(버튼·하드웨어 백·스와이프)로 닫혀야 해서 히스토리 엔트리로 승격한다.
   const [viewerOpen, openViewer, closeViewer] = useHistoryBackedFlag('imageViewer');
 
@@ -96,25 +95,7 @@ export function SharedPostDetailPage() {
         <div className="flex flex-col gap-2 px-4 pt-1">
           <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
 
-          {post.caption ? (
-            <div className="flex flex-col">
-              <p
-                className={cn(
-                  'whitespace-pre-wrap text-b2 font-normal text-gray-80',
-                  expanded ? '' : 'line-clamp-1',
-                )}
-              >
-                {post.caption}
-              </p>
-              <button
-                type="button"
-                onClick={() => setExpanded((prev) => !prev)}
-                className="self-start text-b2 font-medium text-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-              >
-                {expanded ? '접기' : '더보기'}
-              </button>
-            </div>
-          ) : null}
+          {post.caption ? <ExpandableCaption caption={post.caption} /> : null}
 
           {/* Figma `게시물 정보 > 공유받은화면` — 아카이브 칩과 메모 줄. */}
           <div className="flex min-h-6 items-center gap-2 pt-2">
