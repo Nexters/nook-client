@@ -14,3 +14,17 @@ export async function copyText(text: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * OS 공유 시트("더보기"). WKWebView·모바일 브라우저는 navigator.share 를 지원한다 —
+ * 미지원(구형 데스크톱)이거나 사용자가 취소하면 false 를 돌려주고 호출부가 무시한다.
+ */
+export async function shareViaSystem(data: { title: string; url: string }): Promise<boolean> {
+  if (typeof navigator.share !== 'function') return false;
+  try {
+    await navigator.share(data);
+    return true;
+  } catch {
+    return false;
+  }
+}

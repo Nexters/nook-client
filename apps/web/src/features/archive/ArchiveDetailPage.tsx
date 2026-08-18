@@ -395,7 +395,12 @@ export function ArchiveDetailPage() {
       />
 
       {shareUrl ? (
-        <ShareSheet open onOpenChange={(open) => !open && setShareUrl(null)} url={shareUrl} />
+        <ShareSheet
+          open
+          onOpenChange={(open) => !open && setShareUrl(null)}
+          url={shareUrl}
+          archive={archive}
+        />
       ) : null}
     </PinnedHeaderLayout>
   );

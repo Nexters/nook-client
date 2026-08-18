@@ -206,6 +206,7 @@ export function SharedArchivePage() {
         open={shareSheetOpen}
         onOpenChange={setShareSheetOpen}
         url={buildShareUrl(token)}
+        archive={archive}
       />
     </>
   );

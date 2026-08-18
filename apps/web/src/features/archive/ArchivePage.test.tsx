@@ -217,8 +217,11 @@ describe('아카이브 화면', () => {
 
     // mutate 는 두 번째 인자로 mutation context 를 넘기므로 첫 인자만 본다.
     await vi.waitFor(() => expect(mocks.issueShareLink.mock.calls[0]?.[0]).toBe(1));
-    // 시트에 조립된 공유 URL 이 보인다.
-    expect(await screen.findByText(/\/shared\/tok-123$/)).toBeInTheDocument();
+    // 시트에 조립된 공유 URL 대신 시안의 프리뷰 카드와 공유 수단이 보인다.
+    expect(await screen.findByText('링크 복사')).toBeInTheDocument();
+    expect(screen.getByText('더보기')).toBeInTheDocument();
+    // 프리뷰 카드 — 아카이브 이름과 개수 요약.
+    expect(screen.getByText('114 Places')).toBeInTheDocument();
   });
 
   it('상세 더보기 메뉴의 아카이브 삭제는 확인 팝업을 거쳐 삭제 요청을 보낸다', async () => {
