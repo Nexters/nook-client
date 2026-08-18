@@ -17,6 +17,7 @@ import { MyPage } from '@/features/my/MyPage';
 import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
 import { PostDetailPage } from '@/features/post/PostDetailPage';
+import { SharedArchivePage } from '@/features/share/SharedArchivePage';
 import { env } from '@/shared/config/env';
 
 // 셸 WebView 에서 딥링크/새로고침 시 BrowserRouter 경로 문제가 확인되면
@@ -101,6 +102,11 @@ export const router = createBrowserRouter([
             element: <MyPage />,
           },
         ],
+      },
+      // 공유 아카이브 열람 — 링크만 있으면 비로그인도 본다.
+      {
+        path: 'shared/:token',
+        element: <SharedArchivePage />,
       },
       // 스토어 심사·앱 스토어 등록에 공개 URL 이 필요해 로그인 밖에 둔다.
       {
