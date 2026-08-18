@@ -11,6 +11,7 @@ import {
   listPlaces as listArchivePlacesEndpoint,
   listPosts as listArchivePostsEndpoint,
   list as listArchivesEndpoint,
+  unsubscribe as unsubscribeEndpoint,
   unwrapApiResponse,
   update as updateArchiveEndpoint,
 } from '@/shared/api';
@@ -87,6 +88,11 @@ export async function issueShareLink(archiveId: number): Promise<string> {
   const response = unwrapApiResponse(await issueShareLinkEndpoint(archiveId, { auth: 'required' }));
   if (!response?.token) throw new Error('공유 링크를 발급하지 못했어요');
   return response.token;
+}
+
+/** 내 목록에서 공유 아카이브 제거 — 내 구독만 사라지고 공유자 원본에는 영향 없다. */
+export async function removeSharedArchive(archiveId: number): Promise<void> {
+  await unsubscribeEndpoint(archiveId, { auth: 'required' });
 }
 
 /**

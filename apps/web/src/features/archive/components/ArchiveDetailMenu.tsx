@@ -13,16 +13,23 @@ import { cn } from '@/shared/lib/utils';
  * Radix DropdownMenu 대신 컨트롤드 상태로 직접 그린다 — 항목이 넷뿐인 단발 메뉴라
  * 포지셔닝/포털이 필요 없고, jsdom 테스트에서도 클릭만으로 동작해야 해서다.
  */
-export interface ArchiveDetailMenuProps {
-  onEdit: () => void;
-  onShare: () => void;
-  /**
-   * 선택 삭제 — 게시물 다중 선택 모드로 전환한다.
-   * 넘기지 않으면 항목 자체가 빠진다(장소 탭처럼 지울 수 없는 화면).
-   */
-  onSelectDelete?: () => void;
-  onDelete: () => void;
-}
+export type ArchiveDetailMenuProps =
+  | {
+      kind: 'owned';
+      onEdit: () => void;
+      onShare: () => void;
+      /**
+       * 선택 삭제 — 게시물 다중 선택 모드로 전환한다.
+       * 넘기지 않으면 항목 자체가 빠진다(장소 탭처럼 지울 수 없는 화면).
+       */
+      onSelectDelete?: () => void;
+      onDelete: () => void;
+    }
+  | {
+      /** 공유받은(SHARED) 아카이브 — 읽기 전용이라 제거만 가능하다. */
+      kind: 'shared';
+      onRemove: () => void;
+    };
 
 interface MenuItem {
   label: string;
@@ -32,7 +39,7 @@ interface MenuItem {
   destructive?: boolean;
 }
 
-function ArchiveDetailMenu({ onEdit, onShare, onSelectDelete, onDelete }: ArchiveDetailMenuProps) {
+function ArchiveDetailMenu(props: ArchiveDetailMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -55,14 +62,29 @@ function ArchiveDetailMenu({ onEdit, onShare, onSelectDelete, onDelete }: Archiv
     };
   }, [open]);
 
-  const items: MenuItem[] = [
-    { label: '아카이브 편집', icon: <Icon16Pen />, onSelect: onEdit },
-    { label: '아카이브 공유', icon: <Icon16Share />, onSelect: onShare },
-    ...(onSelectDelete
-      ? [{ label: '선택 삭제', icon: <Icon16CheckCircle />, onSelect: onSelectDelete }]
-      : []),
-    { label: '아카이브 삭제', icon: <Icon16Trash />, onSelect: onDelete, destructive: true },
-  ];
+  const items: MenuItem[] =
+    props.kind === 'owned'
+      ? [
+          { label: '아카이브 편집', icon: <Icon16Pen />, onSelect: props.onEdit },
+          { label: '아카이브 공유', icon: <Icon16Share />, onSelect: props.onShare },
+          ...(props.onSelectDelete
+            ? [{ label: '선택 삭제', icon: <Icon16CheckCircle />, onSelect: props.onSelectDelete }]
+            : []),
+          {
+            label: '아카이브 삭제',
+            icon: <Icon16Trash />,
+            onSelect: props.onDelete,
+            destructive: true,
+          },
+        ]
+      : [
+          {
+            label: '내 목록에서 제거',
+            icon: <Icon16Trash />,
+            onSelect: props.onRemove,
+            destructive: true,
+          },
+        ];
 
   return (
     <div ref={rootRef} className="relative shrink-0">

@@ -13,6 +13,15 @@ import { ToastProvider } from '@/shared/toast';
 const ARCHIVES: Archive[] = [
   { id: 1, name: '카페', color: 'yellow', placeCount: 114, accessType: 'OWNED' },
   { id: 2, name: '독립영화관', color: 'blue', placeCount: 3, accessType: 'OWNED' },
+  {
+    id: 3,
+    name: '지우랑 놀러가고 싶은 곳',
+    color: 'cement',
+    placeCount: 12,
+    accessType: 'SHARED',
+    owner: { nickname: 'ehoidi' },
+    shareToken: 'tok-123',
+  },
 ];
 
 // HTTP 전송이 아니라 화면 ↔ Query ↔ feature API 배선만 검증한다.
@@ -25,6 +34,7 @@ const mocks = vi.hoisted(() => ({
   deleteArchive: vi.fn(),
   deleteArchivePosts: vi.fn(),
   issueShareLink: vi.fn(),
+  removeSharedArchive: vi.fn(),
 }));
 
 vi.mock('@/features/archive/api', () => mocks);
@@ -72,6 +82,7 @@ describe('아카이브 화면', () => {
     mocks.deleteArchive.mockReset().mockResolvedValue(undefined);
     mocks.deleteArchivePosts.mockReset().mockResolvedValue(undefined);
     mocks.issueShareLink.mockReset().mockResolvedValue('tok-123');
+    mocks.removeSharedArchive.mockReset().mockResolvedValue(undefined);
   });
 
   it('목록에서 아카이브를 누르면 상세로 이동한다', async () => {
@@ -348,5 +359,23 @@ describe('아카이브 화면', () => {
     fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
     await vi.waitFor(() => expect(mocks.deleteArchive.mock.calls[0]?.[0]).toBe(1));
     expect(await screen.findByText('"카페" 아카이브가 삭제 됐어요.')).toBeInTheDocument();
+  });
+
+  it('공유받은 아카이브 카드는 소유자 닉네임을 보여준다', async () => {
+    renderArchiveRoutes('/archive');
+    expect(await screen.findByText('by ehoidi')).toBeInTheDocument();
+  });
+
+  it('공유받은 아카이브 상세 메뉴는 제거만 제공하고, 제거하면 구독 해제를 호출한다', async () => {
+    renderArchiveRoutes('/archive/3');
+
+    fireEvent.click(await screen.findByRole('button', { name: '더보기' }));
+    expect(screen.queryByRole('menuitem', { name: '아카이브 편집' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: '내 목록에서 제거' }));
+    fireEvent.click(screen.getByRole('button', { name: '제거하기' }));
+
+    // mutate 는 두 번째 인자로 mutation context 를 넘기므로 첫 인자만 본다.
+    await vi.waitFor(() => expect(mocks.removeSharedArchive.mock.calls[0]?.[0]).toBe(3));
   });
 });

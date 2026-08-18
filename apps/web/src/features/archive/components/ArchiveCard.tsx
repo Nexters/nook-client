@@ -47,6 +47,19 @@ function ArchiveCard({ archive, onClick, className }: ArchiveCardProps) {
         <Badge variant="number">{archive.placeCount}</Badge>
       </div>
 
+      {archive.accessType === 'SHARED' && archive.owner ? (
+        <span className="flex items-center gap-1 font-mono text-e2 text-gray-60">
+          {archive.owner.profileImageUrl ? (
+            <img
+              src={archive.owner.profileImageUrl}
+              alt=""
+              className="size-4 shrink-0 rounded-full object-cover"
+            />
+          ) : null}
+          by {archive.owner.nickname}
+        </span>
+      ) : null}
+
       {/* 썸네일은 카드 폭을 3등분해 늘어난다 — 화면이 넓어져도 왼쪽에 몰리지 않게.
           장수가 3보다 적어도 칸 크기는 그대로라 카드끼리 줄이 맞는다. */}
       <div className="grid w-full grid-cols-3 gap-2">

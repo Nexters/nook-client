@@ -25,6 +25,7 @@ import {
   useDeleteArchive,
   useDeleteArchivePosts,
   useIssueShareLink,
+  useRemoveSharedArchive,
 } from './api/queries';
 import { ArchiveDetailMenu } from './components/ArchiveDetailMenu';
 import { ArchiveEmpty } from './components/ArchiveEmpty';
@@ -68,6 +69,8 @@ export function ArchiveDetailPage() {
 
   const deleteArchive = useDeleteArchive();
   const deleteArchivePosts = useDeleteArchivePosts();
+  const removeShared = useRemoveSharedArchive();
+  const [removePopupOpen, setRemovePopupOpen] = useState(false);
 
   // 게시물이 하나도 없으면 시안대로 탭 없이 빈 상태만 보여준다 — 장소는 게시물에서
   // 파생되므로 게시물이 없으면 장소도 없다. 로딩 중(undefined)에는 판단을 미룬다.
@@ -140,6 +143,8 @@ export function ArchiveDetailPage() {
     );
   }
 
+  const isShared = archive.accessType === 'SHARED';
+
   const tabs: { key: DetailTab; label: string; count: number | undefined }[] = [
     { key: 'posts', label: '게시물', count: postsQuery.data?.totalElements },
     { key: 'places', label: '장소', count: placesQuery.data?.totalElements },
@@ -160,20 +165,25 @@ export function ArchiveDetailPage() {
               // 게스트에게는 더보기 자체를 내린다 — 편집·삭제·선택 삭제가 전부 계정
               // 동작이라, 열어봐야 누르는 족족 월이 뜨는 메뉴가 된다.
               isAuthenticated ? (
-                <ArchiveDetailMenu
-                  onEdit={() => navigate(`/archive/${archive.id}/edit`)}
-                  onShare={() =>
-                    issueShare.mutate(archive.id, {
-                      onSuccess: (token) => setShareUrl(buildShareUrl(token)),
-                      onError: () =>
-                        showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
-                    })
-                  }
-                  // 선택 삭제는 게시물 전용이다 — 장소 탭에서는 항목 자체를 내리고,
-                  // 탭을 바꿔서 억지로 되돌리지도 않는다(아카이브에서 장소를 빼는 API 가 없다).
-                  onSelectDelete={activeTab === 'posts' ? () => setSelecting(true) : undefined}
-                  onDelete={() => setDeletePopupOpen(true)}
-                />
+                isShared ? (
+                  <ArchiveDetailMenu kind="shared" onRemove={() => setRemovePopupOpen(true)} />
+                ) : (
+                  <ArchiveDetailMenu
+                    kind="owned"
+                    onEdit={() => navigate(`/archive/${archive.id}/edit`)}
+                    onShare={() =>
+                      issueShare.mutate(archive.id, {
+                        onSuccess: (token) => setShareUrl(buildShareUrl(token)),
+                        onError: () =>
+                          showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
+                      })
+                    }
+                    // 선택 삭제는 게시물 전용이다 — 장소 탭에서는 항목 자체를 내리고,
+                    // 탭을 바꿔서 억지로 되돌리지도 않는다(아카이브에서 장소를 빼는 API 가 없다).
+                    onSelectDelete={activeTab === 'posts' ? () => setSelecting(true) : undefined}
+                    onDelete={() => setDeletePopupOpen(true)}
+                  />
+                )
               ) : null
             }
           />
@@ -252,7 +262,13 @@ export function ArchiveDetailPage() {
                 archive={post}
                 selected={selecting ? selectedPostIds.has(post.id) : undefined}
                 onClick={
-                  selecting ? () => togglePostSelected(post.id) : () => navigate(`/post/${post.id}`)
+                  isShared
+                    ? undefined
+                    : // TODO(3단계): 공유 상세(`/shared/{shareToken}/post/{id}`)로 연결한다 — 기존
+                      // `/post/{id}`는 소유 데이터 전용이라 공유 게시물에선 404 다.
+                      selecting
+                      ? () => togglePostSelected(post.id)
+                      : () => navigate(`/post/${post.id}`)
                 }
               />
             ))}
@@ -267,8 +283,13 @@ export function ArchiveDetailPage() {
               <PlaceCard
                 key={place.id}
                 place={place}
-                // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
-                onClick={() => navigate(`/map?placeId=${place.id}`)}
+                onClick={
+                  isShared
+                    ? undefined
+                    : // TODO(4단계): 공유 장소 시트(`?placeId=`)가 생기면 연결한다.
+                      // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
+                      () => navigate(`/map?placeId=${place.id}`)
+                }
               />
             ))}
           </div>
@@ -345,6 +366,30 @@ export function ArchiveDetailPage() {
               navigate('/archive', { replace: true });
               showToast({ variant: 'simple', title: `"${archive.name}" 아카이브가 삭제 됐어요.` });
             },
+          })
+        }
+      />
+
+      <Popup
+        open={removePopupOpen}
+        onClose={() => setRemovePopupOpen(false)}
+        title="내 목록에서 제거하시겠어요?"
+        description={
+          <>
+            공유받은 아카이브가 내 목록에서 사라져요.
+            <br />
+            원본에는 영향이 없어요.
+          </>
+        }
+        confirmLabel="제거하기"
+        variant="warning"
+        onConfirm={() =>
+          removeShared.mutate(archive.id, {
+            onSuccess: () => {
+              navigate('/archive', { replace: true });
+              showToast({ variant: 'simple', title: `"${archive.name}" 아카이브를 제거했어요.` });
+            },
+            onError: () => showToast({ variant: 'simple', title: '아카이브를 제거하지 못했어요' }),
           })
         }
       />
