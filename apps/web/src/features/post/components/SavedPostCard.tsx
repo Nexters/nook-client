@@ -19,8 +19,8 @@ export interface SavedPostCardProps {
   post: Post;
   /** 이 게시물이 저장된 아카이브들 (표시용 이름/색만 받는다). 여러 아카이브에 저장될 수 있다. */
   archives: PostArchive[];
-  /** 카드 상단 제목 */
-  title?: string;
+  /** 카드 상단 제목. `null` 이면 제목 줄을 그리지 않는다(화면 헤더가 이미 같은 말을 할 때). */
+  title?: React.ReactNode;
   /** 넘기면 아카이브 태그가 버튼이 된다 — 게시물 상세와 같이 그 아카이브 상세로 보낼 때 쓴다. */
   onArchiveClick?: (archiveId: number) => void;
   className?: string;
@@ -39,11 +39,14 @@ function SavedPostCard({
   return (
     // overflow 를 잘라내지 않는다 — 이미지 줄이 부모 여백 밖으로 나가야 한다(아래 -mx-4).
     <div className={cn('flex w-full flex-col bg-gray-0 pb-1', className)}>
-      <div className="flex w-full items-center justify-between pt-4 pb-3">
-        <h2 className="text-b1 font-semibold text-gray-100">{title}</h2>
-      </div>
+      {title ? (
+        <div className="flex w-full items-center justify-between pt-4 pb-3">
+          <h2 className="text-b1 font-semibold text-gray-100">{title}</h2>
+        </div>
+      ) : null}
 
-      <div className="flex w-full flex-wrap items-center gap-2 pb-3">
+      {/* 제목 줄이 없으면 그 줄이 갖던 상단 16px 을 이 줄이 대신 받는다. */}
+      <div className={cn('flex w-full flex-wrap items-center gap-2 pb-3', !title && 'pt-4')}>
         {archives.map((archive) => (
           <ArchiveTag
             key={archive.id}

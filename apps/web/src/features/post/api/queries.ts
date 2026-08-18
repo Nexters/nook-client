@@ -1,4 +1,10 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { archiveQueryKeys } from '@/features/archive/api/queries';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { mapQueryKeys } from '@/features/map/api/queries';
@@ -236,5 +242,25 @@ export function useDisconnectPostPlace(postId: number | undefined) {
       // ['archives'] 프리픽스라 아카이브 목록·게시물·장소 캐시가 함께 무효화된다.
       queryClient.invalidateQueries({ queryKey: archiveQueryKeys.list });
     },
+  });
+}
+
+/**
+ * 여러 게시물의 상세를 한 번에 가져온다 — 목록 응답(장소 상세의 `posts` 등)이 제목·작성자·
+ * 대표 이미지까지만 줄 때, 본문·이미지 전체·원본 링크·아카이브를 채우려면 게시물 상세가
+ * 필요하다. `postQueryKeys.detail` 을 그대로 재사용해 게시물 상세 페이지와 캐시를 공유한다.
+ *
+ * 캐시 공유는 `staleTime`(30초, `app/queryClient.ts`) 안에서만 재요청을 없앤다 — 그보다
+ * 오래 머물다 이동하면 새 옵저버가 stale 캐시를 보고 다시 받아온다(화면은 캐시로 즉시 뜬다).
+ */
+export function usePostDetails(postIds: number[]) {
+  const isAuthenticated = useIsAuthenticated();
+
+  return useQueries({
+    queries: postIds.map((postId) => ({
+      queryKey: postQueryKeys.detail(postId),
+      queryFn: () => fetchPostDetail(postId),
+      enabled: isAuthenticated,
+    })),
   });
 }
