@@ -24,7 +24,7 @@ function PlacePhotoViewer({ title, photos, onClose }: PlacePhotoViewerProps) {
   const [zoomedIndex, setZoomedIndex] = useState<number | null>(null);
   // 확대뷰에서 지금 보고 있는 사진. 시작 위치는 그리드에서 누른 칸이고, 이후엔 캐러셀이 알려준다.
   const [active, setActive] = useState(0);
-
+  // 확대뷰는 아래로 끌어도 닫힌다 — 전체화면이라 헤더 버튼까지 손이 가기 멀다.
   // body 로 포탈한다 — 이 뷰어를 여는 장소 상세는 vaul 드로어 안에 있고, 드로어는 스냅을
   // transform 으로 움직인다. transform 이 걸린 조상은 fixed 의 기준 박스가 되어버려서
   // 포탈 없이는 화면 전체가 아니라 드로어 안쪽만 덮는다.
@@ -34,24 +34,27 @@ function PlacePhotoViewer({ title, photos, onClose }: PlacePhotoViewerProps) {
       className="fixed inset-0 z-[70] flex flex-col bg-gray-0"
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <Header
-        left={
-          <button
-            type="button"
-            // 확대뷰에서는 그리드로 되돌아가고, 그리드에서는 오버레이를 닫는다.
-            onClick={() => (zoomedIndex === null ? onClose() : setZoomedIndex(null))}
-            aria-label="뒤로"
-          >
-            <Icon24Back />
-          </button>
-        }
-        title={title}
-        right={
-          <button type="button" onClick={onClose} aria-label="닫기">
-            <Icon24Close />
-          </button>
-        }
-      />
+      {/* 확대뷰는 이미지를 화면 전체 기준으로 앉히므로 헤더가 그 위에 얹힌다. */}
+      <div className="relative z-10">
+        <Header
+          left={
+            <button
+              type="button"
+              // 확대뷰에서는 그리드로 되돌아가고, 그리드에서는 오버레이를 닫는다.
+              onClick={() => (zoomedIndex === null ? onClose() : setZoomedIndex(null))}
+              aria-label="뒤로"
+            >
+              <Icon24Back />
+            </button>
+          }
+          title={title}
+          right={
+            <button type="button" onClick={onClose} aria-label="닫기">
+              <Icon24Close />
+            </button>
+          }
+        />
+      </div>
 
       {zoomedIndex === null ? (
         // 카드 크기는 "최근 저장한 공간" 그리드와 같다(시안 167.5x208).
@@ -73,16 +76,18 @@ function PlacePhotoViewer({ title, photos, onClose }: PlacePhotoViewerProps) {
           ))}
         </div>
       ) : (
-        <div className="flex flex-1 items-center">
-          {/* 사진 태그의 기준 박스 — 이 래퍼 높이가 곧 사진 높이라 태그가 사진 우상단에 앉는다
-              (flex-1 영역 기준으로 잡으면 세로 가운데 정렬된 사진보다 훨씬 위로 뜬다). */}
-          <div className="relative w-full">
+        /* 헤더 아래 남은 공간이 아니라 화면 전체를 기준으로 사진을 세로 가운데에 둔다. */
+        <div className="fixed inset-0 flex items-center">
+          {/* 사진 태그의 기준 박스 — 이 래퍼 높이가 곧 사진 높이라 태그가 사진 우상단에 앉고,
+              아래에 붙는 점은 높이 밖으로 넘겨 가운데 계산에서 뺀다. */}
+          <div className="relative aspect-[375/495] w-full">
             {/* 슬라이드가 화면 폭과 같아 스냅의 좌측 여백을 없앤다. */}
             <Carousel
               padded={false}
               gap={0}
               initialIndex={zoomedIndex}
               onActiveIndexChange={setActive}
+              className="absolute inset-x-0 top-0"
             >
               {photos.map((src, index) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
