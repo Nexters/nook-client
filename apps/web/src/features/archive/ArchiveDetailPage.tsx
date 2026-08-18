@@ -263,10 +263,12 @@ export function ArchiveDetailPage() {
                 selected={selecting ? selectedPostIds.has(post.id) : undefined}
                 onClick={
                   isShared
-                    ? undefined
-                    : // TODO(3단계): 공유 상세(`/shared/{shareToken}/post/{id}`)로 연결한다 — 기존
-                      // `/post/{id}`는 소유 데이터 전용이라 공유 게시물에선 404 다.
-                      selecting
+                    ? // `/post/{id}`는 소유 데이터 전용이라 공유 게시물에선 404 다 — 공유 상세로 보낸다.
+                      // shareToken 이 없으면(비정상 데이터) 기존처럼 undefined 로 둔다.
+                      archive.shareToken
+                      ? () => navigate(`/shared/${archive.shareToken}/post/${post.id}`)
+                      : undefined
+                    : selecting
                       ? () => togglePostSelected(post.id)
                       : () => navigate(`/post/${post.id}`)
                 }

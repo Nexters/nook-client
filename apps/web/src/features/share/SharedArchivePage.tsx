@@ -183,8 +183,11 @@ export function SharedArchivePage() {
             ) : (
               <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
                 {posts?.map((post) => (
-                  // TODO(3단계): 공유 게시물 상세(`/shared/:token/post/:id`) 라우트가 생기면 연결한다.
-                  <CollectionCard key={post.id} archive={post} />
+                  <CollectionCard
+                    key={post.id}
+                    archive={post}
+                    onClick={() => navigate(`/shared/${token}/post/${post.id}`)}
+                  />
                 ))}
               </div>
             )

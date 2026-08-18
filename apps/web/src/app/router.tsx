@@ -18,6 +18,7 @@ import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
 import { PostDetailPage } from '@/features/post/PostDetailPage';
 import { SharedArchivePage } from '@/features/share/SharedArchivePage';
+import { SharedPostDetailPage } from '@/features/share/SharedPostDetailPage';
 import { env } from '@/shared/config/env';
 
 // 셸 WebView 에서 딥링크/새로고침 시 BrowserRouter 경로 문제가 확인되면
@@ -112,6 +113,14 @@ export const router = createBrowserRouter([
         element: (
           <AwaitSession>
             <SharedArchivePage />
+          </AwaitSession>
+        ),
+      },
+      {
+        path: 'shared/:token/post/:postId',
+        element: (
+          <AwaitSession>
+            <SharedPostDetailPage />
           </AwaitSession>
         ),
       },

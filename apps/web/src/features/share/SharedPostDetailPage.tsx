@@ -1,0 +1,171 @@
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
+import { useLoginGate } from '@/features/auth/session/useLoginGate';
+import { PlaceRow } from '@/features/place';
+import { toPlace } from '@/features/post/api/queries';
+import { OriginalPostLink } from '@/features/post/components/OriginalPostLink';
+import { PostImages } from '@/features/post/components/PostImages';
+import { PostImageViewer } from '@/features/post/components/PostImageViewer';
+import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
+import { cn } from '@/shared/lib/utils';
+import { useToast } from '@/shared/toast';
+import { BackButton, Button, Header } from '@/shared/ui';
+import { useSaveSharedPost, useSharedPostDetail } from './api/queries';
+import { SavePostSheet } from './components/SavePostSheet';
+import { shareErrorMessage } from './lib/shareError';
+
+/**
+ * Figma `아카이브 공유 > 공유 게시물 상세` — 공유자의 게시물을 읽기 전용으로 보고,
+ * 마음에 들면 내 아카이브에 단건 저장한다. 저장하면 그 순간부터 내 게시물이므로
+ * 기존 게시물 상세(`/post/{postId}`)로 전환한다 — 이 화면에는 "저장 후 편집 모드"가 없다.
+ */
+export function SharedPostDetailPage() {
+  const { token = '', postId: postIdParam } = useParams();
+  const sharedPostId = Number(postIdParam);
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { gate, wall: loginWall } = useLoginGate();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  // 뒤로가기(버튼·하드웨어 백·스와이프)로 닫혀야 해서 히스토리 엔트리로 승격한다.
+  const [viewerOpen, openViewer, closeViewer] = useHistoryBackedFlag('imageViewer');
+
+  const detailQuery = useSharedPostDetail(token, sharedPostId);
+  const savePost = useSaveSharedPost();
+
+  const goBack = () => navigate(-1);
+
+  if (detailQuery.isPending) return null;
+
+  if (detailQuery.isError) {
+    return (
+      <main
+        className="fixed inset-0 flex flex-col bg-gray-0"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        <Header left={<BackButton onClick={goBack} />} />
+        <p className="flex flex-1 items-center justify-center text-b2 font-medium text-gray-60">
+          {shareErrorMessage(detailQuery.error)}
+        </p>
+      </main>
+    );
+  }
+
+  const detail = detailQuery.data;
+  const { post, title, archives, memo } = detail;
+  const images = post.images ?? [];
+  // 로그인 + 저장 이력: 공유 상세의 archives 는 "내가 같은 원본을 저장한 내 아카이브".
+  const [firstSavedArchive] = archives;
+
+  const handleSaveChip = () =>
+    gate('아카이브 서비스는 로그인이 필요해요', () => setSheetOpen(true));
+
+  const handleSave = (input: { groupIds: number[]; memo?: string }) =>
+    savePost.mutate(
+      { shareToken: token, sharedPostId, ...input },
+      {
+        onSuccess: (myPostId) => {
+          setSheetOpen(false);
+          // 저장한 순간부터 내 게시물이다 — 편집 가능한 기존 상세로 전환한다.
+          // replace: 뒤로가기가 "저장 전 공유 상세"로 돌아가 상태가 어긋나지 않게.
+          navigate(`/post/${myPostId}?entry=share`, { replace: true });
+        },
+        onError: () => showToast({ variant: 'simple', title: '게시물을 저장하지 못했어요' }),
+      },
+    );
+
+  return (
+    <PinnedHeaderLayout
+      header={<Header left={<BackButton onClick={goBack} />} />}
+      contentStyle={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+    >
+      <main>
+        <PostImages images={images} onImageClick={openViewer} />
+
+        <div className="flex flex-col gap-2 px-4 pt-1">
+          <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
+
+          {post.caption ? (
+            <div className="flex flex-col">
+              <p
+                className={cn(
+                  'whitespace-pre-wrap text-b2 font-normal text-gray-80',
+                  expanded ? '' : 'line-clamp-1',
+                )}
+              >
+                {post.caption}
+              </p>
+              <button
+                type="button"
+                onClick={() => setExpanded((prev) => !prev)}
+                className="self-start text-b2 font-medium text-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+              >
+                {expanded ? '접기' : '더보기'}
+              </button>
+            </div>
+          ) : null}
+
+          <div className="pt-2">
+            {firstSavedArchive ? (
+              <span className="text-b2 font-medium text-gray-60">
+                「{firstSavedArchive.name}」
+                {archives.length > 1 ? ` 외 ${archives.length - 1}개` : ''}에 저장
+              </span>
+            ) : (
+              <Button size="sm" variant="secondary" onClick={handleSaveChip}>
+                아카이브에 저장 +
+              </Button>
+            )}
+          </div>
+
+          {memo ? (
+            <p className="whitespace-pre-wrap text-b2 font-normal text-gray-80">{memo}</p>
+          ) : null}
+
+          {post.originalUrl ? (
+            <OriginalPostLink label={post.authorHandle} href={post.originalUrl} className="mt-2" />
+          ) : null}
+        </div>
+
+        {detail.places.length > 0 ? (
+          <>
+            <div className="mt-4 h-1.5 w-full bg-gray-10" />
+            <section className="px-4 pb-6">
+              <h2 className="py-4 text-b1 font-semibold text-gray-100">게시물에 포함된 장소</h2>
+              <div className="-mx-4 flex flex-col gap-4">
+                {detail.places.map((place) => (
+                  <PlaceRow
+                    key={place.id}
+                    place={toPlace(place)}
+                    onClick={() =>
+                      gate('아카이브 서비스는 로그인이 필요해요', () =>
+                        navigate(`/shared/${token}?placeId=${place.id}`),
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+          </>
+        ) : null}
+      </main>
+
+      {/* fixed 오버레이 — 페이지가 뷰포트보다 길면 셸(will-change-transform)에 붙어
+          화면 밖으로 밀려나니 body 로 포탈해 뷰포트 기준으로 띄운다. */}
+      {viewerOpen
+        ? createPortal(<PostImageViewer images={images} onClose={closeViewer} />, document.body)
+        : null}
+
+      {loginWall}
+
+      <SavePostSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onSave={handleSave}
+        pending={savePost.isPending}
+      />
+    </PinnedHeaderLayout>
+  );
+}
