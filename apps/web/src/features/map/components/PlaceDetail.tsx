@@ -102,7 +102,7 @@ function SavedPostsSection({ place }: { place: PlaceDetailModel }) {
             className="flex items-center gap-1 self-start pt-4 pb-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
           >
             <span className="text-b1 font-semibold text-gray-100">저장된 게시물</span>
-            <span className="text-b1 font-semibold text-nook-blue">{posts.length}</span>
+            <span className="text-b1 font-semibold text-nook-blue">{place.postsTotal}</span>
             <Icon16ArrowRight />
           </button>
           {/* 좌우 16px 밖으로 빼고 첫/마지막만 ml-4/mr-4 로 되돌린다(SavedPostCard 이미지 줄과 같다). */}

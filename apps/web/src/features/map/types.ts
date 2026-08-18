@@ -82,4 +82,10 @@ export interface PlaceDetail {
   /** 사용자가 이 장소에 남긴 메모. 게시물 메모와 별개다(`PATCH /places/{placeId}/memo`). */
   memo?: string;
   posts: PlaceDetailPost[];
+  /**
+   * 이 장소에 저장된 게시물 전체 개수 — 서버가 준 `totalElements` 그대로다.
+   * 위 `posts` 는 첫 페이지까지만 담겨서 21건째부터 `posts.length` 와 벌어지므로,
+   * 개수를 보여줄 때는 항상 이 값을 쓴다(시트 헤더의 "저장된 게시물 N").
+   */
+  postsTotal: number;
 }

@@ -64,6 +64,7 @@ const PLACE: PlaceDetailModel = {
     { id: 11, title: '게시물 A', savedAt: '2026-07-30' },
     { id: 12, title: '게시물 B', savedAt: '2026-07-30' },
   ],
+  postsTotal: 2,
 };
 
 function renderDetail(onSelectPlace?: (id: number) => void, place: PlaceDetailModel = PLACE) {
@@ -274,6 +275,13 @@ describe('PlaceDetail 저장된 게시물', () => {
 
     fireEvent.click(header);
     expect(screen.getByText('저장된 게시물 목록 화면')).toBeInTheDocument();
+  });
+
+  it('헤더 개수는 첫 페이지 건수가 아니라 전체 건수를 보여준다', async () => {
+    // 시트가 받는 posts 는 첫 페이지(최대 20건)뿐이라 length 로 세면 실제와 어긋난다.
+    renderDetail(undefined, { ...PLACE, postsTotal: 25 });
+
+    expect(await screen.findByRole('button', { name: /저장된 게시물/ })).toHaveTextContent('25');
   });
 
   it('게시물이 한 건이면 목록 페이지로 가는 헤더 없이 카드를 그대로 펼친다', async () => {
