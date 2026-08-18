@@ -27,6 +27,7 @@ const SCROLL_HIDE_HANDLE_THRESHOLD = 4;
 export function PlaceSheet({
   recentPlaces,
   selectedPlace,
+  shareToken,
   isPlaceDetailPending,
   isPlaceDetailError,
   snap,
@@ -41,6 +42,8 @@ export function PlaceSheet({
 }: {
   recentPlaces: RecentPlace[];
   selectedPlace: PlaceDetailModel | null;
+  /** 공유 아카이브 딥링크로 들어온 경우의 토큰 — 상세의 저장 안 한 게시물 조회 폴백용. */
+  shareToken?: string | null;
   /** true 인 동안은 상세를 아직 못 받았지만(선택은 됐지만) 상세 레이아웃으로는 이미 전환해야 한다. */
   isPlaceDetailPending: boolean;
   isPlaceDetailError: boolean;
@@ -167,6 +170,7 @@ export function PlaceSheet({
                   key={selectedPlace.id}
                   place={selectedPlace}
                   expanded={isFull}
+                  shareToken={shareToken}
                   userCoords={userCoords}
                   onClose={onClose}
                   onSelectPlace={onSelectPlace}

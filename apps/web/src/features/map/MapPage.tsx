@@ -253,6 +253,7 @@ export function MapPage() {
         <PlaceSheet
           recentPlaces={recentPlacesQuery.data ?? []}
           selectedPlace={placeDetailQuery.data ?? null}
+          shareToken={shareToken}
           isPlaceDetailPending={selectedPlaceId !== null && placeDetailQuery.isPending}
           isPlaceDetailError={selectedPlaceId !== null && placeDetailQuery.isError}
           snap={snap}

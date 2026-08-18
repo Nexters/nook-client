@@ -17,6 +17,7 @@ import type { Post } from '@/features/post';
 import { MemoSheet, SavedPostCard } from '@/features/post';
 import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
 import { postQueryKeys } from '@/features/post/api/queries';
+import { fetchSharedPostDetail } from '@/features/share/api';
 import { type Coordinates, formatDistance } from '@/shared/lib/geolocation';
 import { useToast } from '@/shared/toast';
 import { Badge } from '@/shared/ui';
@@ -50,18 +51,35 @@ function SectionDivider() {
  * 게시물 상세로 들어갔을 때 재요청 없이 바로 뜬다(반대 방향도 마찬가지).
  * 상세가 오기 전(또는 실패)엔 장소 상세 응답의 얇은 정보로 채운 카드를 우선 보여준다
  * (아카이브 태그는 상세가 올 때까지 비어 있다).
+ *
+ * `GET /posts/{postId}` 는 내가 저장한 게시물 기준이라, 공유 아카이브에서 딥링크로
+ * 들어온 저장 안 한 장소의 게시물은 404 가 난다 — 그 경우(shareToken)는 공유 토큰
+ * 스코프의 공개 API 로 우회한다(`usePlaceDetail` 의 장소 상세 폴백과 같은 패턴).
  */
-function usePostDetails(posts: PlaceDetailPost[]) {
+function usePostDetails(posts: PlaceDetailPost[], shareToken?: string | null) {
   return useQueries({
     queries: posts.map((post) => ({
       queryKey: postQueryKeys.detail(post.id),
-      queryFn: () => fetchPostDetail(post.id),
+      queryFn: async () => {
+        if (!shareToken) return fetchPostDetail(post.id);
+        try {
+          return await fetchPostDetail(post.id);
+        } catch {
+          return fetchSharedPostDetail(shareToken, post.id);
+        }
+      },
     })),
   });
 }
 
-function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
-  const postDetailQueries = usePostDetails(posts);
+function SavedPostsSection({
+  posts,
+  shareToken,
+}: {
+  posts: PlaceDetailPost[];
+  shareToken?: string | null;
+}) {
+  const postDetailQueries = usePostDetails(posts, shareToken);
   const navigate = useNavigate();
 
   if (posts.length === 0) return null;
@@ -102,15 +120,17 @@ function SavedPostsSection({ posts }: { posts: PlaceDetailPost[] }) {
  */
 function RelatedPlacesSection({
   place,
+  shareToken,
   userCoords,
   onSelectPlace,
 }: {
   place: PlaceDetailModel;
+  shareToken?: string | null;
   userCoords?: Coordinates | null;
   onSelectPlace?: (placeId: number) => void;
 }) {
   // 위 섹션과 같은 쿼리 키라 요청은 한 번만 나간다(캐시 공유).
-  const postDetailQueries = usePostDetails(place.posts);
+  const postDetailQueries = usePostDetails(place.posts, shareToken);
   const updateBookmark = useUpdatePlaceBookmark();
   const disconnectPlace = useDisconnectPlaceFromPosts();
 
@@ -192,12 +212,15 @@ function RelatedPlacesSection({
 export function PlaceDetail({
   place,
   expanded,
+  shareToken,
   userCoords,
   onClose,
   onSelectPlace,
 }: {
   place: PlaceDetailModel;
   expanded: boolean;
+  /** 공유 아카이브 딥링크로 들어온 경우의 토큰 — 저장 안 한 게시물 상세의 404 우회용. */
+  shareToken?: string | null;
   /** 현재 위치. 없으면(권한 거부 등) 거리 표기를 생략한다. */
   userCoords?: Coordinates | null;
   /** 헤더의 닫기 버튼 — 선택을 풀고 목록으로 되돌린다. */
@@ -264,9 +287,10 @@ export function PlaceDetail({
             className="mb-4"
           />
 
-          <SavedPostsSection posts={place.posts} />
+          <SavedPostsSection posts={place.posts} shareToken={shareToken} />
           <RelatedPlacesSection
             place={place}
+            shareToken={shareToken}
             userCoords={userCoords}
             onSelectPlace={onSelectPlace}
           />
