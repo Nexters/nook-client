@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Icon16CheckCircle, Icon16Pen, Icon16Trash, Icon24More } from '@/shared/icons/NookIcons';
+import {
+  Icon16CheckCircle,
+  Icon16Pen,
+  Icon16Share,
+  Icon16Trash,
+  Icon24More,
+} from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -9,6 +15,7 @@ import { cn } from '@/shared/lib/utils';
  */
 export interface ArchiveDetailMenuProps {
   onEdit: () => void;
+  onShare: () => void;
   /**
    * 선택 삭제 — 게시물 다중 선택 모드로 전환한다.
    * 넘기지 않으면 항목 자체가 빠진다(장소 탭처럼 지울 수 없는 화면).
@@ -25,7 +32,7 @@ interface MenuItem {
   destructive?: boolean;
 }
 
-function ArchiveDetailMenu({ onEdit, onSelectDelete, onDelete }: ArchiveDetailMenuProps) {
+function ArchiveDetailMenu({ onEdit, onShare, onSelectDelete, onDelete }: ArchiveDetailMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -50,8 +57,7 @@ function ArchiveDetailMenu({ onEdit, onSelectDelete, onDelete }: ArchiveDetailMe
 
   const items: MenuItem[] = [
     { label: '아카이브 편집', icon: <Icon16Pen />, onSelect: onEdit },
-    // TODO(api): "아카이브 공유"는 공유 링크 스펙 확정 전이라 잠시 숨긴다 — 되살릴 땐
-    // `{ label: '아카이브 공유', icon: <Icon16Share /> }` 항목을 이 자리에 다시 넣는다.
+    { label: '아카이브 공유', icon: <Icon16Share />, onSelect: onShare },
     ...(onSelectDelete
       ? [{ label: '선택 삭제', icon: <Icon16CheckCircle />, onSelect: onSelectDelete }]
       : []),

@@ -8,6 +8,7 @@ import {
   fetchArchivePlaces,
   fetchArchivePosts,
   fetchArchives,
+  issueShareLink,
   updateArchive,
 } from '.';
 
@@ -103,6 +104,11 @@ export function useDeleteArchive() {
     mutationFn: deleteArchive,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: archiveQueryKeys.list }),
   });
+}
+
+export function useIssueShareLink() {
+  // 발급은 조회 캐시에 영향이 없다 — 응답 token 을 바로 쓴다.
+  return useMutation({ mutationFn: issueShareLink });
 }
 
 /** 선택 삭제 — 단건 삭제 묶음(`deleteArchivePosts`). */

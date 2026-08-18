@@ -5,6 +5,8 @@ import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { PlaceCard } from '@/features/place';
+import { ShareSheet } from '@/features/share/components/ShareSheet';
+import { buildShareUrl } from '@/features/share/lib/shareUrl';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
 import {
@@ -22,6 +24,7 @@ import {
   useArchives,
   useDeleteArchive,
   useDeleteArchivePosts,
+  useIssueShareLink,
 } from './api/queries';
 import { ArchiveDetailMenu } from './components/ArchiveDetailMenu';
 import { ArchiveEmpty } from './components/ArchiveEmpty';
@@ -45,6 +48,9 @@ export function ArchiveDetailPage() {
   const [selecting, setSelecting] = useState(false);
   const [selectedPostIds, setSelectedPostIds] = useState<ReadonlySet<number>>(new Set());
   const [deletePostsPopupOpen, setDeletePostsPopupOpen] = useState(false);
+
+  const issueShare = useIssueShareLink();
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   const isAuthenticated = useIsAuthenticated();
 
@@ -156,6 +162,13 @@ export function ArchiveDetailPage() {
               isAuthenticated ? (
                 <ArchiveDetailMenu
                   onEdit={() => navigate(`/archive/${archive.id}/edit`)}
+                  onShare={() =>
+                    issueShare.mutate(archive.id, {
+                      onSuccess: (token) => setShareUrl(buildShareUrl(token)),
+                      onError: () =>
+                        showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
+                    })
+                  }
                   // 선택 삭제는 게시물 전용이다 — 장소 탭에서는 항목 자체를 내리고,
                   // 탭을 바꿔서 억지로 되돌리지도 않는다(아카이브에서 장소를 빼는 API 가 없다).
                   onSelectDelete={activeTab === 'posts' ? () => setSelecting(true) : undefined}
@@ -335,6 +348,10 @@ export function ArchiveDetailPage() {
           })
         }
       />
+
+      {shareUrl ? (
+        <ShareSheet open onOpenChange={(open) => !open && setShareUrl(null)} url={shareUrl} />
+      ) : null}
     </PinnedHeaderLayout>
   );
 }

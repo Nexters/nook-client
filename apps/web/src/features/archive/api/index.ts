@@ -7,6 +7,7 @@ import {
   type GroupPlaceSummaryResponse,
   type GroupPostSummaryResponse,
   type GroupResponse,
+  issue as issueShareLinkEndpoint,
   listPlaces as listArchivePlacesEndpoint,
   listPosts as listArchivePostsEndpoint,
   list as listArchivesEndpoint,
@@ -79,6 +80,13 @@ export async function updateArchive({
 
 export async function deleteArchive(archiveId: number): Promise<void> {
   await deleteArchiveEndpoint(archiveId, { auth: 'required' });
+}
+
+/** 공유 링크 발급 — 활성 링크가 있으면 서버가 같은 token 을 돌려준다(멱등). */
+export async function issueShareLink(archiveId: number): Promise<string> {
+  const response = unwrapApiResponse(await issueShareLinkEndpoint(archiveId, { auth: 'required' }));
+  if (!response?.token) throw new Error('공유 링크를 발급하지 못했어요');
+  return response.token;
 }
 
 /**

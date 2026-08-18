@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   updateArchive: vi.fn(),
   deleteArchive: vi.fn(),
   deleteArchivePosts: vi.fn(),
+  issueShareLink: vi.fn(),
 }));
 
 vi.mock('@/features/archive/api', () => mocks);
@@ -70,6 +71,7 @@ describe('아카이브 화면', () => {
     mocks.updateArchive.mockReset().mockResolvedValue(undefined);
     mocks.deleteArchive.mockReset().mockResolvedValue(undefined);
     mocks.deleteArchivePosts.mockReset().mockResolvedValue(undefined);
+    mocks.issueShareLink.mockReset().mockResolvedValue('tok-123');
   });
 
   it('목록에서 아카이브를 누르면 상세로 이동한다', async () => {
@@ -194,6 +196,18 @@ describe('아카이브 화면', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: '아카이브 편집' }));
 
     expect(await screen.findByDisplayValue('카페')).toBeInTheDocument();
+  });
+
+  it('더보기 메뉴의 아카이브 공유는 링크를 발급해 공유 시트를 연다', async () => {
+    renderArchiveRoutes('/archive/1');
+
+    fireEvent.click(await screen.findByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '아카이브 공유' }));
+
+    // mutate 는 두 번째 인자로 mutation context 를 넘기므로 첫 인자만 본다.
+    await vi.waitFor(() => expect(mocks.issueShareLink.mock.calls[0]?.[0]).toBe(1));
+    // 시트에 조립된 공유 URL 이 보인다.
+    expect(await screen.findByText(/\/shared\/tok-123$/)).toBeInTheDocument();
   });
 
   it('상세 더보기 메뉴의 아카이브 삭제는 확인 팝업을 거쳐 삭제 요청을 보낸다', async () => {
