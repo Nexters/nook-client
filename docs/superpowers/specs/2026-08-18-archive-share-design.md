@@ -87,15 +87,22 @@ features/share/
     ShareSheet.tsx            # 공유 시트 (웹 UI 드로어: 링크 복사)
     SavePostSheet.tsx         # 단건 저장 바텀시트 (Drawer+ArchiveSelectRow+ArchiveCreateRow+메모)
     OpenInAppBanner.tsx       # "앱에서 보기" 배너
-    LoginPromptPopup.tsx      # 로그인 유도 모달 (shared/ui Popup 래핑)
-    ShareErrorView.tsx        # 공유 링크 에러 안내 뷰
   api/
     index.ts                  # fetcher + DTO→모델 (archive의 toArchivePost 등 재사용)
     queries.ts                # 훅 + sharedQueryKeys
   lib/
     shareUrl.ts               # URL 조립 · 클립보드 복사 · (후속) navigator.share
     appLink.ts                # 커스텀 스킴 URL 생성 + 스토어 폴백
+    shareError.ts              # errorCode → 안내 문구 매핑
 ```
+
+> **2026-08-19 개정(1·2단계 구현 완료 후):** 로그인 유도는 별도 `LoginPromptPopup`을
+> 새로 만들지 않고, 병렬로 main에 병합된 게스트 모드 기능의 기존 `useLoginGate()`
+> (`@/features/auth/session/useLoginGate`)를 그대로 재사용했다 — 정확히 같은 문제를
+> 이미 일반화된 형태로 풀어놓은 상태였다. 에러 안내도 별도 `ShareErrorView` 컴포넌트
+> 대신 `lib/shareError.ts`의 `shareErrorMessage()` 매핑 함수 + 기존 `ArchiveEmpty`
+> 컴포넌트 조합으로 대체했다. §11의 표는 그대로 유효하다 — 컴포넌트 이름만 실제
+> 구현과 다르다.
 
 재사용하는 기존 조각: `CollectionCard`, `PlaceCard`, `PlaceRow`, `PostImages`,
 `OriginalPostLink`, `MemoSheet`, `PinnedHeaderLayout`, `Popup`, `Drawer`,
@@ -215,15 +222,15 @@ features/share/
 
 | errorCode | HTTP | 처리 |
 |---|---|---|
-| `SHARE_LINK_NOT_FOUND` | 404 | `ShareErrorView` "유효하지 않은 공유 링크예요." |
-| `SHARE_LINK_REVOKED` | 410 | `ShareErrorView` "공유가 해제된 아카이브예요." |
-| `SHARE_LINK_EXPIRED` | 410 | `ShareErrorView` "공유 기간이 만료된 아카이브예요." |
-| `SHARED_GROUP_UNAVAILABLE` | 410 | `ShareErrorView` "더 이상 볼 수 없는 아카이브예요." |
+| `SHARE_LINK_NOT_FOUND` | 404 | `shareErrorMessage()`+`ArchiveEmpty` "유효하지 않은 공유 링크예요." |
+| `SHARE_LINK_REVOKED` | 410 | `shareErrorMessage()`+`ArchiveEmpty` "공유가 해제된 아카이브예요." |
+| `SHARE_LINK_EXPIRED` | 410 | `shareErrorMessage()`+`ArchiveEmpty` "공유 기간이 만료된 아카이브예요." |
+| `SHARED_GROUP_UNAVAILABLE` | 410 | `shareErrorMessage()`+`ArchiveEmpty` "더 이상 볼 수 없는 아카이브예요." |
 | `SHARED_RESOURCE_NOT_FOUND` | 404 | 상세 화면 에러 뷰 (게시물/장소 없음) |
 | 그 외 | - | 기존 패턴(범용 에러 뷰/토스트) |
 
 구독한 아카이브가 해제된 경우: 기존 그룹 API가 목록을 주더라도 상세(public)가 410을 반환하므로
-같은 `ShareErrorView`로 수렴한다.
+같은 `shareErrorMessage()`+`ArchiveEmpty`로 수렴한다.
 
 ## 12. 배포 단계
 
