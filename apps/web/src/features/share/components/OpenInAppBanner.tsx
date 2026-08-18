@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { nativeBridge } from '@/native-bridge';
 import { useToast } from '@/shared/toast';
 import { Button } from '@/shared/ui';
@@ -16,6 +17,15 @@ interface OpenInAppBannerProps {
  */
 export function OpenInAppBanner({ token }: OpenInAppBannerProps) {
   const { showToast } = useToast();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 타이머가 살아있는 동안 화면을 벗어나면(다른 라우트로 이동) 정리해 —
+  // 언마운트 뒤 엉뚱한 화면에 "앱이 설치되어 있지 않아요" 토스트가 뜨는 걸 막는다.
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   if (nativeBridge.platform !== 'web') return null;
 
@@ -26,7 +36,7 @@ export function OpenInAppBanner({ token }: OpenInAppBannerProps) {
         size="sm"
         onClick={() => {
           window.location.href = buildAppSharedLink(token);
-          setTimeout(() => {
+          timeoutRef.current = setTimeout(() => {
             if (!document.hidden) {
               showToast({ variant: 'simple', title: '앱이 설치되어 있지 않아요' });
             }
