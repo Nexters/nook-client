@@ -2,6 +2,7 @@ import { useQueries } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
+import { toDisplayPost } from '@/features/map/lib/placePost';
 import type { PlaceDetail as PlaceDetailModel, PlaceDetailPost } from '@/features/map/types';
 import {
   PlaceDeletePopup,
@@ -13,25 +14,22 @@ import {
 import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
 import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
-import type { Post } from '@/features/post';
 import { MemoSheet, SavedPostCard } from '@/features/post';
 import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
 import { postQueryKeys } from '@/features/post/api/queries';
+import type { PostDetail } from '@/features/post/types';
 import { fetchSharedPostDetail } from '@/features/share/api';
 import { sharedQueryKeys } from '@/features/share/api/queries';
+import { Icon16ArrowRight, Icon20Images } from '@/shared/icons/NookIcons';
 import { type Coordinates, formatDistance } from '@/shared/lib/geolocation';
+import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
-import { Badge } from '@/shared/ui';
+import { Badge, Carousel, Thumbnail } from '@/shared/ui';
 import {
   useDisconnectPlaceFromPosts,
   useUpdatePlaceBookmark,
   useUpdatePlaceMemo,
 } from '../api/queries';
-
-/** 대표 이미지가 없는 게시물 카드에 쓰는 회색 플레이스홀더(140x175, gray-20). */
-const SAVED_POST_IMAGE = `data:image/svg+xml;utf8,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="140" height="175"><rect width="140" height="175" fill="#e4e6e9"/></svg>',
-)}`;
 
 /**
  * 지점 정보/저장된 게시물/게시물에 포함된 장소 섹션 사이 구분선(Figma 14:1873).
@@ -71,42 +69,102 @@ function usePostDetails(posts: PlaceDetailPost[], shareToken?: string | null) {
   });
 }
 
+function SavedPostTile({
+  post,
+  detail,
+  onClick,
+}: {
+  post: PlaceDetailPost;
+  detail?: PostDetail;
+  onClick: () => void;
+}) {
+  const imageCount = detail?.post.images?.length ?? 0;
+  // 장소 수는 게시물 상세에만 있다 — 아직 안 왔으면 "0 Places" 대신 계정만 보여준다.
+  const subtitle = [
+    formatAuthorHandle(post.authorHandle),
+    detail ? `${detail.places.length} Places` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-42 flex-col gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+    >
+      <div className="relative w-full">
+        <Thumbnail src={post.thumbnail} className="aspect-[167/208] h-auto w-full" />
+        {imageCount > 1 ? <Icon20Images className="absolute top-2 right-2" /> : null}
+      </div>
+      <div className="flex w-full flex-col">
+        <p className="truncate text-b3 font-semibold text-gray-90">{post.title}</p>
+        <p className="truncate font-mono text-e2 text-gray-60">{subtitle}</p>
+      </div>
+    </button>
+  );
+}
+
 function SavedPostsSection({
-  posts,
+  place,
   shareToken,
 }: {
-  posts: PlaceDetailPost[];
+  place: PlaceDetailModel;
   shareToken?: string | null;
 }) {
+  const posts = place.posts;
   const postDetailQueries = usePostDetails(posts, shareToken);
   const navigate = useNavigate();
 
   if (posts.length === 0) return null;
 
+  const detailAt = (index: number) => postDetailQueries[index]?.data;
+  // 모아보기 페이지는 내 API 만 쓴다 — 공유 링크로 들어온(아직 저장 안 한) 장소는 그쪽에서
+  // 404 가 난다. 그래서 공유 진입일 땐 넘기지 않고 예전처럼 카드를 전부 펼친다.
+  const expandAll = Boolean(shareToken) || posts.length === 1;
+
   return (
     <>
       <SectionDivider />
-      <div className="flex w-full flex-col">
-        {posts.map((placePost, index) => {
-          const detail = postDetailQueries[index]?.data;
-          const post: Post = detail
-            ? detail.post
-            : {
-                id: String(placePost.id),
-                authorHandle: formatAuthorHandle(placePost.authorHandle),
-                // 이미지는 대표 미디어 1장만 내려온다 — 없으면 회색 플레이스홀더로 채운다.
-                images: [placePost.thumbnail ?? SAVED_POST_IMAGE],
-              };
-          return (
+      {expandAll ? (
+        <div className="flex w-full flex-col">
+          {posts.map((post, index) => (
             <SavedPostCard
-              key={placePost.id}
-              post={post}
-              archives={detail?.archives ?? []}
+              key={post.id}
+              post={toDisplayPost(post, detailAt(index))}
+              archives={detailAt(index)?.archives ?? []}
               onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
             />
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex w-full flex-col">
+          <button
+            type="button"
+            onClick={() => navigate(`/place/${place.id}/posts`)}
+            className="flex items-center gap-1 self-start pt-4 pb-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+          >
+            <span className="text-b1 font-semibold text-gray-100">저장된 게시물</span>
+            <span className="text-b1 font-semibold text-nook-blue">{place.postsTotal}</span>
+            <Icon16ArrowRight />
+          </button>
+          {/* 좌우 16px 밖으로 빼고 첫/마지막만 ml-4/mr-4 로 되돌린다(SavedPostCard 이미지 줄과 같다). */}
+          <Carousel indicator={false} className="-mx-4 w-auto pb-3">
+            {posts.map((post, index) => (
+              <div
+                key={post.id}
+                className={cn(index === 0 && 'ml-4', index === posts.length - 1 && 'mr-4')}
+              >
+                <SavedPostTile
+                  post={post}
+                  detail={detailAt(index)}
+                  onClick={() => navigate(`/post/${post.id}`)}
+                />
+              </div>
+            ))}
+          </Carousel>
+        </div>
+      )}
     </>
   );
 }
@@ -302,7 +360,7 @@ export function PlaceDetail({
             className="mb-4"
           />
 
-          <SavedPostsSection posts={place.posts} shareToken={shareToken} />
+          <SavedPostsSection place={place} shareToken={shareToken} />
           <RelatedPlacesSection
             place={place}
             shareToken={shareToken}

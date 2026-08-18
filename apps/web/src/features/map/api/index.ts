@@ -129,6 +129,9 @@ export async function fetchSavedPlaceSearch(
   return toSavedPlaceSearchPage(response);
 }
 
+/** 장소 상세의 게시물 페이지 크기. 서버 기본값(20)과 같고, 아카이브 목록과도 같다. */
+const POSTS_PAGE_SIZE = 20;
+
 function toPlaceDetailPost(dto: PlacePostResponse): PlaceDetailPost {
   return {
     id: dto.postId,
@@ -159,6 +162,7 @@ export function toPlaceDetail(dto: PlaceDetailResponse): PlaceDetail {
     openingHours: dto.openingHours ?? undefined,
     memo: dto.memo ?? undefined,
     posts: (dto.posts?.items ?? []).map(toPlaceDetailPost),
+    postsTotal: dto.posts?.totalElements ?? dto.posts?.items?.length ?? 0,
   };
 }
 
@@ -179,6 +183,33 @@ export async function fetchSharedPlaceDetail(token: string, placeId: number): Pr
   const dto = unwrapApiResponse(await sharedPlaceDetailEndpoint(token, placeId));
   if (!dto) throw new Error('공유 장소 응답이 비어 있어요');
   return toPlaceDetail(dto);
+}
+
+/** `fetchArchivePosts` 와 같은 페이지 형태. */
+export interface PlacePostPage {
+  posts: PlaceDetailPost[];
+  /** 다음 페이지 번호. 없으면 마지막 페이지다. */
+  nextPage?: number;
+  totalElements: number;
+}
+
+/**
+ * 장소에 저장된 게시물 한 페이지.
+ *
+ * 장소별 게시물 전용 엔드포인트가 없어서 장소 상세를 `page` 파라미터와 함께 다시 호출한다 —
+ * 사진·태그·영업시간까지 매 페이지 같이 실려 온다. 전용 엔드포인트가 생기면 여기만 바꾸면 된다.
+ */
+export async function fetchPlacePosts(placeId: number, page = 0): Promise<PlacePostPage> {
+  const response = unwrapApiResponse(
+    await getPlaceDetailEndpoint(placeId, { page, size: POSTS_PAGE_SIZE }, { auth: 'required' }),
+  );
+  if (!response) throw new Error('장소 상세 응답이 비어 있습니다.');
+
+  return {
+    posts: (response.posts?.items ?? []).map(toPlaceDetailPost),
+    nextPage: response.posts?.hasNext ? page + 1 : undefined,
+    totalElements: response.posts?.totalElements ?? 0,
+  };
 }
 
 export async function updatePlaceBookmark(placeId: number, bookmarked: boolean): Promise<void> {

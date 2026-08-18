@@ -1,10 +1,17 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import type { MapBounds, SavedPlaceSearchPage } from '../types';
 import {
   disconnectPostPlace,
   fetchMapPins,
   fetchPlaceDetail,
+  fetchPlacePosts,
   fetchRecentPlaces,
   fetchSavedPlaceSearch,
   fetchSharedPlaceDetail,
@@ -22,6 +29,10 @@ export const mapQueryKeys = {
     shareToken
       ? (['shared', shareToken, 'places', placeId] as const)
       : (['map', 'detail', placeId] as const),
+  // 내 장소 상세 키의 접두사 아래에 두는 게 의도적이다 — 북마크·메모·연결끊기가 무효화하는
+  // `detail(placeId)` 가 접두사 매칭으로 이 목록까지 함께 갱신한다. 공유 진입에는 쓰지 않는다
+  // (모아보기 페이지는 내 API 만 쓴다).
+  posts: (placeId: number) => ['map', 'detail', placeId, 'posts'] as const,
   search: (query: string, groupId: number | null) => ['map', 'search', query, groupId] as const,
 };
 
@@ -92,6 +103,28 @@ export function usePlaceDetail(placeId: number | null, shareToken?: string | nul
       shareToken
         ? fetchSharedPlaceDetail(shareToken, placeId as number)
         : fetchPlaceDetail(placeId as number),
+    enabled: isAuthenticated && placeId !== null,
+  });
+}
+
+/**
+ * 장소에 저장된 게시물 전체 — `/place/{placeId}/posts` 페이지의 무한 스크롤.
+ *
+ * 시트는 `usePlaceDetail` 이 준 첫 페이지만 쓰므로 쿼리를 나눴다(그쪽을 무한 쿼리로 바꾸면
+ * 같은 캐시를 보는 지도 핀·이동까지 파급된다).
+ */
+export function usePlacePosts(placeId: number | null) {
+  const isAuthenticated = useIsAuthenticated();
+
+  return useInfiniteQuery({
+    queryKey: mapQueryKeys.posts(placeId ?? -1),
+    queryFn: ({ pageParam }) => fetchPlacePosts(placeId as number, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    select: (data) => ({
+      posts: data.pages.flatMap((page) => page.posts),
+      totalElements: data.pages[0]?.totalElements ?? 0,
+    }),
     enabled: isAuthenticated && placeId !== null,
   });
 }

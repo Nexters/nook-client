@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PlaceDetail as PlaceDetailModel } from '@/features/map/types';
+import type { PlaceDetail as PlaceDetailModel, PlaceDetailPost } from '@/features/map/types';
 import type { ParsedPlace, PostDetail } from '@/features/post/types';
 import { ToastProvider } from '@/shared/toast';
 
@@ -69,6 +69,7 @@ const PLACE: PlaceDetailModel = {
     { id: 11, title: '게시물 A', savedAt: '2026-07-30' },
     { id: 12, title: '게시물 B', savedAt: '2026-07-30' },
   ],
+  postsTotal: 2,
 };
 
 function renderDetail(
@@ -95,6 +96,7 @@ function renderDetail(
               }
             />
             <Route path="/archive/:archiveId" element={<p>아카이브 상세 화면</p>} />
+            <Route path="/place/:placeId/posts" element={<p>저장된 게시물 목록 화면</p>} />
           </Routes>
         </MemoryRouter>
       </ToastProvider>
@@ -131,14 +133,11 @@ describe('PlaceDetail 게시물에 포함된 장소', () => {
   });
 
   it('저장된 게시물의 아카이브 태그를 누르면 그 아카이브 상세로 이동한다', async () => {
-    // 아카이브 태그는 게시물 11 에만 달아 버튼이 하나만 나오게 한다.
-    mocks.fetchPostDetail.mockImplementation(async (postId: number) =>
-      postId === 11
-        ? postDetail([parsedPlace(1, '아이소')], [{ id: 7, name: '카페', color: 'yellow' }])
-        : postDetail([parsedPlace(1, '아이소')]),
+    mocks.fetchPostDetail.mockResolvedValue(
+      postDetail([parsedPlace(1, '아이소')], [{ id: 7, name: '카페', color: 'yellow' }]),
     );
 
-    renderDetail();
+    renderDetail(undefined, { ...PLACE, posts: [PLACE.posts[0] as PlaceDetailPost] });
 
     fireEvent.click(await screen.findByRole('button', { name: '카페' }));
     expect(screen.getByText('아카이브 상세 화면')).toBeInTheDocument();
@@ -327,5 +326,35 @@ describe('PlaceDetail 지도 링크', () => {
       `https://map.naver.com/p/search/${encodeURIComponent('서울 어딘가 아이소')}`,
     );
     expect(link).toHaveAttribute('target', '_blank');
+  });
+});
+
+describe('PlaceDetail 저장된 게시물', () => {
+  beforeEach(() => {
+    mocks.fetchPostDetail.mockResolvedValue(postDetail([parsedPlace(1, '아이소')]));
+  });
+
+  it('게시물이 여러 건이면 제목·개수·화살표 어디를 눌러도 게시물 목록 페이지로 간다', async () => {
+    renderDetail();
+
+    const header = await screen.findByRole('button', { name: /저장된 게시물/ });
+    expect(header).toHaveTextContent('2');
+
+    fireEvent.click(header);
+    expect(screen.getByText('저장된 게시물 목록 화면')).toBeInTheDocument();
+  });
+
+  it('헤더 개수는 첫 페이지 건수가 아니라 전체 건수를 보여준다', async () => {
+    // 시트가 받는 posts 는 첫 페이지(최대 20건)뿐이라 length 로 세면 실제와 어긋난다.
+    renderDetail(undefined, { ...PLACE, postsTotal: 25 });
+
+    expect(await screen.findByRole('button', { name: /저장된 게시물/ })).toHaveTextContent('25');
+  });
+
+  it('게시물이 한 건이면 목록 페이지로 가는 헤더 없이 카드를 그대로 펼친다', async () => {
+    renderDetail(undefined, { ...PLACE, posts: [PLACE.posts[0] as PlaceDetailPost] });
+
+    expect(await screen.findByRole('heading', { name: '저장된 게시물' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /저장된 게시물/ })).not.toBeInTheDocument();
   });
 });

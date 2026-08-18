@@ -12,6 +12,7 @@ import {
   RedirectAuthenticated,
 } from '@/features/auth/session/AuthRouteGuards';
 import { MapPage } from '@/features/map/MapPage';
+import { PlacePostsPage } from '@/features/map/PlacePostsPage';
 import { ContactPage } from '@/features/my/ContactPage';
 import { MyPage } from '@/features/my/MyPage';
 import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
@@ -97,6 +98,10 @@ export const router = createBrowserRouter([
           {
             path: 'post/:postId',
             element: <PostDetailPage />,
+          },
+          {
+            path: 'place/:placeId/posts',
+            element: <PlacePostsPage />,
           },
           {
             path: 'my',
