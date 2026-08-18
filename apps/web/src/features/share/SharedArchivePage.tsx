@@ -15,6 +15,7 @@ import {
   useSharedArchivePosts,
   useSubscribeSharedArchive,
 } from './api/queries';
+import { OpenInAppBanner } from './components/OpenInAppBanner';
 import { ShareSheet } from './components/ShareSheet';
 import { shareErrorMessage } from './lib/shareError';
 import { buildShareUrl } from './lib/shareUrl';
@@ -106,6 +107,7 @@ export function SharedArchivePage() {
       <PinnedHeaderLayout
         header={
           <>
+            <OpenInAppBanner token={token} />
             <Header left={<BackButton />} />
             <div className="flex flex-col gap-1 px-4 pt-2 pb-3">
               <div className="flex items-center gap-2">
