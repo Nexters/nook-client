@@ -149,12 +149,21 @@ features/share/
 - 데이터: `postDetail(token, postId, {auth:'optional'})`.
 - **저장 전** (`groups: []`): 칩 "아카이브에 저장 ∨" → 탭 시 비로그인이면 로그인 모달,
   로그인이면 `SavePostSheet`. 메모 줄에는 공유자 메모 읽기 전용(수정 버튼 미노출).
-- **저장 후** (`groups` 비어있지 않음): 칩 "「{첫 그룹}」 외 N개에 저장" → 탭 시 `SavePostSheet`
-  재오픈(그룹 재지정). 메모 줄은 **내 메모** + 수정 가능 — 단건 저장 응답의 내 `postId`로 기존
-  `useUpdatePostMemo` 사용, `MemoSheet` 재사용.
-  - 내 `postId`는 저장 직후엔 mutation 응답으로 알지만, 재방문 시엔 공유 상세 응답에 없다.
-    v1 구현은 **저장 직후 세션에서만 메모 수정 활성화**하고, 재방문 시 내 postId 확보 방법은
-    서버에 질의한다(공유 상세 `groups`에 내 postId 포함 여부). ← 유일한 미확정 계약.
+- **저장 성공 시 화면 전환** (2026-08-20 확정, jade): 공유 상세에 "저장 후 편집 모드"를
+  만들지 않고, save 응답의 내 `postId`로 **기존 게시물 상세(`/post/{postId}?entry=share`)로
+  전환**한다. 메모 수정·핀·아카이브 태그가 기존 화면에서 전부 완전하게 동작하고,
+  "내 것이 된 게시물은 내 화면으로"라는 모델과도 맞는다. v2 시안의 "저장 후" 프레임은
+  기존 게시물 상세와 사실상 같은 레이아웃이라 시안과도 어긋나지 않는다.
+  - 전환은 `replace` — 뒤로가기가 "저장 전 공유 상세"로 돌아가면 방금 저장한 상태와
+    화면이 어긋난다. 뒤로가기 목적지는 공유 아카이브 상세(`?entry=share` 컨텍스트,
+    `useBackInterceptor` 선례).
+  - 메모: save 요청 바디에 memo 필드가 없다(스키마 확인). 시트에 입력된 메모는
+    save 성공 → 응답 `postId`로 기존 메모 수정 API를 이어 부르는 **2단계 조합**으로 저장한다.
+- **재방문** (`groups` 비어있지 않음, 저장 직후가 아님): 공유 상세 응답의 `groups`엔
+  그룹 `{id, name, color}`만 있고 내 저장본 postId가 없다(스키마 확인) — 내 게시물로
+  보내거나 메모를 수정할 방법이 없다. 칩은 "「{첫 그룹}」 외 N개에 저장" **읽기 전용 표시**까지만
+  하고, 메모 줄은 공유자 메모 읽기 전용 유지. 서버에 `groups` 항목 내 postId 포함을
+  질의하고(§13), 반영되면 재방문 시에도 내 게시물로 전환하도록 후속 개선한다.
 - 장소 행 탭: 비로그인이면 로그인 모달, 로그인이면 `/shared/{token}?placeId={id}` 로 이동
   (`SharedPlaceSheet`).
 
@@ -177,8 +186,10 @@ features/share/
 - `Drawer` + `ArchiveCreateRow`(새 아카이브 생성 → 기존 `useCreateArchive`) +
   `ArchiveSelectRow` 목록(`useArchives`, **OWNED만** 표시 — SHARED에는 저장 불가) +
   메모 입력(25자, `MemoSheet` 패턴) + [저장하기].
-- 저장: `savePost(shareToken, sharedPostId, {groupIds})` → 성공 시 시트 닫기 + 상세 refetch.
-- 이미 저장된 그룹은 체크 표시 (`groups` 필드 기준).
+- 저장: `savePost(shareToken, sharedPostId, {groupIds})` → 메모가 입력됐으면 응답 `postId`로
+  메모 수정 API를 이어 호출(2단계 조합, §7.2) → 시트 닫기 + `/post/{postId}?entry=share` 전환.
+- 이미 저장된 그룹은 체크 표시 (`groups` 필드 기준). 재저장(그룹 재지정)의 서버 동작은
+  미확정(§13)이라 v1 에서는 이미 저장된 게시물의 칩을 읽기 전용으로 두고 시트를 다시 열지 않는다.
 - share 전용이 아니라 향후 웹 내 일반 저장 플로우에서 재사용 가능하도록 props로 저장 실행을 주입.
 
 ### 7.5 공유 시트 (`ShareSheet`) — 발신
@@ -244,11 +255,16 @@ features/share/
 
 ## 13. 미확정/대기 항목
 
-- [ ] 단건 저장 API dev 배포 → `pnpm api:refresh` (메모리: shared-post-save-api-pending)
-- [ ] 공유 상세 재방문 시 "내 저장본 postId" 확보 방법 서버 질의 (§7.2)
+- [x] 단건 저장 API dev 배포 → `pnpm api:refresh` (2026-08-20 배포 확인·스냅샷 반영 완료.
+      바디는 `{groupIds}` 뿐 — memo 필드 없음 → §7.2 의 2단계 조합으로 확정)
+- [ ] 공유 상세 `groups` 항목에 내 저장본 postId 포함 서버 질의 (§7.2 재방문 개선용 —
+      v1 은 재방문 시 읽기 전용 표시로 출시)
 - [ ] 단건 저장 재호출(그룹 재지정) 시 서버 동작 질의 — 멱등 병합인지, 기존 저장본의
-      `replaceGroups`(`PUT /posts/{postId}/groups`)를 써야 하는지 (§7.4)
+      `replaceGroups`(`PUT /posts/{postId}/groups`)를 써야 하는지 (§7.4 — v1 은 재저장
+      UI 를 열지 않는 것으로 우회)
 - [ ] 구독한 아카이브의 장소가 기존 장소 상세(`GET /places/{placeId}`) 게이트를 통과하는지
       서버 질의 — 통과 + 게시물 섹션까지 지원되면 §7.3 을 실제 지도 화면 연결로 전환
 - [ ] `VITE_WEB_ORIGIN` env 설정 (jade)
 - [ ] Universal Links 인프라 협의 (후속)
+- [ ] 공유 드로어의 카카오톡·인스타그램 스토리 공유 (SDK 연동 필요 — 후속.
+      3·4단계에서는 시안의 프리뷰 카드 + 링크 복사 + 더보기(`navigator.share`)까지만)
