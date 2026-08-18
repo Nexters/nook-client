@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { useArchives } from '@/features/archive/api/queries';
@@ -6,6 +6,7 @@ import { ArchiveEmpty } from '@/features/archive/components/ArchiveEmpty';
 import { CollectionCard } from '@/features/archive/components/CollectionCard';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { PlaceCard } from '@/features/place';
+import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
 import { BackButton, Button, COLOR_BG_CLASS, Header } from '@/shared/ui';
@@ -80,19 +81,7 @@ export function SharedArchivePage() {
   // enabled 를 신경 쓸 필요가 없다 — 게스트는 그냥 data 가 undefined 다.
   const { data: myArchives } = useArchives();
 
-  // 무한 스크롤 sentinel — ArchiveDetailPage 와 동일 패턴.
-  const activeQuery = activeTab === 'posts' ? postsQuery : placesQuery;
-  const { fetchNextPage, hasNextPage, isFetchingNextPage } = activeQuery;
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel || !hasNextPage || isFetchingNextPage) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) fetchNextPage();
-    });
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const sentinelRef = useInfiniteScrollSentinel(activeTab === 'posts' ? postsQuery : placesQuery);
 
   if (metaQuery.isPending) return null;
 
