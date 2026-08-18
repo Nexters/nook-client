@@ -2,7 +2,14 @@ import type { Archive } from '@/features/archive/types';
 import { copyText, shareViaSystem } from '@/features/share/lib/shareUrl';
 import { Icon16Link, Icon24More } from '@/shared/icons/NookIcons';
 import { useToast } from '@/shared/toast';
-import { COLOR_BG_CLASS, Drawer, DrawerContent, DrawerTitle, Thumbnail } from '@/shared/ui';
+import {
+  BOTTOM_INSET_VAR,
+  COLOR_BG_CLASS,
+  Drawer,
+  DrawerContent,
+  DrawerTitle,
+  Thumbnail,
+} from '@/shared/ui';
 
 interface ShareSheetProps {
   open: boolean;
@@ -47,7 +54,15 @@ export function ShareSheet({ open, onOpenChange, url, archive }: ShareSheetProps
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
         <DrawerTitle className="sr-only">아카이브 공유</DrawerTitle>
-        <div className="flex flex-col gap-6 p-4 pb-8">
+        <div
+          className="flex flex-col gap-6 p-4"
+          // 탭바가 떠 있는 화면(아카이브 상세)에서 열리면 탭바(z-60)가 시트(z-50) 아래쪽을
+          // 가린다 — ProtectedAppLayout 이 심어둔 변수로 그 높이만큼 띄우고, 탭바가 없는
+          // 화면(공유 링크로 연 SharedArchivePage 등)에서는 safe-area 만큼만 띄운다.
+          style={{
+            paddingBottom: `max(2rem, calc(var(${BOTTOM_INSET_VAR}, env(safe-area-inset-bottom)) + 1rem))`,
+          }}
+        >
           {/* 프리뷰 카드 — 받는 사람이 보게 될 아카이브 요약. */}
           <div className="mx-auto flex w-full max-w-60 flex-col overflow-hidden rounded-sm border border-gray-20 bg-gray-0">
             <Thumbnail size="fluid" src={archive.thumbnails?.[0]} alt="" />
