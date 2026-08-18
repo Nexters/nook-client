@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   fetchMapPins: vi.fn(),
   fetchRecentPlaces: vi.fn(),
   fetchPlaceDetail: vi.fn(),
+  fetchSharedPlaceDetail: vi.fn(),
   disconnectPostPlace: vi.fn(),
   updatePlaceBookmark: vi.fn(),
   updatePlaceMemo: vi.fn(),
@@ -164,6 +165,40 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
 
   it('다른 장소를 선택하면 이전 장소의 스냅 기록은 버린다', async () => {
     renderMapAt('/map?placeId=5&snap=1');
+    await screen.findByText('선택됨: 장소 5');
+
+    fireEvent.click(screen.getByRole('button', { name: '핀 7 클릭' }));
+
+    await screen.findByText('선택됨: 장소 7');
+    expect(screen.getByTestId('search-params')).toHaveTextContent(/^\?placeId=7$/);
+  });
+
+  it('?shareToken= 동반 진입에서 내 상세 조회가 실패하면 공유 공개 API 로 우회한다', async () => {
+    mocks.fetchPlaceDetail.mockRejectedValue(new Error('404'));
+    mocks.fetchSharedPlaceDetail.mockResolvedValue({
+      id: 5,
+      name: '공유 장소 5',
+      lat: 37.478,
+      lng: 126.951,
+      bookmarked: false,
+      thumbnail: null,
+    });
+
+    renderMapAt('/map?placeId=5&shareToken=tok-123');
+
+    expect(await screen.findByText('선택됨: 공유 장소 5')).toBeInTheDocument();
+    expect(mocks.fetchSharedPlaceDetail).toHaveBeenCalledWith('tok-123', 5);
+  });
+
+  it('?shareToken= 이 있어도 내 상세 조회가 성공하면 우회하지 않는다', async () => {
+    renderMapAt('/map?placeId=5&shareToken=tok-123');
+
+    expect(await screen.findByText('선택됨: 장소 5')).toBeInTheDocument();
+    expect(mocks.fetchSharedPlaceDetail).not.toHaveBeenCalled();
+  });
+
+  it('다른 장소를 선택하면 공유 토큰은 새 장소와 무관하므로 함께 버린다', async () => {
+    renderMapAt('/map?placeId=5&shareToken=tok-123');
     await screen.findByText('선택됨: 장소 5');
 
     fireEvent.click(screen.getByRole('button', { name: '핀 7 클릭' }));

@@ -7,6 +7,7 @@ import {
   fetchMapPins,
   fetchPlaceDetail,
   fetchRecentPlaces,
+  fetchSharedPlaceDetail,
   updatePlaceBookmark,
   updatePlaceMemo,
 } from '.';
@@ -62,12 +63,25 @@ export function useSearchSavedPlaces(query: string, archiveId: number | null) {
   });
 }
 
-export function usePlaceDetail(placeId: number | null) {
+/**
+ * 장소 상세. `GET /places/{placeId}` 는 내가 저장한 장소 기준이라, 공유 아카이브에서
+ * 딥링크로 들어온 저장 안 한 장소는 404 가 난다 — 그 경우(`?shareToken=` 동반 진입)는
+ * 공유 토큰 스코프의 공개 API 로 우회한다. 내 API 를 먼저 시도하므로 이미 저장해 둔
+ * 장소라면 내 북마크·메모가 실린 상세를 그대로 본다.
+ */
+export function usePlaceDetail(placeId: number | null, shareToken?: string | null) {
   const isAuthenticated = useIsAuthenticated();
 
   return useQuery({
     queryKey: mapQueryKeys.detail(placeId ?? -1),
-    queryFn: () => fetchPlaceDetail(placeId as number),
+    queryFn: async () => {
+      if (!shareToken) return fetchPlaceDetail(placeId as number);
+      try {
+        return await fetchPlaceDetail(placeId as number);
+      } catch {
+        return fetchSharedPlaceDetail(shareToken, placeId as number);
+      }
+    },
     enabled: isAuthenticated && placeId !== null,
   });
 }

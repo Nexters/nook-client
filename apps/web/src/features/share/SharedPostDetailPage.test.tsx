@@ -120,7 +120,8 @@ describe('SharedPostDetailPage', () => {
     session.status = 'authenticated';
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: /을지다락/ }));
-    expect(await screen.findByText('지도 화면?placeId=42')).toBeInTheDocument();
+    // 저장 안 한 장소의 상세 404 우회용 공유 토큰이 함께 실린다.
+    expect(await screen.findByText('지도 화면?placeId=42&shareToken=tok-123')).toBeInTheDocument();
   });
 
   it('비로그인 상태에서 포함된 장소를 누르면 로그인 월을 띄운다', async () => {

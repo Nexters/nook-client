@@ -60,6 +60,9 @@ export function MapPage() {
   const isAuthenticated = useIsAuthenticated();
   const { open: openLoginWall, wall: loginWall } = useLoginGate();
   const requestedPlaceId = parsePlaceIdParam(searchParams.get('placeId'));
+  // 공유 아카이브에서 딥링크로 들어온 경우 함께 실리는 토큰 — 저장 안 한 장소의 상세를
+  // 내 API 대신 공유 공개 API 로 우회 조회하는 데 쓴다(usePlaceDetail 의 폴백).
+  const shareToken = searchParams.get('shareToken');
   // 게스트는 상세 쿼리가 막혀 있어 그릴 내용이 없다 — 선택을 무시해 평범한 지도로 두고,
   // 대신 아래 effect 가 왜 안 열리는지 월로 알려준다(취소해도 빈 상세에 갇히지 않는다).
   const selectedPlaceId = isAuthenticated ? requestedPlaceId : null;
@@ -92,7 +95,7 @@ export function MapPage() {
 
   const pinsQuery = useMapPins(effectiveBounds);
   const recentPlacesQuery = useRecentPlaces();
-  const placeDetailQuery = usePlaceDetail(selectedPlaceId);
+  const placeDetailQuery = usePlaceDetail(selectedPlaceId, shareToken);
 
   // 선택된 장소의 핀은 bbox 조회를 기다리지 않고 상세 응답으로 바로 그린다.
   // bbox 조회(/places/map)는 (1) 초기엔 현재 위치 기준이라 멀리 있는 선택 장소가
@@ -152,8 +155,9 @@ export function MapPage() {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        // 스냅 기록은 보고 있던 장소에 대한 것이라, 선택이 바뀌거나 풀리면 함께 버린다.
+        // 스냅 기록과 공유 토큰은 보고 있던 장소에 대한 것이라, 선택이 바뀌거나 풀리면 함께 버린다.
         next.delete('snap');
+        next.delete('shareToken');
         if (id === null) next.delete('placeId');
         else next.set('placeId', String(id));
         return next;

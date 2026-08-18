@@ -37,10 +37,13 @@ export function SharedArchivePage() {
   const subscribe = useSubscribeSharedArchive();
 
   // 장소 상세는 지도 화면이 소유한다 — 아카이브 상세의 장소 탭과 같은 `/map?placeId=`
-  // 딥링크. 지도는 로그인 전용 화면이라 게이트를 먼저 태운다(게스트는 이동 없이
+  // 딥링크. 내 상세 API 는 저장 안 한 장소면 404 라, 공개 API 우회용 공유 토큰을 함께
+  // 실어 보낸다. 지도는 로그인 전용 화면이라 게이트를 먼저 태운다(게스트는 이동 없이
   // 제자리에서 월만 보고, 취소하면 공유 화면에 그대로 남는다).
   const openPlace = (placeId: string) =>
-    gate('장소를 확인하려면 로그인이 필요해요', () => navigate(`/map?placeId=${placeId}`));
+    gate('장소를 확인하려면 로그인이 필요해요', () =>
+      navigate(`/map?placeId=${placeId}&shareToken=${token}`),
+    );
 
   // 공유 링크로 앱을 처음 연 경우엔 돌아갈 히스토리가 없다(`key === 'default'`) —
   // 그때는 뒤로 대신 지도로 보낸다(`EntryLoginWall` 과 같은 패턴).

@@ -434,7 +434,8 @@ describe('아카이브 화면', () => {
     fireEvent.click(await screen.findByRole('tab', { name: /장소/ }));
     fireEvent.click(await screen.findByText('을지다락'));
 
-    expect(await screen.findByText('지도 화면?placeId=42')).toBeInTheDocument();
+    // 구독 아카이브의 장소는 내 상세 API 로 404 라, 공개 API 우회용 토큰이 함께 실린다.
+    expect(await screen.findByText('지도 화면?placeId=42&shareToken=tok-123')).toBeInTheDocument();
   });
 
   it('공유받은 아카이브 상세 메뉴는 제거만 제공하고, 제거하면 구독 해제를 호출한다', async () => {

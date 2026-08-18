@@ -202,6 +202,7 @@ describe('SharedArchivePage', () => {
     fireEvent.click(await screen.findByRole('tab', { name: /장소/ }));
     fireEvent.click(await screen.findByText('을지다락'));
 
-    expect(await screen.findByText('지도 화면?placeId=42')).toBeInTheDocument();
+    // 저장 안 한 장소의 상세 404 우회용 공유 토큰이 함께 실린다.
+    expect(await screen.findByText('지도 화면?placeId=42&shareToken=tok-123')).toBeInTheDocument();
   });
 });
