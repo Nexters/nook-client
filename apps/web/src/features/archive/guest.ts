@@ -13,4 +13,5 @@ export const GUEST_ARCHIVE: Archive = {
   name: '내 아카이브',
   color: 'green',
   placeCount: 0,
+  accessType: 'OWNED',
 };

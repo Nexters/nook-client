@@ -17,6 +17,8 @@ import { MyPage } from '@/features/my/MyPage';
 import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
 import { PostDetailPage } from '@/features/post/PostDetailPage';
+import { SharedArchivePage } from '@/features/share/SharedArchivePage';
+import { SharedPostDetailPage } from '@/features/share/SharedPostDetailPage';
 import { env } from '@/shared/config/env';
 
 // 셸 WebView 에서 딥링크/새로고침 시 BrowserRouter 경로 문제가 확인되면
@@ -101,6 +103,26 @@ export const router = createBrowserRouter([
             element: <MyPage />,
           },
         ],
+      },
+      // 공유 아카이브 열람 — 링크만 있으면 비로그인도 본다.
+      // AwaitSession 은 리다이렉트하지 않고 부트스트래핑 동안만 렌더를 미룬다 —
+      // 게스트는 그대로 보되, 네이티브 콜드 스타트에서 세션 복구 전 인증된 것처럼
+      // 취급되는 경합만 막는다.
+      {
+        path: 'shared/:token',
+        element: (
+          <AwaitSession>
+            <SharedArchivePage />
+          </AwaitSession>
+        ),
+      },
+      {
+        path: 'shared/:token/post/:postId',
+        element: (
+          <AwaitSession>
+            <SharedPostDetailPage />
+          </AwaitSession>
+        ),
       },
       // 스토어 심사·앱 스토어 등록에 공개 URL 이 필요해 로그인 밖에 둔다.
       {

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import { ArchiveDetailPage } from '@/features/archive/ArchiveDetailPage';
@@ -10,9 +10,24 @@ import { ArchivePage } from '@/features/archive/ArchivePage';
 import type { Archive } from '@/features/archive/types';
 import { ToastProvider } from '@/shared/toast';
 
+/** `/shared/:token` 착지 확인용 — 실제 화면 대신 쿼리스트링을 그대로 보여준다. */
+function SharedArchiveRouteProbe() {
+  const location = useLocation();
+  return <div>공유 아카이브 상세{location.search}</div>;
+}
+
 const ARCHIVES: Archive[] = [
-  { id: 1, name: '카페', color: 'yellow', placeCount: 114 },
-  { id: 2, name: '독립영화관', color: 'blue', placeCount: 3 },
+  { id: 1, name: '카페', color: 'yellow', placeCount: 114, accessType: 'OWNED' },
+  { id: 2, name: '독립영화관', color: 'blue', placeCount: 3, accessType: 'OWNED' },
+  {
+    id: 3,
+    name: '지우랑 놀러가고 싶은 곳',
+    color: 'cement',
+    placeCount: 12,
+    accessType: 'SHARED',
+    owner: { nickname: 'ehoidi' },
+    shareToken: 'tok-123',
+  },
 ];
 
 // HTTP 전송이 아니라 화면 ↔ Query ↔ feature API 배선만 검증한다.
@@ -24,6 +39,8 @@ const mocks = vi.hoisted(() => ({
   updateArchive: vi.fn(),
   deleteArchive: vi.fn(),
   deleteArchivePosts: vi.fn(),
+  issueShareLink: vi.fn(),
+  removeSharedArchive: vi.fn(),
 }));
 
 vi.mock('@/features/archive/api', () => mocks);
@@ -51,6 +68,8 @@ function renderArchiveRoutes(initialPath: string) {
           <Route path="/archive/new" element={<ArchiveFormPage mode="create" />} />
           <Route path="/archive/:archiveId" element={<ArchiveDetailPage />} />
           <Route path="/archive/:archiveId/edit" element={<ArchiveFormPage mode="edit" />} />
+          <Route path="/shared/:token/post/:postId" element={<div>공유 게시물 상세</div>} />
+          <Route path="/shared/:token" element={<SharedArchiveRouteProbe />} />
         </Routes>
       </MemoryRouter>,
     ),
@@ -70,6 +89,8 @@ describe('아카이브 화면', () => {
     mocks.updateArchive.mockReset().mockResolvedValue(undefined);
     mocks.deleteArchive.mockReset().mockResolvedValue(undefined);
     mocks.deleteArchivePosts.mockReset().mockResolvedValue(undefined);
+    mocks.issueShareLink.mockReset().mockResolvedValue('tok-123');
+    mocks.removeSharedArchive.mockReset().mockResolvedValue(undefined);
   });
 
   it('목록에서 아카이브를 누르면 상세로 이동한다', async () => {
@@ -194,6 +215,21 @@ describe('아카이브 화면', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: '아카이브 편집' }));
 
     expect(await screen.findByDisplayValue('카페')).toBeInTheDocument();
+  });
+
+  it('더보기 메뉴의 아카이브 공유는 링크를 발급해 공유 시트를 연다', async () => {
+    renderArchiveRoutes('/archive/1');
+
+    fireEvent.click(await screen.findByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '아카이브 공유' }));
+
+    // mutate 는 두 번째 인자로 mutation context 를 넘기므로 첫 인자만 본다.
+    await vi.waitFor(() => expect(mocks.issueShareLink.mock.calls[0]?.[0]).toBe(1));
+    // 시트에 조립된 공유 URL 대신 시안의 프리뷰 카드와 공유 수단이 보인다.
+    expect(await screen.findByText('링크 복사')).toBeInTheDocument();
+    expect(screen.getByText('더보기')).toBeInTheDocument();
+    // 프리뷰 카드 — 아카이브 이름과 개수 요약.
+    expect(screen.getByText('114 Places')).toBeInTheDocument();
   });
 
   it('상세 더보기 메뉴의 아카이브 삭제는 확인 팝업을 거쳐 삭제 요청을 보낸다', async () => {
@@ -334,5 +370,83 @@ describe('아카이브 화면', () => {
     fireEvent.click(screen.getByRole('button', { name: '삭제하기' }));
     await vi.waitFor(() => expect(mocks.deleteArchive.mock.calls[0]?.[0]).toBe(1));
     expect(await screen.findByText('"카페" 아카이브가 삭제 됐어요.')).toBeInTheDocument();
+  });
+
+  it('공유받은 아카이브 카드는 소유자 닉네임을 보여준다', async () => {
+    renderArchiveRoutes('/archive');
+    expect(await screen.findByText('by ehoidi')).toBeInTheDocument();
+  });
+
+  it('공유받은 아카이브 상세의 게시물 카드는 공유 게시물 상세로 이동한다', async () => {
+    mocks.fetchArchivePosts.mockResolvedValue({
+      posts: [
+        { id: 7, name: '초록뷰 카페', placeCount: 3, authorHandle: '@abcde', thumbnails: [] },
+      ],
+      nextPage: undefined,
+      ownerNickname: 'ehoidi',
+      totalElements: 1,
+    });
+
+    renderArchiveRoutes('/archive/3');
+    fireEvent.click(await screen.findByRole('button', { name: /초록뷰 카페/ }));
+
+    expect(await screen.findByText('공유 게시물 상세')).toBeInTheDocument();
+  });
+
+  it('공유받은 아카이브 상세의 처리 중·실패 게시물 카드는 탭해도 이동하지 않는다', async () => {
+    mocks.fetchArchivePosts.mockResolvedValue({
+      posts: [
+        {
+          id: 7,
+          name: '',
+          placeCount: 0,
+          thumbnails: [],
+          processingState: 'failed',
+        },
+      ],
+      nextPage: undefined,
+      ownerNickname: 'ehoidi',
+      totalElements: 1,
+    });
+
+    renderArchiveRoutes('/archive/3');
+    // 처리 실패 카드는 onClick 이 없어 button 이 아니라 div 로 렌더된다 — 탭할 버튼 자체가 없다.
+    expect(await screen.findByText('처리 실패')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /처리 실패/ })).not.toBeInTheDocument();
+  });
+
+  it('공유받은 아카이브 상세의 장소 카드는 공유 아카이브의 장소 시트로 이동한다', async () => {
+    mocks.fetchArchivePosts.mockResolvedValue({
+      posts: [
+        { id: 7, name: '초록뷰 카페', placeCount: 3, authorHandle: '@abcde', thumbnails: [] },
+      ],
+      nextPage: undefined,
+      ownerNickname: 'ehoidi',
+      totalElements: 1,
+    });
+    mocks.fetchArchivePlaces.mockResolvedValue({
+      places: [{ id: '42', name: '을지다락', category: '카페', region: '서울' }],
+      nextPage: undefined,
+      totalElements: 1,
+    });
+
+    renderArchiveRoutes('/archive/3');
+    fireEvent.click(await screen.findByRole('tab', { name: /장소/ }));
+    fireEvent.click(await screen.findByText('을지다락'));
+
+    expect(await screen.findByText('공유 아카이브 상세?placeId=42')).toBeInTheDocument();
+  });
+
+  it('공유받은 아카이브 상세 메뉴는 제거만 제공하고, 제거하면 구독 해제를 호출한다', async () => {
+    renderArchiveRoutes('/archive/3');
+
+    fireEvent.click(await screen.findByRole('button', { name: '더보기' }));
+    expect(screen.queryByRole('menuitem', { name: '아카이브 편집' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: '내 목록에서 제거' }));
+    fireEvent.click(screen.getByRole('button', { name: '제거하기' }));
+
+    // mutate 는 두 번째 인자로 mutation context 를 넘기므로 첫 인자만 본다.
+    await vi.waitFor(() => expect(mocks.removeSharedArchive.mock.calls[0]?.[0]).toBe(3));
   });
 });

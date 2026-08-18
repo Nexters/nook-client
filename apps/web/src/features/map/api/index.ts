@@ -5,6 +5,7 @@ import {
   getDetail as getPlaceDetailEndpoint,
   getRecentPlaces as getRecentPlacesEndpoint,
   type MapPlaceResponse,
+  type PlaceDetailResponse,
   type PlacePostResponse,
   type RecentPlaceResponse,
   unwrapApiResponse,
@@ -84,31 +85,35 @@ function toPlaceDetailPost(dto: PlacePostResponse): PlaceDetailPost {
   };
 }
 
+export function toPlaceDetail(dto: PlaceDetailResponse): PlaceDetail {
+  return {
+    id: dto.id,
+    name: dto.name,
+    category: dto.category ?? undefined,
+    address: dto.address,
+    lat: dto.latitude,
+    lng: dto.longitude,
+    bookmarked: dto.bookmarked,
+    thumbnail: dto.thumbnailUrl ?? undefined,
+    // 대표 썸네일이 첫 장이고 그 뒤로 photoUrls 가 붙는다. 썸네일이 photoUrls 에도
+    // 들어 있으면 같은 사진이 두 번 나오므로 중복을 걷어낸다.
+    photos: [...new Set([dto.thumbnailUrl, ...(dto.photoUrls ?? [])])].filter(
+      (url): url is string => Boolean(url),
+    ),
+    tags: dto.tags ?? [],
+    openNow: dto.openNow ?? undefined,
+    openingHours: dto.openingHours ?? undefined,
+    memo: dto.memo ?? undefined,
+    posts: (dto.posts?.items ?? []).map(toPlaceDetailPost),
+  };
+}
+
 export async function fetchPlaceDetail(placeId: number): Promise<PlaceDetail> {
   const response = unwrapApiResponse(
     await getPlaceDetailEndpoint(placeId, undefined, { auth: 'required' }),
   );
   if (!response) throw new Error('장소 상세 응답이 비어 있습니다.');
-  return {
-    id: response.id,
-    name: response.name,
-    category: response.category ?? undefined,
-    address: response.address,
-    lat: response.latitude,
-    lng: response.longitude,
-    bookmarked: response.bookmarked,
-    thumbnail: response.thumbnailUrl ?? undefined,
-    // 대표 썸네일이 첫 장이고 그 뒤로 photoUrls 가 붙는다. 썸네일이 photoUrls 에도
-    // 들어 있으면 같은 사진이 두 번 나오므로 중복을 걷어낸다.
-    photos: [...new Set([response.thumbnailUrl, ...(response.photoUrls ?? [])])].filter(
-      (url): url is string => Boolean(url),
-    ),
-    tags: response.tags ?? [],
-    openNow: response.openNow ?? undefined,
-    openingHours: response.openingHours ?? undefined,
-    memo: response.memo ?? undefined,
-    posts: (response.posts?.items ?? []).map(toPlaceDetailPost),
-  };
+  return toPlaceDetail(response);
 }
 
 export async function updatePlaceBookmark(placeId: number, bookmarked: boolean): Promise<void> {

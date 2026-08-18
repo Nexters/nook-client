@@ -7,9 +7,11 @@ import {
   type GroupPlaceSummaryResponse,
   type GroupPostSummaryResponse,
   type GroupResponse,
+  issue as issueShareLinkEndpoint,
   listPlaces as listArchivePlacesEndpoint,
   listPosts as listArchivePostsEndpoint,
   list as listArchivesEndpoint,
+  unsubscribe as unsubscribeEndpoint,
   unwrapApiResponse,
   update as updateArchiveEndpoint,
 } from '@/shared/api';
@@ -36,13 +38,18 @@ const UI_TO_SERVER_COLOR = Object.fromEntries(
 ) as Record<ArchiveColor, CreateGroupRequestColor>;
 
 /** 서버 DTO → 화면 모델. 서버의 `postCount`가 카드 배지의 개수다. */
-function toArchive(dto: GroupResponse): Archive {
+export function toArchive(dto: GroupResponse): Archive {
   return {
     id: dto.id,
     name: dto.name,
     color: SERVER_TO_UI_COLOR[dto.color as CreateGroupRequestColor] ?? 'cement',
     placeCount: dto.postCount,
     thumbnails: dto.thumbnailUrls,
+    accessType: dto.accessType,
+    owner: dto.owner
+      ? { nickname: dto.owner.nickname, profileImageUrl: dto.owner.profileImageUrl ?? undefined }
+      : undefined,
+    shareToken: dto.shareToken ?? undefined,
   };
 }
 
@@ -76,6 +83,18 @@ export async function deleteArchive(archiveId: number): Promise<void> {
   await deleteArchiveEndpoint(archiveId, { auth: 'required' });
 }
 
+/** 공유 링크 발급 — 활성 링크가 있으면 서버가 같은 token 을 돌려준다(멱등). */
+export async function issueShareLink(archiveId: number): Promise<string> {
+  const response = unwrapApiResponse(await issueShareLinkEndpoint(archiveId, { auth: 'required' }));
+  if (!response?.token) throw new Error('공유 링크를 발급하지 못했어요');
+  return response.token;
+}
+
+/** 내 목록에서 공유 아카이브 제거 — 내 구독만 사라지고 공유자 원본에는 영향 없다. */
+export async function removeSharedArchive(archiveId: number): Promise<void> {
+  await unsubscribeEndpoint(archiveId, { auth: 'required' });
+}
+
 /**
  * 선택 삭제 — 일괄 삭제 API가 아직 없어 단건 삭제(`DELETE /posts/{postId}`)를
  * 병렬로 묶어 보낸다. 일부만 실패해도 성공분은 이미 지워진 상태라 도중에 끊지 않고
@@ -91,7 +110,7 @@ export async function deleteArchivePosts(postIds: number[]): Promise<void> {
 }
 
 /** 그리드 한 칸에 필요한 만큼만 옮긴다. 대표 미디어 1장이 커버가 된다. */
-function toArchivePost(dto: GroupPostSummaryResponse): ArchivePost {
+export function toArchivePost(dto: GroupPostSummaryResponse): ArchivePost {
   return {
     id: dto.postId,
     // 제목이 없는 게시물(메모만 저장 등)도 카드가 비어 보이지 않게 메모로 대체한다.
@@ -142,7 +161,7 @@ export async function fetchArchivePosts(archiveId: number, page = 0): Promise<Ar
 }
 
 /** 장소 카드(`PlaceCard` — 썸네일 + 이름 + 지역·업종)가 그리는 데 필요한 만큼만 옮긴다. */
-function toArchivePlace(dto: GroupPlaceSummaryResponse): Place {
+export function toArchivePlace(dto: GroupPlaceSummaryResponse): Place {
   return {
     // Place.id 는 화면 전반에서 문자열이다 — 지도 딥링크(`/map?placeId=`)에서 다시 숫자로 쓴다.
     id: String(dto.id),

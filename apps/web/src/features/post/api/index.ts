@@ -85,7 +85,7 @@ function toPostArchive(dto: SavedPostGroupResponse): PostArchive {
 }
 
 /** 서버 DTO → 화면 모델. `media` 는 순서(`sequence`)대로 정렬하고 이미지만 쓴다(영상은 시안 미정). */
-function toPostDetail(dto: SavedPostDetailResponse): PostDetail {
+export function toPostDetail(dto: SavedPostDetailResponse): PostDetail {
   const images = [...dto.media]
     .filter((media) => media.type === 'IMAGE')
     .sort((a, b) => a.sequence - b.sequence)

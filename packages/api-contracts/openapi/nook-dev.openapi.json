@@ -611,6 +611,43 @@
         ],
         "type": "object"
       },
+      "ApiResponseSavedPlaceSearchPageResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SavedPlaceSearchPageResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
       "ApiResponseSavedPostDetailResponse": {
         "description": "공통 API 응답",
         "properties": {
@@ -2177,6 +2214,80 @@
         },
         "required": [
           "groupIds"
+        ],
+        "type": "object"
+      },
+      "SavedPlaceSearchItemResponse": {
+        "properties": {
+          "address": {
+            "description": "장소 주소",
+            "type": "string"
+          },
+          "category": {
+            "description": "장소 카테고리",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "description": "장소 식별자",
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "description": "장소명",
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "SavedPlaceSearchPageResponse": {
+        "properties": {
+          "hasNext": {
+            "description": "다음 페이지 존재 여부",
+            "type": "boolean"
+          },
+          "items": {
+            "description": "내 저장 장소 검색 결과",
+            "items": {
+              "$ref": "#/components/schemas/SavedPlaceSearchItemResponse"
+            },
+            "type": "array"
+          },
+          "page": {
+            "description": "현재 페이지 번호. 0부터 시작",
+            "format": "int32",
+            "type": "integer"
+          },
+          "size": {
+            "description": "페이지당 장소 수",
+            "format": "int32",
+            "type": "integer"
+          },
+          "totalElements": {
+            "description": "전체 검색 결과 수",
+            "format": "int64",
+            "type": "integer"
+          },
+          "totalPages": {
+            "description": "전체 페이지 수",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hasNext",
+          "items",
+          "page",
+          "size",
+          "totalElements",
+          "totalPages"
         ],
         "type": "object"
       },
@@ -3798,6 +3909,65 @@
           }
         },
         "summary": "최근 저장 공간 조회",
+        "tags": [
+          "Place"
+        ]
+      }
+    },
+    "/api/v1/places/saved/search": {
+      "get": {
+        "operationId": "searchSavedPlaces",
+        "parameters": [
+          {
+            "description": "장소명, 주소 또는 카테고리 검색 문자열",
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "description": "조회할 페이지 번호. 0부터 시작합니다.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "페이지당 장소 수",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSavedPlaceSearchPageResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "내 저장 장소 검색",
         "tags": [
           "Place"
         ]

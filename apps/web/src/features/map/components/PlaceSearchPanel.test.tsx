@@ -5,8 +5,8 @@ import type { Archive } from '@/features/archive/types';
 import { PlaceSearchPanel } from './PlaceSearchPanel';
 
 const ARCHIVES: Archive[] = [
-  { id: 1, name: '카페', color: 'yellow', placeCount: 3 },
-  { id: 2, name: '밥집', color: 'blue', placeCount: 2 },
+  { id: 1, name: '카페', color: 'yellow', placeCount: 3, accessType: 'OWNED' },
+  { id: 2, name: '밥집', color: 'blue', placeCount: 2, accessType: 'OWNED' },
 ];
 
 // 아카이브 칩은 실제 목록 API 를 쓴다 — HTTP 전송이 아니라 배선만 검증한다.

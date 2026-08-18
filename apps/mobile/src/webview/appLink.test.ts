@@ -23,6 +23,20 @@ describe('resolveAppLinkWebUrl', () => {
     );
   });
 
+  it('공유 아카이브 딥링크를 웹 공유 화면으로 변환한다', () => {
+    expect(resolveAppLinkWebUrl('kr.co.everynook.app://shared/tok_A1-b2', WEB_URL)).toBe(
+      `${WEB_URL}/shared/tok_A1-b2`,
+    );
+  });
+
+  it.each([
+    'kr.co.everynook.app://shared/tok/extra',
+    'kr.co.everynook.app://shared/한글토큰',
+    'kr.co.everynook.app://shared/tok?x=1',
+  ])('형식이 다른 공유 딥링크는 거부한다: %s', (value) => {
+    expect(resolveAppLinkWebUrl(value, WEB_URL)).toBeNull();
+  });
+
   it.each([
     'kr.co.everynook.app://post/not-a-number',
     'kr.co.everynook.app://archive/1',

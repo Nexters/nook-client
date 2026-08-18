@@ -35,4 +35,9 @@ export const env = {
    * 연동이 끝나면 이 값을 `true` 로 바꾸는 것이 켜는 스위치다.
    */
   enablePlaceSearch: import.meta.env.DEV,
+  /**
+   * 공유 링크에 쓰는 웹 오리진. 셸 웹뷰에서도 링크는 항상 공개 웹 주소여야 하므로
+   * 배포 환경 변수로 고정하고, 미설정 시(로컬 등) 현재 오리진으로 대체한다.
+   */
+  webOrigin: import.meta.env.VITE_WEB_ORIGIN || window.location.origin,
 } as const;

@@ -23,6 +23,7 @@ import type {
   ApiResponsePostResponse,
   ApiResponseProfileImageUploadResponse,
   ApiResponseRecentPlaceSliceResponse,
+  ApiResponseSavedPlaceSearchPageResponse,
   ApiResponseSavedPostDetailResponse,
   ApiResponseSavedPostPageResponse,
   ApiResponseSaveSharedPostResponse,
@@ -46,6 +47,7 @@ import type {
   ReplaceSavedPostGroupsRequest,
   SaveSharedPostRequest,
   SearchPlacesParams,
+  SearchSavedPlacesParams,
   SocialAuthRequest,
   UpdateGroupRequest,
   UpdateMemberProfileRequest,
@@ -592,6 +594,35 @@ export const getRecentPlaces = async (
   options?: Parameters<typeof orvalMutator>[1],
 ): Promise<ApiResponseRecentPlaceSliceResponse> => {
   return orvalMutator<ApiResponseRecentPlaceSliceResponse>(getGetRecentPlacesUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getSearchSavedPlacesUrl = (params: SearchSavedPlacesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/places/saved/search?${stringifiedParams}`
+    : `/api/v1/places/saved/search`;
+};
+
+/**
+ * @summary 내 저장 장소 검색
+ */
+export const searchSavedPlaces = async (
+  params: SearchSavedPlacesParams,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseSavedPlaceSearchPageResponse> => {
+  return orvalMutator<ApiResponseSavedPlaceSearchPageResponse>(getSearchSavedPlacesUrl(params), {
     ...options,
     method: 'GET',
   });

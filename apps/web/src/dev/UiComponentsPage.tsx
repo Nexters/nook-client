@@ -131,6 +131,7 @@ const MOCK_ARCHIVE_FILLED: Archive = {
   color: 'yellow',
   placeCount: 112,
   thumbnails: Array.from({ length: 5 }, () => SAMPLE_IMAGE),
+  accessType: 'OWNED',
 };
 const MOCK_ARCHIVE_EMPTY: Archive = {
   id: 2,
@@ -138,12 +139,14 @@ const MOCK_ARCHIVE_EMPTY: Archive = {
   color: 'sky',
   placeCount: 0,
   thumbnails: [],
+  accessType: 'OWNED',
 };
 const MOCK_ARCHIVE_LONG: Archive = {
   id: 3,
   name: '이름이 아주 길어지는 아카이브는 말줄임으로 잘립니다',
   color: 'purple',
   placeCount: 3,
+  accessType: 'OWNED',
 };
 const MOCK_ARCHIVES = [MOCK_ARCHIVE_FILLED, MOCK_ARCHIVE_EMPTY, MOCK_ARCHIVE_LONG];
 
@@ -156,6 +159,7 @@ const MOCK_COLLECTIONS: Archive[] = [
     placeCount: 3,
     authorHandle: '@abcde',
     thumbnails: [SAMPLE_IMAGE],
+    accessType: 'OWNED',
   },
   {
     id: 102,
@@ -164,6 +168,7 @@ const MOCK_COLLECTIONS: Archive[] = [
     placeCount: 1,
     authorHandle: '@abcde',
     thumbnails: [SAMPLE_IMAGE],
+    accessType: 'OWNED',
   },
 ];
 
