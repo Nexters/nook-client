@@ -71,7 +71,9 @@ function PostImages({ images, onImageClick }: PostImagesProps) {
   }
 
   return (
-    <Carousel>
+    // 여러 장이 동시에 보이는 캐러셀이라 인디케이터가 현재 위치를 가리키지 못한다.
+    // 점을 감싸던 py-3 가 하단 여백 노릇을 하고 있었으므로 12px 을 직접 채운다.
+    <Carousel indicator={false} className="pb-3">
       {images.map((src, index) => (
         <button
           // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
