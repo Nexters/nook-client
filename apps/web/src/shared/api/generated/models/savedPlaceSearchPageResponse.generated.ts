@@ -4,9 +4,12 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { SavedPlaceSearchGroupResponse } from './savedPlaceSearchGroupResponse.generated';
 import type { SavedPlaceSearchItemResponse } from './savedPlaceSearchItemResponse.generated';
 
 export interface SavedPlaceSearchPageResponse {
+  /** 검색 결과가 존재하는 내 그룹 목록 */
+  groups: SavedPlaceSearchGroupResponse[];
   /** 다음 페이지 존재 여부 */
   hasNext: boolean;
   /** 내 저장 장소 검색 결과 */
