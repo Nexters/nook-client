@@ -42,7 +42,10 @@ export function PlaceSheet({
 }: {
   recentPlaces: RecentPlace[];
   selectedPlace: PlaceDetailModel | null;
-  /** 공유 아카이브 딥링크로 들어온 경우의 토큰 — 상세의 저장 안 한 게시물 조회 폴백용. */
+  /**
+   * 공유 아카이브 딥링크로 들어온 경우의 토큰 — 있으면 상세를 공유자 기준 읽기 전용으로
+   * 그린다(공개 API 조회, 저장 토글·메모 편집 등 숨김). `PlaceDetail` 로 그대로 내려간다.
+   */
   shareToken?: string | null;
   /** true 인 동안은 상세를 아직 못 받았지만(선택은 됐지만) 상세 레이아웃으로는 이미 전환해야 한다. */
   isPlaceDetailPending: boolean;
@@ -144,6 +147,7 @@ export function PlaceSheet({
                 placeId={selectedPlace.id}
                 bookmarked={selectedPlace.bookmarked}
                 onClose={onClose}
+                readOnly={Boolean(shareToken)}
               />
             }
           />

@@ -60,8 +60,10 @@ export function MapPage() {
   const isAuthenticated = useIsAuthenticated();
   const { open: openLoginWall, wall: loginWall } = useLoginGate();
   const requestedPlaceId = parsePlaceIdParam(searchParams.get('placeId'));
-  // 공유 아카이브에서 딥링크로 들어온 경우 함께 실리는 토큰 — 저장 안 한 장소의 상세를
-  // 내 API 대신 공유 공개 API 로 우회 조회하는 데 쓴다(usePlaceDetail 의 폴백).
+  // 공유 아카이브에서 딥링크로 들어온 경우 함께 실리는 토큰 — 있으면 상세를 내 API
+  // 대신 공유 공개 API 로 조회하고(usePlaceDetail), 저장 토글·메모 편집 등 편집 액션도
+  // 숨긴다(PlaceSheet → PlaceDetail). 공유 링크로 들어온 화면은 이미 저장한 장소라도
+  // 공유자 기준 읽기 전용으로 보여준다는 정책이다.
   const shareToken = searchParams.get('shareToken');
   // 게스트는 상세 쿼리가 막혀 있어 그릴 내용이 없다 — 선택을 무시해 평범한 지도로 두고,
   // 대신 아래 effect 가 왜 안 열리는지 월로 알려준다(취소해도 빈 상세에 갇히지 않는다).
