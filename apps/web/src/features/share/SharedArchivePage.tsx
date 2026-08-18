@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { useArchives } from '@/features/archive/api/queries';
 import { ArchiveEmpty } from '@/features/archive/components/ArchiveEmpty';
@@ -32,8 +32,14 @@ export function SharedArchivePage() {
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { gate, wall: loginWall } = useLoginGate();
   const subscribe = useSubscribeSharedArchive();
+
+  // 공유 링크로 앱을 처음 연 경우엔 돌아갈 히스토리가 없다(`key === 'default'`) —
+  // 그때는 뒤로 대신 지도로 보낸다(`EntryLoginWall` 과 같은 패턴).
+  const goBack = () =>
+    location.key === 'default' ? navigate('/map', { replace: true }) : navigate(-1);
 
   const metaQuery = useSharedArchive(token);
   const postsQuery = useSharedArchivePosts(token);
@@ -64,7 +70,7 @@ export function SharedArchivePage() {
         className="fixed inset-0 flex flex-col bg-gray-0"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <Header left={<BackButton />} />
+        <Header left={<BackButton onClick={goBack} />} />
         <ArchiveEmpty message={shareErrorMessage(metaQuery.error)} />
       </main>
     );
@@ -108,7 +114,7 @@ export function SharedArchivePage() {
         header={
           <>
             <OpenInAppBanner token={token} />
-            <Header left={<BackButton />} />
+            <Header left={<BackButton onClick={goBack} />} />
             <div className="flex flex-col gap-1 px-4 pt-2 pb-3">
               <div className="flex items-center gap-2">
                 <span

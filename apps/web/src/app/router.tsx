@@ -104,9 +104,16 @@ export const router = createBrowserRouter([
         ],
       },
       // 공유 아카이브 열람 — 링크만 있으면 비로그인도 본다.
+      // AwaitSession 은 리다이렉트하지 않고 부트스트래핑 동안만 렌더를 미룬다 —
+      // 게스트는 그대로 보되, 네이티브 콜드 스타트에서 세션 복구 전 인증된 것처럼
+      // 취급되는 경합만 막는다.
       {
         path: 'shared/:token',
-        element: <SharedArchivePage />,
+        element: (
+          <AwaitSession>
+            <SharedArchivePage />
+          </AwaitSession>
+        ),
       },
       // 스토어 심사·앱 스토어 등록에 공개 URL 이 필요해 로그인 밖에 둔다.
       {

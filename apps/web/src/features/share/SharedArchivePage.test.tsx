@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Archive } from '@/features/archive/types';
+import { AwaitSession } from '@/features/auth/session/AuthRouteGuards';
 import { ApiClientError } from '@/shared/api';
 import { ToastProvider } from '@/shared/toast';
 import { SharedArchivePage } from './SharedArchivePage';
@@ -16,7 +17,8 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('@/features/share/api', () => mocks);
 
-const session = vi.hoisted(() => ({ status: 'anonymous' as 'anonymous' | 'authenticated' }));
+type SessionStatus = 'anonymous' | 'authenticated' | 'bootstrapping';
+const session = vi.hoisted(() => ({ status: 'anonymous' as SessionStatus }));
 vi.mock('@/features/auth/session/AuthSessionProvider', () => ({
   useAuthSession: () => ({ status: session.status }),
   useIsAuthenticated: () => session.status === 'authenticated',
@@ -36,19 +38,29 @@ const META: Archive = {
   shareToken: 'tok-123',
 };
 
-function renderPage(token = 'tok-123') {
+function renderPage(token = 'tok-123', options: { withAwaitSession?: boolean } = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = (children: ReactNode) => (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>{children}</ToastProvider>
     </QueryClientProvider>
   );
+  // 실제 라우터(`router.tsx`)와 동일하게 `AwaitSession` 으로 감싼다 — 부트스트래핑
+  // 동안 렌더를 미루는지 확인하는 테스트에서만 켠다.
+  const element = options.withAwaitSession ? (
+    <AwaitSession>
+      <SharedArchivePage />
+    </AwaitSession>
+  ) : (
+    <SharedArchivePage />
+  );
   return render(
     wrapper(
       <MemoryRouter initialEntries={[`/shared/${token}`]}>
         <Routes>
-          <Route path="/shared/:token" element={<SharedArchivePage />} />
+          <Route path="/shared/:token" element={element} />
           <Route path="/login" element={<div>로그인 화면</div>} />
+          <Route path="/map" element={<div>지도 화면</div>} />
         </Routes>
       </MemoryRouter>,
     ),
@@ -122,5 +134,23 @@ describe('SharedArchivePage', () => {
     archivesMock.mockResolvedValue([{ ...META, accessType: 'SHARED' }]);
     renderPage();
     expect(await screen.findByRole('button', { name: /저장됨/ })).toBeDisabled();
+  });
+
+  it('돌아갈 히스토리가 없으면 뒤로 가기가 지도로 보낸다', async () => {
+    // MemoryRouter 의 첫 진입(단일 initialEntries)은 key === 'default' 다 — 공유
+    // 딥링크로 앱을 처음 연 상황과 같다.
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: '뒤로 가기' }));
+    expect(await screen.findByText('지도 화면')).toBeInTheDocument();
+  });
+
+  it('세션 복구 중(AwaitSession)에는 화면을 그리지 않고 조회도 하지 않는다', async () => {
+    session.status = 'bootstrapping';
+    renderPage('tok-123', { withAwaitSession: true });
+
+    expect(screen.queryByRole('heading', { name: '카페' })).not.toBeInTheDocument();
+    // 부트스트래핑 동안은 AwaitSession 이 렌더 자체를 미루므로 쿼리도 아직 나가지 않는다.
+    expect(mocks.fetchSharedArchive).not.toHaveBeenCalled();
+    expect(archivesMock).not.toHaveBeenCalled();
   });
 });
