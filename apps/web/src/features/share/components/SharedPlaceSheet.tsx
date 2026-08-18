@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { ArchiveEmpty } from '@/features/archive/components/ArchiveEmpty';
 import { PlaceInfo, PlacePhotos } from '@/features/place';
+import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
 import { Badge, Drawer, DrawerContent, DrawerTitle, Thumbnail } from '@/shared/ui';
 import { useSharedPlaceDetail } from '../api/queries';
@@ -58,6 +59,7 @@ export function SharedPlaceSheet({
 
               <PlaceInfo
                 address={place.address}
+                mapHref={buildNaverMapSearchUrl(place)}
                 businessStatus={formatBusinessStatus(place.openNow)}
                 businessHours={formatBusinessHours(place.openingHours)}
                 memo={place.memo}

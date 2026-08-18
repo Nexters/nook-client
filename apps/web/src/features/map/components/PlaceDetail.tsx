@@ -10,6 +10,7 @@ import {
   PlacePhotoViewer,
   PlaceRow,
 } from '@/features/place';
+import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
 import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
 import type { Post } from '@/features/post';
@@ -255,6 +256,7 @@ export function PlaceDetail({
             onAddressCopied={() =>
               showToast({ variant: 'simple', title: '클립보드에 복사되었습니다.' })
             }
+            mapHref={buildNaverMapSearchUrl(place)}
             businessStatus={formatBusinessStatus(place.openNow)}
             businessHours={formatBusinessHours(place.openingHours)}
             memo={place.memo}
