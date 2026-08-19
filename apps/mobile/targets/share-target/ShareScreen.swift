@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // 새 아카이브 생성 행 + 아카이브 4개까지 노출(56*5=280), 초과 시 스크롤
 private let scrollRegion: CGFloat = 280
@@ -69,6 +70,11 @@ struct ShareScreen: View {
             .offset(y: dragOffset)
         }
         .background(SafeAreaReader { bottomInset = $0 })
+        // 루트(ZStack)가 기본 safe area 레이아웃을 따르면 위 VStack의
+        // .padding(.bottom, bottomInset)과 이중으로 겹쳐 CTA 버튼이 시안보다 훨씬
+        // 아래로 밀린다. 진짜 인셋 값은 SafeAreaReader가 UIWindow에서 직접 읽으므로
+        // 여기서 무시해도 값 손실이 없다.
+        .ignoresSafeArea(.container, edges: .bottom)
     }
 }
 
@@ -186,13 +192,28 @@ private struct CreateGroupHeader: View {
     }
 }
 
-// 홈 인디케이터 인셋을 1회 캡처(키보드 높이와 무관하게 고정)
-private struct SafeAreaReader: View {
+// 홈 인디케이터 인셋을 1회 캡처(키보드 높이와 무관하게 고정).
+// GeometryReader.safeAreaInsets 는 루트 뷰에 .ignoresSafeArea 를 걸면 함께 0으로
+// 사라진다 — 루트가 이중으로 세이프에어리어를 피하는(자동 회피 + 아래 수동 padding)
+// 문제를 .ignoresSafeArea 로 끄면서도 진짜 인셋 값은 그대로 읽으려면, SwiftUI 레이어를
+// 거치지 않고 UIWindow.safeAreaInsets 를 직접 읽어야 한다.
+private struct SafeAreaReader: UIViewRepresentable {
     let onRead: (CGFloat) -> Void
 
-    var body: some View {
-        GeometryReader { geo in
-            Color.clear.onAppear { onRead(geo.safeAreaInsets.bottom) }
+    func makeUIView(context: Context) -> ProbeView {
+        let view = ProbeView()
+        view.onChange = onRead
+        return view
+    }
+
+    func updateUIView(_ uiView: ProbeView, context: Context) {}
+
+    final class ProbeView: UIView {
+        var onChange: ((CGFloat) -> Void)?
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            onChange?(window?.safeAreaInsets.bottom ?? 0)
         }
     }
 }
