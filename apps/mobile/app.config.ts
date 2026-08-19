@@ -106,6 +106,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         // 미설정이면 EAS 가 매 빌드마다 물어보고 그 답을 app config 에 되쓴다. HTTPS 만
         // 쓰므로 수출 규제 면제 대상이고, 값을 박아두면 App Store Connect 수동 설정도 없다.
         ITSAppUsesNonExemptEncryption: false,
+        // 미설정이면 Xcode 프로젝트의 developmentRegion(en) 이 그대로 들어가 앱이 영어
+        // 단일 언어로 신고된다. 시스템 권한 안내·기본 다이얼로그와 App Store 기본 언어를
+        // 한국어로 맞추기 위해 명시한다.
+        CFBundleDevelopmentRegion: 'ko',
+        CFBundleLocalizations: ['ko'],
         // NSLocalNetworkUsageDescription 은 여기서 지정하지 않는다. Metro 검색용이라
         // 개발 빌드에만 필요한데, expo-dev-launcher 가 자기 기본 문구로 넣고 Release
         // 빌드에서 도로 지운다 — 단, 그 정리 스크립트는 "Expo Dev Launcher" 가 들어간
