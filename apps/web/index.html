@@ -7,6 +7,17 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"
     />
     <title>nook</title>
+    <!--
+      아래 og:* 는 SPA 전역 기본값이다. /shared/:token 만은 크롤러(카카오·슬랙 등)가
+      JS 를 실행하지 않아 이 정적 값을 그대로 읽어가므로, Vercel Function(`api/shared.ts`)이
+      요청 시점에 아카이브 이름·썸네일로 이 태그들을 다시 써서 응답한다(`api/_lib/og.ts`).
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="nook" />
+    <meta property="og:title" content="nook - 함께 저장하고 공유하는 공간" />
+    <meta property="og:description" content="지도 위에 나만의 공간을 저장하고 친구와 공유해요" />
+    <meta property="og:image" content="/og-default.png" />
+    <meta property="og:url" content="" />
   </head>
   <body>
     <div id="root"></div>
