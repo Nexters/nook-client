@@ -35,8 +35,8 @@ function setTitle(html: string, title: string): string {
 }
 
 function toDescription(archive: SharedArchiveMeta): string {
-  const owner = archive.ownerNickname ? `@${archive.ownerNickname}` : '';
-  return `${owner} · ${archive.postCount} Places`;
+  const owner = archive.ownerNickname ? `@${archive.ownerNickname} · ` : '';
+  return `${owner}${archive.postCount} Places`;
 }
 
 /**
