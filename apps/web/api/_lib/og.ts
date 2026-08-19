@@ -50,8 +50,8 @@ export function renderSharedArchiveHtml(html: string, options: RenderOptions): s
 
   let result = html;
   if (archive) {
-    result = setTitle(result, `${archive.name} - nook`);
-    result = setMetaContent(result, 'og:title', `${archive.name} - nook`);
+    result = setTitle(result, `${archive.name} - Nook`);
+    result = setMetaContent(result, 'og:title', `${archive.name} - Nook`);
     result = setMetaContent(result, 'og:description', toDescription(archive));
   }
   result = setMetaContent(result, 'og:image', archive?.thumbnailUrl ?? fallbackImageUrl);
