@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { mapQueryKeys } from '@/features/map/api/queries';
+import { isThumbnailParsing } from '@/features/place/thumbnailPolling';
 import {
   createArchive,
   deleteArchive,
@@ -77,6 +78,12 @@ export function useArchivePlaces(archiveId: number | undefined) {
       totalElements: data.pages[0]?.totalElements ?? 0,
     }),
     enabled: isAuthenticated && archiveId !== undefined,
+    refetchInterval: (query) => {
+      const anyProcessing = query.state.data?.pages.some((page) =>
+        page.places.some(isThumbnailParsing),
+      );
+      return anyProcessing ? POLL_INTERVAL_MS : false;
+    },
   });
 }
 

@@ -169,6 +169,7 @@ export function toArchivePlace(dto: GroupPlaceSummaryResponse): Place {
     category: dto.category ?? '',
     region: dto.city ?? undefined,
     thumbnail: dto.thumbnailUrl ?? undefined,
+    thumbnailParsingStatus: dto.thumbnailParsingStatus,
   };
 }
 

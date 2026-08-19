@@ -19,4 +19,6 @@ export interface Place {
   keywords?: string[];
   /** 대표 이미지. 없으면 빈 썸네일(시안 `Image_x`)로 렌더된다. */
   thumbnail?: string;
+  thumbnailParsingStatus?: ThumbnailParsingStatus;
 }
+export type ThumbnailParsingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';

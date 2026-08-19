@@ -9,8 +9,13 @@ vi.mock('@/shared/api', async (importOriginal) => ({
   ...endpoints,
 }));
 
-import type { PlaceDetailResponse, SavedPlaceSearchPageResponse } from '@/shared/api';
-import { fetchPlacePosts, toPlaceDetail, toSavedPlaceSearchPage } from '.';
+import type {
+  MapPlaceResponse,
+  PlaceDetailResponse,
+  RecentPlaceResponse,
+  SavedPlaceSearchPageResponse,
+} from '@/shared/api';
+import { fetchPlacePosts, toMapPin, toPlaceDetail, toRecentPlace, toSavedPlaceSearchPage } from '.';
 
 const PAGE: SavedPlaceSearchPageResponse = {
   groups: [{ id: 3, name: '성수 카페', color: 'MINT', matchedPlaceCount: 2 }],
@@ -29,6 +34,34 @@ const PAGE: SavedPlaceSearchPageResponse = {
   totalElements: 1,
   totalPages: 1,
 };
+
+describe('thumbnail parsing status mapping', () => {
+  it('지도 핀과 최근 장소에 썸네일 상태를 보존한다', () => {
+    const mapPlace: MapPlaceResponse = {
+      id: 1,
+      name: '지도 장소',
+      latitude: 37.5,
+      longitude: 127,
+      color: 'BLUE',
+      tags: [],
+      thumbnailUrl: null,
+      thumbnailParsingStatus: 'PENDING',
+    };
+    const recentPlace: RecentPlaceResponse = {
+      id: 2,
+      name: '최근 장소',
+      address: '서울 강남구',
+      latitude: 37.5,
+      longitude: 127,
+      tags: [],
+      thumbnailUrl: null,
+      thumbnailParsingStatus: 'FAILED',
+    };
+
+    expect(toMapPin(mapPlace).thumbnailParsingStatus).toBe('PENDING');
+    expect(toRecentPlace(recentPlace).thumbnailParsingStatus).toBe('FAILED');
+  });
+});
 
 describe('toSavedPlaceSearchPage', () => {
   it('검색 결과 아이템을 카드 형태로, 전체 건수를 totalCount 로 옮긴다', () => {

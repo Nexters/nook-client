@@ -1097,6 +1097,16 @@
             },
             "type": "array"
           },
+          "thumbnailParsingStatus": {
+            "description": "장소 썸네일 파싱 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -1111,7 +1121,8 @@
           "latitude",
           "longitude",
           "name",
-          "tags"
+          "tags",
+          "thumbnailParsingStatus"
         ],
         "type": "object"
       },
@@ -1385,6 +1396,16 @@
             },
             "type": "array"
           },
+          "thumbnailParsingStatus": {
+            "description": "장소 썸네일 파싱 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -1399,7 +1420,8 @@
           "latitude",
           "longitude",
           "name",
-          "tags"
+          "tags",
+          "thumbnailParsingStatus"
         ],
         "type": "object"
       },
@@ -2139,6 +2161,16 @@
             },
             "type": "array"
           },
+          "thumbnailParsingStatus": {
+            "description": "장소 썸네일 파싱 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -2153,7 +2185,8 @@
           "latitude",
           "longitude",
           "name",
-          "tags"
+          "tags",
+          "thumbnailParsingStatus"
         ],
         "type": "object"
       },

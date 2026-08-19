@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
+import { isThumbnailParsing } from '@/features/place/thumbnailPolling';
 import type { MapBounds, SavedPlaceSearchPage } from '../types';
 import {
   disconnectPostPlace,
@@ -18,6 +19,8 @@ import {
   updatePlaceBookmark,
   updatePlaceMemo,
 } from '.';
+
+const THUMBNAIL_POLL_INTERVAL_MS = 3000;
 
 export const mapQueryKeys = {
   pinsAll: ['map', 'pins'] as const,
@@ -49,6 +52,8 @@ export function useMapPins(bounds: MapBounds) {
     // 때까지 data 가 undefined 로 떨어져, 팬/줌 때마다 화면의 핀이 전부 사라졌다가
     // 다시 찍힌다. 직전 bbox 의 핀을 유지해 그 깜빡임을 없앤다.
     placeholderData: keepPreviousData,
+    refetchInterval: (query) =>
+      query.state.data?.some(isThumbnailParsing) ? THUMBNAIL_POLL_INTERVAL_MS : false,
   });
 }
 
@@ -60,6 +65,8 @@ export function useRecentPlaces() {
     queryKey: mapQueryKeys.recent,
     queryFn: fetchRecentPlaces,
     enabled: isAuthenticated,
+    refetchInterval: (query) =>
+      query.state.data?.some(isThumbnailParsing) ? THUMBNAIL_POLL_INTERVAL_MS : false,
   });
 }
 

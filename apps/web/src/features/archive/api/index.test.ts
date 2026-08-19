@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { GroupResponse } from '@/shared/api';
-import { toArchive } from '.';
+import type { GroupPlaceSummaryResponse, GroupResponse } from '@/shared/api';
+import { toArchive, toArchivePlace } from '.';
 
 const BASE: GroupResponse = {
   id: 27,
@@ -32,5 +32,24 @@ describe('toArchive', () => {
       profileImageUrl: 'https://img.example/p.png',
     });
     expect(archive.shareToken).toBe('tok-123');
+  });
+});
+
+describe('toArchivePlace', () => {
+  it('썸네일 파싱 상태를 장소 카드 모델에 보존한다', () => {
+    const dto: GroupPlaceSummaryResponse = {
+      id: 31,
+      name: '퍼머넌트해비탯',
+      address: '서울 마포구',
+      latitude: 37.5,
+      longitude: 127,
+      tags: [],
+      thumbnailUrl: null,
+      thumbnailParsingStatus: 'PROCESSING',
+    };
+
+    expect(toArchivePlace(dto)).toEqual(
+      expect.objectContaining({ thumbnail: undefined, thumbnailParsingStatus: 'PROCESSING' }),
+    );
   });
 });

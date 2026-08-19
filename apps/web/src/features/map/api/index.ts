@@ -43,7 +43,7 @@ const SERVER_TO_UI_COLOR = {
   GRAY: 'cement',
 } as const satisfies Record<CreateGroupRequestColor, ArchiveColor>;
 
-function toMapPin(dto: MapPlaceResponse): MapPin {
+export function toMapPin(dto: MapPlaceResponse): MapPin {
   return {
     id: dto.id,
     lat: dto.latitude,
@@ -51,6 +51,7 @@ function toMapPin(dto: MapPlaceResponse): MapPin {
     name: dto.name,
     color: SERVER_TO_UI_COLOR[dto.color as CreateGroupRequestColor] ?? 'cement',
     thumbnail: dto.thumbnailUrl ?? undefined,
+    thumbnailParsingStatus: dto.thumbnailParsingStatus,
   };
 }
 
@@ -70,13 +71,14 @@ export async function fetchMapPins(bounds: MapBounds): Promise<MapPin[]> {
   return (pins ?? []).map(toMapPin);
 }
 
-function toRecentPlace(dto: RecentPlaceResponse): RecentPlace {
+export function toRecentPlace(dto: RecentPlaceResponse): RecentPlace {
   return {
     id: dto.id,
     name: dto.name,
     category: dto.category ?? undefined,
     address: dto.address,
     thumbnail: dto.thumbnailUrl ?? undefined,
+    thumbnailParsingStatus: dto.thumbnailParsingStatus,
   };
 }
 

@@ -1,3 +1,4 @@
+import type { ThumbnailParsingStatus } from '@/features/place';
 import type { PlaceOpeningHoursResponse } from '@/shared/api';
 import type { ArchiveColor } from '@/shared/ui';
 
@@ -22,6 +23,7 @@ export interface MapPin {
   color: ArchiveColor;
   /** 장소 대표 썸네일. 없으면 핀이 빈 썸네일 고스트로 그려진다. */
   thumbnail?: string;
+  thumbnailParsingStatus?: ThumbnailParsingStatus;
 }
 
 /** `PlaceSheet` 목록 모드("최근 저장한 공간")에 쓰는 카드 한 건. */
@@ -31,6 +33,7 @@ export interface RecentPlace {
   category?: string;
   address: string;
   thumbnail?: string;
+  thumbnailParsingStatus?: ThumbnailParsingStatus;
 }
 
 /**
