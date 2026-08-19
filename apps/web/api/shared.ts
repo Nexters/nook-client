@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { fetchSharedArchiveMeta } from './_lib/archive';
 import { renderSharedArchiveHtml } from './_lib/og';
@@ -18,11 +20,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const fallbackImageUrl = `https://${host}/og-default.png`;
   const apiBaseUrl = process.env.API_BASE_URL;
 
-  const [baseHtml, archive] = await Promise.all([
-    fetchBaseHtml(host),
-    apiBaseUrl && token ? fetchSharedArchiveMeta(apiBaseUrl, token) : Promise.resolve(null),
-  ]);
+  const baseHtml = readBaseHtml();
+  if (!baseHtml) {
+    // index.html 을 못 읽으면(빌드 설정 문제 등) og:* 를 채울 수 없다 — 같은 /shared/:token
+    // 으로 되돌리면 이 함수가 또 불려 무한 루프가 되니, 함수가 안 끼는 경로로 보낸다.
+    // 이 링크로 들어온 사람은 원하던 아카이브를 못 열지만, 크래시 화면보다는 낫다.
+    res.redirect(307, '/');
+    return;
+  }
 
+  const archive = apiBaseUrl && token ? await fetchSharedArchiveMeta(apiBaseUrl, token) : null;
   const html = renderSharedArchiveHtml(baseHtml, { archive, shareUrl, fallbackImageUrl });
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -33,10 +40,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 /**
- * 빌드된 `index.html`(og:* 기본값을 담고 있다)을 자기 배포의 정적 자산으로 가져온다.
- * 이 rewrite 는 `/shared/:token` 만 가로채므로 `/index.html` 요청은 그대로 정적 파일로 응답된다.
+ * 빌드된 `index.html`(og:* 기본값을 담고 있다)을 이 함수 배포물에 직접 묶어(`vercel.json`
+ * 의 `includeFiles`) 읽는다. 예전엔 자기 배포 도메인으로 다시 HTTP 요청(self-fetch)해서
+ * 가져왔는데, 그 네트워크 호출이 실패하면(자기 자신을 부르는 요청이라 실패 양상이 다양하다)
+ * 에러 처리가 없어 함수 전체가 죽었다(FUNCTION_INVOCATION_FAILED) — 파일을 직접 읽으면
+ * 네트워크 왕복 자체가 없어 그 실패 경로가 통째로 사라진다.
  */
-async function fetchBaseHtml(host: string | undefined): Promise<string> {
-  const response = await fetch(`https://${host}/index.html`);
-  return response.text();
+function readBaseHtml(): string | null {
+  try {
+    return readFileSync(join(process.cwd(), 'dist/index.html'), 'utf-8');
+  } catch (error) {
+    console.error('[api/shared] index.html 을 읽지 못했습니다', error);
+    return null;
+  }
 }

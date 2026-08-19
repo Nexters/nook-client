@@ -131,6 +131,9 @@ function PlaceDirectInputDrawer({
         snapPoints={selectedPlace ? PLACE_DETAIL_SNAP_POINTS : PLACE_LIST_SNAP_POINTS}
         activeSnapPoint={activeSnapPoint}
         setActiveSnapPoint={setActiveSnapPoint}
+        // 키보드가 올라올 때 vaul 이 드로어를 위로 밀어 올리는 동작(기본값)을 끈다 —
+        // 검색창이 시트 상단(90% 스냅)에 있어 안 밀어도 키보드에 가려지지 않는다.
+        repositionInputs={false}
       >
         <DrawerContent
           overlay={!selectedPlace}

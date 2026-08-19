@@ -2,5 +2,10 @@
   "rewrites": [
     { "source": "/shared/:token", "destination": "/api/shared?token=:token" },
     { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  ],
+  "functions": {
+    "api/shared.ts": {
+      "includeFiles": "dist/index.html"
+    }
+  }
 }

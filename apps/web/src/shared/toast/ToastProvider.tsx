@@ -70,6 +70,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [closeFront],
   );
 
+  // 3초 수명은 Radix 타이머 대신 우리가 소유한다 — Radix 는 토스트 노출 중 window blur
+  // 가 오면 타이머를 멈추고 focus 가 와야 재개하는데, 네이티브 WebView 는 첫 터치 전까지
+  // focus 이벤트가 안 와서 토스트가 사라지지 않는다. 데스크톱의 호버 유지보다 모바일에서
+  // 정확히 3초 뒤 닫히는 쪽을 우선한다(스와이프 닫기는 Radix 가 계속 담당).
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = setTimeout(closeFront, TOAST_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [isOpen, closeFront]);
+
   // closing 표시가 붙은 뒤 퇴장 애니메이션이 끝날 시간만큼 대기했다가 큐에서 제거한다.
   // 이때 비로소 다음 토스트가 새 key 로 마운트되며 진입 애니메이션을 새로 탄다.
   useEffect(() => {
