@@ -2,7 +2,7 @@ import type { Place } from '@/features/place';
 import {
   type CreateGroupRequestColor,
   create as createArchiveEndpoint,
-  _delete as deleteArchiveEndpoint,
+  delete1 as deleteArchiveEndpoint,
   deleteSavedPost as deleteSavedPostEndpoint,
   type GroupPlaceSummaryResponse,
   type GroupPostSummaryResponse,
