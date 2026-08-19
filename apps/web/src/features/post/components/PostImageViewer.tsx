@@ -42,9 +42,12 @@ function PostImageViewer({ images, onClose }: PostImageViewerProps) {
             래퍼는 이미지 비율만큼만 높이를 갖고, 캐러셀을 띄워 얹어 아래에 붙는 점이
             래퍼 높이를 늘리지 못하게 한다 — 점이 가운데 계산에 끼면 이미지가 위로 뜬다. */}
         <div
-          className="absolute inset-x-0 top-1/2 aspect-[375/495] -translate-y-1/2"
+          className="absolute inset-x-0 top-1/2 aspect-[375/495]"
           style={{
-            translate: `0 ${swipe.offset}px`,
+            // 세로 가운데 보정(-50%)과 끌어내린 거리를 한 값으로 합친다. Tailwind 의
+            // `-translate-y-1/2` 는 CSS `translate` 프로퍼티를 쓰므로 인라인 translate 를
+            // 따로 얹으면 클래스가 통째로 덮여 가운데 보정이 사라진다.
+            translate: `0 calc(-50% + ${swipe.offset}px)`,
             transition: swipe.returning ? 'translate 200ms ease-out' : undefined,
           }}
         >
