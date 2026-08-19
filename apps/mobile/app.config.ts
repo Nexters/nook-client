@@ -41,7 +41,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       webUrl,
       apiBaseUrl,
     },
-    name: variant === 'production' ? 'nook' : `nook (${variant})`,
+    name: variant === 'production' ? 'Nook' : `Nook (${variant})`,
     slug: 'nook',
     // Share Extension 은 본앱 식별자를 스킴으로 사용해 본앱을 연다.
     scheme: [appId],
