@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SavedPlaceSearchPage } from '@/features/map/types';
 import { PlaceSearchPanel } from './PlaceSearchPanel';
@@ -188,6 +188,25 @@ describe('PlaceSearchPanel', () => {
 
     const scroller = container.querySelector('.overflow-y-auto');
     expect(scroller).toHaveStyle({ paddingBottom: '55dvh' });
+  });
+
+  it('자동 포커스는 슬라이드 전환이 끝난 뒤 preventScroll 로 준다 — 전환 중(translate 상태) 포커스는 iOS Safari 가 뷰포트를 옆으로 팬해 화면이 밀린 채 남는다', () => {
+    vi.useFakeTimers();
+    const focusSpy = vi.spyOn(HTMLInputElement.prototype, 'focus');
+    try {
+      renderPanel();
+
+      expect(focusSpy).not.toHaveBeenCalled();
+
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
+    } finally {
+      focusSpy.mockRestore();
+      vi.useRealTimers();
+    }
   });
 
   it('뒤로가기를 누르면 onExit 을 호출한다', () => {
