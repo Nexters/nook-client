@@ -34,6 +34,7 @@ import type {
   CreateGroupRequest,
   CreatePostRequest,
   CreateProfileImageUploadRequest,
+  DeletePushTokenRequest,
   GetDetailParams,
   GetMapPlacesParams,
   GetRecentPlacesParams,
@@ -44,6 +45,7 @@ import type {
   PlacesParams,
   PostsParams,
   RefreshTokenRequest,
+  RegisterPushTokenRequest,
   ReplaceSavedPostGroupsRequest,
   SaveSharedPostRequest,
   SearchPlacesParams,
@@ -270,18 +272,18 @@ export const create = async (
   });
 };
 
-export const getDeleteUrl = (groupId: number) => {
+export const getDelete1Url = (groupId: number) => {
   return `/api/v1/groups/${groupId}`;
 };
 
 /**
  * @summary 그룹 삭제
  */
-export const _delete = async (
+export const delete1 = async (
   groupId: number,
   options?: Parameters<typeof orvalMutator>[1],
 ): Promise<void> => {
-  return orvalMutator<void>(getDeleteUrl(groupId), {
+  return orvalMutator<void>(getDelete1Url(groupId), {
     ...options,
     method: 'DELETE',
   });
@@ -398,6 +400,44 @@ export const issue = async (
   return orvalMutator<ApiResponseGroupShareLinkResponse>(getIssueUrl(groupId), {
     ...options,
     method: 'PUT',
+  });
+};
+
+export const getDeleteUrl = () => {
+  return `/api/v1/me/push-tokens`;
+};
+
+/**
+ * @summary 내 기기 푸시 토큰 삭제
+ */
+export const _delete = async (
+  deletePushTokenRequest: DeletePushTokenRequest,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseUnit> => {
+  return orvalMutator<ApiResponseUnit>(getDeleteUrl(), {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(deletePushTokenRequest),
+  });
+};
+
+export const getRegisterUrl = () => {
+  return `/api/v1/me/push-tokens`;
+};
+
+/**
+ * @summary 내 기기 푸시 토큰 등록
+ */
+export const register = async (
+  registerPushTokenRequest: RegisterPushTokenRequest,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseUnit> => {
+  return orvalMutator<ApiResponseUnit>(getRegisterUrl(), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(registerPushTokenRequest),
   });
 };
 
