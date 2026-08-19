@@ -1,9 +1,14 @@
+import { existsSync } from 'node:fs';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 import nativePublicConfig from './native-public-config.json';
 
 type AppVariant = keyof typeof nativePublicConfig.appIds;
 
 const KAKAO_MAVEN_REPOSITORY = 'https://devrepo.kakao.com/nexus/content/groups/public/';
+
+// Firebase 콘솔에서 앱을 등록해야 받을 수 있는 파일이라 아직 레포에 없다. 받기 전까지는
+// Android 빌드가 FCM 없이도 돌게, 있을 때만 config 에 꽂는다.
+const GOOGLE_SERVICES_FILE = './google-services.json';
 
 // 웹의 gray-10. 네이티브 스플래시와 웹 첫 화면 배경을 같은 색으로 맞춰 전환 시 색 점프를 없앤다.
 const SPLASH_BACKGROUND_COLOR = '#f4f5f7';
@@ -49,6 +54,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...(config.plugins ?? []),
       '@bacons/apple-targets',
       'expo-apple-authentication',
+      'expo-notifications',
       [
         'expo-build-properties',
         {
@@ -133,6 +139,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       ...config.android,
       package: appId,
+      ...(existsSync(GOOGLE_SERVICES_FILE) ? { googleServicesFile: GOOGLE_SERVICES_FILE } : {}),
       adaptiveIcon: {
         ...config.android?.adaptiveIcon,
         foregroundImage:

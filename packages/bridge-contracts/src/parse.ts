@@ -3,6 +3,8 @@ import type {
   ImagePickStatus,
   NativeToWeb,
   PickedImage,
+  PushPermissionStatus,
+  PushToken,
   SocialCredential,
   SocialLoginStatus,
 } from './native-to-web';
@@ -45,6 +47,31 @@ function isImagePickSource(value: unknown): value is ImagePickSource {
 
 function isImagePickStatus(value: unknown): value is ImagePickStatus {
   return value === 'success' || value === 'cancelled' || value === 'error';
+}
+
+function isPushPermissionStatus(value: unknown): value is PushPermissionStatus {
+  return value === 'granted' || value === 'denied' || value === 'undetermined';
+}
+
+function isPushTokenPlatform(value: unknown): value is PushToken['platform'] {
+  return value === 'ios' || value === 'android';
+}
+
+function parsePushToken(value: unknown): PushToken | null {
+  if (!isRecord(value)) return null;
+  const { platform, value: tokenValue } = value;
+  return isPushTokenPlatform(platform) && typeof tokenValue === 'string' && tokenValue.length > 0
+    ? { platform, value: tokenValue }
+    : null;
+}
+
+function parseStringRecord(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  );
 }
 
 function parsePickedImage(value: unknown): PickedImage | null {
@@ -95,8 +122,6 @@ export function parseWebToNative(json: string): WebToNative | null {
       return typeof value.payload.url === 'string'
         ? { v: BRIDGE_VERSION, type: value.type, payload: { url: value.payload.url } }
         : null;
-    case 'REQUEST_PUSH_PERMISSION':
-      return { v: BRIDGE_VERSION, type: value.type, payload: {} };
     case 'SOCIAL_LOGIN': {
       const id = requestId(value.payload);
       return id && isSocialProvider(value.payload.provider)
@@ -118,7 +143,8 @@ export function parseWebToNative(json: string): WebToNative | null {
         : null;
     }
     case 'SESSION_GET':
-    case 'SESSION_CLEAR': {
+    case 'SESSION_CLEAR':
+    case 'REQUEST_PUSH_PERMISSION': {
       const id = requestId(value.payload);
       return id ? { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id } } : null;
     }
@@ -225,6 +251,30 @@ export function parseNativeToWeb(json: string): NativeToWeb | null {
         : null;
     }
     return { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id, status } };
+  }
+  if (value.type === 'PUSH_PERMISSION_RESULT') {
+    const id = requestId(value.payload);
+    const { status } = value.payload;
+    if (!id || !isPushPermissionStatus(status)) return null;
+
+    const pushToken = parsePushToken(value.payload.token);
+    return {
+      v: BRIDGE_VERSION,
+      type: value.type,
+      payload: pushToken ? { requestId: id, status, token: pushToken } : { requestId: id, status },
+    };
+  }
+  if (value.type === 'PUSH_NOTIFICATION_OPENED') {
+    const { title, body } = value.payload;
+    return {
+      v: BRIDGE_VERSION,
+      type: value.type,
+      payload: {
+        data: parseStringRecord(value.payload.data),
+        ...(typeof title === 'string' ? { title } : {}),
+        ...(typeof body === 'string' ? { body } : {}),
+      },
+    };
   }
   return null;
 }

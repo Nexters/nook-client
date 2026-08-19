@@ -9,7 +9,7 @@ export type WebToNative =
   | BridgeMessage<'OPEN_EXTERNAL_URL', { url: string }>
   // BACK_REQUESTED 를 받았지만 웹에 더 돌아갈 곳이 없다. 셸이 OS 기본 동작(앱 내리기)을 한다.
   | BridgeMessage<'BACK_EXHAUSTED', Record<string, never>>
-  | BridgeMessage<'REQUEST_PUSH_PERMISSION', Record<string, never>>
+  | BridgeMessage<'REQUEST_PUSH_PERMISSION', { requestId: string }>
   | BridgeMessage<'SESSION_GET', { requestId: string }>
   | BridgeMessage<'SESSION_REFRESH', { requestId: string; revision: number }>
   | BridgeMessage<
