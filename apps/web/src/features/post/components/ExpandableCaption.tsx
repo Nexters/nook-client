@@ -11,7 +11,19 @@ import { cn } from '@/shared/lib/utils';
  * 접는 본문은 `tabIndex={-1}` 로 탭 순서에서 뺀다 — 키보드·보조기기는 바로 아래
  * "접기" 버튼으로 같은 일을 하므로 탭 정지점이 둘일 이유가 없다.
  */
-export function ExpandableCaption({ caption, className }: { caption: string; className?: string }) {
+export function ExpandableCaption({
+  caption,
+  lines = 1,
+  toggleClassName,
+  className,
+}: {
+  caption: string;
+  /** 접힌 상태에서 보여줄 줄 수. */
+  lines?: 1 | 2;
+  /** 더보기/접기 버튼 스타일 덮어쓰기 — 쓰는 카드마다 정렬·굵기가 다르다. */
+  toggleClassName?: string;
+  className?: string;
+}) {
   const [expanded, setExpanded] = useState(false);
   const bodyRef = useRef<HTMLButtonElement>(null);
 
@@ -40,14 +52,22 @@ export function ExpandableCaption({ caption, className }: { caption: string; cla
           {caption}
         </button>
       ) : (
-        <p className="line-clamp-1 whitespace-pre-wrap text-b2 font-normal text-gray-80">
+        <p
+          className={cn(
+            'whitespace-pre-wrap text-b2 font-normal text-gray-80',
+            lines === 2 ? 'line-clamp-2' : 'line-clamp-1',
+          )}
+        >
           {caption}
         </p>
       )}
       <button
         type="button"
         onClick={() => setExpanded((prev) => !prev)}
-        className="self-start text-b2 font-medium text-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+        className={cn(
+          'self-start text-b2 font-medium text-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100',
+          toggleClassName,
+        )}
       >
         {expanded ? '접기' : '더보기'}
       </button>

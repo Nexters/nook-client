@@ -973,9 +973,15 @@ export function UiComponentsPage() {
       <Section title="post — ExpandableCaption (게시물 본문)">
         <div className="mx-auto w-full max-w-[343px]">
           <ExpandableCaption caption={MOCK_POST.caption ?? ''} />
+          <ExpandableCaption
+            caption={MOCK_POST.caption ?? ''}
+            lines={2}
+            toggleClassName="self-end font-semibold"
+          />
         </div>
         <p className="text-b3 text-gray-50">
           한 줄로 접혀 있고 "더보기"로 펼칩니다. 펼친 뒤엔 "접기" 말고 본문을 눌러도 접힙니다.
+          아래는 저장된 게시물 카드가 쓰는 2줄 + 오른쪽 정렬 조합입니다.
         </p>
       </Section>
 

@@ -1,8 +1,9 @@
-import * as React from 'react';
+import type * as React from 'react';
 import type { PostArchive } from '@/features/post/types';
 import { cn } from '@/shared/lib/utils';
 import { ArchiveTag, Carousel } from '@/shared/ui';
 import type { Post } from '../types';
+import { ExpandableCaption } from './ExpandableCaption';
 import { OriginalPostLink } from './OriginalPostLink';
 
 /**
@@ -13,7 +14,8 @@ import { OriginalPostLink } from './OriginalPostLink';
  * (네이티브 scroll-snap)에 얹는다. 다만 여기엔 점 인디케이터를 두지 않는다
  * (`indicator={false}`) — 인디케이터가 있는 건 독립 `캐러셀` 쪽이다.
  *
- * 본문은 2줄로 접고 "더보기"로 펼친다 — 펼침 상태는 이 카드가 소유한다.
+ * 본문은 `ExpandableCaption` 에 맡긴다 — 게시물 상세와 같이 "더보기"로 펼치고,
+ * 펼친 뒤엔 "접기" 버튼이나 본문을 눌러 접는다. 여기선 2줄로 접는다.
  */
 export interface SavedPostCardProps {
   post: Post;
@@ -33,7 +35,6 @@ function SavedPostCard({
   onArchiveClick,
   className,
 }: SavedPostCardProps) {
-  const [expanded, setExpanded] = React.useState(false);
   const images = post.images ?? [];
 
   return (
@@ -88,23 +89,12 @@ function SavedPostCard({
       ) : null}
 
       {post.caption ? (
-        <div className="flex w-full flex-col">
-          <p
-            className={cn(
-              'text-b2 font-normal text-gray-80',
-              expanded ? 'whitespace-pre-wrap' : 'line-clamp-2',
-            )}
-          >
-            {post.caption}
-          </p>
-          <button
-            type="button"
-            onClick={() => setExpanded((prev) => !prev)}
-            className="self-end text-b2 font-semibold text-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-          >
-            {expanded ? '접기' : '더보기'}
-          </button>
-        </div>
+        <ExpandableCaption
+          caption={post.caption}
+          lines={2}
+          toggleClassName="self-end font-semibold"
+          className="w-full"
+        />
       ) : null}
 
       {post.originalUrl ? (
