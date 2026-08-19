@@ -101,6 +101,24 @@ describe('ToastProvider', () => {
     expect(screen.queryByText('지도에서 숨겼어요.')).not.toBeInTheDocument();
   });
 
+  it('창 포커스가 없어도 3초 뒤 사라진다 — WebView 는 첫 터치 전까지 포커스 이벤트가 없다', async () => {
+    renderHarness();
+    // Radix 는 토스트가 떠 있는 동안 window blur 가 오면 타이머를 멈추고 focus 가 와야
+    // 재개한다 — 네이티브 WebView 에서 focus 가 영영 안 오는 상황을 재현한다.
+    fireEvent.click(screen.getByText('show-simple'));
+    expect(screen.getByText('지도에서 숨겼어요.')).toBeInTheDocument();
+    fireEvent.blur(window);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(TOAST_DURATION_MS);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(TOAST_EXIT_MS);
+    });
+
+    expect(screen.queryByText('지도에서 숨겼어요.')).not.toBeInTheDocument();
+  });
+
   it('노출 중 연달아 띄우면 먼저 뜬 토스트가 사라진 뒤에야 다음 토스트가 보인다', async () => {
     renderHarness();
     fireEvent.click(screen.getByText('show-description'));
