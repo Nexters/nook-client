@@ -29,7 +29,7 @@ vi.mock('@/features/map/components/MapView', () => ({
 // 시트(vaul)는 선택 상태 표시와 스냅 변경 콜백만 노출하는 스텁으로 대체한다 —
 // 여기서 검증하는 건 MapPage 의 "URL(?placeId=) ↔ 선택 상태" 배선뿐이다.
 vi.mock('@/features/map/components/PlaceSheet', async () => {
-  const { PEEK_SNAP_POINT, DETAIL_PAGE_SNAP_POINT, FULL_SNAP_POINT } = await import(
+  const { PEEK_SNAP_POINT, DETAIL_PAGE_SNAP_POINT, MID_SNAP_POINT, FULL_SNAP_POINT } = await import(
     '@/features/map/constants'
   );
   return {
@@ -38,11 +38,15 @@ vi.mock('@/features/map/components/PlaceSheet', async () => {
       snap,
       instantOpen,
       onSnapChange,
+      onEnterSearch,
+      onExitSearch,
     }: {
       selectedPlace: { name: string } | null;
       snap: number | string | null;
       instantOpen?: boolean;
       onSnapChange: (snap: number | string | null) => void;
+      onEnterSearch: () => void;
+      onExitSearch: () => void;
     }) => (
       <div>
         <p>{selectedPlace ? `선택됨: ${selectedPlace.name}` : '선택 없음'}</p>
@@ -54,8 +58,17 @@ vi.mock('@/features/map/components/PlaceSheet', async () => {
         <button type="button" onClick={() => onSnapChange(DETAIL_PAGE_SNAP_POINT)}>
           시트 상세 높이로
         </button>
+        <button type="button" onClick={() => onSnapChange(MID_SNAP_POINT)}>
+          시트 중간 높이로
+        </button>
         <button type="button" onClick={() => onSnapChange(FULL_SNAP_POINT)}>
           시트 펼치기
+        </button>
+        <button type="button" onClick={onEnterSearch}>
+          검색 진입
+        </button>
+        <button type="button" onClick={onExitSearch}>
+          검색 닫기
         </button>
       </div>
     ),
@@ -245,5 +258,43 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
     await screen.findByText('선택 없음');
     // 상세 전용 스냅(detailPage)은 목록 모드 스냅 배열에 없다 — peek 으로 돌아와야 한다.
     await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
+  });
+
+  it('검색에 진입하면 시트를 full 로 올린다 — 키보드가 떠도 시트와 키보드 사이로 지도가 드러나지 않게', async () => {
+    const { FULL_SNAP_POINT, PEEK_SNAP_POINT } = await import('@/features/map/constants');
+    renderMapAt('/map');
+    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
+
+    fireEvent.click(screen.getByRole('button', { name: '검색 진입' }));
+
+    await screen.findByText(`스냅: ${FULL_SNAP_POINT}`);
+  });
+
+  it('검색을 닫으면 진입 전 높이로 되돌린다', async () => {
+    const { FULL_SNAP_POINT, PEEK_SNAP_POINT } = await import('@/features/map/constants');
+    renderMapAt('/map');
+    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
+
+    fireEvent.click(screen.getByRole('button', { name: '검색 진입' }));
+    await screen.findByText(`스냅: ${FULL_SNAP_POINT}`);
+    fireEvent.click(screen.getByRole('button', { name: '검색 닫기' }));
+
+    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
+  });
+
+  it('검색 중 사용자가 직접 높이를 바꿨다면 닫아도 그 높이를 존중한다', async () => {
+    const { FULL_SNAP_POINT, MID_SNAP_POINT, PEEK_SNAP_POINT } = await import(
+      '@/features/map/constants'
+    );
+    renderMapAt('/map');
+    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
+
+    fireEvent.click(screen.getByRole('button', { name: '검색 진입' }));
+    await screen.findByText(`스냅: ${FULL_SNAP_POINT}`);
+    fireEvent.click(screen.getByRole('button', { name: '시트 중간 높이로' }));
+    fireEvent.click(screen.getByRole('button', { name: '검색 닫기' }));
+
+    // 진입 전(peek)으로 되돌리지 않는다 — 사용자가 고른 mid 그대로.
+    await screen.findByText(`스냅: ${MID_SNAP_POINT}`);
   });
 });

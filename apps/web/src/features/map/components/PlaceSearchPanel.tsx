@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { SLIDE_DURATION_MS } from '@/app/slide-screen';
 import { useSearchSavedPlaces } from '@/features/map/api/queries';
 import { EmptySavedPlaces } from '@/features/map/components/EmptySavedPlaces';
 import { PlaceCard } from '@/features/place';
@@ -55,9 +56,16 @@ export function PlaceSearchPanel({
   // 칩 전환 직후 새 키의 응답이 오기 전엔 직전 화면을 유지한다(keepPreviousData 와 같은 취지).
   const page = filteredPage ?? basePage;
 
-  // 검색 모드 진입 = 검색하려는 의도가 확실하므로 바로 입력을 받는다.
+  // 검색 모드 진입 = 검색하려는 의도가 확실하므로 자동으로 입력을 받는다. 단 슬라이드
+  // 전환이 끝난 뒤에 — 패널이 아직 translate 로 화면 밖(오른쪽)에 있는 동안 포커스하면
+  // iOS Safari 가 입력을 보이게 하려고 비주얼 뷰포트를 옆으로 팬해, 전환이 끝나도 화면이
+  // 왼쪽으로 밀린 채 남는다. preventScroll 은 같은 스크롤-인투-뷰 동작의 이중 안전장치다.
   useEffect(() => {
-    inputRef.current?.focus();
+    const timer = setTimeout(
+      () => inputRef.current?.focus({ preventScroll: true }),
+      SLIDE_DURATION_MS,
+    );
+    return () => clearTimeout(timer);
   }, []);
 
   return (

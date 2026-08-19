@@ -5,7 +5,7 @@ import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { cn } from '@/shared/lib/utils';
 
 /** 슬라이드 시간. 아래 `duration-300` 과 같은 값이어야 한다. */
-const SLIDE_DURATION_MS = 300;
+export const SLIDE_DURATION_MS = 300;
 
 interface UseSlideScreenOptions {
   /**
