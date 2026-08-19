@@ -31,6 +31,8 @@ export interface RecentPlace {
   category?: string;
   address: string;
   thumbnail?: string;
+  /** 썸네일 파싱 처리 상태. `features/place`의 `Place.thumbnailState`와 같은 의미다. */
+  thumbnailState?: 'processing' | 'failed';
 }
 
 /**
