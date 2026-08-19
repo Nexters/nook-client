@@ -218,6 +218,7 @@ export function PlaceSheet({
                           name: place.name,
                           category: place.category ?? '',
                           thumbnail: place.thumbnail,
+                          thumbnailState: place.thumbnailState,
                         }}
                         onClick={() => onSelectPlace(place.id)}
                       />

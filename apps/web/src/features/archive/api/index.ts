@@ -160,6 +160,22 @@ export async function fetchArchivePosts(archiveId: number, page = 0): Promise<Ar
   };
 }
 
+/**
+ * 썸네일 로딩/실패 표시 파생 — 썸네일 URL 이 이미 있으면 파싱 상태와 무관하게 완료로
+ * 본다(`features/post/api/queries.ts`의 `toPlace`와 같은 방어 로직: 서버가 PENDING 에
+ * 멈춰있는 케이스 대응). 각 feature 가 자기 진입점을 소유하는 컨벤션이라 map 쪽에도
+ * 같은 함수가 따로 있다.
+ */
+function toThumbnailState(
+  thumbnailUrl: string | null | undefined,
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED',
+): 'processing' | 'failed' | undefined {
+  if (thumbnailUrl) return undefined;
+  if (status === 'PENDING' || status === 'PROCESSING') return 'processing';
+  if (status === 'FAILED') return 'failed';
+  return undefined;
+}
+
 /** 장소 카드(`PlaceCard` — 썸네일 + 이름 + 지역·업종)가 그리는 데 필요한 만큼만 옮긴다. */
 export function toArchivePlace(dto: GroupPlaceSummaryResponse): Place {
   return {
@@ -169,6 +185,7 @@ export function toArchivePlace(dto: GroupPlaceSummaryResponse): Place {
     category: dto.category ?? '',
     region: dto.city ?? undefined,
     thumbnail: dto.thumbnailUrl ?? undefined,
+    thumbnailState: toThumbnailState(dto.thumbnailUrl, dto.thumbnailParsingStatus),
   };
 }
 

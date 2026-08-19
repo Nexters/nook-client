@@ -63,7 +63,11 @@ export function useArchivePosts(archiveId: number | undefined) {
   });
 }
 
-/** 아카이브에 저장된 장소 — 상세 "장소" 탭 목록. 게시물처럼 페이지를 이어 붙인다. */
+/**
+ * 아카이브에 저장된 장소 — 상세 "장소" 탭 목록. 게시물처럼 페이지를 이어 붙인다.
+ * 저장 직후엔 BE 가 썸네일을 비동기로 파싱한다 — 처리 중(`thumbnailState === 'processing'`)인
+ * 장소가 하나라도 있으면 끝날 때까지 폴링해 카드를 실시간으로 채운다.
+ */
 export function useArchivePlaces(archiveId: number | undefined) {
   const isAuthenticated = useIsAuthenticated();
 
@@ -77,6 +81,12 @@ export function useArchivePlaces(archiveId: number | undefined) {
       totalElements: data.pages[0]?.totalElements ?? 0,
     }),
     enabled: isAuthenticated && archiveId !== undefined,
+    refetchInterval: (query) => {
+      const anyProcessing = query.state.data?.pages.some((page) =>
+        page.places.some((place) => place.thumbnailState === 'processing'),
+      );
+      return anyProcessing ? POLL_INTERVAL_MS : false;
+    },
   });
 }
 

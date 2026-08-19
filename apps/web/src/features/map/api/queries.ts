@@ -19,6 +19,9 @@ import {
   updatePlaceMemo,
 } from '.';
 
+/** 썸네일 파싱 중(processing)인 항목이 남아있는 동안의 재조회 간격 — archive/post 쪽 폴링과 같은 값. */
+const POLL_INTERVAL_MS = 3000;
+
 export const mapQueryKeys = {
   pinsAll: ['map', 'pins'] as const,
   pins: (bounds: MapBounds) => ['map', 'pins', bounds] as const,
@@ -52,7 +55,11 @@ export function useMapPins(bounds: MapBounds) {
   });
 }
 
-/** "최근 저장한 공간" — 장소 미선택 상태의 목록 모드. */
+/**
+ * "최근 저장한 공간" — 장소 미선택 상태의 목록 모드.
+ * 저장 직후엔 BE 가 썸네일을 비동기로 파싱한다 — 처리 중(`thumbnailState === 'processing'`)인
+ * 장소가 하나라도 있으면 끝날 때까지 폴링해 카드를 실시간으로 채운다.
+ */
 export function useRecentPlaces() {
   const isAuthenticated = useIsAuthenticated();
 
@@ -60,6 +67,12 @@ export function useRecentPlaces() {
     queryKey: mapQueryKeys.recent,
     queryFn: fetchRecentPlaces,
     enabled: isAuthenticated,
+    refetchInterval: (query) => {
+      const anyProcessing = query.state.data?.some(
+        (place) => place.thumbnailState === 'processing',
+      );
+      return anyProcessing ? POLL_INTERVAL_MS : false;
+    },
   });
 }
 

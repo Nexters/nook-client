@@ -20,6 +20,8 @@ export interface PlaceCardProps {
 
 function PlaceCard({ place, onClick, className }: PlaceCardProps) {
   const Comp = onClick ? 'button' : 'div';
+  const isProcessing = place.thumbnailState === 'processing';
+  const isFailed = place.thumbnailState === 'failed';
 
   return (
     <Comp
@@ -32,7 +34,13 @@ function PlaceCard({ place, onClick, className }: PlaceCardProps) {
       )}
     >
       {/* 시안 167x208. 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
-      <Thumbnail src={place.thumbnail} alt="" className="aspect-[167/208] h-auto w-full" />
+      <Thumbnail
+        src={place.thumbnail}
+        alt=""
+        loading={isProcessing}
+        failed={isFailed}
+        className="aspect-[167/208] h-auto w-full"
+      />
       <div className="flex w-full flex-col gap-0.5 p-1">
         <p className="line-clamp-2 text-b2 font-semibold text-gray-90">{place.name}</p>
         <p className="truncate text-b3 font-medium text-gray-60">
