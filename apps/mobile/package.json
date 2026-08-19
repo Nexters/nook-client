@@ -32,6 +32,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "build:dev": "eas build --platform ios --profile development",
     "build:device": "eas build --platform ios --profile device",
     "build:ios": "eas build --platform ios --profile production",
     "submit:ios": "eas submit --platform ios --profile production --latest"

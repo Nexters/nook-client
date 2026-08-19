@@ -24,6 +24,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const webUrl = process.env.EXPO_PUBLIC_WEB_URL ?? nativePublicConfig.webUrl[variant];
   const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? nativePublicConfig.apiBaseUrl[variant];
 
+  // 카카오 앱 키는 평문으로 커밋하지 않는다. EAS Environment Variables(KAKAO_NATIVE_APP_KEY_DEV/PROD)
+  // 또는 로컬 .env 로만 공급한다. eas.json 의 environment 필드(EAS 가 자동 주입하는 기준)가 아니라
+  // variant 로 직접 고르는 이유는 device 프로필처럼 environment=development 이면서
+  // APP_VARIANT=production 인 조합이 있어, environment 기준으로는 엉뚱한 키가 섞여 들어가서다.
+  const kakaoAppKey =
+    variant === 'development'
+      ? process.env.KAKAO_NATIVE_APP_KEY_DEV
+      : process.env.KAKAO_NATIVE_APP_KEY_PROD;
+
   return {
     ...config,
     // JS 는 process.env 대신 여기서 읽는다. 네이티브(Info.plist)와 같은 출처를 보게 하려는 것.
@@ -78,11 +87,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         '@react-native-seoul/kakao-login',
         {
-          kakaoAppKey: nativePublicConfig.kakao.nativeAppKey,
+          kakaoAppKey,
           kotlinVersion: nativePublicConfig.android.kotlinVersion,
         },
       ],
     ],
+    // development 는 DEV 라벨이 붙은 별도 아이콘을 써서 홈스크린에서 production 과 구분한다.
+    icon: variant === 'development' ? './assets/icon-dev.png' : './assets/icon.png',
     ios: {
       ...config.ios,
       appleTeamId: process.env.APPLE_TEAM_ID,
@@ -117,6 +128,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       ...config.android,
       package: appId,
+      adaptiveIcon: {
+        ...config.android?.adaptiveIcon,
+        foregroundImage:
+          variant === 'development'
+            ? './assets/android-icon-foreground-dev.png'
+            : './assets/android-icon-foreground.png',
+      },
       // WebView geolocationEnabled 로 navigator.geolocation 을 쓰려면 필요하다.
       permissions: [
         ...(config.android?.permissions ?? []),
