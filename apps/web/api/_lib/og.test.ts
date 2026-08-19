@@ -37,8 +37,8 @@ describe('renderSharedArchiveHtml', () => {
       fallbackImageUrl: 'https://www.everynook.co.kr/og-default.png',
     });
 
-    expect(html).toContain('<title>성수 카페 - nook</title>');
-    expect(html).toContain('property="og:title" content="성수 카페 - nook"');
+    expect(html).toContain('<title>성수 카페 - Nook</title>');
+    expect(html).toContain('property="og:title" content="성수 카페 - Nook"');
     expect(html).toContain('property="og:description" content="ehoidi님의 아카이브 · 12개 저장"');
     expect(html).toContain('property="og:image" content="https://img.example/thumb.jpg"');
     expect(html).toContain(
@@ -108,8 +108,8 @@ describe('renderSharedArchiveHtml', () => {
       fallbackImageUrl: 'https://www.everynook.co.kr/og-default.png',
     });
 
-    expect(html).toContain('<title>성수 카페 - nook</title>');
-    expect(html).toContain('property="og:title" content="성수 카페 - nook"');
+    expect(html).toContain('<title>성수 카페 - Nook</title>');
+    expect(html).toContain('property="og:title" content="성수 카페 - Nook"');
     expect(html).toContain('property="og:description" content="ehoidi님의 아카이브 · 12개 저장"');
     expect(html).toContain('property="og:image" content="https://img.example/thumb.jpg"');
     expect(html).toContain(
