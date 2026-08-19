@@ -121,7 +121,19 @@ export function PlaceSheet({
       <DrawerContent
         overlay={false}
         showHandle={!isFull || !isScrolled}
-        style={layoutClassNames.drawer.style}
+        style={{
+          ...layoutClassNames.drawer.style,
+          // iOS 는 키보드가 떠도 시트(fixed)를 밀어 올려주지 않고 Safari 가 페이지를 살짝
+          // 팬하기만 한다 — 그만큼 시트 바닥이 키보드 위로 밀리며 그 틈으로 뒤의 지도가
+          // 드러난다. 시트와 같은 색 사각형(blur/spread 없는 그림자)을 아래로 한 화면
+          // 길이만큼 깔아, 팬으로 드러나는 영역이 지도 대신 시트 배경으로 보이게 한다.
+          // 평소엔 화면(레이아웃 뷰포트) 밖이라 아무것도 그리지 않는 것과 같다.
+          // Tailwind 임의값(shadow-[...])은 이 값을 생성하지 못해 inline style 로 둔다.
+          //
+          // 에뮬레이터에서도 키보드/주소창 영역은 반투명이라 회색으로 비쳐 보인다(iOS 자체
+          // 재질) — 실기기 배포본에서 지도가 실제로 비치는지 별도로 확인 필요.
+          boxShadow: '0 100dvh 0 0 var(--color-gray-0)',
+        }}
         className={cn(
           'overflow-hidden',
           suppressTransition && 'transition-none!',
