@@ -6,10 +6,11 @@ import { ArchiveEmpty } from '@/features/archive/components/ArchiveEmpty';
 import { CollectionCard } from '@/features/archive/components/CollectionCard';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { PlaceCard } from '@/features/place';
+import { Icon16ArrowUpTray, Icon16Check, Icon16Plus } from '@/shared/icons/NookIcons';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
-import { BackButton, Button, COLOR_BG_CLASS, Header } from '@/shared/ui';
+import { BackButton, COLOR_BG_CLASS, Header } from '@/shared/ui';
 import {
   useSharedArchive,
   useSharedArchivePlaces,
@@ -22,6 +23,19 @@ import { shareErrorMessage } from './lib/shareError';
 import { buildShareUrl } from './lib/shareUrl';
 
 type DetailTab = 'posts' | 'places';
+
+/** Figma `butto/40_save` Default·`button/40_share` — gray-10 바탕 + gray-100 라벨 칩. */
+const ACTION_CHIP_DEFAULT = cn(
+  'inline-flex h-10 shrink-0 items-center justify-center gap-1 rounded-lg bg-gray-10 px-4',
+  'text-b3 font-medium text-gray-100',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100',
+);
+
+/** Figma `butto/40_save` Selected — 저장 완료 상태의 채워진 칩. */
+const ACTION_CHIP_SELECTED = cn(
+  'inline-flex h-10 shrink-0 items-center justify-center gap-1 rounded-lg bg-gray-80 px-4',
+  'text-b3 font-semibold text-gray-0',
+);
 
 /**
  * Figma `아카이브 공유 > 공유 아카이브 상세` — 링크로 진입하는 공개 열람 화면.
@@ -78,9 +92,11 @@ export function SharedArchivePage() {
   const posts = postsQuery.data?.posts;
   const places = placesQuery.data?.places;
 
-  // 저장 완료 판별 — 소유자(OWNED, 자기 링크)와 구독자(SHARED)를 groupId 하나로 커버한다.
-  // shareToken 매칭은 내 그룹에서 null 이라 쓸 수 없다 (스펙 §7.1).
-  const alreadySaved = myArchives?.some((item) => item.id === archive.id) ?? false;
+  // 내 목록에서 이 아카이브를 찾는다 — shareToken 매칭은 내 그룹에서 null 이라 쓸 수 없다
+  // (스펙 §7.1). OWNED 면 자기 링크를 연 소유자라 저장 대신 편집 버튼을 보여준다.
+  const myEntry = myArchives?.find((item) => item.id === archive.id);
+  const isOwner = myEntry?.accessType === 'OWNED';
+  const alreadySaved = myEntry !== undefined;
 
   const handleSave = () => {
     gate('아카이브 서비스는 로그인이 필요해요', () => {
@@ -128,18 +144,37 @@ export function SharedArchivePage() {
               ) : null}
             </div>
 
+            {/* Figma `butto/40_save`·`button/40_share`(227:9934) — 40px 칩 버튼.
+                공용 Button 은 전 variant 라벨이 흰색 고정이라(gray-10 바탕 + gray-100 라벨을
+                못 만든다) 여기서 직접 그린다. 저장 완료는 채워진 칩(gray-80)으로 굳는다. */}
             <div className="flex gap-2 px-4 pb-4">
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={alreadySaved || subscribe.isPending}
-                onClick={handleSave}
+              {isOwner ? (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/archive/${archive.id}/edit`)}
+                  className={ACTION_CHIP_DEFAULT}
+                >
+                  아카이브 편집
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={alreadySaved || subscribe.isPending}
+                  onClick={handleSave}
+                  className={alreadySaved ? ACTION_CHIP_SELECTED : ACTION_CHIP_DEFAULT}
+                >
+                  아카이브에 저장
+                  {alreadySaved ? <Icon16Check /> : <Icon16Plus />}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShareSheetOpen(true)}
+                className={ACTION_CHIP_DEFAULT}
               >
-                {alreadySaved ? '저장됨 ✓' : '아카이브에 저장 +'}
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => setShareSheetOpen(true)}>
                 공유
-              </Button>
+                <Icon16ArrowUpTray />
+              </button>
             </div>
 
             <div role="tablist" className="flex px-4">
