@@ -1,8 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { fetchSharedArchiveMeta } from './_lib/archive';
-import { renderSharedArchiveHtml } from './_lib/og';
+// 이 함수는 ESM(`"type": "module"`)으로 실행되는데 Node ESM 은 확장자 생략을 허용하지
+// 않는다 — 확장자를 빼면 배포 후 모듈 로드 시점에 ERR_MODULE_NOT_FOUND 로 함수 전체가
+// 죽는다(FUNCTION_INVOCATION_FAILED). 컴파일 후 파일명 기준인 `.js` 를 반드시 유지할 것.
+import { fetchSharedArchiveMeta } from './_lib/archive.js';
+import { renderSharedArchiveHtml } from './_lib/og.js';
 
 /**
  * `/shared/:token` 을 가로채는 Vercel Function(`vercel.json` rewrite) — 카카오·슬랙
