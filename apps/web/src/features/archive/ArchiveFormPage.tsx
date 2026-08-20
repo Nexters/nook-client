@@ -5,7 +5,6 @@ import { EntryLoginWall } from '@/features/auth/components/LoginWall';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { cn } from '@/shared/lib/utils';
-import { useToast } from '@/shared/toast';
 import {
   ARCHIVE_COLORS,
   type ArchiveColor,
@@ -14,9 +13,9 @@ import {
   ColorChip,
   Header,
   Input,
-  Popup,
 } from '@/shared/ui';
-import { useArchives, useCreateArchive, useDeleteArchive, useUpdateArchive } from './api/queries';
+import { useArchives, useCreateArchive, useUpdateArchive } from './api/queries';
+import { ArchiveDeletePopup } from './components/ArchiveDeletePopup';
 
 /** 시안의 카운터 표기(`0/20`) 기준. */
 const NAME_MAX_LENGTH = 20;
@@ -36,7 +35,6 @@ export interface ArchiveFormPageProps {
 export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
   const { archiveId } = useParams();
   const navigate = useNavigate();
-  const { showToast } = useToast();
   useHideBottomMenu();
 
   const isAuthenticated = useIsAuthenticated();
@@ -74,11 +72,10 @@ export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
 
   const createArchive = useCreateArchive();
   const updateArchive = useUpdateArchive();
-  const deleteArchive = useDeleteArchive();
 
   const submitting = createArchive.isPending || updateArchive.isPending;
   const canSubmit = name.trim().length > 0 && !submitting;
-  const requestError = createArchive.error ?? updateArchive.error ?? deleteArchive.error;
+  const requestError = createArchive.error ?? updateArchive.error;
 
   const handleSubmit = () => {
     if (editing) {
@@ -105,18 +102,6 @@ export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
         },
       },
     );
-  };
-
-  const handleDelete = () => {
-    if (!archive) return;
-
-    deleteArchive.mutate(archive.id, {
-      onSuccess: () => {
-        capturePostHogEvent('archive_deleted', { archive_id: archive.id });
-        navigate('/archive', { replace: true });
-        showToast({ variant: 'simple', title: `"${archive.name}" 아카이브가 삭제 됐어요.` });
-      },
-    });
   };
 
   // 목록의 FAB·더보기 메뉴에서 이미 막지만 URL 로 직접 올 수 있다. 계정 없이는 저장할
@@ -199,21 +184,13 @@ export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
         </div>
       </div>
 
-      <Popup
-        open={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        title="아카이브를 삭제하시겠어요?"
-        description={
-          <>
-            아카이브를 삭제하면 아카이브 내 게시물도
-            <br />
-            모두 삭제돼요.
-          </>
-        }
-        confirmLabel="삭제하기"
-        variant="warning"
-        onConfirm={handleDelete}
-      />
+      {archive ? (
+        <ArchiveDeletePopup
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          archive={archive}
+        />
+      ) : null}
     </main>
   );
 }

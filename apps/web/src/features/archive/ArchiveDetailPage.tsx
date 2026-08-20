@@ -25,11 +25,11 @@ import {
   useArchivePlaces,
   useArchivePosts,
   useArchives,
-  useDeleteArchive,
   useDeleteArchivePosts,
   useIssueShareLink,
   useRemoveSharedArchive,
 } from './api/queries';
+import { ArchiveDeletePopup } from './components/ArchiveDeletePopup';
 import { ArchiveDetailMenu } from './components/ArchiveDetailMenu';
 import { ArchiveEmpty } from './components/ArchiveEmpty';
 import { CollectionCard } from './components/CollectionCard';
@@ -84,7 +84,6 @@ export function ArchiveDetailPage() {
   const placesQuery = useArchivePlaces(archive?.id);
   const places = placesQuery.data?.places;
 
-  const deleteArchive = useDeleteArchive();
   const deleteArchivePosts = useDeleteArchivePosts();
   const removeShared = useRemoveSharedArchive();
   const [removePopupOpen, setRemovePopupOpen] = useState(false);
@@ -395,27 +394,10 @@ export function ArchiveDetailPage() {
         }
       />
 
-      <Popup
+      <ArchiveDeletePopup
         open={deletePopupOpen}
         onClose={() => setDeletePopupOpen(false)}
-        title="아카이브를 삭제하시겠어요?"
-        description={
-          <>
-            아카이브를 삭제하면 아카이브에 포함된
-            <br />
-            게시물도 모두 삭제돼요.
-          </>
-        }
-        confirmLabel="삭제하기"
-        variant="warning"
-        onConfirm={() =>
-          deleteArchive.mutate(archive.id, {
-            onSuccess: () => {
-              navigate('/archive', { replace: true });
-              showToast({ variant: 'simple', title: `"${archive.name}" 아카이브가 삭제 됐어요.` });
-            },
-          })
-        }
+        archive={archive}
       />
 
       <Popup
