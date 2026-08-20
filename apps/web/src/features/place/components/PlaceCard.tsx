@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { Icon14Processing, Icon16Sad } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { Thumbnail } from '@/shared/ui';
 import type { Place } from '../types';
@@ -69,10 +70,21 @@ function PlaceCard({ place, onClick, className }: PlaceCardProps) {
         className="aspect-[167/208] h-auto w-full"
       />
       <div className="flex w-full flex-col gap-0.5 p-1">
-        <p className="line-clamp-2 text-b2 font-semibold text-gray-90">{place.name}</p>
-        <p className="truncate text-b3 font-medium text-gray-60">
-          {[place.region, place.category].filter(Boolean).join(' • ')}
-        </p>
+        {isProcessing || isFailed ? (
+          <div className="flex items-center gap-1">
+            {isProcessing ? <Icon14Processing /> : <Icon16Sad />}
+            <p className="truncate text-b2 font-semibold text-gray-60">
+              {isProcessing ? '장소 정보 불러오는 중...' : '불러오지 못했어요.'}
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="line-clamp-2 text-b2 font-semibold text-gray-90">{place.name}</p>
+            <p className="truncate text-b3 font-medium text-gray-60">
+              {[place.region, place.category].filter(Boolean).join(' • ')}
+            </p>
+          </>
+        )}
       </div>
     </Comp>
   );

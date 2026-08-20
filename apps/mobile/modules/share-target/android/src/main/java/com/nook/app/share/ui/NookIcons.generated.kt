@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 
 enum class NookIconName {
+    Icon14Processing,
     Icon16Archive,
     Icon16ArrowDiagonal,
     Icon16ArrowDown,
@@ -91,6 +92,7 @@ enum class NookIconName {
 fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
     Canvas(modifier) {
         val viewBox = when (name) {
+            NookIconName.Icon14Processing -> 14f to 14f
             NookIconName.Icon16Archive -> 16f to 16f
             NookIconName.Icon16ArrowDiagonal -> 16f to 16f
             NookIconName.Icon16ArrowDown -> 16f to 16f
@@ -166,6 +168,25 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
         drawContext.canvas.save()
         drawContext.canvas.scale(size.width / viewBox.first, size.height / viewBox.second)
         when (name) {
+        NookIconName.Icon14Processing -> {
+            val path0 = Path().apply {
+
+                moveTo(7f, 13f)
+                cubicTo(10.3137f, 13f, 13f, 10.3137f, 13f, 7f)
+                cubicTo(13f, 3.68629f, 10.3137f, 1f, 7f, 1f)
+                cubicTo(3.68629f, 1f, 1f, 3.68629f, 1f, 7f)
+                cubicTo(1f, 10.3137f, 3.68629f, 13f, 7f, 13f)
+                close()
+            }
+            drawPath(path = path0, color = Color(0xFFCACED4), style = Stroke(width = 2f, cap = StrokeCap.Butt))
+            val path1 = Path().apply {
+
+                moveTo(7f, 1f)
+                cubicTo(8.28263f, 1.00014f, 9.53146f, 1.41131f, 10.5633f, 2.17319f)
+                cubicTo(11.5951f, 2.93507f, 12.3557f, 4.00756f, 12.7333f, 5.23333f)
+            }
+            drawPath(path = path1, color = Color(0xFF4E5662), style = Stroke(width = 2f, cap = StrokeCap.Round))
+        }
         NookIconName.Icon16Archive -> {
             val path0 = Path().apply {
 
