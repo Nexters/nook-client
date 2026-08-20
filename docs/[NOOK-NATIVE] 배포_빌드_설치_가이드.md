@@ -48,12 +48,18 @@ ad-hoc 서명 자격 증명(배포 인증서 + ad-hoc 프로비저닝 프로파�
 ### 매일: Metro 실행
 
 ```bash
-pnpm mobile:start
+pnpm mobile:start:dev     # dev 앱용 — 8082, api-dev 서버 (= apps/mobile 의 start:dev)
+pnpm mobile:start:prod    # prod 앱용 — 8081, 운영 api 서버 (= apps/mobile 의 start:prod)
 ```
 
-루트에서 실행한다 (= `apps/mobile`의 `pnpm start`). 폰과 Mac이 같은 Wi-Fi에 있으면
-폰의 nook 앱 첫 화면(Development Servers)에 서버가 자동으로 잡힌다. 한 번 띄워두면
-코드 저장 시마다 폰에 즉시 반영된다(Fast Refresh). 폰을 흔들면 개발자 메뉴가 나온다.
+루트에서 실행한다. 두 스크립트는 `native-public-config.json`의 variant 값을 강제 주입하므로
+로컬 `.env`의 `EXPO_PUBLIC_*` 오버라이드와 무관하게 항상 해당 variant 서버를 본다. 둘을
+동시에 띄워 dev/prod 앱을 각자 다른 포트에 연결할 수 있다. 특수한 오버라이드가 필요할 때만
+`pnpm mobile:start`(기존 `.env` 기반)를 쓴다.
+
+폰과 Mac이 같은 Wi-Fi에 있으면 폰의 nook 앱 첫 화면(Development Servers)에 서버가 자동으로
+잡힌다 — dev 앱은 8082, prod 앱은 8081 서버를 선택한다. 한 번 띄워두면 코드 저장 시마다 폰에
+즉시 반영된다(Fast Refresh). 폰을 흔들면 개발자 메뉴가 나온다.
 
 ### 로컬 웹을 앱에 띄울 때
 
