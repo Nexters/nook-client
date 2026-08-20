@@ -22,6 +22,7 @@ export default function App() {
     injectedJavaScript,
     onMessage,
     onShouldStartLoadWithRequest,
+    backGestureEnabled,
     webUrl,
     webViewKey,
     webViewRef,
@@ -63,7 +64,11 @@ export default function App() {
           geolocationEnabled
           // iOS 엣지 스와이프 뒤로가기. SPA 의 pushState 히스토리도 WKWebView 백리스트에
           // 쌓이므로 라우트·히스토리 승격된 오버레이 모두 제스처로 닫힌다. iOS 전용 prop.
-          allowsBackForwardNavigationGestures
+          //
+          // 화면 단위로 켜고 끈다 — 이 prop 은 WebView 전역이라 웹에서 직접 막을 수 없어,
+          // "헤더 좌상단에 뒤로가기 버튼이 있는 풀 페이지인가"라는 판정만 웹이 내려
+          // SET_BACK_GESTURE 로 보내준다(제품 규칙). 드로어·바텀시트·메인 탭에서는 false 다.
+          allowsBackForwardNavigationGestures={backGestureEnabled}
           // Android 는 스크롤 끝에서 글로우와 함께 화면 전체를 밀어낸다 — 웹은 헤더·바텀이 고정이라
           // 그 영역까지 딸려 움직인다. iOS 는 bounces 를 끄면 안쪽 스크롤의 러버밴드까지 죽어
           // 스크롤이 뻣뻣해지므로, 웹에서 문서를 뷰포트에 붙박는 방식으로 대신 막는다(global.css).

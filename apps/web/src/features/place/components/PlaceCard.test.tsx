@@ -14,11 +14,13 @@ describe('PlaceCard', () => {
     expect(screen.queryByText('불러오지 못했어요.')).not.toBeInTheDocument();
   });
 
-  it('thumbnailState 가 processing 이면 이름 대신 불러오는 중 문구를 보여준다', () => {
-    render(<PlaceCard place={{ ...BASE, thumbnailState: 'processing' }} />);
+  it('thumbnailState 가 processing 이면 이름 대신 불러오는 중 문구와 도는 스피너를 보여준다', () => {
+    const { container } = render(<PlaceCard place={{ ...BASE, thumbnailState: 'processing' }} />);
 
     expect(screen.getByText('장소 정보 불러오는 중...')).toBeInTheDocument();
     expect(screen.queryByText('카페 온도')).not.toBeInTheDocument();
+    // 정지된 아이콘이 아니라 실제로 돌아야 한다(QA).
+    expect(container.querySelector('svg.animate-spin')).toBeInTheDocument();
   });
 
   it('thumbnailState 가 failed 면 이름 대신 실패 문구를 보여준다', () => {

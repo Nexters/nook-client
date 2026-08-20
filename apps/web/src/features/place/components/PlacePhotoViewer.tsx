@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon24Back, Icon24Close } from '@/shared/icons/NookIcons';
+import { AllowBackGesture } from '@/shared/lib/backGesture';
 import { useSwipeDownToDismiss } from '@/shared/lib/useSwipeDownToDismiss';
 import { Badge, Carousel, Header, Thumbnail } from '@/shared/ui';
 
@@ -37,6 +38,9 @@ function PlacePhotoViewer({ title, photos, onClose }: PlacePhotoViewerProps) {
       className="fixed inset-0 z-[70] flex flex-col"
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
+      {/* 전체화면 + 헤더 좌상단 뒤로가기 = iOS 좌측 스와이프 허용 화면. 공용 BackButton 을
+          쓰지 않아(확대뷰↔그리드 2단 동작) 직접 선언한다. */}
+      <AllowBackGesture />
       {/* 배경을 따로 깐다 — 확대뷰를 쓸어내리는 동안 옅어지며 뒤 화면이 비쳐야 한다. */}
       <div
         className="absolute inset-0 bg-gray-0"

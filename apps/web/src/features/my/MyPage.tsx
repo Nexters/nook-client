@@ -20,6 +20,7 @@ import {
   Icon16Version,
   Icon24Back,
 } from '@/shared/icons/NookIcons';
+import { AllowBackGesture } from '@/shared/lib/backGesture';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { useToast } from '@/shared/toast';
 import { Avatar, Button, Header, Input, Popup, Skeleton } from '@/shared/ui';
@@ -138,6 +139,8 @@ export function MyPage() {
   const profileEditScreen = editingProfile ? (
     // 스크롤은 헤더 아래 본문에서만 일어난다 — 키보드로 뷰포트가 줄어도 헤더는 남는다.
     <SlideScreen slidIn={slidIn} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      {/* 전체화면 + 헤더 좌상단 뒤로가기 = iOS 좌측 스와이프 허용 화면. */}
+      <AllowBackGesture />
       <Header
         title="회원 정보"
         left={

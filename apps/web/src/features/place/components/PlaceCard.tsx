@@ -72,7 +72,13 @@ function PlaceCard({ place, onClick, className }: PlaceCardProps) {
       <div className="flex w-full flex-col gap-0.5 p-1">
         {isProcessing || isFailed ? (
           <div className="flex items-center gap-1">
-            {isProcessing ? <Icon14Processing /> : <Icon16Sad />}
+            {/* 게시물 카드(CollectionCard)와 같다 — 처리 중 표시는 정지 아이콘이 아니라
+                실제로 도는 스피너여야 한다(QA). 아이콘이 회색 링 + 진한 호라 회전만 얹는다. */}
+            {isProcessing ? (
+              <Icon14Processing className="shrink-0 animate-spin" />
+            ) : (
+              <Icon16Sad className="shrink-0" />
+            )}
             <p className="truncate text-b2 font-semibold text-gray-60">
               {isProcessing ? '장소 정보 불러오는 중...' : '불러오지 못했어요.'}
             </p>
