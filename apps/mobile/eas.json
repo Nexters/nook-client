@@ -10,7 +10,7 @@
         "APPLE_TEAM_ID": "TDTGJZTB57"
       }
     },
-    "dev-adhoc": {
+    "dev-metro": {
       "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
@@ -19,25 +19,13 @@
         "APP_VARIANT": "development"
       }
     },
-    "prod-adhoc": {
+    "prod-metro": {
       "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
       "environment": "development",
       "env": {
         "APP_VARIANT": "production"
-      }
-    },
-    "prod-store": {
-      "extends": "base",
-      "distribution": "store",
-      "environment": "production",
-      "autoIncrement": true,
-      "env": {
-        "APP_VARIANT": "production"
-      },
-      "ios": {
-        "resourceClass": "m-medium"
       }
     },
     "dev-store": {
@@ -47,6 +35,18 @@
       "autoIncrement": true,
       "env": {
         "APP_VARIANT": "development"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
+      }
+    },
+    "prod-store": {
+      "extends": "base",
+      "distribution": "store",
+      "environment": "production",
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "production"
       },
       "ios": {
         "resourceClass": "m-medium"

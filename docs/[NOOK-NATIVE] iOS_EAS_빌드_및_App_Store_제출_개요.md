@@ -36,16 +36,21 @@
 | production | `kr.co.everynook.app` | `6798223287` | 실서비스 (TestFlight/App Store) |
 | development | `kr.co.everynook.app.dev` | `6803065807` | dev 서버 대상 TestFlight 배포 |
 
-EAS 빌드 프로필은 **variant(dev/prod) × 배포 채널(adhoc/store)** 조합 4개다.
+EAS 빌드 프로필은 **variant(dev/prod) × 채널(metro/store)** 조합 4개다.
 
-| 프로필 | variant | 채널 | 설치 방법 | 용도 |
-| --- | --- | --- | --- | --- |
-| `dev-adhoc` | development | ad-hoc | 등록된 기기에 직접 설치 | dev client 실기기 디버깅 |
-| `prod-adhoc` | development(env) + production(variant) | ad-hoc | 등록된 기기에 직접 설치 | production 변형을 Apple ID 없이 실기기 테스트 |
-| `dev-store` | development | store | TestFlight | dev 앱 테스터 배포 |
-| `prod-store` | production | store | TestFlight/App Store | 실제 출시 |
+| 프로필 | variant | 채널 | JS 번들 | 설치·실행 | 용도 |
+| --- | --- | --- | --- | --- | --- |
+| `dev-metro` | development | metro | 미내장 — Mac의 Metro에서 로드 | UDID 등록된 기기에 직접 설치 | 평소 개발 (Fast Refresh) |
+| `prod-metro` | production | metro | 미내장 — Mac의 Metro에서 로드 | UDID 등록된 기기에 직접 설치 | production 변형 실기기 디버깅 |
+| `dev-store` | development | store | 내장 | TestFlight | dev 앱 테스터 배포 |
+| `prod-store` | production | store | 내장 | TestFlight/App Store | 실제 출시 |
 
-`package.json` 스크립트는 프로필 이름과 1:1이다: `build:<프로필>`, `build:<프로필>:local`,
+metro 채널은 dev client 빌드라 실행하려면 Mac의 Metro 서버가 필요하고, ad-hoc 서명이라
+기기 UDID가 미리 등록돼 있어야 한다 — [배포 빌드 설치 가이드](<[NOOK-NATIVE] 배포_빌드_설치_가이드.md>)의
+"새 테스트 기기 추가" 절 참고. **폰 단독으로 실행되는 앱을 설치하려면 TestFlight(store 채널)를
+쓴다** — 테스터의 Apple ID(이메일)를 App Store Connect에서 초대하면 된다.
+
+`package.json` 스크립트는 프로필 이름과 1:1이다: `build:<프로필>`, `build:<프로필>:local`(store),
 `submit:dev-store`, `submit:prod-store`.
 
 | 기타 고정값 | |
@@ -184,7 +189,11 @@ Bundle ID와 ASC 앱 ID가 1절의 표와 일치하는지 확인한다.
    기존 키를 삭제하고 새 `.p8` + Key ID + Issuer ID를 업로드한다.
    (eas-cli의 키 업로드 흐름은 Apple ID 로그인을 요구해 Account Holder가 아니면 진행할 수 없다 —
    웹 업로드가 팀원도 가능한 경로다.)
-3. 업로드한 `.p8` 로컬 사본은 삭제한다. EAS에 올라간 뒤에는 PC에 남겨둘 이유가 없다.
+3. `.p8`은 키 보유자가 개인적으로 안전하게 보관하고 팀에 공유하지 않는다. EAS 제출에는
+   더 이상 로컬 키가 필요 없지만, **새 테스트 기기 등록(ad-hoc 프로파일 재생성)은 이 키로
+   ASC API를 직접 호출**하므로 키 자체는 계속 필요하다 — eas-cli의 해당 흐름이 Apple ID
+   로그인을 요구해 Account Holder가 아니면 못 쓰기 때문이다. 기기 등록이 필요한 팀원은
+   기기 UDID를 키 보유자에게 전달해 요청한다(배포 빌드 설치 가이드 3절).
 
 ## 참고 문서
 

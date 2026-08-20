@@ -13,7 +13,8 @@
 
 ## 구성 요약
 
-실기기 디버깅은 `eas.json`의 **`prod-adhoc` 프로필**을 사용한다.
+실기기 디버깅은 `eas.json`의 **`prod-metro` 프로필**을 사용한다. Metro 없이 단독 실행되는
+앱이 필요하면 TestFlight(store 채널)로 배포한다(EAS 개요 문서 1절 참고).
 
 | 항목 | 값 |
 | --- | --- |
@@ -24,7 +25,7 @@
 > development variant(`kr.co.everynook.app.dev`)는 dev ShareExtension 번들에 App Group
 > (`group.kr.co.everynook.app.dev`)이 배정되지 않아 현재 빌드가 실패한다. Individual
 > 멤버십이라 배정은 Account Holder만 developer.apple.com 포털에서 할 수 있다. 배정되기
-> 전까지 실기기 디버깅은 `prod-adhoc` 프로필을 사용한다. TestFlight 빌드와 번들 ID가 같아
+> 전까지 실기기 디버깅은 `prod-metro` 프로필을 사용한다. TestFlight 빌드와 번들 ID가 같아
 > 한 기기에 둘 중 하나만 설치된다.
 
 ad-hoc 서명 자격 증명(배포 인증서 + ad-hoc 프로비저닝 프로파일)은 EAS 서버에 저장돼 있어
@@ -41,7 +42,7 @@ ad-hoc 서명 자격 증명(배포 인증서 + ad-hoc 프로비저닝 프로파�
 추가로 Metro 실행에 `.env.local`이 필요하다. `apps/mobile/.env.example`을 복사해
 값을 채운다 (전부 공개값이라 기존 PC의 파일을 그대로 복사해도 된다).
 
-제출용 App Store Connect API 키(EAS 개요 문서 3절)는 개발 빌드에는 필요 없다.
+제출용 App Store Connect API 키는 EAS 서버에 있어 별도 세팅이 없다(EAS 개요 문서 1절).
 
 ## 2. 개발 워크플로
 
@@ -84,7 +85,7 @@ Metro 를 재기동해야 앱에 반영된다(앱 리로드만으로는 옛 주�
 필요하다. JS/TS 수정에는 재빌드가 필요 없다.
 
 ```bash
-pnpm --filter mobile build:prod-adhoc
+pnpm --filter mobile build:prod-metro
 ```
 
 EAS 클라우드에서 빌드된다(10~15분). 완료되면 빌드 페이지의 **QR 코드를 폰 카메라로
@@ -100,9 +101,16 @@ xcrun devicectl device install app --device <기기ID> <ipa경로>
 ad-hoc 프로파일에는 설치 허용 기기의 UDID 목록이 박혀 있어, 새 기기는
 **UDID 등록 → 프로파일 재생성 → EAS 재업로드**가 필요하다.
 
-Individual 멤버십이라 `eas device:create`가 요구하는 Apple ID 로그인을 팀원이 할 수
-없으므로, App Store Connect API 키([EAS 개요 문서 3절](<[NOOK-NATIVE] iOS_EAS_빌드_및_App_Store_제출_개요.md>)의
-환경변수 사용)로 직접 처리한다. 모든 요청은 `Authorization: Bearer <JWT>` 헤더를 쓴다.
+**키가 없는 팀원**: 아래 절차는 App Store Connect API 키가 필요해서 키 보유자만 할 수 있다.
+기기 UDID를 확인해서(기기를 Mac에 연결하고 `xcrun devicectl list devices`, 또는 Finder에서
+기기 클릭) 키 보유자에게 전달해 등록을 요청하면 된다. 등록 후 새 ad-hoc 빌드부터 그 기기에
+설치된다.
+
+**키 보유자**: Individual 멤버십이라 `eas device:create`가 요구하는 Apple ID 로그인을
+Account Holder 외에는 할 수 없으므로, App Store Connect API 키로 직접 처리한다. `.p8` 경로·
+Key ID·Issuer ID를 아래 스크립트의 환경변수(`EXPO_ASC_*`)로 설정해 쓴다
+([EAS 개요 문서 7절](<[NOOK-NATIVE] iOS_EAS_빌드_및_App_Store_제출_개요.md>) 참고).
+모든 요청은 `Authorization: Bearer <JWT>` 헤더를 쓴다.
 
 ### 3-1. JWT 발급
 
@@ -164,7 +172,7 @@ curl -X POST "https://api.appstoreconnect.apple.com/v1/profiles" \
 
 `apps/mobile`에서 `pnpm exec eas credentials --platform ios` 실행 후:
 
-1. 프로필 `prod-adhoc` 선택, Apple 로그인은 **No**
+1. 프로필 `prod-metro` 선택(internal 배포 프로필이면 어느 것이든 무방), Apple 로그인은 **No**
 2. `credentials.json: Upload/Download credentials` → **Download** — 인증서 p12가
    `credentials/ios/`에 내려온다 (`.gitignore` 처리돼 있음)
 3. 내려온 `credentials.json`에서 두 타깃(`nook`, `ShareExtension`)의
@@ -172,4 +180,4 @@ curl -X POST "https://api.appstoreconnect.apple.com/v1/profiles" \
 4. 같은 메뉴에서 **Upload** → 배포 타입 **Adhoc** 선택
 5. 업로드 확인 후 로컬 `credentials.json`과 `credentials/` 디렉터리는 삭제한다
 
-이후 `pnpm --filter mobile build:prod-adhoc`로 새 빌드를 만들면 새 기기에서도 설치된다.
+이후 `pnpm --filter mobile build:prod-metro`로 새 빌드를 만들면 새 기기에서도 설치된다.
