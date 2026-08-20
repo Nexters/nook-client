@@ -922,6 +922,9 @@ export function UiComponentsPage() {
         <div className="mx-auto grid w-full max-w-[343px] grid-cols-2 gap-2">
           <PlaceCard place={MOCK_PLACE} onClick={() => setLastAction('장소 카드')} />
           <PlaceCard place={MOCK_PLACE_LONG} />
+          {/* 처리 중엔 스피너 문구, 실패는 고스트 썸네일 + 정상 텍스트(사진만 실패한 거라서). */}
+          <PlaceCard place={{ ...MOCK_PLACE, id: 'p1-processing', thumbnailState: 'processing' }} />
+          <PlaceCard place={{ ...MOCK_PLACE, id: 'p1-failed', thumbnailState: 'failed' }} />
         </div>
       </Section>
 
