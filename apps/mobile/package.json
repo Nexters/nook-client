@@ -5,6 +5,8 @@
   "dependencies": {
     "@bacons/apple-targets": "^4.0.6",
     "@nook/bridge-contracts": "workspace:*",
+    "@react-native-firebase/app": "^26.3.0",
+    "@react-native-firebase/messaging": "^26.3.0",
     "@react-native-seoul/kakao-login": "^5.4.2",
     "expo": "~57.0.8",
     "expo-apple-authentication": "~57.0.1",

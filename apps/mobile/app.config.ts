@@ -6,9 +6,11 @@ type AppVariant = keyof typeof nativePublicConfig.appIds;
 
 const KAKAO_MAVEN_REPOSITORY = 'https://devrepo.kakao.com/nexus/content/groups/public/';
 
-// Firebase 콘솔에서 앱을 등록해야 받을 수 있는 파일이라 아직 레포에 없다. 받기 전까지는
-// Android 빌드가 FCM 없이도 돌게, 있을 때만 config 에 꽂는다.
-const GOOGLE_SERVICES_FILE = './google-services.json';
+// Firebase 콘솔에서 플랫폼별로 앱을 등록해야 받을 수 있는 파일이다. iOS 는 등록돼 있어
+// 커밋 대신 로컬에 내려받아 쓰고(gitignore), Android 는 아직 등록 전이라 없다 — 둘 다
+// 없어도 빌드가 깨지지 않게 있을 때만 config 에 꽂는다.
+const GOOGLE_SERVICES_FILE_IOS = './GoogleService-Info.plist';
+const GOOGLE_SERVICES_FILE_ANDROID = './google-services.json';
 
 // 웹의 gray-10. 네이티브 스플래시와 웹 첫 화면 배경을 같은 색으로 맞춰 전환 시 색 점프를 없앤다.
 const SPLASH_BACKGROUND_COLOR = '#f4f5f7';
@@ -55,11 +57,21 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       '@bacons/apple-targets',
       'expo-apple-authentication',
       'expo-notifications',
+      // SPM(기본값)으로 받으면 use_frameworks! 를 dynamic 으로 바꿔야 하는데, 그러면
+      // kakao-login 이 링크 단계에서 깨진다(_RCTRegisterModule 심볼을 못 찾음).
+      // CocoaPods 로 받게 돌려 기존 static 링크를 그대로 둔다.
+      ['@react-native-firebase/app', { ios: { disableSPM: true } }],
+      '@react-native-firebase/messaging',
       [
         'expo-build-properties',
         {
           android: {
             extraMavenRepos: [KAKAO_MAVEN_REPOSITORY],
+          },
+          ios: {
+            // GoogleUtilities(Firebase 의 CocoaPods 의존성)가 모듈을 정의하지 않아
+            // 기본 static 링크에서 Swift 가 못 읽는다 — modular_headers 로 강제한다.
+            extraPods: [{ name: 'GoogleUtilities', modular_headers: true }],
           },
         },
       ],
@@ -107,6 +119,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // Sign in with Apple entitlement 을 주입한다. Apple Developer 의 App ID 에도
       // 같은 capability 가 켜져 있어야 프로비저닝이 맞는다.
       usesAppleSignIn: true,
+      ...(existsSync(GOOGLE_SERVICES_FILE_IOS)
+        ? { googleServicesFile: GOOGLE_SERVICES_FILE_IOS }
+        : {}),
       infoPlist: {
         ...config.ios?.infoPlist,
         // 미설정이면 EAS 가 매 빌드마다 물어보고 그 답을 app config 에 되쓴다. HTTPS 만
@@ -139,7 +154,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       ...config.android,
       package: appId,
-      ...(existsSync(GOOGLE_SERVICES_FILE) ? { googleServicesFile: GOOGLE_SERVICES_FILE } : {}),
+      ...(existsSync(GOOGLE_SERVICES_FILE_ANDROID)
+        ? { googleServicesFile: GOOGLE_SERVICES_FILE_ANDROID }
+        : {}),
       adaptiveIcon: {
         ...config.android?.adaptiveIcon,
         foregroundImage:

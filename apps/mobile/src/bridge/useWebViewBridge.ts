@@ -136,10 +136,9 @@ export function useWebViewBridge() {
 
   // 재설치·복원 등으로 FCM 토큰이 재발급된 경우. 요청 없이 오는 이벤트라 바로 흘려보낸다.
   useEffect(() => {
-    const subscription = addPushTokenRefreshListener((token) => {
+    return addPushTokenRefreshListener((token) => {
       send({ v: 1, type: 'PUSH_TOKEN_REFRESHED', payload: { token } });
     });
-    return () => subscription.remove();
   }, [send]);
 
   const onMessage = useCallback(

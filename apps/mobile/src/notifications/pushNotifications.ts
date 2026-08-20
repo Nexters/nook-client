@@ -1,6 +1,8 @@
 import type { PushPermissionStatus, PushToken } from '@nook/bridge-contracts';
+import { getMessaging, getToken, onTokenRefresh } from '@react-native-firebase/messaging';
 import { PermissionStatus } from 'expo-modules-core';
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 export interface PushPermissionOutcome {
   status: PushPermissionStatus;
@@ -52,25 +54,28 @@ function toOpened({ notification }: Notifications.NotificationResponse): PushNot
   };
 }
 
+// 권한 요청은 expo-notifications 로 한다 — react-native-firebase 도 requestPermission 을
+// 제공하지만 자체 문서가 expo-notifications 를 쓰라고 안내하며 deprecated 로 표시해 뒀다.
+// 토큰은 react-native-firebase 로 받는다: iOS 는 이게 APNs 원시 토큰이 아니라 서버가 실제로
+// 쓸 수 있는 FCM 등록 토큰이라, expo-notifications 의 getDevicePushTokenAsync 로는 안 된다
+// (Android 는 두 방식이 사실상 같은 값을 준다).
+const platform = Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : null;
+
 /**
- * 권한을 요청하고, 허용된 경우 FCM(Android)·APNs(iOS) 원시 디바이스 토큰을 함께 돌려준다.
- * 서버 등록은 웹이 이어서 한다.
+ * 권한을 요청하고, 허용된 경우 FCM 등록 토큰을 함께 돌려준다. 서버 등록은 웹이 이어서 한다.
  */
 export async function requestPushPermissionAndToken(): Promise<PushPermissionOutcome> {
   const permission = await Notifications.requestPermissionsAsync({
     ios: { allowAlert: true, allowBadge: true, allowSound: true },
   });
   const status = toPermissionStatus(permission.status);
-  if (status !== 'granted') {
+  if (status !== 'granted' || !platform) {
     return { status };
   }
 
   try {
-    const { type, data } = await Notifications.getDevicePushTokenAsync();
-    // ios·android 외 플랫폼(web) 토큰은 이 앱에서 나올 일이 없다 — 방어적으로만 걸러낸다.
-    return type === 'ios' || type === 'android'
-      ? { status, token: { platform: type, value: String(data) } }
-      : { status };
+    const value = await getToken(getMessaging());
+    return { status, token: { platform, value } };
   } catch {
     return { status };
   }
@@ -92,12 +97,8 @@ export function addNotificationOpenedListener(
 }
 
 /** FCM 토큰이 재발급된 경우(재설치·복원 등)를 구독한다. */
-export function addPushTokenRefreshListener(
-  callback: (token: PushToken) => void,
-): Notifications.EventSubscription {
-  return Notifications.addPushTokenListener((deviceToken) => {
-    if (deviceToken.type === 'ios' || deviceToken.type === 'android') {
-      callback({ platform: deviceToken.type, value: String(deviceToken.data) });
-    }
+export function addPushTokenRefreshListener(callback: (token: PushToken) => void): () => void {
+  return onTokenRefresh(getMessaging(), (value) => {
+    if (platform) callback({ platform, value });
   });
 }
