@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { toDisplayPost } from '@/features/map/lib/placePost';
-import { SavedPostCard } from '@/features/post';
+import { SavedPostCard, SavedPostPreview } from '@/features/post';
 import { usePostDetails } from '@/features/post/api/queries';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { BackButton, Header } from '@/shared/ui';
@@ -18,6 +19,10 @@ export function PlacePostsPage() {
   const posts = postsQuery.data?.posts ?? [];
   const postDetailQueries = usePostDetails(posts.map((post) => post.id));
   const sentinelRef = useInfiniteScrollSentinel(postsQuery);
+  // 카드의 사진을 누르면 그 사진부터 확대 뷰를 얹는다(Figma `전체 보기`) — 장소 상세와 같다.
+  const [preview, setPreview] = useState<{ postIndex: number; imageIndex: number } | null>(null);
+  const previewPost = preview ? posts[preview.postIndex] : undefined;
+  const previewDetail = preview ? postDetailQueries[preview.postIndex]?.data : undefined;
 
   return (
     <PinnedHeaderLayout header={<Header left={<BackButton />} title="저장된 게시물" />}>
@@ -32,12 +37,22 @@ export function PlacePostsPage() {
                 post={toDisplayPost(post, postDetailQueries[index]?.data)}
                 archives={postDetailQueries[index]?.data?.archives ?? []}
                 onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
+                onImageClick={(imageIndex) => setPreview({ postIndex: index, imageIndex })}
               />
             </div>
           ))}
           <div ref={sentinelRef} aria-hidden="true" className="h-1" />
         </div>
       )}
+
+      {preview && previewPost ? (
+        <SavedPostPreview
+          title={previewDetail?.title ?? previewPost.title}
+          post={toDisplayPost(previewPost, previewDetail)}
+          initialIndex={preview.imageIndex}
+          onClose={() => setPreview(null)}
+        />
+      ) : null}
     </PinnedHeaderLayout>
   );
 }
