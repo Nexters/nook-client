@@ -52,6 +52,8 @@ function postDetail(places: ParsedPlace[], archives: PostDetail['archives'] = []
     title: '게시물',
     archives,
     places,
+    placeParsingStatus: 'COMPLETED',
+    placeParsingFailureReason: null,
     post: { id: '1', authorHandle: '@nook', images: ['first.jpg', 'second.jpg'] },
   };
 }

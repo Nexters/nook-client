@@ -27,7 +27,8 @@ export interface RelatedPlacesSectionProps {
  * "찾으시는 장소가 없으신가요? 직접 추가" 배너를 함께 보여준다.
  * 게시물 상세 응답에만 있는 장소(`postPlaces`, 직접 연결 등)는 파싱 상태와 무관하게 항상
  * 목록에 포함된다 — 파싱이 실패했어도 방금 직접 추가한 장소는 바로 보여야 하기 때문이다.
- * 실패했다는 사실 자체를 알리는 스낵바는 상위(PostDetailPage)책임이다 — 이 섹션은 배너만 그린다.
+ * 파싱 실패는(직접 연결한 장소가 없어 목록이 비면) 전용 빈 상태로 이 섹션 안에서 알린다 —
+ * 스낵바로 흘려보내면 화면을 나갔다 돌아왔을 때 실패 사실이 사라져 보이기 때문이다.
  */
 function RelatedPlacesSection({
   postId,
@@ -47,6 +48,7 @@ function RelatedPlacesSection({
     ...parsedPlaces,
     ...postPlaces.filter((place) => !parsedPlaces.some((parsed) => parsed.id === place.id)),
   ].filter((place) => !deletion.deletedPlaceIds.includes(place.id));
+  const failureReason = state.status === 'failed' ? state.reason : null;
 
   return (
     <>
@@ -57,6 +59,15 @@ function RelatedPlacesSection({
 
         {state.status === 'loading' ? (
           <p className="pb-4 text-b2 font-medium text-gray-60">게시물에 포함된 장소를 찾는 중…</p>
+        ) : null}
+
+        {places.length === 0 && (state.status === 'failed' || state.status === 'error') ? (
+          <div className="flex flex-col gap-1 pb-4">
+            <p className="text-b2 font-medium text-gray-60">장소를 찾지 못했어요</p>
+            <p className="text-b3 text-gray-40">
+              {failureReason ?? '게시물은 저장됐지만 지도에는 표시되지 않아요'}
+            </p>
+          </div>
         ) : null}
 
         {places.length > 0 ? (
