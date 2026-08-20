@@ -42,6 +42,10 @@ export function useWebViewBridge() {
   // 웹이 WEB_READY 를 보낸 시점 = 원격 웹의 JS 가 실제로 실행됐다는 뜻. 스플래시를 내릴 기준이다.
   const [webReady, setWebReady] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  // iOS 엣지 스와이프 허용 여부 — 웹이 화면마다 알려준다(SET_BACK_GESTURE).
+  // 기본값 true: 이 메시지를 보내지 않는 구버전 웹이 실려도 지금까지의 동작(항상 허용)이
+  // 그대로 유지된다. 새 웹은 첫 화면을 그리면서 곧바로 제 값을 보내 덮어쓴다.
+  const [backGestureEnabled, setBackGestureEnabled] = useState(true);
   const [webTarget, setWebTarget] = useState({ url: WEB_URL, revision: 0 });
 
   const applyAppLink = useCallback((appLink: string) => {
@@ -175,6 +179,11 @@ export function useWebViewBridge() {
         case 'BACK_EXHAUSTED':
           if (Platform.OS === 'android') BackHandler.exitApp();
           break;
+        case 'SET_BACK_GESTURE':
+          // 웹의 판정: "헤더 좌상단에 뒤로가기 버튼이 있는 풀 페이지인가". 드로어·바텀시트·
+          // 메인 탭에서는 false 로 내려와 제스처가 아예 인식되지 않는다.
+          setBackGestureEnabled(message.payload.enabled);
+          break;
         case 'SESSION_CLEAR':
           void clearSession().then(() => {
             send({ v: 1, type: 'SESSION_CLEARED', payload: { reason: 'logout' } });
@@ -218,6 +227,7 @@ export function useWebViewBridge() {
     retryLoad,
     onMessage,
     onShouldStartLoadWithRequest,
+    backGestureEnabled,
     webUrl: webTarget.url,
     webViewKey: webTarget.revision,
     webViewRef,

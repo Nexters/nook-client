@@ -1,5 +1,6 @@
 import { createPortal } from 'react-dom';
 import { Icon24Back } from '@/shared/icons/NookIcons';
+import { AllowBackGesture } from '@/shared/lib/backGesture';
 import { Carousel, Header } from '@/shared/ui';
 import type { Post } from '../types';
 import { ExpandableCaption } from './ExpandableCaption';
@@ -35,6 +36,8 @@ function SavedPostPreview({ title, post, initialIndex = 0, onClose }: SavedPostP
       className="fixed inset-0 z-[70] flex flex-col bg-gray-0"
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
+      {/* 전체화면 + 헤더 좌상단 뒤로가기 = iOS 좌측 스와이프 허용 화면. */}
+      <AllowBackGesture />
       <Header
         left={
           <button type="button" onClick={onClose} aria-label="게시물 미리보기 닫기">

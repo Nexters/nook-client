@@ -16,6 +16,15 @@ describe('parseWebToNative', () => {
     });
   });
 
+  it('SET_BACK_GESTURE 는 enabled 가 boolean 일 때만 통과한다', () => {
+    expect(
+      parseWebToNative('{"v":1,"type":"SET_BACK_GESTURE","payload":{"enabled":false}}'),
+    ).toEqual({ v: 1, type: 'SET_BACK_GESTURE', payload: { enabled: false } });
+    expect(
+      parseWebToNative('{"v":1,"type":"SET_BACK_GESTURE","payload":{"enabled":"yes"}}'),
+    ).toBeNull();
+  });
+
   it.each([
     'null',
     '[]',

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Icon24Back, Icon24Share } from '@/shared/icons/NookIcons';
+import { useAllowBackGesture } from '@/shared/lib/backGesture';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -14,6 +15,9 @@ const iconButtonClass =
 
 function BackButton({ className, onClick }: { className?: string; onClick?: () => void }) {
   const navigate = useNavigate();
+  // 이 버튼이 떠 있는 화면 = iOS 좌측 스와이프가 허용되는 화면(제품 규칙). 드로어·바텀시트는
+  // 이 버튼을 쓰지 않으므로 저절로 빠진다 — `shared/lib/backGesture` 주석 참고.
+  useAllowBackGesture();
 
   return (
     <button

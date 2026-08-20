@@ -103,6 +103,10 @@ export function parseWebToNative(json: string): WebToNative | null {
         : null;
     case 'REQUEST_PUSH_PERMISSION':
       return { v: BRIDGE_VERSION, type: value.type, payload: {} };
+    case 'SET_BACK_GESTURE':
+      return typeof value.payload.enabled === 'boolean'
+        ? { v: BRIDGE_VERSION, type: value.type, payload: { enabled: value.payload.enabled } }
+        : null;
     case 'SOCIAL_LOGIN': {
       const id = requestId(value.payload);
       return id && isSocialProvider(value.payload.provider)
