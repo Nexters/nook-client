@@ -41,9 +41,10 @@ export interface ThumbnailProps
   /** 넘기면 딤 위에 `+N` 을 얹는다 (시안 Property 1=Plus). */
   overflowCount?: number;
   /**
-   * 콘텐츠가 아직 처리 중이라 비어 있는 카드용 — src 유무와 무관하게 기본(고스트)
-   * 이미지를 그대로 보여준다(Figma). 처리 결과 문구·아이콘은 카드가 이름 자리에
-   * 직접 그린다(`게시글 불러오는 중...`) — 여기선 썸네일 자체엔 오버레이를 얹지 않는다.
+   * 콘텐츠가 아직 처리 중인 카드용. 썸네일이 아직 없으면 기본(고스트) 이미지를 보여주고,
+   * 폴링으로 먼저 도착한 썸네일이 있으면 그 사진을 그대로 쓰되 딤을 얹어 "아직 준비 중"
+   * 으로 가라앉힌다(QA) — 받아둔 사진을 두고 빈 상자를 계속 보여줄 이유가 없다.
+   * 처리 결과 문구·스피너는 카드가 이름 자리에 직접 그린다(`게시글 불러오는 중...`).
    */
   loading?: boolean;
   /**
@@ -63,9 +64,12 @@ function Thumbnail({
   className,
   ...props
 }: ThumbnailProps) {
-  // loading/failed 는 src 가 남아 있어도(재처리 중 등) 고스트로 강제한다.
-  const showingRealImage = !loading && !failed && Boolean(src);
+  // failed 는 src 가 남아 있어도(재처리 중 등) 고스트로 강제한다 — 실패한 카드가 옛
+  // 사진을 계속 들고 있으면 성공한 카드와 구분되지 않는다. loading 은 반대로, 사진이
+  // 이미 왔으면 그대로 쓰고 딤만 얹는다.
+  const showingRealImage = !failed && Boolean(src);
   const resolvedSrc = showingRealImage ? src : EMPTY_IMAGE;
+  const dimmed = loading && showingRealImage;
 
   return (
     <div data-slot="thumbnail" className={cn(thumbnailVariants({ size }), className)} {...props}>
@@ -78,6 +82,13 @@ function Thumbnail({
         // 안에서 도형이 차지하는 비율)이 이미 있어 별도 padding 은 더하지 않는다.
         className={cn('size-full', showingRealImage ? 'object-cover' : 'object-contain')}
       />
+      {dimmed ? (
+        <span
+          data-slot="thumbnail-dim"
+          aria-hidden="true"
+          className="absolute inset-0 bg-gray-0/60"
+        />
+      ) : null}
       {overflowCount !== undefined ? (
         <span className="absolute inset-0 flex items-center justify-center bg-black/50 font-mono text-e2 text-gray-0">
           +{overflowCount}
