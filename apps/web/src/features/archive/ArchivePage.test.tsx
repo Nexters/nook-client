@@ -372,9 +372,33 @@ describe('아카이브 화면', () => {
     expect(await screen.findByText('"카페" 아카이브가 삭제 됐어요.')).toBeInTheDocument();
   });
 
-  it('공유받은 아카이브 카드는 소유자 닉네임을 보여준다', async () => {
-    renderArchiveRoutes('/archive');
-    expect(await screen.findByText('by ehoidi')).toBeInTheDocument();
+  it('공유받은 아카이브 카드는 색 칩 대신 프로필 이미지를 놓고 소유자 닉네임을 보여준다', async () => {
+    const { container } = renderArchiveRoutes('/archive');
+
+    expect(await screen.findByText('ehoidi')).toBeInTheDocument();
+    // 목록의 공유 아카이브는 하나뿐이고, 내 아카이브(OWNED)는 색 칩을 그대로 쓴다.
+    const avatars = container.querySelectorAll('[data-slot="avatar"]');
+    expect(avatars).toHaveLength(1);
+    // 이 소유자에겐 profileImageUrl 이 없어 Avatar 의 기본(엠티) 이미지가 들어간다.
+    expect(avatars[0]?.querySelector('img')).toHaveAttribute('src');
+  });
+
+  it('공유받은 아카이브 소유자에게 프로필 이미지가 있으면 그 이미지를 쓴다', async () => {
+    mocks.fetchArchives.mockResolvedValue(
+      ARCHIVES.map((archive) =>
+        archive.accessType === 'SHARED'
+          ? { ...archive, owner: { nickname: 'ehoidi', profileImageUrl: 'https://img/me.png' } }
+          : archive,
+      ),
+    );
+
+    const { container } = renderArchiveRoutes('/archive');
+
+    expect(await screen.findByText('ehoidi')).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="avatar"] img')).toHaveAttribute(
+      'src',
+      'https://img/me.png',
+    );
   });
 
   it('공유받은 아카이브 상세의 게시물 카드는 공유 게시물 상세로 이동한다', async () => {
