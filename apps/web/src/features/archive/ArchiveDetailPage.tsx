@@ -7,6 +7,7 @@ import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider'
 import { PlaceCard } from '@/features/place';
 import { ShareSheet } from '@/features/share/components/ShareSheet';
 import { buildShareUrl } from '@/features/share/lib/shareUrl';
+import { Icon16ArrowUpTray } from '@/shared/icons/NookIcons';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
@@ -34,6 +35,17 @@ import { CollectionCard } from './components/CollectionCard';
 import { GUEST_ARCHIVE } from './guest';
 
 type DetailTab = 'posts' | 'places';
+
+/**
+ * Figma `butto/40_save` Default·`button/40_share`(236:9689, 236:9689) — 40px 칩 버튼.
+ * 공용 Button 은 전 variant 라벨이 흰색 고정이라(gray-10 바탕 + gray-100 라벨을 못
+ * 만든다) 여기서 직접 그린다 — SharedArchivePage 의 같은 칩과 동일한 스타일.
+ */
+const ARCHIVE_ACTION_CHIP = cn(
+  'inline-flex h-10 shrink-0 items-center justify-center gap-1 rounded-lg bg-gray-10 px-4',
+  'text-b3 font-medium text-gray-100',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100',
+);
 
 /** 선택 모드 CTA 바 높이(p-4 16px + Button_52 + 16px) — 콘텐츠 하단 패딩이 비켜줄 몫. */
 const SELECT_CTA_HEIGHT = '5.25rem';
@@ -197,6 +209,35 @@ export function ArchiveDetailPage() {
               <p className="font-mono text-e2 text-gray-60">by {postsQuery.data.ownerNickname}</p>
             ) : null}
           </div>
+
+          {/* 편집·공유 칩 — 더보기 메뉴 안에도 같은 액션이 있지만(삭제 등과 함께),
+              자주 쓰는 두 액션은 시안대로 바로 누를 수 있게 앞으로 뺀다. 공유 아카이브는
+              내 소유가 아니라(더보기 메뉴처럼) 노출하지 않는다. */}
+          {isAuthenticated && !isShared ? (
+            <div className="flex gap-2 px-4 pb-4">
+              <button
+                type="button"
+                onClick={() => navigate(`/archive/${archive.id}/edit`)}
+                className={ARCHIVE_ACTION_CHIP}
+              >
+                아카이브 편집
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  issueShare.mutate(archive.id, {
+                    onSuccess: (token) => setShareUrl(buildShareUrl(token)),
+                    onError: () =>
+                      showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
+                  })
+                }
+                className={ARCHIVE_ACTION_CHIP}
+              >
+                공유
+                <Icon16ArrowUpTray />
+              </button>
+            </div>
+          ) : null}
 
           {/* 게시물/장소 탭도 고정 — 카운트는 각 목록 응답의 totalElements 가 채운다. */}
           {isEmpty ? null : (
