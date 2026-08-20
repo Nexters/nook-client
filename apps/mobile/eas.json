@@ -10,7 +10,7 @@
         "APPLE_TEAM_ID": "TDTGJZTB57"
       }
     },
-    "development": {
+    "dev-adhoc": {
       "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
@@ -19,7 +19,7 @@
         "APP_VARIANT": "development"
       }
     },
-    "device": {
+    "prod-adhoc": {
       "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
@@ -28,7 +28,7 @@
         "APP_VARIANT": "production"
       }
     },
-    "production": {
+    "prod-store": {
       "extends": "base",
       "distribution": "store",
       "environment": "production",
@@ -40,7 +40,7 @@
         "resourceClass": "m-medium"
       }
     },
-    "preview": {
+    "dev-store": {
       "extends": "base",
       "distribution": "store",
       "environment": "development",
@@ -54,7 +54,7 @@
     }
   },
   "submit": {
-    "production": {
+    "prod-store": {
       "ios": {
         "ascAppId": "6798223287",
         "appleTeamId": "TDTGJZTB57",
@@ -63,7 +63,7 @@
         "ascApiKeyIssuerId": "$EXPO_ASC_ISSUER_ID"
       }
     },
-    "preview": {
+    "dev-store": {
       "ios": {
         "ascAppId": "6803065807",
         "appleTeamId": "TDTGJZTB57",

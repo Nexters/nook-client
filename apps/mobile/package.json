@@ -32,12 +32,16 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "build:dev": "eas build --platform ios --profile development",
-    "build:device": "eas build --platform ios --profile device",
-    "build:ios": "eas build --platform ios --profile production",
-    "build:preview": "eas build --platform ios --profile preview",
-    "submit:ios": "eas submit --platform ios --profile production --latest",
-    "submit:preview": "eas submit --platform ios --profile preview --latest"
+    "build:dev-adhoc": "eas build --platform ios --profile dev-adhoc",
+    "build:prod-adhoc": "eas build --platform ios --profile prod-adhoc",
+    "build:dev-store": "eas build --platform ios --profile dev-store",
+    "build:prod-store": "eas build --platform ios --profile prod-store",
+    "build:dev-adhoc:local": "eas build --platform ios --profile dev-adhoc --local --output build/dev-adhoc.ipa",
+    "build:prod-adhoc:local": "eas build --platform ios --profile prod-adhoc --local --output build/prod-adhoc.ipa",
+    "build:dev-store:local": "eas build --platform ios --profile dev-store --local --output build/dev-store.ipa",
+    "build:prod-store:local": "eas build --platform ios --profile prod-store --local --output build/prod-store.ipa",
+    "submit:dev-store": "eas submit --platform ios --profile dev-store --latest",
+    "submit:prod-store": "eas submit --platform ios --profile prod-store --latest"
   },
   "private": true
 }
