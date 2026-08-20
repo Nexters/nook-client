@@ -36,6 +36,8 @@
     "build:prod-metro": "eas build --platform ios --profile prod-metro",
     "build:dev-store": "eas build --platform ios --profile dev-store",
     "build:prod-store": "eas build --platform ios --profile prod-store",
+    "build:dev-metro:local": "eas build --platform ios --profile dev-metro --local --output build/dev-metro.ipa",
+    "build:prod-metro:local": "eas build --platform ios --profile prod-metro --local --output build/prod-metro.ipa",
     "build:dev-store:local": "eas build --platform ios --profile dev-store --local --output build/dev-store.ipa",
     "build:prod-store:local": "eas build --platform ios --profile prod-store --local --output build/prod-store.ipa",
     "submit:dev-store": "eas submit --platform ios --profile dev-store --latest",
