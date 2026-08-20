@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Icon14Processing, Icon16Sad } from '@/shared/icons/NookIcons';
+import { Icon14Processing } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { Thumbnail } from '@/shared/ui';
 import type { Place } from '../types';
@@ -31,6 +31,8 @@ export interface PlaceCardProps {
 function PlaceCard({ place, onClick, className }: PlaceCardProps) {
   const Comp = onClick ? 'button' : 'div';
   const isProcessing = place.thumbnailState === 'processing';
+  // 파싱 실패는 장소 "사진" 크롤링만 실패한 것이다 — 이름·지역·카테고리는 응답에 그대로
+  // 있으므로 텍스트는 정상 노출하고, 실패 표시는 썸네일(고스트)만 맡는다.
   const isFailed = place.thumbnailState === 'failed';
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
 
@@ -70,18 +72,12 @@ function PlaceCard({ place, onClick, className }: PlaceCardProps) {
         className="aspect-[167/208] h-auto w-full"
       />
       <div className="flex w-full flex-col gap-0.5 p-1">
-        {isProcessing || isFailed ? (
+        {isProcessing ? (
           <div className="flex items-center gap-1">
             {/* 게시물 카드(CollectionCard)와 같다 — 처리 중 표시는 정지 아이콘이 아니라
                 실제로 도는 스피너여야 한다(QA). 아이콘이 회색 링 + 진한 호라 회전만 얹는다. */}
-            {isProcessing ? (
-              <Icon14Processing className="shrink-0 animate-spin" />
-            ) : (
-              <Icon16Sad className="shrink-0" />
-            )}
-            <p className="truncate text-b2 font-semibold text-gray-60">
-              {isProcessing ? '장소 정보 불러오는 중...' : '불러오지 못했어요.'}
-            </p>
+            <Icon14Processing className="shrink-0 animate-spin" />
+            <p className="truncate text-b2 font-semibold text-gray-60">장소 정보 불러오는 중...</p>
           </div>
         ) : (
           <>
