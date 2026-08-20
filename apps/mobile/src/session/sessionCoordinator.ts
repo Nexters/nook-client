@@ -1,5 +1,4 @@
 import NookSession, { type StoredSession } from '../../modules/session/src';
-import { API_BASE_URL } from '../config/appConfig';
 
 interface ApiEnvelope<T> {
   resultType: string;
@@ -54,16 +53,18 @@ async function performRefresh(failedRevision: number): Promise<StoredSession | n
     await clearSession();
     return null;
   }
+  // 발급처를 모르면 갱신을 보낼 곳이 없다. 세션은 지우지 않는다 — 앱을 열면 SESSION_GET 이
+  // 발급처를 채워 재로그인 없이 되살아난다.
+  if (!before.apiBaseUrl) return null;
   const refreshGeneration = generation;
-  // 발급처가 기록돼 있으면 그리로 보낸다. 빌드 variant 의 API 와 웹이 실제 쓰는 API 가
-  // 어긋나 있어도 토큰은 발급처에서만 유효하다.
-  const baseUrl = before.apiBaseUrl ?? API_BASE_URL;
-  // base URL 은 웹과 같이 /api/v1 까지 포함한다. 절대 경로로 넘기면 그 경로가 버려진다.
-  const response = await fetch(`${baseUrl.replace(/\/$/, '')}/auth/token/refresh`, {
-    method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken: before.refreshToken }),
-  });
+  const response = await fetch(
+    `${before.apiBaseUrl.replace(/\/$/, '')}/api/v1/auth/token/refresh`,
+    {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: before.refreshToken }),
+    },
+  );
   if (response.status >= 400 && response.status < 500) {
     if (refreshGeneration === generation) await clearSession();
     return null;

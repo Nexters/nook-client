@@ -28,8 +28,10 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 const DEV_WEB_SESSION_KEY = 'nook.dev.session.v1';
 
 // 셸·공유 확장이 저장된 토큰을 발급처와 같은 API 로 보내도록 세션에 함께 기록하는 값.
-// 로컬 개발은 vite 프록시(`/api/v1`) 같은 상대 경로를 쓰므로 현재 오리진 기준의 절대 URL 로
-// 풀어서 넘긴다 — 확장은 웹 오리진을 모르는 별도 프로세스라 상대 경로를 해석할 수 없다.
+// 버전 경로(`/api/v1`)는 붙이지 않는다 — 생성된 엔드포인트 경로가 이미 들고 있어서고,
+// 네이티브·확장은 자기 경로 관례에 맞춰 직접 붙인다.
+// 로컬 개발의 vite 프록시 같은 상대 경로는 현재 오리진 기준의 절대 URL 로 풀어서 넘긴다 —
+// 확장은 웹 오리진을 모르는 별도 프로세스라 상대 경로를 해석할 수 없다.
 const SESSION_API_BASE_URL = env.apiBaseUrl
   ? new URL(env.apiBaseUrl, window.location.origin).toString()
   : null;

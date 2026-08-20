@@ -98,9 +98,9 @@ git status --short
 pnpm check
 ```
 
-릴리스 전에 `apps/mobile/native-public-config.json`의 `apiBaseUrl`·`webUrl`(variant별)과
-`apps/mobile/eas.json`의 ASC 앱 ID를 확인한다. 특히 production `apiBaseUrl`이 이번 릴리스가
-사용할 서버를 가리키는지 확인해야 한다.
+릴리스 전에 `apps/mobile/native-public-config.json`의 `webUrl`(variant별)과
+`apps/mobile/eas.json`의 ASC 앱 ID를 확인한다. API 주소는 앱 빌드에 없다 — 웹뷰가 로드하는
+웹 배포의 `VITE_API_BASE_URL`이 이번 릴리스가 사용할 서버를 가리키는지 확인해야 한다.
 
 앱 설정 평가 확인:
 
