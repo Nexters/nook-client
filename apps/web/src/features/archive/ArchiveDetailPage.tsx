@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
@@ -141,17 +141,10 @@ export function ArchiveDetailPage() {
 
   if (isAuthenticated && isPending) return null;
 
-  if (!archive) {
-    return (
-      <main
-        className="fixed inset-0 flex flex-col bg-gray-0"
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
-      >
-        <Header left={<BackButton />} />
-        <ArchiveEmpty message="아카이브를 찾을 수 없어요" />
-      </main>
-    );
-  }
+  // 목록에 없는 아카이브 — 삭제 직후(목록 무효화가 삭제 팝업의 navigate 보다 먼저 끝나
+  // 한 프레임 이 분기를 지난다)와 지워진 아카이브가 히스토리·딥링크로 되살아난 경우다.
+  // "찾을 수 없어요" 화면 대신 목록으로 보낸다.
+  if (!archive) return <Navigate to="/archive" replace />;
 
   const isShared = archive.accessType === 'SHARED';
 
