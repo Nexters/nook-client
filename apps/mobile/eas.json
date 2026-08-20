@@ -57,19 +57,13 @@
     "prod-store": {
       "ios": {
         "ascAppId": "6798223287",
-        "appleTeamId": "TDTGJZTB57",
-        "ascApiKeyPath": "$EXPO_ASC_API_KEY_PATH",
-        "ascApiKeyId": "$EXPO_ASC_KEY_ID",
-        "ascApiKeyIssuerId": "$EXPO_ASC_ISSUER_ID"
+        "appleTeamId": "TDTGJZTB57"
       }
     },
     "dev-store": {
       "ios": {
         "ascAppId": "6803065807",
-        "appleTeamId": "TDTGJZTB57",
-        "ascApiKeyPath": "$EXPO_ASC_API_KEY_PATH",
-        "ascApiKeyId": "$EXPO_ASC_KEY_ID",
-        "ascApiKeyIssuerId": "$EXPO_ASC_ISSUER_ID"
+        "appleTeamId": "TDTGJZTB57"
       }
     }
   }

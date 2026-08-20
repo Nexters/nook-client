@@ -9,7 +9,7 @@
 > 방법을 다룬다.
 >
 > 내 맥에서 직접 Xcode/Gradle로 컴파일하는 방식은 [로컬 앱 빌드 가이드](<[NOOK-NATIVE] 로컬_앱_빌드_가이드.md>)를,
-> production 빌드·App Store 제출은 [01 문서](<[NOOK-115] 01.iOS_EAS_빌드_및_App_Store_제출.md>) 참고.
+> production 빌드·App Store 제출은 [EAS 개요 문서](<[NOOK-NATIVE] iOS_EAS_빌드_및_App_Store_제출_개요.md>) 참고.
 
 ## 구성 요약
 
@@ -34,14 +34,14 @@ ad-hoc 서명 자격 증명(배포 인증서 + ad-hoc 프로비저닝 프로파�
 
 ## 1. 새 PC 세팅
 
-[01 문서의 1~2절](<[NOOK-115] 01.iOS_EAS_빌드_및_App_Store_제출.md>)과 동일하다:
+[EAS 개요 문서의 2절](<[NOOK-NATIVE] iOS_EAS_빌드_및_App_Store_제출_개요.md>)과 동일하다:
 저장소 clone → `nvm install` → `corepack prepare pnpm@9.15.9 --activate` →
 `pnpm install --frozen-lockfile` → `apps/mobile`에서 `pnpm exec eas login`.
 
 추가로 Metro 실행에 `.env.local`이 필요하다. `apps/mobile/.env.example`을 복사해
 값을 채운다 (전부 공개값이라 기존 PC의 파일을 그대로 복사해도 된다).
 
-제출용 App Store Connect API 키(01 문서 3절)는 개발 빌드에는 필요 없다.
+제출용 App Store Connect API 키(EAS 개요 문서 3절)는 개발 빌드에는 필요 없다.
 
 ## 2. 개발 워크플로
 
@@ -101,7 +101,7 @@ ad-hoc 프로파일에는 설치 허용 기기의 UDID 목록이 박혀 있어, 
 **UDID 등록 → 프로파일 재생성 → EAS 재업로드**가 필요하다.
 
 Individual 멤버십이라 `eas device:create`가 요구하는 Apple ID 로그인을 팀원이 할 수
-없으므로, App Store Connect API 키([01 문서 3절](<[NOOK-115] 01.iOS_EAS_빌드_및_App_Store_제출.md>)의
+없으므로, App Store Connect API 키([EAS 개요 문서 3절](<[NOOK-NATIVE] iOS_EAS_빌드_및_App_Store_제출_개요.md>)의
 환경변수 사용)로 직접 처리한다. 모든 요청은 `Authorization: Bearer <JWT>` 헤더를 쓴다.
 
 ### 3-1. JWT 발급

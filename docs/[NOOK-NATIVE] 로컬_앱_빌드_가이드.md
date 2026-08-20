@@ -11,7 +11,7 @@
 >
 > EAS 클라우드로 서명된 dev-client 빌드나 배포용 빌드는 다루지 않는다 — 그건
 > [배포 빌드 설치 가이드](<[NOOK-NATIVE] 배포_빌드_설치_가이드.md>)와
-> [iOS EAS 빌드 및 App Store 제출](<[NOOK-115] 01.iOS_EAS_빌드_및_App_Store_제출.md>) 참고.
+> [iOS EAS 빌드 및 App Store 제출](<[NOOK-NATIVE] iOS_EAS_빌드_및_App_Store_제출_개요.md>) 참고.
 
 ## 1. 공통: 클론 & 설치
 
@@ -192,4 +192,4 @@ pnpm android    # adb devices에 잡힌 기기에 설치
 - EAS 클라우드로 서명된 dev-client/배포용 빌드 설치, 새 테스트 기기 등록:
   [배포 빌드 설치 가이드](<[NOOK-NATIVE] 배포_빌드_설치_가이드.md>)
 - production 빌드와 App Store Connect 제출:
-  [iOS EAS 빌드 및 App Store 제출](<[NOOK-115] 01.iOS_EAS_빌드_및_App_Store_제출.md>)
+  [iOS EAS 빌드 및 App Store 제출](<[NOOK-NATIVE] iOS_EAS_빌드_및_App_Store_제출_개요.md>)
