@@ -22,11 +22,10 @@
 | 배포 방식 | ad-hoc 내부 배포 — 등록된 기기 UDID에만 설치 가능 |
 | JS 번들 | 앱에 미내장. 실행 시 Mac의 Metro 서버에서 로드 |
 
-> development variant(`kr.co.everynook.app.dev`)는 dev ShareExtension 번들에 App Group
-> (`group.kr.co.everynook.app.dev`)이 배정되지 않아 현재 빌드가 실패한다. Individual
-> 멤버십이라 배정은 Account Holder만 developer.apple.com 포털에서 할 수 있다. 배정되기
-> 전까지 실기기 디버깅은 `prod-metro` 프로필을 사용한다. TestFlight 빌드와 번들 ID가 같아
-> 한 기기에 둘 중 하나만 설치된다.
+> `prod-metro`는 TestFlight/App Store의 production 앱과 번들 ID가 같아 한 기기에 둘 중
+> 하나만 설치된다. dev variant(`kr.co.everynook.app.dev`)로 빌드하는 `dev-metro`는 번들
+> ID가 달라 공존할 수 있다. (한때 dev ShareExtension의 App Group 미배정으로 dev 빌드가
+> 실패했으나 2026-08-19 배정 완료로 해소됐다.)
 
 ad-hoc 서명 자격 증명(배포 인증서 + ad-hoc 프로비저닝 프로파일)은 EAS 서버에 저장돼 있어
 (Ad Hoc Configuration — App Store Configuration과 별도로 공존), 빌드하는 PC에는 아무
@@ -49,12 +48,18 @@ ad-hoc 서명 자격 증명(배포 인증서 + ad-hoc 프로비저닝 프로파�
 ### 매일: Metro 실행
 
 ```bash
-pnpm mobile:start
+pnpm mobile:start:dev     # dev 앱용 — 8082, api-dev 서버 (= apps/mobile 의 start:dev)
+pnpm mobile:start:prod    # prod 앱용 — 8081, 운영 api 서버 (= apps/mobile 의 start:prod)
 ```
 
-루트에서 실행한다 (= `apps/mobile`의 `pnpm start`). 폰과 Mac이 같은 Wi-Fi에 있으면
-폰의 nook 앱 첫 화면(Development Servers)에 서버가 자동으로 잡힌다. 한 번 띄워두면
-코드 저장 시마다 폰에 즉시 반영된다(Fast Refresh). 폰을 흔들면 개발자 메뉴가 나온다.
+루트에서 실행한다. 두 스크립트는 `native-public-config.json`의 variant 값을 강제 주입하므로
+로컬 `.env`의 `EXPO_PUBLIC_*` 오버라이드와 무관하게 항상 해당 variant 서버를 본다. 둘을
+동시에 띄워 dev/prod 앱을 각자 다른 포트에 연결할 수 있다. 특수한 오버라이드가 필요할 때만
+`pnpm mobile:start`(기존 `.env` 기반)를 쓴다.
+
+폰과 Mac이 같은 Wi-Fi에 있으면 폰의 nook 앱 첫 화면(Development Servers)에 서버가 자동으로
+잡힌다 — dev 앱은 8082, prod 앱은 8081 서버를 선택한다. 한 번 띄워두면 코드 저장 시마다 폰에
+즉시 반영된다(Fast Refresh). 폰을 흔들면 개발자 메뉴가 나온다.
 
 ### 로컬 웹을 앱에 띄울 때
 

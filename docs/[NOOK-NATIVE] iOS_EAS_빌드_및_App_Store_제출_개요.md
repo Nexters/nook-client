@@ -50,7 +50,7 @@ metro 채널은 dev client 빌드라 실행하려면 Mac의 Metro 서버가 필�
 "새 테스트 기기 추가" 절 참고. **폰 단독으로 실행되는 앱을 설치하려면 TestFlight(store 채널)를
 쓴다** — 테스터의 Apple ID(이메일)를 App Store Connect에서 초대하면 된다.
 
-`package.json` 스크립트는 프로필 이름과 1:1이다: `build:<프로필>`, `build:<프로필>:local`(store),
+`package.json` 스크립트는 프로필 이름과 1:1이다: `build:<프로필>`, `build:<프로필>:local`,
 `submit:dev-store`, `submit:prod-store`.
 
 | 기타 고정값 | |
