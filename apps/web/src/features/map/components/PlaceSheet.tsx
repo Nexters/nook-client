@@ -175,6 +175,13 @@ export function PlaceSheet({
       // 두면 스크롤이 맨 위(scrollTop 0)에 닿는 순간 같은 제스처가 그대로 시트 드래그로
       // 넘어간다 — 스크롤 중에는 어차피 scrollTop 조건이 막아주므로 오작동하지 않는다.
       scrollLockTimeout={0}
+      // 키보드가 뜨면 vaul 이 드로어의 인라인 height 를 직접 덮어쓴다 —
+      // `visualViewportHeight - rect.top` 으로 다시 계산하는데, 이 시트는 늘 컨테이너를
+      // 꽉 채우는 높이라(place-sheet-layout) mid 스냅에서 밀려난 몫까지 한 번 더 빠져
+      // 시트가 뚝 낮아진다. 키보드가 내려간 뒤에도 px 로 굳은 값이 남아 우리 계산을
+      // 계속 밀어낸다. 스냅 높이의 주인은 place-sheet-layout 하나여야 하므로 끈다 —
+      // 검색 입력은 시트 최상단이라 어차피 키보드에 가리지 않는다(QA).
+      repositionInputs={false}
       snapPoints={
         hasSelection
           ? DETAIL_SNAP_POINTS
