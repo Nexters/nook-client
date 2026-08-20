@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
+import { usePlacePinToast } from '@/features/place/lib/usePlacePinToast';
 import type { MapBounds, SavedPlaceSearchPage } from '../types';
 import {
   disconnectPostPlace,
@@ -18,6 +19,9 @@ import {
   updatePlaceBookmark,
   updatePlaceMemo,
 } from '.';
+
+/** 썸네일 파싱 중(processing)인 항목이 남아있는 동안의 재조회 간격 — archive/post 쪽 폴링과 같은 값. */
+const POLL_INTERVAL_MS = 3000;
 
 export const mapQueryKeys = {
   pinsAll: ['map', 'pins'] as const,
@@ -52,7 +56,11 @@ export function useMapPins(bounds: MapBounds) {
   });
 }
 
-/** "최근 저장한 공간" — 장소 미선택 상태의 목록 모드. */
+/**
+ * "최근 저장한 공간" — 장소 미선택 상태의 목록 모드.
+ * 저장 직후엔 BE 가 썸네일을 비동기로 파싱한다 — 처리 중(`thumbnailState === 'processing'`)인
+ * 장소가 하나라도 있으면 끝날 때까지 폴링해 카드를 실시간으로 채운다.
+ */
 export function useRecentPlaces() {
   const isAuthenticated = useIsAuthenticated();
 
@@ -60,6 +68,12 @@ export function useRecentPlaces() {
     queryKey: mapQueryKeys.recent,
     queryFn: fetchRecentPlaces,
     enabled: isAuthenticated,
+    refetchInterval: (query) => {
+      const anyProcessing = query.state.data?.some(
+        (place) => place.thumbnailState === 'processing',
+      );
+      return anyProcessing ? POLL_INTERVAL_MS : false;
+    },
   });
 }
 
@@ -136,11 +150,15 @@ export function usePlacePosts(placeId: number | null) {
  */
 export function useUpdatePlaceBookmark() {
   const queryClient = useQueryClient();
+  const showPinToast = usePlacePinToast();
 
   return useMutation({
     mutationFn: ({ placeId, bookmarked }: { placeId: number; bookmarked: boolean }) =>
       updatePlaceBookmark(placeId, bookmarked),
-    onSuccess: (_data, { placeId }) => {
+    onSuccess: (_data, { placeId, bookmarked }) => {
+      // 결과 안내는 호출부가 아니라 여기서 한다 — 상세 헤더·스티키 헤더·연관 장소 행이
+      // 모두 이 훅 하나를 쓰므로, 진입점이 늘어도 스낵바가 저절로 따라온다.
+      showPinToast(bookmarked);
       queryClient.invalidateQueries({ queryKey: mapQueryKeys.detail(placeId) });
       queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll });
       // 연관 장소의 별 표시는 게시물 상세 응답(`postQueryKeys.detail` = ['posts', postId])의

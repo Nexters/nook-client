@@ -66,6 +66,8 @@ function renderPage(token = 'tok-123', options: { withAwaitSession?: boolean } =
         <Routes>
           <Route path="/shared/:token" element={element} />
           <Route path="/shared/:token/post/:postId" element={<div>공유 게시물 상세</div>} />
+          <Route path="/archive" element={<div>아카이브 목록 화면</div>} />
+          <Route path="/archive/:archiveId/edit" element={<div>아카이브 편집 화면</div>} />
           <Route path="/login" element={<div>로그인 화면</div>} />
           <Route path="/map" element={<MapRouteProbe />} />
         </Routes>
@@ -139,14 +141,31 @@ describe('SharedArchivePage', () => {
     await vi.waitFor(() =>
       expect(mocks.subscribeSharedArchive).toHaveBeenCalledWith('tok-123', expect.anything()),
     );
-    expect(await screen.findByText('아카이브에 저장됐어요!')).toBeInTheDocument();
+    expect(await screen.findByText('아카이브에 저장했어요!')).toBeInTheDocument();
+
+    // 보러가기는 저장한 아카이브 상세가 아니라 내 아카이브 목록으로 보낸다.
+    fireEvent.click(screen.getByRole('button', { name: '보러가기' }));
+    expect(await screen.findByText('아카이브 목록 화면')).toBeInTheDocument();
   });
 
   it('이미 내 목록에 있는 아카이브는 저장 버튼이 완료 상태다', async () => {
     session.status = 'authenticated';
     archivesMock.mockResolvedValue([{ ...META, accessType: 'SHARED' }]);
     renderPage();
-    expect(await screen.findByRole('button', { name: /저장됨/ })).toBeDisabled();
+    // 라벨은 그대로 두고 체크 상태(채워진 칩)로 바뀐다 — Figma butto/40_save Selected.
+    expect(await screen.findByRole('button', { name: /아카이브에 저장/ })).toBeDisabled();
+  });
+
+  it('소유자(OWNED)에게는 저장 대신 아카이브 편집 버튼이 보이고, 누르면 편집 페이지로 간다', async () => {
+    session.status = 'authenticated';
+    archivesMock.mockResolvedValue([{ ...META, accessType: 'OWNED' }]);
+    renderPage();
+
+    // 내 아카이브 목록이 로드된 뒤에 편집 버튼으로 바뀌므로, 버튼이 나타난 다음에 저장 버튼 부재를 확인한다.
+    const editButton = await screen.findByRole('button', { name: '아카이브 편집' });
+    expect(screen.queryByRole('button', { name: /아카이브에 저장/ })).not.toBeInTheDocument();
+    fireEvent.click(editButton);
+    expect(await screen.findByText('아카이브 편집 화면')).toBeInTheDocument();
   });
 
   it('돌아갈 히스토리가 없으면 뒤로 가기가 지도로 보낸다', async () => {

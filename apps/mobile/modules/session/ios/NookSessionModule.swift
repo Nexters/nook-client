@@ -6,8 +6,8 @@ public final class NookSessionModule: Module {
   public func definition() -> ModuleDefinition {
     Name("NookSession")
     AsyncFunction("getSession") { try SessionVault().read() }
-    AsyncFunction("setSession") { (accessToken: String, refreshToken: String?) in
-      try SessionVault().write(accessToken: accessToken, refreshToken: refreshToken)
+    AsyncFunction("setSession") { (accessToken: String, refreshToken: String?, apiBaseUrl: String?) in
+      try SessionVault().write(accessToken: accessToken, refreshToken: refreshToken, apiBaseUrl: apiBaseUrl)
     }
     AsyncFunction("clearSession") {
       try SessionVault().clear()
@@ -24,10 +24,12 @@ struct NativeStoredSession: Codable {
   let schemaVersion: Int
   let accessToken: String
   let refreshToken: String?
+  // 토큰을 발급한 API 오리진. 이 필드가 없던 시절의 저장분도 읽혀야 하므로 옵셔널이다.
+  let apiBaseUrl: String?
   let revision: Int
 
   var dictionary: [String: Any?] {
-    ["schemaVersion": schemaVersion, "accessToken": accessToken, "refreshToken": refreshToken, "revision": revision]
+    ["schemaVersion": schemaVersion, "accessToken": accessToken, "refreshToken": refreshToken, "apiBaseUrl": apiBaseUrl, "revision": revision]
   }
 }
 
@@ -51,10 +53,10 @@ struct SessionVault {
     return try JSONDecoder().decode(NativeStoredSession.self, from: data).dictionary
   }
 
-  func write(accessToken: String, refreshToken: String?) throws -> [String: Any?] {
+  func write(accessToken: String, refreshToken: String?, apiBaseUrl: String?) throws -> [String: Any?] {
     guard !accessToken.isEmpty else { throw VaultError.invalidToken }
     let currentRevision = ((try read())?["revision"] as? Int) ?? 0
-    let session = NativeStoredSession(schemaVersion: 1, accessToken: accessToken, refreshToken: refreshToken, revision: currentRevision + 1)
+    let session = NativeStoredSession(schemaVersion: 1, accessToken: accessToken, refreshToken: refreshToken, apiBaseUrl: apiBaseUrl, revision: currentRevision + 1)
     let data = try JSONEncoder().encode(session)
     var attributes = baseQuery
     attributes[kSecValueData as String] = data

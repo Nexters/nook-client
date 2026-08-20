@@ -49,6 +49,10 @@ export function useWebViewBridge() {
   // 웹이 WEB_READY 를 보낸 시점 = 원격 웹의 JS 가 실제로 실행됐다는 뜻. 스플래시를 내릴 기준이다.
   const [webReady, setWebReady] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  // iOS 엣지 스와이프 허용 여부 — 웹이 화면마다 알려준다(SET_BACK_GESTURE).
+  // 기본값 true: 이 메시지를 보내지 않는 구버전 웹이 실려도 지금까지의 동작(항상 허용)이
+  // 그대로 유지된다. 새 웹은 첫 화면을 그리면서 곧바로 제 값을 보내 덮어쓴다.
+  const [backGestureEnabled, setBackGestureEnabled] = useState(true);
   const [webTarget, setWebTarget] = useState({ url: WEB_URL, revision: 0 });
   // 웹이 아직 준비되기 전(콜드 스타트로 알림을 탭한 경우 포함)에 들어온 오픈 이벤트는
   // 여기 잠깐 쥐고 있다가 WEB_READY 때 흘려보낸다.
@@ -180,12 +184,16 @@ export function useWebViewBridge() {
           break;
         }
         case 'SESSION_GET':
-          void restoreSession().then((session) => sendResult(message.payload.requestId, session));
+          void restoreSession(message.payload.apiBaseUrl).then((session) =>
+            sendResult(message.payload.requestId, session),
+          );
           break;
         case 'SESSION_ESTABLISH':
-          void establishSession(message.payload.accessToken, message.payload.refreshToken).then(
-            (session) => sendResult(message.payload.requestId, session),
-          );
+          void establishSession(
+            message.payload.accessToken,
+            message.payload.refreshToken,
+            message.payload.apiBaseUrl,
+          ).then((session) => sendResult(message.payload.requestId, session));
           break;
         case 'SESSION_REFRESH':
           void refreshSession(message.payload.revision).then((session) =>
@@ -216,6 +224,11 @@ export function useWebViewBridge() {
         }
         case 'BACK_EXHAUSTED':
           if (Platform.OS === 'android') BackHandler.exitApp();
+          break;
+        case 'SET_BACK_GESTURE':
+          // 웹의 판정: "헤더 좌상단에 뒤로가기 버튼이 있는 풀 페이지인가". 드로어·바텀시트·
+          // 메인 탭에서는 false 로 내려와 제스처가 아예 인식되지 않는다.
+          setBackGestureEnabled(message.payload.enabled);
           break;
         case 'SESSION_CLEAR':
           void clearSession().then(() => {
@@ -260,6 +273,7 @@ export function useWebViewBridge() {
     retryLoad,
     onMessage,
     onShouldStartLoadWithRequest,
+    backGestureEnabled,
     webUrl: webTarget.url,
     webViewKey: webTarget.revision,
     webViewRef,

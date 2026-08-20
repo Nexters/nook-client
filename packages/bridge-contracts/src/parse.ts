@@ -93,6 +93,12 @@ function token(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
+// 구버전 웹은 이 필드를 보내지 않으므로 없거나 형식이 어긋나면 null 로 받는다.
+function apiBaseUrl(payload: Record<string, unknown>): string | null {
+  const value = payload.apiBaseUrl;
+  return typeof value === 'string' && /^https?:\/\//.test(value) ? value : null;
+}
+
 /** 자격증명은 provider 마다 필드가 달라, 최소 하나라도 있어야 유효한 것으로 본다. */
 function parseSocialCredential(value: unknown): SocialCredential | null {
   if (!isRecord(value)) return null;
@@ -122,6 +128,10 @@ export function parseWebToNative(json: string): WebToNative | null {
       return typeof value.payload.url === 'string'
         ? { v: BRIDGE_VERSION, type: value.type, payload: { url: value.payload.url } }
         : null;
+    case 'SET_BACK_GESTURE':
+      return typeof value.payload.enabled === 'boolean'
+        ? { v: BRIDGE_VERSION, type: value.type, payload: { enabled: value.payload.enabled } }
+        : null;
     case 'SOCIAL_LOGIN': {
       const id = requestId(value.payload);
       return id && isSocialProvider(value.payload.provider)
@@ -142,11 +152,20 @@ export function parseWebToNative(json: string): WebToNative | null {
           }
         : null;
     }
-    case 'SESSION_GET':
     case 'SESSION_CLEAR':
     case 'REQUEST_PUSH_PERMISSION': {
       const id = requestId(value.payload);
       return id ? { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id } } : null;
+    }
+    case 'SESSION_GET': {
+      const id = requestId(value.payload);
+      return id
+        ? {
+            v: BRIDGE_VERSION,
+            type: value.type,
+            payload: { requestId: id, apiBaseUrl: apiBaseUrl(value.payload) },
+          }
+        : null;
     }
     case 'SESSION_REFRESH': {
       const id = requestId(value.payload);
@@ -174,6 +193,7 @@ export function parseWebToNative(json: string): WebToNative | null {
               requestId: id,
               accessToken: value.payload.accessToken,
               refreshToken,
+              apiBaseUrl: apiBaseUrl(value.payload),
             },
           }
         : null;

@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlaceDetail as PlaceDetailModel, PlaceDetailPost } from '@/features/map/types';
 import type { ParsedPlace, PostDetail } from '@/features/post/types';
@@ -52,8 +52,24 @@ function postDetail(places: ParsedPlace[], archives: PostDetail['archives'] = []
     title: '게시물',
     archives,
     places,
-    post: { id: '1', authorHandle: '@nook' },
+    placeParsingStatus: 'COMPLETED',
+    placeParsingFailureReason: null,
+    post: { id: '1', authorHandle: '@nook', images: ['first.jpg', 'second.jpg'] },
   };
+}
+
+/**
+ * iOS 엣지 스와이프가 하는 일 — 화면을 거치지 않고 히스토리를 한 칸 되돌린다.
+ * WKWebView 는 웹에 이벤트를 주지 않고 히스토리를 직접 조작하므로, 라우터 레벨의
+ * navigate(-1) 이 그 경로를 그대로 재현한다.
+ */
+function HistoryBackProbe() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      히스토리 뒤로
+    </button>
+  );
 }
 
 const PLACE: PlaceDetailModel = {
@@ -82,6 +98,7 @@ function renderDetail(
     <QueryClientProvider client={client}>
       <ToastProvider>
         <MemoryRouter initialEntries={['/map']}>
+          <HistoryBackProbe />
           <Routes>
             <Route
               path="/map"
@@ -97,6 +114,7 @@ function renderDetail(
             />
             <Route path="/archive/:archiveId" element={<p>아카이브 상세 화면</p>} />
             <Route path="/place/:placeId/posts" element={<p>저장된 게시물 목록 화면</p>} />
+            <Route path="/post/:postId" element={<p>게시물 상세 화면</p>} />
           </Routes>
         </MemoryRouter>
       </ToastProvider>
@@ -356,5 +374,52 @@ describe('PlaceDetail 저장된 게시물', () => {
 
     expect(await screen.findByRole('heading', { name: '저장된 게시물' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /저장된 게시물/ })).not.toBeInTheDocument();
+  });
+
+  it('캐러셀 타일을 누르면 그 게시물 상세 페이지로 간다', async () => {
+    renderDetail();
+
+    fireEvent.click(screen.getByText('게시물 A'));
+
+    expect(screen.getByText('게시물 상세 화면')).toBeInTheDocument();
+  });
+
+  it('펼쳐진 카드의 사진을 누르면 페이지 이동 대신 그 사진부터 확대 뷰가 뜬다', async () => {
+    renderDetail(undefined, { ...PLACE, posts: [PLACE.posts[0] as PlaceDetailPost] });
+
+    fireEvent.click(await screen.findByRole('button', { name: '2번째 사진 크게 보기' }));
+
+    // 라우트 이동(/post/{id})이 아니라 오버레이라 장소 상세 화면이 그대로 남아 있다.
+    expect(screen.getByText('아이소')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '게시물', level: 1 })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '게시물 미리보기 닫기' }));
+    expect(screen.queryByRole('heading', { name: '게시물', level: 1 })).not.toBeInTheDocument();
+  });
+
+  it('확대 뷰는 히스토리 뒤로(iOS 엣지 스와이프)로도 닫히고 장소 상세는 남는다', async () => {
+    renderDetail(undefined, { ...PLACE, posts: [PLACE.posts[0] as PlaceDetailPost] });
+
+    fireEvent.click(await screen.findByRole('button', { name: '2번째 사진 크게 보기' }));
+    expect(await screen.findByRole('heading', { name: '게시물', level: 1 })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '히스토리 뒤로' }));
+
+    // 확대 뷰만 닫힌다 — 승격 전에는 이 제스처가 장소 상세를 통째로 떠났다.
+    expect(screen.queryByRole('heading', { name: '게시물', level: 1 })).not.toBeInTheDocument();
+    expect(screen.getByText('아이소')).toBeInTheDocument();
+  });
+
+  it('사진 전체보기도 히스토리 뒤로(iOS 엣지 스와이프)로 닫힌다', async () => {
+    renderDetail(undefined, { ...PLACE, posts: [], photos: ['a.jpg', 'b.jpg'] });
+
+    fireEvent.click(await screen.findByRole('button', { name: '1번째 사진 크게 보기' }));
+    // 전체보기 오버레이 헤더에만 있는 "뒤로"로 떠 있는지 확인한다(상세의 버튼은 "뒤로 가기").
+    expect(screen.getByRole('button', { name: '뒤로' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '히스토리 뒤로' }));
+
+    expect(screen.queryByRole('button', { name: '뒤로' })).not.toBeInTheDocument();
+    expect(screen.getByText('아이소')).toBeInTheDocument();
   });
 });

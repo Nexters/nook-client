@@ -18,6 +18,8 @@ export type ToastRequest =
   | { variant: 'action'; title: string; actionLabel: string; onAction: () => void }
   /** 라벨이 "실행취소"로 고정된 되돌리기 전용 모양(장소 삭제 시안). */
   | { variant: 'undo'; title: string; onUndo: () => void }
+  /** undo 와 같은 파란 텍스트 액션이지만 라벨은 사용처가 정한다(공유 아카이브 저장 시안 253:10520). */
+  | { variant: 'link'; title: string; actionLabel: string; onAction: () => void }
   | { variant: 'simple'; title: string };
 
 interface ActiveToast {
@@ -69,6 +71,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     },
     [closeFront],
   );
+
+  // 3초 수명은 Radix 타이머 대신 우리가 소유한다 — Radix 는 토스트 노출 중 window blur
+  // 가 오면 타이머를 멈추고 focus 가 와야 재개하는데, 네이티브 WebView 는 첫 터치 전까지
+  // focus 이벤트가 안 와서 토스트가 사라지지 않는다. 데스크톱의 호버 유지보다 모바일에서
+  // 정확히 3초 뒤 닫히는 쪽을 우선한다(스와이프 닫기는 Radix 가 계속 담당).
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = setTimeout(closeFront, TOAST_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [isOpen, closeFront]);
 
   // closing 표시가 붙은 뒤 퇴장 애니메이션이 끝날 시간만큼 대기했다가 큐에서 제거한다.
   // 이때 비로소 다음 토스트가 새 key 로 마운트되며 진입 애니메이션을 새로 탄다.
@@ -126,6 +138,13 @@ function ToastRoot({
   onActionClick: () => void;
 }) {
   const simple = request.variant === 'simple';
+  // 파란 텍스트 액션 — 되돌리기(라벨 고정)와 자유 라벨(link)이 같은 모양을 쓴다.
+  const textAction =
+    request.variant === 'undo'
+      ? { label: UNDO_LABEL, onAction: request.onUndo }
+      : request.variant === 'link'
+        ? { label: request.actionLabel, onAction: request.onAction }
+        : null;
 
   return (
     <ToastPrimitive.Root
@@ -172,18 +191,18 @@ function ToastRoot({
         </ToastPrimitive.Action>
       ) : null}
 
-      {/* 되돌리기는 버튼이 아니라 파란 텍스트다(시안 `장소가 삭제 됐어요.`). */}
-      {request.variant === 'undo' ? (
-        <ToastPrimitive.Action altText={UNDO_LABEL} asChild>
+      {/* 되돌리기·보러가기는 버튼이 아니라 파란 텍스트다(시안 `장소가 삭제 됐어요.`). */}
+      {textAction ? (
+        <ToastPrimitive.Action altText={textAction.label} asChild>
           <button
             type="button"
             className="shrink-0 px-2 py-1 text-b2 font-semibold text-nook-blue"
             onClick={() => {
-              request.onUndo();
+              textAction.onAction();
               onActionClick();
             }}
           >
-            {UNDO_LABEL}
+            {textAction.label}
           </button>
         </ToastPrimitive.Action>
       ) : null}

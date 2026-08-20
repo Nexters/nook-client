@@ -9,8 +9,69 @@ vi.mock('@/shared/api', async (importOriginal) => ({
   ...endpoints,
 }));
 
-import type { PlaceDetailResponse, SavedPlaceSearchPageResponse } from '@/shared/api';
-import { fetchPlacePosts, toPlaceDetail, toSavedPlaceSearchPage } from '.';
+import type {
+  PlaceDetailResponse,
+  RecentPlaceResponse,
+  SavedPlaceSearchPageResponse,
+} from '@/shared/api';
+import { fetchPlacePosts, toPlaceDetail, toRecentPlace, toSavedPlaceSearchPage } from '.';
+
+const RECENT_PLACE_BASE: RecentPlaceResponse = {
+  id: 21,
+  name: '온기 카페',
+  address: '서울 마포구 연남동',
+  category: '카페',
+  latitude: 37.56,
+  longitude: 126.92,
+  tags: [],
+  thumbnailParsingStatus: 'COMPLETED',
+  thumbnailUrl: 'https://img.example/ongi.jpg',
+};
+
+describe('toRecentPlace', () => {
+  it.each(['PENDING', 'PROCESSING'] as const)(
+    '썸네일이 없고 파싱 상태가 %s 면 thumbnailState 를 processing 으로 표시한다',
+    (status) => {
+      const place = toRecentPlace({
+        ...RECENT_PLACE_BASE,
+        thumbnailUrl: null,
+        thumbnailParsingStatus: status,
+      });
+
+      expect(place.thumbnailState).toBe('processing');
+    },
+  );
+
+  it('썸네일이 없고 파싱 상태가 FAILED 면 thumbnailState 를 failed 로 표시한다', () => {
+    const place = toRecentPlace({
+      ...RECENT_PLACE_BASE,
+      thumbnailUrl: null,
+      thumbnailParsingStatus: 'FAILED',
+    });
+
+    expect(place.thumbnailState).toBe('failed');
+  });
+
+  it('썸네일 URL 이 이미 있으면 파싱 상태와 무관하게 thumbnailState 를 비운다', () => {
+    const place = toRecentPlace({
+      ...RECENT_PLACE_BASE,
+      thumbnailUrl: 'https://img.example/ongi.jpg',
+      thumbnailParsingStatus: 'PENDING',
+    });
+
+    expect(place.thumbnailState).toBeUndefined();
+  });
+
+  it('썸네일이 없고 파싱 상태가 COMPLETED 면 thumbnailState 를 비운다', () => {
+    const place = toRecentPlace({
+      ...RECENT_PLACE_BASE,
+      thumbnailUrl: null,
+      thumbnailParsingStatus: 'COMPLETED',
+    });
+
+    expect(place.thumbnailState).toBeUndefined();
+  });
+});
 
 const PAGE: SavedPlaceSearchPageResponse = {
   groups: [{ id: 3, name: '성수 카페', color: 'MINT', matchedPlaceCount: 2 }],

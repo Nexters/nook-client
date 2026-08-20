@@ -630,6 +630,19 @@ export function UiComponentsPage() {
             >
               4. simple
             </Button>
+            <Button
+              size="sm"
+              onClick={() =>
+                showToast({
+                  variant: 'link',
+                  title: '아카이브에 저장했어요!',
+                  actionLabel: '보러가기',
+                  onAction: () => setLastAction('토스트 보러가기(링크)'),
+                })
+              }
+            >
+              5. link
+            </Button>
           </ButtonGroup>
         </Row>
       </Section>
@@ -889,7 +902,7 @@ export function UiComponentsPage() {
           <PlacePhotos photos={SAMPLE_PHOTOS} onPhotoClick={() => setPhotosOpen(true)} />
           {/* 1장이면 캐러셀도 사진 태그도 없다 */}
           <PlacePhotos photos={[SAMPLE_IMAGE]} />
-          {/* 사진이 없으면 같은 크기의 빈 프레임 */}
+          {/* 사진이 없으면 아무것도 그리지 않는다 — 아래 여백이 붙지 않는 게 정상 */}
           <PlacePhotos photos={[]} />
         </div>
         {photosOpen ? (
@@ -973,9 +986,15 @@ export function UiComponentsPage() {
       <Section title="post — ExpandableCaption (게시물 본문)">
         <div className="mx-auto w-full max-w-[343px]">
           <ExpandableCaption caption={MOCK_POST.caption ?? ''} />
+          <ExpandableCaption
+            caption={MOCK_POST.caption ?? ''}
+            lines={2}
+            toggleClassName="self-end font-semibold"
+          />
         </div>
         <p className="text-b3 text-gray-50">
           한 줄로 접혀 있고 "더보기"로 펼칩니다. 펼친 뒤엔 "접기" 말고 본문을 눌러도 접힙니다.
+          아래는 저장된 게시물 카드가 쓰는 2줄 + 오른쪽 정렬 조합입니다.
         </p>
       </Section>
 

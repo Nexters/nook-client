@@ -14,11 +14,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 
 enum class NookIconName {
+    Icon14Processing,
     Icon16Archive,
     Icon16ArrowDiagonal,
     Icon16ArrowDown,
     Icon16ArrowRight,
     Icon16ArrowUp,
+    Icon16ArrowUpTray,
     Icon16Chat,
     Icon16Check,
     Icon16CheckCircle,
@@ -90,11 +92,13 @@ enum class NookIconName {
 fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
     Canvas(modifier) {
         val viewBox = when (name) {
+            NookIconName.Icon14Processing -> 14f to 14f
             NookIconName.Icon16Archive -> 16f to 16f
             NookIconName.Icon16ArrowDiagonal -> 16f to 16f
             NookIconName.Icon16ArrowDown -> 16f to 16f
             NookIconName.Icon16ArrowRight -> 16f to 16f
             NookIconName.Icon16ArrowUp -> 16f to 16f
+            NookIconName.Icon16ArrowUpTray -> 16f to 16f
             NookIconName.Icon16Chat -> 16f to 16f
             NookIconName.Icon16Check -> 16f to 16f
             NookIconName.Icon16CheckCircle -> 16f to 16f
@@ -164,6 +168,25 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
         drawContext.canvas.save()
         drawContext.canvas.scale(size.width / viewBox.first, size.height / viewBox.second)
         when (name) {
+        NookIconName.Icon14Processing -> {
+            val path0 = Path().apply {
+
+                moveTo(7f, 13f)
+                cubicTo(10.3137f, 13f, 13f, 10.3137f, 13f, 7f)
+                cubicTo(13f, 3.68629f, 10.3137f, 1f, 7f, 1f)
+                cubicTo(3.68629f, 1f, 1f, 3.68629f, 1f, 7f)
+                cubicTo(1f, 10.3137f, 3.68629f, 13f, 7f, 13f)
+                close()
+            }
+            drawPath(path = path0, color = Color(0xFFCACED4), style = Stroke(width = 2f, cap = StrokeCap.Butt))
+            val path1 = Path().apply {
+
+                moveTo(7f, 1f)
+                cubicTo(8.28263f, 1.00014f, 9.53146f, 1.41131f, 10.5633f, 2.17319f)
+                cubicTo(11.5951f, 2.93507f, 12.3557f, 4.00756f, 12.7333f, 5.23333f)
+            }
+            drawPath(path = path1, color = Color(0xFF4E5662), style = Stroke(width = 2f, cap = StrokeCap.Round))
+        }
         NookIconName.Icon16Archive -> {
             val path0 = Path().apply {
 
@@ -263,6 +286,66 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
                 lineTo(13.3346f, 10.667f)
             }
             drawPath(path = path0, color = Color(0xFF1F1F1F), style = Stroke(width = 1f, cap = StrokeCap.Butt))
+        }
+        NookIconName.Icon16ArrowUpTray -> {
+            val path0 = Path().apply {
+
+                moveTo(7.40869f, 11.1055f)
+                cubicTo(7.40869f, 11.2546f, 7.4719f, 11.3977f, 7.58442f, 11.5032f)
+                cubicTo(7.69695f, 11.6087f, 7.84956f, 11.668f, 8.00869f, 11.668f)
+                cubicTo(8.16782f, 11.668f, 8.32043f, 11.6087f, 8.43295f, 11.5032f)
+                cubicTo(8.54547f, 11.3977f, 8.60869f, 11.2546f, 8.60869f, 11.1055f)
+                lineTo(8.60869f, 4.64483f)
+                lineTo(10.9727f, 6.99162f)
+                cubicTo(11.0829f, 7.09641f, 11.2324f, 7.15656f, 11.3893f, 7.15917f)
+                cubicTo(11.5463f, 7.16178f, 11.698f, 7.10665f, 11.8121f, 7.0056f)
+                cubicTo(11.9262f, 6.90454f, 11.9935f, 6.76561f, 11.9995f, 6.61859f)
+                cubicTo(12.0056f, 6.47156f, 11.95f, 6.32816f, 11.8447f, 6.21911f)
+                lineTo(8.44469f, 2.84404f)
+                cubicTo(8.38861f, 2.78843f, 8.32102f, 2.74413f, 8.24605f, 2.71386f)
+                cubicTo(8.17108f, 2.68358f, 8.09031f, 2.66797f, 8.00869f, 2.66797f)
+                cubicTo(7.92706f, 2.66797f, 7.84629f, 2.68358f, 7.77132f, 2.71386f)
+                cubicTo(7.69636f, 2.74413f, 7.62876f, 2.78843f, 7.57269f, 2.84404f)
+                lineTo(4.17269f, 6.21911f)
+                cubicTo(4.11663f, 6.27243f, 4.07249f, 6.3357f, 4.04285f, 6.40523f)
+                cubicTo(4.01321f, 6.47475f, 3.99868f, 6.54911f, 4.00009f, 6.62397f)
+                cubicTo(4.00151f, 6.69883f, 4.01885f, 6.77267f, 4.05111f, 6.84116f)
+                cubicTo(4.08336f, 6.90965f, 4.12987f, 6.97141f, 4.18791f, 7.02283f)
+                cubicTo(4.24595f, 7.07426f, 4.31436f, 7.1143f, 4.38912f, 7.14061f)
+                cubicTo(4.46388f, 7.16692f, 4.5435f, 7.17898f, 4.6233f, 7.17607f)
+                cubicTo(4.70309f, 7.17317f, 4.78147f, 7.15535f, 4.85383f, 7.12368f)
+                cubicTo(4.92619f, 7.09201f, 4.99108f, 7.04711f, 5.04469f, 6.99162f)
+                lineTo(7.40869f, 4.64483f)
+                lineTo(7.40869f, 11.1055f)
+                close()
+            }
+            drawPath(path = path0, color = Color(0xFF1F1F1F))
+            val path1 = Path().apply {
+
+                moveTo(2.80046f, 10.2007f)
+                cubicTo(2.80046f, 10.0415f, 2.73724f, 9.88891f, 2.62472f, 9.77639f)
+                cubicTo(2.5122f, 9.66387f, 2.35959f, 9.60065f, 2.20046f, 9.60065f)
+                cubicTo(2.04133f, 9.60065f, 1.88871f, 9.66387f, 1.77619f, 9.77639f)
+                cubicTo(1.66367f, 9.88891f, 1.60046f, 10.0415f, 1.60046f, 10.2007f)
+                lineTo(1.60046f, 12.2007f)
+                cubicTo(1.60046f, 12.7841f, 1.83224f, 13.3437f, 2.24482f, 13.7563f)
+                cubicTo(2.6574f, 14.1689f, 3.21698f, 14.4007f, 3.80046f, 14.4007f)
+                lineTo(12.2005f, 14.4007f)
+                cubicTo(12.7839f, 14.4007f, 13.3435f, 14.1689f, 13.7561f, 13.7563f)
+                cubicTo(14.1687f, 13.3437f, 14.4005f, 12.7841f, 14.4005f, 12.2007f)
+                lineTo(14.4005f, 10.2007f)
+                cubicTo(14.4005f, 10.0415f, 14.3372f, 9.88891f, 14.2247f, 9.77639f)
+                cubicTo(14.1122f, 9.66387f, 13.9596f, 9.60065f, 13.8005f, 9.60065f)
+                cubicTo(13.6413f, 9.60065f, 13.4887f, 9.66387f, 13.3762f, 9.77639f)
+                cubicTo(13.2637f, 9.88891f, 13.2005f, 10.0415f, 13.2005f, 10.2007f)
+                lineTo(13.2005f, 12.2007f)
+                cubicTo(13.2005f, 12.7527f, 12.7525f, 13.2007f, 12.2005f, 13.2007f)
+                lineTo(3.80046f, 13.2007f)
+                cubicTo(3.24846f, 13.2007f, 2.80046f, 12.7527f, 2.80046f, 12.2007f)
+                lineTo(2.80046f, 10.2007f)
+                close()
+            }
+            drawPath(path = path1, color = Color(0xFF1F1F1F))
         }
         NookIconName.Icon16Chat -> {
             val path0 = Path().apply {

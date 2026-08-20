@@ -89,25 +89,35 @@ class NativeBridge {
     window.ReactNativeWebView?.postMessage(JSON.stringify(message));
   }
 
-  requestSession(type: 'SESSION_GET' | 'SESSION_CLEAR'): Promise<SessionResult>;
+  requestSession(type: 'SESSION_CLEAR'): Promise<SessionResult>;
+  requestSession(type: 'SESSION_GET', apiBaseUrl: string | null): Promise<SessionResult>;
   requestSession(type: 'SESSION_REFRESH', revision: number): Promise<SessionResult>;
   requestSession(
     type: 'SESSION_ESTABLISH',
     accessToken: string,
     refreshToken: string | null,
+    apiBaseUrl: string | null,
   ): Promise<SessionResult>;
   requestSession(
     type: string,
-    first?: number | string,
+    first?: number | string | null,
     second?: string | null,
+    third?: string | null,
   ): Promise<SessionResult> {
     const requestId = randomRequestId();
     const payload =
       type === 'SESSION_REFRESH'
         ? { requestId, revision: first as number }
         : type === 'SESSION_ESTABLISH'
-          ? { requestId, accessToken: first as string, refreshToken: second ?? null }
-          : { requestId };
+          ? {
+              requestId,
+              accessToken: first as string,
+              refreshToken: second ?? null,
+              apiBaseUrl: third ?? null,
+            }
+          : type === 'SESSION_GET'
+            ? { requestId, apiBaseUrl: (first as string | null) ?? null }
+            : { requestId };
     return new Promise((resolve) => {
       this.pending.set(requestId, resolve);
       this.send({ v: 1, type, payload } as WebToNative);

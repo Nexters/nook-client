@@ -40,6 +40,8 @@ const DETAIL: PostDetail = {
   title: '지금 가기 좋은 초록뷰 카페',
   archives: [],
   memo: '지우랑 가면 좋겠다',
+  placeParsingStatus: 'COMPLETED',
+  placeParsingFailureReason: null,
   places: [
     {
       id: 42,

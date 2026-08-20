@@ -2570,6 +2570,13 @@
             "format": "int32",
             "type": "integer"
           },
+          "thumbnailUrl": {
+            "description": "영상 포스터 이미지 URL",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "type": {
             "description": "미디어 유형",
             "enum": [

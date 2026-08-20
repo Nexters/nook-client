@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { FULL_SNAP_POINT, MID_SNAP_POINT } from '@/features/map/constants';
+import { FULL_SNAP_POINT, MID_SNAP_POINT, PEEK_SNAP_POINT } from '@/features/map/constants';
 import { BOTTOM_MENU_HEIGHT } from '@/shared/ui/bottom-menu';
-import { getPlaceSheetLayoutClassNames, PLACE_SHEET_HEADER_HEIGHT } from './place-sheet-layout';
+import {
+  getPlaceSheetLayoutClassNames,
+  getSnapTransitionDurationSeconds,
+  PLACE_SHEET_HEADER_HEIGHT,
+} from './place-sheet-layout';
 
 describe('getPlaceSheetLayoutClassNames', () => {
   it('BottomMenu 가 떠 있으면 드로어를 그 높이만큼 띄운다', () => {
@@ -78,5 +82,35 @@ describe('getPlaceSheetLayoutClassNames', () => {
     );
     // 헤더가 없을 때는 계산식에 헤더 항이 아예 붙지 않는다.
     expect(withoutHeader.scroller.style?.height).not.toContain(PLACE_SHEET_HEADER_HEIGHT);
+  });
+});
+
+describe('getSnapTransitionDurationSeconds', () => {
+  it('멀리 갈수록 오래 걸린다 — 같은 시간에 끝나 "슝 떨어지는" 인상을 없앤다', () => {
+    const shortHop = getSnapTransitionDurationSeconds(MID_SNAP_POINT, FULL_SNAP_POINT);
+    const longDrop = getSnapTransitionDurationSeconds(FULL_SNAP_POINT, PEEK_SNAP_POINT);
+
+    expect(shortHop).not.toBeNull();
+    expect(longDrop).not.toBeNull();
+    expect(longDrop as number).toBeGreaterThan(shortHop as number);
+  });
+
+  it('방향과 무관하게 같은 거리는 같은 시간이다', () => {
+    expect(getSnapTransitionDurationSeconds(PEEK_SNAP_POINT, MID_SNAP_POINT)).toBe(
+      getSnapTransitionDurationSeconds(MID_SNAP_POINT, PEEK_SNAP_POINT),
+    );
+  });
+
+  it('가장 짧은 전환도 하한(0.6s) 아래로는 내려가지 않는다', () => {
+    expect(getSnapTransitionDurationSeconds(0.5, 0.5)).toBe(0.6);
+  });
+
+  it('가장 긴 전환도 상한(0.95s) 위로는 올라가지 않는다', () => {
+    expect(getSnapTransitionDurationSeconds(0, 1)).toBe(0.95);
+  });
+
+  it('비율이 아닌 스냅(px 문자열·null)은 계산하지 않고 null 을 준다 — 호출부가 기본값으로 돌아간다', () => {
+    expect(getSnapTransitionDurationSeconds('320px', FULL_SNAP_POINT)).toBeNull();
+    expect(getSnapTransitionDurationSeconds(null, FULL_SNAP_POINT)).toBeNull();
   });
 });

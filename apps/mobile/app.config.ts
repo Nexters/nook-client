@@ -36,7 +36,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   // 기본값은 SSOT 에서 오고, env 는 로컬 개발용 오버라이드로만 쓴다
   // (실기기에서 vite preview 를 LAN IP 로 띄우는 경우 등).
   const webUrl = process.env.EXPO_PUBLIC_WEB_URL ?? nativePublicConfig.webUrl[variant];
-  const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? nativePublicConfig.apiBaseUrl[variant];
 
   // 카카오 앱 키는 평문으로 커밋하지 않는다. EAS Environment Variables(KAKAO_NATIVE_APP_KEY_DEV/PROD)
   // 또는 로컬 .env 로만 공급한다. eas.json 의 environment 필드(EAS 가 자동 주입하는 기준)가 아니라
@@ -63,11 +62,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    // JS 는 process.env 대신 여기서 읽는다. 네이티브(Info.plist)와 같은 출처를 보게 하려는 것.
+    // JS 는 process.env 대신 여기서 읽는다.
     extra: {
       ...config.extra,
       webUrl,
-      apiBaseUrl,
     },
     name: variant === 'production' ? 'Nook' : `Nook (${variant})`,
     slug: 'nook',
@@ -160,7 +158,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         NSLocationWhenInUseUsageDescription:
           '지도에서 현재 위치와 저장한 장소까지의 거리를 보여주기 위해 위치 정보를 사용해요.',
         NookSessionAccessGroup: sessionAccessGroup,
-        NookApiBaseUrl: apiBaseUrl,
         NookAppGroup: `group.${appId}`,
       },
       entitlements: {

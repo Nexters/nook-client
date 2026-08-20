@@ -9,6 +9,8 @@
     "web:dev": "pnpm --filter web dev",
     "web:build": "pnpm --filter web build",
     "mobile:start": "pnpm --filter mobile start",
+    "mobile:start:dev": "pnpm --filter mobile start:dev",
+    "mobile:start:prod": "pnpm --filter mobile start:prod",
     "api:fetch": "pnpm --filter @nook/api-contracts openapi:fetch",
     "api:generate": "pnpm --filter @nook/api-contracts generate",
     "api:refresh": "pnpm --filter @nook/api-contracts refresh",
@@ -32,6 +34,9 @@
     "overrides": {
       "react": "19.2.3",
       "react-dom": "19.2.3"
+    },
+    "patchedDependencies": {
+      "expo-modules-jsi": "patches/expo-modules-jsi.patch"
     }
   }
 }

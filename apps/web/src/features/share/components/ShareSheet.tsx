@@ -1,15 +1,9 @@
 import type { Archive } from '@/features/archive/types';
+import { useMyProfile } from '@/features/my/api/queries';
 import { copyText, shareViaSystem } from '@/features/share/lib/shareUrl';
 import { Icon24Link, Icon24More } from '@/shared/icons/NookIcons';
 import { useToast } from '@/shared/toast';
-import {
-  BOTTOM_INSET_VAR,
-  COLOR_BG_CLASS,
-  Drawer,
-  DrawerContent,
-  DrawerTitle,
-  Thumbnail,
-} from '@/shared/ui';
+import { COLOR_BG_CLASS, Drawer, DrawerContent, DrawerTitle, Thumbnail } from '@/shared/ui';
 
 interface ShareSheetProps {
   open: boolean;
@@ -26,6 +20,10 @@ interface ShareSheetProps {
  */
 export function ShareSheet({ open, onOpenChange, url, archive }: ShareSheetProps) {
   const { showToast } = useToast();
+  // 프리뷰의 소유자 표기 — SHARED 는 원 소유자가 응답에 실려 오지만, 내 아카이브(OWNED)는
+  // owner 필드가 없어 내 프로필 닉네임으로 채운다(게스트는 프로필 조회가 꺼져 있어 생략).
+  const { data: myProfile } = useMyProfile();
+  const ownerNickname = archive.owner?.nickname ?? myProfile?.nickname;
 
   const actions = [
     {
@@ -52,15 +50,13 @@ export function ShareSheet({ open, onOpenChange, url, archive }: ShareSheetProps
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
+      {/* 탭바(z-60)보다 위 — 공유 시트가 열리면 딤과 함께 바텀내비를 덮는다(Figma 226:9568). */}
+      <DrawerContent className="z-[70]" overlayClassName="z-[70]">
         <DrawerTitle className="sr-only">아카이브 공유</DrawerTitle>
         <div
           className="flex flex-col gap-6 p-4"
-          // 탭바가 떠 있는 화면(아카이브 상세)에서 열리면 탭바(z-60)가 시트(z-50) 아래쪽을
-          // 가린다 — ProtectedAppLayout 이 심어둔 변수로 그 높이만큼 띄우고, 탭바가 없는
-          // 화면(공유 링크로 연 SharedArchivePage 등)에서는 safe-area 만큼만 띄운다.
           style={{
-            paddingBottom: `max(2rem, calc(var(${BOTTOM_INSET_VAR}, env(safe-area-inset-bottom)) + 1rem))`,
+            paddingBottom: 'max(2rem, calc(env(safe-area-inset-bottom) + 1rem))',
           }}
         >
           {/* 프리뷰 카드 — 받는 사람이 보게 될 아카이브 요약. */}
@@ -75,7 +71,7 @@ export function ShareSheet({ open, onOpenChange, url, archive }: ShareSheetProps
                 <span className="truncate text-b2 font-medium text-gray-100">{archive.name}</span>
               </span>
               <span className="font-mono text-e2 text-gray-60">
-                {archive.owner ? `@${archive.owner.nickname} • ` : ''}
+                {ownerNickname ? `@${ownerNickname} • ` : ''}
                 {archive.placeCount} Places
               </span>
             </div>

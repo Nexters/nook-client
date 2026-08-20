@@ -3,11 +3,10 @@ import Constants from 'expo-constants';
 /**
  * app.config.ts 가 extra 로 주입한 값. 원본은 native-public-config.json 이고,
  * 로컬에서만 EXPO_PUBLIC_* 로 덮어쓸 수 있다.
- * 공유 확장이 읽는 Info.plist 값도 같은 출처라 셸과 확장이 어긋나지 않는다.
+ * API 주소는 여기 없다 — 웹이 세션에 실어 주는 값만 쓴다 (modules/session 참고).
  */
 interface NookExtra {
   webUrl?: string;
-  apiBaseUrl?: string;
 }
 
 const extra = (Constants.expoConfig?.extra ?? {}) as NookExtra;
@@ -21,7 +20,6 @@ function required(value: string | undefined, key: keyof NookExtra): string {
 }
 
 export const WEB_URL = required(extra.webUrl, 'webUrl');
-export const API_BASE_URL = required(extra.apiBaseUrl, 'apiBaseUrl');
 
 /**
  * app.json 의 `version` — 스토어에 노출되는 마케팅 버전이다.

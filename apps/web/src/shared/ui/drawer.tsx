@@ -64,16 +64,19 @@ function DrawerContent({
   children,
   /** false 면 배경 딤 오버레이를 렌더하지 않는다 — 지도 위에 얹는 비모달 시트용. */
   overlay = true,
+  /** 오버레이에 덧붙일 클래스 — 콘텐츠와 함께 z 를 올려야 할 때(탭바 위로 띄우기 등) 쓴다. */
+  overlayClassName,
   /** false 면 기본 드래그핸들(80x4, gray-20)을 렌더하지 않는다. */
   showHandle = true,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content> & {
   overlay?: boolean;
+  overlayClassName?: string;
   showHandle?: boolean;
 }) {
   return (
     <DrawerPortal>
-      {overlay && <DrawerOverlay />}
+      {overlay && <DrawerOverlay className={overlayClassName} />}
       <DrawerPrimitive.Content
         data-slot="drawer-content"
         className={cn(

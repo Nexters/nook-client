@@ -14,8 +14,8 @@ describe('비보안 컨텍스트(http://<LAN IP>)의 웹뷰', () => {
     window.ReactNativeWebView = { postMessage: (data: string) => posted.push(data) };
 
     expect(() => {
-      void nativeBridge.requestSession('SESSION_GET');
-      void nativeBridge.requestSession('SESSION_GET');
+      void nativeBridge.requestSession('SESSION_GET', null);
+      void nativeBridge.requestSession('SESSION_GET', null);
     }).not.toThrow();
 
     const requestIds = posted.map((raw) => JSON.parse(raw).payload.requestId);

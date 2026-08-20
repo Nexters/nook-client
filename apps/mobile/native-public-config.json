@@ -4,12 +4,8 @@
     "production": "kr.co.everynook.app"
   },
   "webUrl": {
-    "development": "https://www.everynook.co.kr",
-    "production": "https://www.everynook.co.kr"
-  },
-  "apiBaseUrl": {
-    "development": "https://api-dev.everynook.co.kr/api/v1",
-    "production": "https://api.everynook.co.kr/api/v1"
+    "development": "https://app-dev.everynook.co.kr",
+    "production": "https://everynook.co.kr"
   },
   "android": {
     "kotlinVersion": "2.1.20"
