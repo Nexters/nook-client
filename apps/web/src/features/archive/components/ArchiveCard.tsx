@@ -1,5 +1,5 @@
 import { cn } from '@/shared/lib/utils';
-import { Badge, COLOR_BG_CLASS, Thumbnail } from '@/shared/ui';
+import { Avatar, Badge, COLOR_BG_CLASS, Thumbnail } from '@/shared/ui';
 import type { Archive } from '../types';
 
 /** 시안이 한 줄에 98px 썸네일 3개를 놓는다. 넘치는 수는 마지막 칸에 +N 으로 접는다. */
@@ -10,6 +10,10 @@ const VISIBLE_THUMBNAILS = 3;
  * 홈에서 아카이브 하나를 요약해 보여주는 카드 — 색 스와치 + 이름 + 개수 배지 + 썸네일 줄.
  *
  * Empty 는 별도 prop 이 아니라 `thumbnails` 가 비었을 때 파생된다.
+ *
+ * 공유받은(SHARED) 아카이브는 색 스와치 자리에 공유한 사람의 프로필 이미지를 놓고 이름을
+ * 우측 끝에 붙인다(Figma `그룹` 257:10679) — 내 아카이브와 한눈에 구분되게 하려는 것이라
+ * 색은 아예 그리지 않는다. 프로필 이미지가 없으면 `Avatar` 의 기본 이미지가 나온다.
  */
 export interface ArchiveCardProps {
   archive: Archive;
@@ -23,6 +27,7 @@ function ArchiveCard({ archive, onClick, className }: ArchiveCardProps) {
   // 마지막 칸에 접어 넣을 나머지 게시물 수 (시안의 `Thumbnail/98_Archive > Plus`).
   // 서버는 썸네일을 몇 장만 내려주므로 URL 개수가 아니라 전체 개수에서 뺀다.
   const overflow = archive.placeCount - VISIBLE_THUMBNAILS;
+  const shared = archive.accessType === 'SHARED';
 
   const Comp = onClick ? 'button' : 'div';
 
@@ -36,29 +41,28 @@ function ArchiveCard({ archive, onClick, className }: ArchiveCardProps) {
         className,
       )}
     >
-      <div className="flex w-full items-center gap-2">
+      <div className="flex w-full items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-2">
-          <span
-            className={cn('size-2 shrink-0', COLOR_BG_CLASS[archive.color])}
-            aria-hidden="true"
-          />
-          <span className="truncate text-b2 font-medium text-gray-100">{archive.name}</span>
+          <span className="flex min-w-0 items-center gap-2">
+            {shared ? (
+              <Avatar size="xs" src={archive.owner?.profileImageUrl} />
+            ) : (
+              <span
+                className={cn('size-2 shrink-0', COLOR_BG_CLASS[archive.color])}
+                aria-hidden="true"
+              />
+            )}
+            <span className="truncate text-b2 font-medium text-gray-100">{archive.name}</span>
+          </span>
+          <Badge variant="number">{archive.placeCount}</Badge>
         </span>
-        <Badge variant="number">{archive.placeCount}</Badge>
+        {/* 공유한 사람 이름 — 아바타가 이미 "남의 아카이브"를 말하므로 `by` 없이 이름만 둔다. */}
+        {shared && archive.owner ? (
+          <span className="shrink-0 text-b3 font-medium text-gray-60">
+            {archive.owner.nickname}
+          </span>
+        ) : null}
       </div>
-
-      {archive.accessType === 'SHARED' && archive.owner ? (
-        <span className="flex items-center gap-1 font-mono text-e2 text-gray-60">
-          {archive.owner.profileImageUrl ? (
-            <img
-              src={archive.owner.profileImageUrl}
-              alt=""
-              className="size-4 shrink-0 rounded-full object-cover"
-            />
-          ) : null}
-          by {archive.owner.nickname}
-        </span>
-      ) : null}
 
       {/* 썸네일은 카드 폭을 3등분해 늘어난다 — 화면이 넓어져도 왼쪽에 몰리지 않게.
           장수가 3보다 적어도 칸 크기는 그대로라 카드끼리 줄이 맞는다. */}

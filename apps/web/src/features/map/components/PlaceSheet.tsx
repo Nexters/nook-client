@@ -26,6 +26,11 @@ import { Drawer, DrawerContent, FloatingButton, Header } from '@/shared/ui';
 
 /** 이 값을 넘겨 스크롤된 것으로 판단한다(0 근처의 미세한 바운스/오차 무시). */
 const SCROLL_HIDE_HANDLE_THRESHOLD = 4;
+/**
+ * 바닥까지 이 거리 안이면 "맨 아래에 도착"으로 본다. scrollHeight·clientHeight 는 소수점
+ * 레이아웃에서 1px 안쪽으로 어긋나 정확히 같아지지 않는 경우가 있어 여유를 둔다.
+ */
+const SCROLL_AT_BOTTOM_THRESHOLD = 8;
 
 export function PlaceSheet({
   recentPlaces,
@@ -76,6 +81,7 @@ export function PlaceSheet({
   const { hidden: bottomMenuHidden } = useBottomMenuVisibility();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(false);
   const isFull = snap === FULL_SNAP_POINT;
   const hasSelection = selectedPlace !== null || isPlaceDetailPending || isPlaceDetailError;
   // 검색 입력에 포커스가 있는지 — 있으면 최소 스냅(peek)을 스냅 목록에서 빼서 키보드가
@@ -89,6 +95,9 @@ export function PlaceSheet({
   // 스크롤을 내리면 드래그핸들 대신 고정 헤더가 뜬다(Figma `스크롤시 헤더 변경`).
   // 맨 위로 되돌아오면 다시 핸들로 바뀐다.
   const showStickyHeader = isFull && isScrolled && selectedPlace !== null;
+  // "위로가기"는 목록 맨 아래에 닿았을 때만 뜬다(QA) — 스크롤을 내리는 내내 떠 있으면
+  // 콘텐츠를 가린다. isScrolled 를 함께 보므로 스크롤이 없는 짧은 상세에서는 뜨지 않는다.
+  const showScrollToTop = showStickyHeader && isAtBottom;
   const layoutClassNames = getPlaceSheetLayoutClassNames(bottomMenuHidden, snap, showStickyHeader);
   // 검색 패널의 오른쪽→왼쪽 슬라이드 — 전체화면 전환(slide-screen)과 같은 전환/뒤로가기
   // 계약을 그대로 쓴다(Android 하드웨어 백도 검색 닫기로 수렴). 패널이 탐색 콘텐츠 위를
@@ -140,6 +149,7 @@ export function PlaceSheet({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
     setIsScrolled(false);
+    setIsAtBottom(false);
   }, [canScroll, selectedPlace?.id]);
 
   return (
@@ -228,9 +238,12 @@ export function PlaceSheet({
         <div className="relative" style={{ height: contentHeight }}>
           <div
             ref={scrollRef}
+            data-slot="place-sheet-scroller"
             onScroll={(e) => {
               if (!isFull) return;
-              setIsScrolled(e.currentTarget.scrollTop > SCROLL_HIDE_HANDLE_THRESHOLD);
+              const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+              setIsScrolled(scrollTop > SCROLL_HIDE_HANDLE_THRESHOLD);
+              setIsAtBottom(scrollTop + clientHeight >= scrollHeight - SCROLL_AT_BOTTOM_THRESHOLD);
             }}
             style={scrollerStyle}
             // 검색 오버레이가 이 영역을 덮는 동안엔 완전히 죽여둔다 — 안 그러면 오버레이 위의
@@ -321,8 +334,8 @@ export function PlaceSheet({
           ) : null}
         </div>
 
-        {/* 스크롤을 내린 동안만 뜨는 "위로가기"(Figma `Button/48_up`). */}
-        {showStickyHeader ? (
+        {/* 목록 맨 아래에 닿았을 때만 뜨는 "위로가기"(Figma `Button/48_up`). */}
+        {showScrollToTop ? (
           <FloatingButton
             floating={false}
             size="lg"

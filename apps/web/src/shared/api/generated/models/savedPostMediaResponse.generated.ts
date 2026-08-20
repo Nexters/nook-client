@@ -9,6 +9,11 @@ import type { SavedPostMediaResponseType } from './savedPostMediaResponseType.ge
 export interface SavedPostMediaResponse {
   /** 게시물 내 미디어 순서 */
   sequence: number;
+  /**
+   * 영상 포스터 이미지 URL
+   * @nullable
+   */
+  thumbnailUrl?: string | null;
   /** 미디어 유형 */
   type: SavedPostMediaResponseType;
   /** 미디어 URL */

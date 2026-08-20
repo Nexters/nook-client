@@ -8,6 +8,7 @@ import { PlaceCard } from '@/features/place';
 import { ShareSheet } from '@/features/share/components/ShareSheet';
 import { buildShareUrl } from '@/features/share/lib/shareUrl';
 import { Icon16ArrowUpTray } from '@/shared/icons/NookIcons';
+import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
@@ -59,7 +60,10 @@ export function ArchiveDetailPage() {
   const [deletePopupOpen, setDeletePopupOpen] = useState(false);
 
   // 선택 삭제(Figma `게시글 편집`) — 더보기 메뉴로 켜고, 뒤로가기/장소 탭 전환으로 끈다.
-  const [selecting, setSelecting] = useState(false);
+  // 뒤로가기 세 경로(좌상단 버튼·Android 하드웨어 백·iOS 엣지 스와이프)가 모두 "모드 종료"로
+  // 수렴해야 해서 히스토리 엔트리로 승격한다 — 컴포넌트 state 로 두면 버튼만 모드를 끄고
+  // 스와이프는 페이지를 떠나버린다.
+  const [selecting, openSelecting, closeSelecting] = useHistoryBackedFlag('selectingPosts');
   const [selectedPostIds, setSelectedPostIds] = useState<ReadonlySet<number>>(new Set());
   const [deletePostsPopupOpen, setDeletePostsPopupOpen] = useState(false);
 
@@ -113,9 +117,15 @@ export function ArchiveDetailPage() {
     };
   }, [selecting]);
 
+  // 스와이프·하드웨어 백으로 빠져나오면 exitSelecting 을 거치지 않는다 — 다시 들어왔을 때
+  // 지난 선택이 남아 있지 않도록 모드가 꺼지는 것 자체를 보고 비운다.
+  useEffect(() => {
+    if (!selecting) setSelectedPostIds(new Set());
+  }, [selecting]);
+
   const exitSelecting = () => {
-    setSelecting(false);
-    setSelectedPostIds(new Set());
+    // 장소 탭 전환처럼 모드가 아닐 때도 불린다 — 그때 navigate(-1) 하면 페이지를 떠난다.
+    if (selecting) closeSelecting();
   };
 
   const togglePostSelected = (postId: number) => {
@@ -181,7 +191,7 @@ export function ArchiveDetailPage() {
                     }
                     // 선택 삭제는 게시물 전용이다 — 장소 탭에서는 항목 자체를 내리고,
                     // 탭을 바꿔서 억지로 되돌리지도 않는다(아카이브에서 장소를 빼는 API 가 없다).
-                    onSelectDelete={activeTab === 'posts' ? () => setSelecting(true) : undefined}
+                    onSelectDelete={activeTab === 'posts' ? openSelecting : undefined}
                     onDelete={() => setDeletePopupOpen(true)}
                   />
                 )

@@ -22,6 +22,7 @@ import { fetchSharedPostDetail } from '@/features/share/api';
 import { sharedQueryKeys } from '@/features/share/api/queries';
 import { Icon16ArrowRight, Icon20Images } from '@/shared/icons/NookIcons';
 import { type Coordinates, formatDistance } from '@/shared/lib/geolocation';
+import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
 import { Badge, Carousel, Thumbnail } from '@/shared/ui';
@@ -117,7 +118,10 @@ function SavedPostsSection({
   const navigate = useNavigate();
   // 펼쳐진 카드의 사진을 누르면 이 자리 위에 확대 뷰를 얹는다(Figma `전체 보기`).
   // 어느 게시물의 몇 번째 사진인지 둘 다 필요하다 — 그 사진부터 열린다.
+  // 떠 있는지 여부만 히스토리 엔트리로 승격해, 좌상단 뒤로가기·하드웨어 백·iOS 엣지
+  // 스와이프가 모두 "확대 뷰 닫기"로 수렴하게 한다.
   const [preview, setPreview] = useState<{ postIndex: number; imageIndex: number } | null>(null);
+  const [previewOpen, openPreview, closePreview] = useHistoryBackedFlag('savedPostPreview');
 
   if (posts.length === 0) return null;
 
@@ -139,7 +143,10 @@ function SavedPostsSection({
               post={toDisplayPost(post, detailAt(index))}
               archives={detailAt(index)?.archives ?? []}
               onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
-              onImageClick={(imageIndex) => setPreview({ postIndex: index, imageIndex })}
+              onImageClick={(imageIndex) => {
+                setPreview({ postIndex: index, imageIndex });
+                openPreview();
+              }}
             />
           ))}
         </div>
@@ -172,12 +179,12 @@ function SavedPostsSection({
         </div>
       )}
 
-      {previewPost ? (
+      {previewOpen && previewPost ? (
         <SavedPostPreview
           title={previewDetail?.title ?? previewPost.title}
           post={toDisplayPost(previewPost, previewDetail)}
           initialIndex={preview?.imageIndex}
-          onClose={() => setPreview(null)}
+          onClose={closePreview}
         />
       ) : null}
     </>
@@ -312,7 +319,9 @@ export function PlaceDetail({
 }) {
   const readOnly = Boolean(shareToken);
   const { showToast } = useToast();
-  const [photosOpen, setPhotosOpen] = useState(false);
+  // 사진 전체보기는 상세 위에 얹는 오버레이라 뒤로가기 = 닫기다 — 스와이프도 같게
+  // 동작해야 해서 히스토리 엔트리로 승격한다.
+  const [photosOpen, openPhotos, closePhotos] = useHistoryBackedFlag('placePhotos');
   const [memoOpen, setMemoOpen] = useState(false);
   const updateMemo = useUpdatePlaceMemo(place.id);
 
@@ -356,7 +365,7 @@ export function PlaceDetail({
 
       <PlacePhotos
         photos={place.photos}
-        onPhotoClick={place.photos.length > 0 ? () => setPhotosOpen(true) : undefined}
+        onPhotoClick={place.photos.length > 0 ? openPhotos : undefined}
       />
 
       {expanded && (
@@ -386,11 +395,7 @@ export function PlaceDetail({
       )}
 
       {photosOpen && (
-        <PlacePhotoViewer
-          title={place.name}
-          photos={place.photos}
-          onClose={() => setPhotosOpen(false)}
-        />
+        <PlacePhotoViewer title={place.name} photos={place.photos} onClose={closePhotos} />
       )}
 
       {/* 게시물 상세와 같은 `메모하기` 바텀시트를 그대로 쓴다 — 저장 대상만 장소 메모다.
