@@ -515,6 +515,19 @@ describe('게시물 상세', () => {
     await waitFor(() => expect(mocks.updatePlaceBookmark).toHaveBeenCalledWith(103, true));
     // 성공 시 파싱 쿼리가 무효화·재조회되어 별 표시가 서버 상태를 따라 켜진다.
     await waitFor(() => expect(unsaved).toHaveAttribute('aria-pressed', 'true'));
+    // Figma `핀 활성화 시` — 켜고 끌 때 각각 스낵바가 뜬다.
+    expect(await screen.findByText('지도에 표시했어요.')).toBeInTheDocument();
+  });
+
+  it('저장된 장소의 즐겨찾기를 끄면 숨김 스낵바가 뜬다', async () => {
+    mocks.updatePlaceBookmark.mockResolvedValue(undefined);
+
+    await renderPost(1);
+
+    fireEvent.click(screen.getByRole('button', { name: '아이소 즐겨찾기' }));
+
+    await waitFor(() => expect(mocks.updatePlaceBookmark).toHaveBeenCalledWith(101, false));
+    expect(await screen.findByText('지도에서 숨겼어요.')).toBeInTheDocument();
   });
 
   it('장소 행을 누르면 지도의 선택된 장소 뷰로 이동한다', async () => {

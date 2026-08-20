@@ -7,7 +7,12 @@ import { PlaceActions } from '@/features/map/components/PlaceActions';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { PlaceSearchPanel } from '@/features/map/components/PlaceSearchPanel';
 import { getPlaceSheetLayoutClassNames } from '@/features/map/components/place-sheet-layout';
-import { BROWSE_SNAP_POINTS, DETAIL_SNAP_POINTS, FULL_SNAP_POINT } from '@/features/map/constants';
+import {
+  BROWSE_SNAP_POINTS,
+  BROWSE_SNAP_POINTS_WITH_KEYBOARD,
+  DETAIL_SNAP_POINTS,
+  FULL_SNAP_POINT,
+} from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
 import { Icon16ArrowDown, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
@@ -68,6 +73,9 @@ export function PlaceSheet({
   const [isScrolled, setIsScrolled] = useState(false);
   const isFull = snap === FULL_SNAP_POINT;
   const hasSelection = selectedPlace !== null || isPlaceDetailPending || isPlaceDetailError;
+  // 검색 입력에 포커스가 있는지 — 있으면 최소 스냅(peek)을 스냅 목록에서 빼서 키보드가
+  // 뜬 채로 시트가 그 높이까지 내려가지 못하게 한다(BROWSE_SNAP_POINTS_WITH_KEYBOARD).
+  const [searchInputFocused, setSearchInputFocused] = useState(false);
   // 내부 스크롤은 full 스냅에서만 허용한다. 그 아래 스냅(mid 포함)에서는 시트 안 어디를
   // 잡아도 드래그가 드로어 이동으로만 동작해야 하므로(제스처 주인은 상태마다 하나)
   // overflow 를 잠근다 — mid 에서 아래로 끌면 vaul 이 자동으로 드래그로 라우팅해 full 로
@@ -98,6 +106,12 @@ export function PlaceSheet({
     return () => clearTimeout(timer);
   }, [suppressTransition]);
 
+  // 검색을 닫으면 입력도 함께 사라진다 — blur 이벤트는 언마운트 때 오지 않으므로
+  // 포커스 플래그를 직접 내려 peek 을 다시 열어준다.
+  useEffect(() => {
+    if (!isSearchMode) setSearchInputFocused(false);
+  }, [isSearchMode]);
+
   // full 진입(스크롤 불가 → 가능)과 보는 장소가 바뀔 때만 맨 위로 되돌린다.
   // biome-ignore lint/correctness/useExhaustiveDependencies: canScroll/selectedPlace.id 는 본문에서 값을 쓰지 않는 트리거 전용 의존성
   useEffect(() => {
@@ -110,7 +124,13 @@ export function PlaceSheet({
       open
       dismissible={false}
       modal={false}
-      snapPoints={hasSelection ? DETAIL_SNAP_POINTS : BROWSE_SNAP_POINTS}
+      snapPoints={
+        hasSelection
+          ? DETAIL_SNAP_POINTS
+          : searchInputFocused
+            ? BROWSE_SNAP_POINTS_WITH_KEYBOARD
+            : BROWSE_SNAP_POINTS
+      }
       activeSnapPoint={snap}
       setActiveSnapPoint={onSnapChange}
       container={shellContainer}
@@ -246,7 +266,11 @@ export function PlaceSheet({
                 scrollPaddingBottom={scrollerStyle.paddingBottom}
                 onExit={slideOutSearch}
                 onSelectPlace={onSelectPlace}
-                onInputFocus={onSearchInputFocus}
+                onInputFocus={() => {
+                  setSearchInputFocused(true);
+                  onSearchInputFocus();
+                }}
+                onInputBlur={() => setSearchInputFocused(false)}
               />
             </div>
           ) : null}

@@ -66,6 +66,7 @@ function renderPage(token = 'tok-123', options: { withAwaitSession?: boolean } =
         <Routes>
           <Route path="/shared/:token" element={element} />
           <Route path="/shared/:token/post/:postId" element={<div>공유 게시물 상세</div>} />
+          <Route path="/archive" element={<div>아카이브 목록 화면</div>} />
           <Route path="/archive/:archiveId/edit" element={<div>아카이브 편집 화면</div>} />
           <Route path="/login" element={<div>로그인 화면</div>} />
           <Route path="/map" element={<MapRouteProbe />} />
@@ -140,7 +141,11 @@ describe('SharedArchivePage', () => {
     await vi.waitFor(() =>
       expect(mocks.subscribeSharedArchive).toHaveBeenCalledWith('tok-123', expect.anything()),
     );
-    expect(await screen.findByText('아카이브에 저장됐어요!')).toBeInTheDocument();
+    expect(await screen.findByText('아카이브에 저장했어요!')).toBeInTheDocument();
+
+    // 보러가기는 저장한 아카이브 상세가 아니라 내 아카이브 목록으로 보낸다.
+    fireEvent.click(screen.getByRole('button', { name: '보러가기' }));
+    expect(await screen.findByText('아카이브 목록 화면')).toBeInTheDocument();
   });
 
   it('이미 내 목록에 있는 아카이브는 저장 버튼이 완료 상태다', async () => {

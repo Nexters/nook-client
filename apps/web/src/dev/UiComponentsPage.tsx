@@ -630,6 +630,19 @@ export function UiComponentsPage() {
             >
               4. simple
             </Button>
+            <Button
+              size="sm"
+              onClick={() =>
+                showToast({
+                  variant: 'link',
+                  title: '아카이브에 저장했어요!',
+                  actionLabel: '보러가기',
+                  onAction: () => setLastAction('토스트 보러가기(링크)'),
+                })
+              }
+            >
+              5. link
+            </Button>
           </ButtonGroup>
         </Row>
       </Section>

@@ -9,6 +9,7 @@ import { archiveQueryKeys } from '@/features/archive/api/queries';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { mapQueryKeys } from '@/features/map/api/queries';
 import type { Place } from '@/features/place';
+import { usePlacePinToast } from '@/features/place/lib/usePlacePinToast';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import type { ParsedPlace, PostDetail, SearchedPlace } from '../types';
 import {
@@ -175,11 +176,14 @@ export function useUpdatePostMemo(postId: number | undefined) {
  */
 export function useUpdatePlaceBookmark(postId: number | undefined) {
   const queryClient = useQueryClient();
+  const showPinToast = usePlacePinToast();
 
   return useMutation({
     mutationFn: ({ placeId, bookmarked }: { placeId: number; bookmarked: boolean }) =>
       updatePlaceBookmark(placeId, bookmarked),
-    onSuccess: (_data, { placeId }) => {
+    onSuccess: (_data, { placeId, bookmarked }) => {
+      // 지도 쪽 같은 이름의 훅과 같은 정책 — 결과 스낵바는 뮤테이션이 띄운다.
+      showPinToast(bookmarked);
       if (postId !== undefined) {
         queryClient.invalidateQueries({ queryKey: postQueryKeys.placeParsing(postId) });
         // 직접 연결한 장소의 북마크 상태는 게시물 상세(places)로 내려온다 — 상세도 갱신한다.

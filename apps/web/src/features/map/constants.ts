@@ -18,6 +18,14 @@ export const FULL_SNAP_POINT = 1;
 export const BROWSE_SNAP_POINTS = [PEEK_SNAP_POINT, MID_SNAP_POINT, FULL_SNAP_POINT];
 
 /**
+ * 검색 입력에 포커스가 있는 동안(=키보드가 떠 있는 동안) 쓰는 탐색 스냅. peek 을 뺀다 —
+ * peek 은 키보드가 시트를 통째로 덮어버리는 높이라, 입력이 살아있는 채로는 갈 수 없는
+ * 상태로 둔다(QA). 필드 밖을 잡으면 `PlaceSearchPanel` 이 먼저 포커스를 풀어서 원래
+ * 스냅으로 돌아오므로, 실제로 막히는 건 입력 필드를 쥐고 끌어내리는 경우뿐이다.
+ */
+export const BROWSE_SNAP_POINTS_WITH_KEYBOARD = [MID_SNAP_POINT, FULL_SNAP_POINT];
+
+/**
  * 장소 선택(상세 보기) 상태의 스냅. mid 는 일부러 뺐다 — mid(카드 그리드 높이)는
  * 상세 콘텐츠와 무관한 높이라 여기 끼워 넣으면 아무 것도 안 바뀌는 정류장이 된다.
  * detailPage 에서 더 당기면 곧장 full 로 넘어간다.

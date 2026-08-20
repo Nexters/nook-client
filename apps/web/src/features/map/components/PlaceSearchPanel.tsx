@@ -23,6 +23,7 @@ export function PlaceSearchPanel({
   onExit,
   onSelectPlace,
   onInputFocus,
+  onInputBlur,
 }: {
   /** 내부 스크롤 허용 여부 — 시트의 스냅 규칙(`PlaceSheet` 의 canScroll)을 그대로 받는다. */
   canScroll: boolean;
@@ -37,6 +38,8 @@ export function PlaceSearchPanel({
   onSelectPlace: (id: number) => void;
   /** 입력 포커스 시 — 시트가 낮은 스냅이면 결과가 보이는 높이로 올린다(MapPage 배선). */
   onInputFocus: () => void;
+  /** 입력 포커스가 풀릴 때 — 키보드 때문에 막아둔 최소 스냅을 다시 연다(PlaceSheet 배선). */
+  onInputBlur: () => void;
 }) {
   const [query, setQuery] = useState('');
   // 그룹 칩 선택 — 어느 검색어에서 골랐는지와 함께 둔다. 검색어가 바뀌면 그룹 목록도
@@ -47,6 +50,7 @@ export function PlaceSearchPanel({
     groupId: number | null;
   } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fieldRef = useRef<HTMLDivElement>(null);
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const groupId = selectedGroup?.query === debouncedQuery ? selectedGroup.groupId : null;
   const setGroupId = (id: number | null) =>
@@ -71,13 +75,26 @@ export function PlaceSearchPanel({
     return () => clearTimeout(timer);
   }, []);
 
+  // 검색 필드 밖에 손이 닿는 순간 입력 포커스를 푼다 — 키보드가 바로 내려가고 그 터치는
+  // 그대로 스크롤/시트 드래그로 이어진다(iOS 의 drag-dismiss 관례).
+  //
+  // 결과 영역이 아니라 패널 루트에 다는 게 핵심이다: 결과 블록은 검색어가 있어야 렌더되는데
+  // (`useSearchSavedPlaces` 는 빈 검색어에 undefined), 정작 키보드가 떠 있는 대표 상황이
+  // "검색에 막 들어와 아직 아무것도 안 친" 때다 — 거기선 필드 아래가 통째로 빈 영역이라
+  // 결과 블록에만 걸어두면 아무 데도 안 걸린다(QA: outfocus 가 안 된다는 지적의 원인).
+  const blurInputOutsideField = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (fieldRef.current?.contains(event.target as Node)) return;
+    if (document.activeElement === inputRef.current) inputRef.current?.blur();
+  };
+
   return (
-    <div className="flex h-full flex-col gap-3 px-4">
+    <div className="flex h-full flex-col gap-3 px-4" onPointerDown={blurInputOutsideField}>
       {/* Figma `search field` — 뒤로가기가 필드 안 왼쪽에 붙는 형태라 공용 Input 을 못 쓰고
           직접 구현한다(§PlaceDirectInputDrawer 와 같은 이유). 포커스 보더는 Input 과 맞춘다. */}
       {/* data-vaul-no-drag: 이 줄은 vaul 드래그 대상에서 제외한다 — 안 그러면 뒤로가기/입력/
           지우기 버튼 위에서의 탭이 vaul 의 드래그 처리에 걸려 고스트 클릭이 날 수 있다. */}
       <div
+        ref={fieldRef}
         data-vaul-no-drag
         className="flex h-11 w-full shrink-0 items-center gap-2 rounded-lg border border-gray-30 px-3 transition-colors focus-within:border-gray-100"
       >
@@ -88,6 +105,7 @@ export function PlaceSearchPanel({
           ref={inputRef}
           value={query}
           onFocus={onInputFocus}
+          onBlur={onInputBlur}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="장소명을 입력해주세요"
           className="min-w-0 flex-1 bg-transparent text-b2 font-medium text-gray-100 outline-none placeholder:text-gray-50"
@@ -112,12 +130,7 @@ export function PlaceSearchPanel({
           style={{
             paddingBottom: scrollPaddingBottom ?? 'calc(1.25rem + env(safe-area-inset-bottom))',
           }}
-          // 결과 영역에 손이 닿는 순간 입력 포커스를 푼다 — 키보드가 바로 내려가고 그
-          // 터치는 그대로 스크롤/시트 드래그로 이어진다(iOS 의 drag-dismiss 관례).
-          // 키보드가 화면을 가리거나 팬해 둔 상태를 스크롤 전에 해소하려는 것.
-          onPointerDown={() => {
-            if (document.activeElement === inputRef.current) inputRef.current?.blur();
-          }}
+          // 포커스 해제는 패널 루트가 위임받아 처리한다(위 blurInputOutsideField).
           className={cn(
             'flex flex-1 flex-col',
             canScroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
