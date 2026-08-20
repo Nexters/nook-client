@@ -7,6 +7,37 @@ export interface NookIconProps extends Omit<SVGAttributes<SVGSVGElement>, 'width
   height?: number;
 }
 
+export function Icon14Processing({ size, width, height, ...props }: NookIconProps) {
+  const renderedWidth = width ?? size ?? 14;
+  const renderedHeight = height ?? (size === undefined ? 14 : size * 1);
+  return (
+    <svg
+      viewBox="0 0 14 14"
+      width={renderedWidth}
+      height={renderedHeight}
+      fill="none"
+      role="presentation"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M7 13C10.3137 13 13 10.3137 13 7C13 3.68629 10.3137 1 7 1C3.68629 1 1 3.68629 1 7C1 10.3137 3.68629 13 7 13Z"
+        fill="none"
+        stroke="#CACED4"
+        strokeWidth="2"
+        strokeLinecap="butt"
+      />
+      <path
+        d="M7 1C8.28263 1.00014 9.53146 1.41131 10.5633 2.17319C11.5951 2.93507 12.3557 4.00756 12.7333 5.23333"
+        fill="none"
+        stroke="#4E5662"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function Icon16Archive({ size, width, height, ...props }: NookIconProps) {
   const renderedWidth = width ?? size ?? 16;
   const renderedHeight = height ?? (size === undefined ? 16 : size * 1);

@@ -4,4 +4,5 @@ export * from './components/PostImageViewer';
 export * from './components/PostInfo';
 export * from './components/SavedPostCard';
 export * from './components/SavedPostContext';
+export * from './components/SavedPostPreview';
 export * from './types';

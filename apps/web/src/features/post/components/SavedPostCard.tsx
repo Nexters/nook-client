@@ -25,6 +25,11 @@ export interface SavedPostCardProps {
   title?: React.ReactNode;
   /** 넘기면 아카이브 태그가 버튼이 된다 — 게시물 상세와 같이 그 아카이브 상세로 보낼 때 쓴다. */
   onArchiveClick?: (archiveId: number) => void;
+  /**
+   * 넘기면 사진 줄의 사진이 버튼이 된다 — 누른 사진 위치를 준다(`SavedPostPreview` 확대 뷰).
+   * 오버레이 열림 상태는 사용처가 갖는다(확대 뷰 제목인 게시물 제목을 이 카드는 모른다).
+   */
+  onImageClick?: (index: number) => void;
   className?: string;
 }
 
@@ -33,6 +38,7 @@ function SavedPostCard({
   archives,
   title = '저장된 게시물',
   onArchiveClick,
+  onImageClick,
   className,
 }: SavedPostCardProps) {
   const images = post.images ?? [];
@@ -70,20 +76,32 @@ function SavedPostCard({
               `w-auto` 는 Carousel 기본 `w-full` 을 덮는다 — width 가 고정이면 음수 마진이
               폭을 넓히지 못하고 왼쪽으로 밀리기만 한다. */}
           <Carousel indicator={false} className="-mx-4 w-auto">
-            {images.map((src, index) => (
-              <div
-                // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
-                // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
-                key={index}
-                className={cn(
-                  'h-[175px] w-35 overflow-hidden rounded-sm',
-                  index === 0 && 'ml-4',
-                  index === images.length - 1 && 'mr-4',
-                )}
-              >
-                <img src={src} alt="" className="size-full object-cover" />
-              </div>
-            ))}
+            {images.map((src, index) => {
+              const Slide = onImageClick ? 'button' : 'div';
+              return (
+                <Slide
+                  // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
+                  // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
+                  key={index}
+                  {...(onImageClick
+                    ? {
+                        type: 'button' as const,
+                        onClick: () => onImageClick(index),
+                        'aria-label': `${index + 1}번째 사진 크게 보기`,
+                      }
+                    : {})}
+                  className={cn(
+                    'h-[175px] w-35 overflow-hidden rounded-sm',
+                    index === 0 && 'ml-4',
+                    index === images.length - 1 && 'mr-4',
+                    onImageClick &&
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100',
+                  )}
+                >
+                  <img src={src} alt="" className="size-full object-cover" />
+                </Slide>
+              );
+            })}
           </Carousel>
         </div>
       ) : null}

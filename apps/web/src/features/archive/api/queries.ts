@@ -104,7 +104,11 @@ export function useUpdateArchive() {
 
   return useMutation({
     mutationFn: updateArchive,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: archiveQueryKeys.list }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: archiveQueryKeys.list });
+      // 그룹 색상이 지도 핀 색으로 그대로 내려오므로 함께 무효화한다.
+      queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll });
+    },
   });
 }
 

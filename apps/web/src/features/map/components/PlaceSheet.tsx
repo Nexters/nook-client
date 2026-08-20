@@ -7,12 +7,7 @@ import { PlaceActions } from '@/features/map/components/PlaceActions';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { PlaceSearchPanel } from '@/features/map/components/PlaceSearchPanel';
 import { getPlaceSheetLayoutClassNames } from '@/features/map/components/place-sheet-layout';
-import {
-  BROWSE_SNAP_POINTS,
-  DETAIL_SNAP_POINTS,
-  FULL_SNAP_POINT,
-  MID_SNAP_POINT,
-} from '@/features/map/constants';
+import { BROWSE_SNAP_POINTS, DETAIL_SNAP_POINTS, FULL_SNAP_POINT } from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
 import { Icon16ArrowDown, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
@@ -38,6 +33,7 @@ export function PlaceSheet({
   onClose,
   onEnterSearch,
   onExitSearch,
+  onSearchInputFocus,
 }: {
   recentPlaces: RecentPlace[];
   selectedPlace: PlaceDetailModel | null;
@@ -61,6 +57,8 @@ export function PlaceSheet({
   onClose: () => void;
   onEnterSearch: () => void;
   onExitSearch: () => void;
+  /** 검색 입력이 포커스될 때 — 낮은 스냅이면 결과가 보이는 높이로 올리는 용도(MapPage). */
+  onSearchInputFocus: () => void;
 }) {
   const shellContainer = useAppShellContainer();
   // BottomMenu 를 숨기는 조건은 MapPage(선택된 장소 유무)가 정하고, 여기선 그 결과값만
@@ -70,10 +68,11 @@ export function PlaceSheet({
   const [isScrolled, setIsScrolled] = useState(false);
   const isFull = snap === FULL_SNAP_POINT;
   const hasSelection = selectedPlace !== null || isPlaceDetailPending || isPlaceDetailError;
-  // 내부 스크롤은 목록이 충분히 펼쳐진 스냅에서만 허용한다(탐색: mid 이상=Figma
-  // 94:4075·94:4165, 상세: full). 그 아래 스냅에서는 시트 안 어디를 잡아도 드래그가
-  // 드로어 이동으로만 동작해야 하므로(제스처 주인은 상태마다 하나) overflow 를 잠근다.
-  const canScroll = hasSelection ? isFull : snap === MID_SNAP_POINT || isFull;
+  // 내부 스크롤은 full 스냅에서만 허용한다. 그 아래 스냅(mid 포함)에서는 시트 안 어디를
+  // 잡아도 드래그가 드로어 이동으로만 동작해야 하므로(제스처 주인은 상태마다 하나)
+  // overflow 를 잠근다 — mid 에서 아래로 끌면 vaul 이 자동으로 드래그로 라우팅해 full 로
+  // 펼쳐진다(QA).
+  const canScroll = isFull;
   // 스크롤을 내리면 드래그핸들 대신 고정 헤더가 뜬다(Figma `스크롤시 헤더 변경`).
   // 맨 위로 되돌아오면 다시 핸들로 바뀐다.
   const showStickyHeader = isFull && isScrolled && selectedPlace !== null;
@@ -99,9 +98,7 @@ export function PlaceSheet({
     return () => clearTimeout(timer);
   }, [suppressTransition]);
 
-  // 스크롤이 "불가 → 가능"으로 바뀌는 순간과 보는 장소가 바뀔 때만 맨 위로 되돌린다.
-  // isFull 이 아니라 canScroll 을 트리거로 쓰는 이유: 탐색 모드 mid ↔ full 은 둘 다
-  // 스크롤 가능한 스냅이라, 그 사이를 오갈 때 보던 위치를 잃지 않아야 한다.
+  // full 진입(스크롤 불가 → 가능)과 보는 장소가 바뀔 때만 맨 위로 되돌린다.
   // biome-ignore lint/correctness/useExhaustiveDependencies: canScroll/selectedPlace.id 는 본문에서 값을 쓰지 않는 트리거 전용 의존성
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
@@ -171,6 +168,10 @@ export function PlaceSheet({
               setIsScrolled(e.currentTarget.scrollTop > SCROLL_HIDE_HANDLE_THRESHOLD);
             }}
             style={scrollerStyle}
+            // 검색 오버레이가 이 영역을 덮는 동안엔 완전히 죽여둔다 — 안 그러면 오버레이 위의
+            // 드래그/탭이 아래 목록 카드의 클릭으로 새는 경우가 있다(빠르게 내리는 제스처가
+            // 카드 클릭으로 오인되면 handlePlaceClick 이 검색모드를 강제 종료해 버림, QA).
+            inert={isSearchMode || undefined}
             className={cn(
               'flex h-full flex-col gap-3 px-4',
               canScroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
@@ -245,6 +246,7 @@ export function PlaceSheet({
                 scrollPaddingBottom={scrollerStyle.paddingBottom}
                 onExit={slideOutSearch}
                 onSelectPlace={onSelectPlace}
+                onInputFocus={onSearchInputFocus}
               />
             </div>
           ) : null}

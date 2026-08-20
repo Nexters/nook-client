@@ -14,7 +14,7 @@ import {
 import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
 import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
-import { MemoSheet, SavedPostCard } from '@/features/post';
+import { MemoSheet, SavedPostCard, SavedPostPreview } from '@/features/post';
 import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
 import { postQueryKeys } from '@/features/post/api/queries';
 import type { PostDetail } from '@/features/post/types';
@@ -115,10 +115,15 @@ function SavedPostsSection({
   const posts = place.posts;
   const postDetailQueries = usePostDetails(posts, shareToken);
   const navigate = useNavigate();
+  // 펼쳐진 카드의 사진을 누르면 이 자리 위에 확대 뷰를 얹는다(Figma `전체 보기`).
+  // 어느 게시물의 몇 번째 사진인지 둘 다 필요하다 — 그 사진부터 열린다.
+  const [preview, setPreview] = useState<{ postIndex: number; imageIndex: number } | null>(null);
 
   if (posts.length === 0) return null;
 
   const detailAt = (index: number) => postDetailQueries[index]?.data;
+  const previewPost = preview ? posts[preview.postIndex] : undefined;
+  const previewDetail = preview ? detailAt(preview.postIndex) : undefined;
   // 모아보기 페이지는 내 API 만 쓴다 — 공유 링크로 들어온(아직 저장 안 한) 장소는 그쪽에서
   // 404 가 난다. 그래서 공유 진입일 땐 넘기지 않고 예전처럼 카드를 전부 펼친다.
   const expandAll = Boolean(shareToken) || posts.length === 1;
@@ -134,6 +139,7 @@ function SavedPostsSection({
               post={toDisplayPost(post, detailAt(index))}
               archives={detailAt(index)?.archives ?? []}
               onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
+              onImageClick={(imageIndex) => setPreview({ postIndex: index, imageIndex })}
             />
           ))}
         </div>
@@ -165,6 +171,15 @@ function SavedPostsSection({
           </Carousel>
         </div>
       )}
+
+      {previewPost ? (
+        <SavedPostPreview
+          title={previewDetail?.title ?? previewPost.title}
+          post={toDisplayPost(previewPost, previewDetail)}
+          initialIndex={preview?.imageIndex}
+          onClose={() => setPreview(null)}
+        />
+      ) : null}
     </>
   );
 }

@@ -2,6 +2,7 @@
 import SwiftUI
 
 enum NookIconName {
+    case icon14Processing
     case icon16Archive
     case icon16ArrowDiagonal
     case icon16ArrowDown
@@ -76,6 +77,8 @@ enum NookIconName {
 
     fileprivate var metrics: (viewBox: CGSize, defaultSize: CGSize) {
         switch self {
+        case .icon14Processing:
+            return (CGSize(width: 14, height: 14), CGSize(width: 14, height: 14))
         case .icon16Archive:
             return (CGSize(width: 16, height: 16), CGSize(width: 16, height: 16))
         case .icon16ArrowDiagonal:
@@ -233,6 +236,20 @@ struct NookIcon: View {
         Canvas { context, canvasSize in
             context.scaleBy(x: canvasSize.width / metrics.viewBox.width, y: canvasSize.height / metrics.viewBox.height)
             switch name {
+        case .icon14Processing:
+            var path0 = Path()
+            path0.move(to: CGPoint(x: 7, y: 13))
+            path0.addCurve(to: CGPoint(x: 13, y: 7), control1: CGPoint(x: 10.3137, y: 13), control2: CGPoint(x: 13, y: 10.3137))
+            path0.addCurve(to: CGPoint(x: 7, y: 1), control1: CGPoint(x: 13, y: 3.68629), control2: CGPoint(x: 10.3137, y: 1))
+            path0.addCurve(to: CGPoint(x: 1, y: 7), control1: CGPoint(x: 3.68629, y: 1), control2: CGPoint(x: 1, y: 3.68629))
+            path0.addCurve(to: CGPoint(x: 7, y: 13), control1: CGPoint(x: 1, y: 10.3137), control2: CGPoint(x: 3.68629, y: 13))
+            path0.closeSubpath()
+            context.stroke(path0, with: .color(Color(red: 0.792157, green: 0.807843, blue: 0.831373)), style: StrokeStyle(lineWidth: 2, lineCap: .butt))
+            var path1 = Path()
+            path1.move(to: CGPoint(x: 7, y: 1))
+            path1.addCurve(to: CGPoint(x: 10.5633, y: 2.17319), control1: CGPoint(x: 8.28263, y: 1.00014), control2: CGPoint(x: 9.53146, y: 1.41131))
+            path1.addCurve(to: CGPoint(x: 12.7333, y: 5.23333), control1: CGPoint(x: 11.5951, y: 2.93507), control2: CGPoint(x: 12.3557, y: 4.00756))
+            context.stroke(path1, with: .color(Color(red: 0.305882, green: 0.337255, blue: 0.384314)), style: StrokeStyle(lineWidth: 2, lineCap: .round))
         case .icon16Archive:
             var path0 = Path()
             path0.move(to: CGPoint(x: 3.5, y: 2))
