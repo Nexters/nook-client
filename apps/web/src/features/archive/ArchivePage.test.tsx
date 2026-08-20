@@ -411,8 +411,8 @@ describe('아카이브 화면', () => {
 
     renderArchiveRoutes('/archive/3');
     // 처리 실패 카드는 onClick 이 없어 button 이 아니라 div 로 렌더된다 — 탭할 버튼 자체가 없다.
-    expect(await screen.findByText('처리 실패')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /처리 실패/ })).not.toBeInTheDocument();
+    expect(await screen.findByText('불러오지 못했어요.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /불러오지 못했어요/ })).not.toBeInTheDocument();
   });
 
   it('공유받은 아카이브 상세의 장소 카드도 지도의 장소 상세로 이동한다', async () => {

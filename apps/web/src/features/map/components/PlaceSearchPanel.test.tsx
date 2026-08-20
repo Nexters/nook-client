@@ -47,7 +47,13 @@ function renderPanel(props: Partial<React.ComponentProps<typeof PlaceSearchPanel
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <PlaceSearchPanel canScroll onExit={() => {}} onSelectPlace={() => {}} {...props} />
+      <PlaceSearchPanel
+        canScroll
+        onExit={() => {}}
+        onSelectPlace={() => {}}
+        onInputFocus={() => {}}
+        {...props}
+      />
     </QueryClientProvider>,
   );
 }

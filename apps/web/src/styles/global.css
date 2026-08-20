@@ -198,3 +198,12 @@ body {
   height: 100%;
   overflow-y: auto;
 }
+
+/* vaul 시트의 스냅 전환 duration 은 라이브러리 내부에 0.5s 로 고정돼 있어, mid↔peek
+   처럼 이동 거리가 큰 전환도 mid↔full 같은 짧은 전환과 똑같은 시간에 끝나 체감상
+   빨라 보인다(QA). 라이브러리가 inline style 로 transition 을 매 프레임 덮어써서
+   !important 로만 오버라이드된다. */
+[data-vaul-drawer] {
+  /* biome-ignore lint/complexity/noImportantStyles: vaul 이 매 프레임 transition 을 inline style 로 덮어써 !important 없이는 오버라이드가 안 된다 */
+  transition-duration: 0.65s !important;
+}

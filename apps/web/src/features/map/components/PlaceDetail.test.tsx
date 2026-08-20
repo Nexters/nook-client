@@ -52,7 +52,7 @@ function postDetail(places: ParsedPlace[], archives: PostDetail['archives'] = []
     title: '게시물',
     archives,
     places,
-    post: { id: '1', authorHandle: '@nook' },
+    post: { id: '1', authorHandle: '@nook', images: ['first.jpg', 'second.jpg'] },
   };
 }
 
@@ -97,6 +97,7 @@ function renderDetail(
             />
             <Route path="/archive/:archiveId" element={<p>아카이브 상세 화면</p>} />
             <Route path="/place/:placeId/posts" element={<p>저장된 게시물 목록 화면</p>} />
+            <Route path="/post/:postId" element={<p>게시물 상세 화면</p>} />
           </Routes>
         </MemoryRouter>
       </ToastProvider>
@@ -356,5 +357,26 @@ describe('PlaceDetail 저장된 게시물', () => {
 
     expect(await screen.findByRole('heading', { name: '저장된 게시물' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /저장된 게시물/ })).not.toBeInTheDocument();
+  });
+
+  it('캐러셀 타일을 누르면 그 게시물 상세 페이지로 간다', async () => {
+    renderDetail();
+
+    fireEvent.click(screen.getByText('게시물 A'));
+
+    expect(screen.getByText('게시물 상세 화면')).toBeInTheDocument();
+  });
+
+  it('펼쳐진 카드의 사진을 누르면 페이지 이동 대신 그 사진부터 확대 뷰가 뜬다', async () => {
+    renderDetail(undefined, { ...PLACE, posts: [PLACE.posts[0] as PlaceDetailPost] });
+
+    fireEvent.click(await screen.findByRole('button', { name: '2번째 사진 크게 보기' }));
+
+    // 라우트 이동(/post/{id})이 아니라 오버레이라 장소 상세 화면이 그대로 남아 있다.
+    expect(screen.getByText('아이소')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '게시물', level: 1 })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '게시물 미리보기 닫기' }));
+    expect(screen.queryByRole('heading', { name: '게시물', level: 1 })).not.toBeInTheDocument();
   });
 });

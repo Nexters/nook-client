@@ -7,7 +7,12 @@ import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
-import { DETAIL_PAGE_SNAP_POINT, FULL_SNAP_POINT, PEEK_SNAP_POINT } from '@/features/map/constants';
+import {
+  DETAIL_PAGE_SNAP_POINT,
+  FULL_SNAP_POINT,
+  MID_SNAP_POINT,
+  PEEK_SNAP_POINT,
+} from '@/features/map/constants';
 import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
 import type { MapBounds } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
@@ -79,8 +84,6 @@ export function MapPage() {
   // — 그래서 실제 idle을 영영 못 받아도 핀 조회 자체가 멈추지 않는다.
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   const [isSearchMode, setIsSearchMode] = useState(false);
-  // 검색 진입 직전의 스냅 — 검색이 강제로 올린 full 을 닫을 때 되돌리기 위한 기억.
-  const preSearchSnapRef = useRef<number | string | null>(null);
 
   // 공유 링크(`?placeId=`)로 들어온 게스트에게 왜 상세가 안 열리는지 알려준다.
   useEffect(() => {
@@ -214,27 +217,21 @@ export function MapPage() {
     }
 
     setIsSearchMode(true);
-    // 항상 full 로 올린다 — iOS Safari 는 키보드가 뜰 때 레이아웃 뷰포트를 줄이지 않고
-    // 비주얼 뷰포트만 위로 팬해서, full 이 아니면 시트와 키보드 사이로 뒤의 지도가
-    // 드러난다. full 이면 검색 입력이 화면 최상단이라 팬 자체가 일어나지 않는다.
-    // 모드 전환과 스냅 변경은 같은 핸들러에서 함께 해야 스냅이 튀지 않는다
-    // (§PlaceDirectInputDrawer 의 목록→상세 전환).
-    preSearchSnapRef.current = snap;
-    setSnap(FULL_SNAP_POINT);
+    // 스냅은 건드리지 않는다 — 최근 저장한 공간 목록에서 보던 높이 그대로 검색으로
+    // 넘어간다. peek 에서 입력에 포커스되면 mid 로 올라간다(handleSearchInputFocus).
+  }
+
+  /** 검색 패널의 슬라이드 아웃이 끝난 뒤 호출된다(PlaceSheet 의 useSlideScreen 계약). */
+  function handleExitSearch() {
+    setIsSearchMode(false);
   }
 
   /**
-   * 검색 패널의 슬라이드 아웃이 끝난 뒤 호출된다(PlaceSheet 의 useSlideScreen 계약).
-   * 검색 진입이 강제로 올린 full 은 진입 전 높이로 되돌리되, 검색 중 사용자가 직접
-   * 스냅을 바꿨다면(full 이 아니면) 그 선택을 존중해 건드리지 않는다.
+   * 검색 중 사용자가 시트를 내린 뒤 입력을 다시 누른 경우 — peek 은 키보드가 시트를
+   * 통째로 가리는 높이라 mid 로만 올린다(사용자가 고른 mid/full 은 그대로 존중).
    */
-  function handleExitSearch() {
-    setIsSearchMode(false);
-    const preSearchSnap = preSearchSnapRef.current;
-    preSearchSnapRef.current = null;
-    if (preSearchSnap !== null) {
-      setSnap((current) => (current === FULL_SNAP_POINT ? preSearchSnap : current));
-    }
+  function handleSearchInputFocus() {
+    setSnap((current) => (current === PEEK_SNAP_POINT ? MID_SNAP_POINT : current));
   }
 
   return (
@@ -273,6 +270,7 @@ export function MapPage() {
           onClose={handleCloseDetail}
           onEnterSearch={handleEnterSearch}
           onExitSearch={handleExitSearch}
+          onSearchInputFocus={handleSearchInputFocus}
         />
         {loginWall}
       </div>
