@@ -199,13 +199,9 @@ export function ArchiveDetailPage() {
             }
           />
 
-          <div
-            className={cn(
-              'flex flex-col gap-1 px-4 pt-2 pb-4',
-              // 빈 아카이브는 탭이 없어 정보 영역이 직접 경계선을 긋는다.
-              isEmpty && 'border-gray-20 border-b',
-            )}
-          >
+          {/* 빈 아카이브에는 경계선을 긋지 않는다 — 아래로 편집·공유 칩이 이어져서
+              선이 헤더 끝이 아니라 이름과 칩 사이를 가르는 꼴이 된다. */}
+          <div className="flex flex-col gap-1 px-4 pt-2 pb-4">
             <div className="flex items-center gap-2">
               <span
                 className={`size-3 shrink-0 ${COLOR_BG_CLASS[archive.color]}`}
