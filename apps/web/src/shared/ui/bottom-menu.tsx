@@ -73,6 +73,12 @@ function BottomMenu({ items, hidden = false, className }: BottomMenuProps) {
               key={item.label}
               to={item.to}
               end={item.end}
+              // 탭 사이 이동은 히스토리를 쌓지 않고 덮어쓴다. 탭 루트가 늘 스택 맨 아래에
+              // 있어야, 돌아갈 엔트리가 없어서 iOS 엣지 스와이프가 아예 인식되지 않는다 —
+              // 헤더에 뒤로가기 버튼이 없는 화면에서는 스와이프도 없어야 한다는 제품 규칙을
+              // 별도 판정 없이 만족시키는 방법이다(상세·편집은 그대로 push 라 스와이프된다).
+              // Android 하드웨어 백은 `MainTabPageLayout` 의 인터셉터가 따로 받는다.
+              replace
               className="flex h-15 w-15 flex-col items-center justify-center"
             >
               {({ isActive }) => (
