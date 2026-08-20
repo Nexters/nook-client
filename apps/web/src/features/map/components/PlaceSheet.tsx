@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { useAppShellContainer } from '@/app/providers';
 import { useSlideScreen } from '@/app/slide-screen';
@@ -6,7 +6,11 @@ import { EmptySavedPlaces } from '@/features/map/components/EmptySavedPlaces';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { PlaceSearchPanel } from '@/features/map/components/PlaceSearchPanel';
-import { getPlaceSheetLayoutClassNames } from '@/features/map/components/place-sheet-layout';
+import {
+  getPlaceSheetLayoutClassNames,
+  getSnapTransitionDurationSeconds,
+  SNAP_DURATION_VAR,
+} from '@/features/map/components/place-sheet-layout';
 import {
   BROWSE_SNAP_POINTS,
   BROWSE_SNAP_POINTS_WITH_KEYBOARD,
@@ -66,6 +70,7 @@ export function PlaceSheet({
   onSearchInputFocus: () => void;
 }) {
   const shellContainer = useAppShellContainer();
+  const contentRef = useRef<HTMLDivElement>(null);
   // BottomMenu 를 숨기는 조건은 MapPage(선택된 장소 유무)가 정하고, 여기선 그 결과값만
   // 그대로 읽는다 — 나중에 숨기는 이유가 늘어나도 이 시트 레이아웃은 자동으로 따라간다.
   const { hidden: bottomMenuHidden } = useBottomMenuVisibility();
@@ -106,6 +111,24 @@ export function PlaceSheet({
     return () => clearTimeout(timer);
   }, [suppressTransition]);
 
+  // 이번 전환의 이동 거리에 맞춘 duration 을 시트에 실어 보낸다(global.css 가 이 변수를
+  // 읽는다). 두 경로로 들어온다 — 드래그를 놓은 순간엔 vaul 이 리렌더를 기다리지 않고
+  // 그 자리에서 transform 을 걸어버리므로 아래 setActiveSnapPoint 래퍼가 동기로 먼저
+  // 넣고, 화면이 스냅을 직접 바꾸는 경우(장소 선택 등)는 이 레이아웃 이펙트가 맡는다.
+  // useEffect 가 아니라 useLayoutEffect 인 이유: vaul 의 스냅 이펙트는 passive 라
+  // 자식이어도 모든 layout effect 뒤에 돈다 — 여기서 넣어야 이번 전환에 반영된다.
+  const prevSnapRef = useRef(snap);
+  const applySnapDuration = (from: number | string | null, to: number | string | null) => {
+    const duration = getSnapTransitionDurationSeconds(from, to);
+    if (duration === null) contentRef.current?.style.removeProperty(SNAP_DURATION_VAR);
+    else contentRef.current?.style.setProperty(SNAP_DURATION_VAR, `${duration}s`);
+  };
+  useLayoutEffect(() => {
+    if (prevSnapRef.current === snap) return;
+    applySnapDuration(prevSnapRef.current, snap);
+    prevSnapRef.current = snap;
+  });
+
   // 검색을 닫으면 입력도 함께 사라진다 — blur 이벤트는 언마운트 때 오지 않으므로
   // 포커스 플래그를 직접 내려 peek 을 다시 열어준다.
   useEffect(() => {
@@ -124,6 +147,24 @@ export function PlaceSheet({
       open
       dismissible={false}
       modal={false}
+      // 빠르게 쓸어내리면(vaul 기준 velocity > 2) 중간 스냅을 건너뛰고 끝까지 떨어지는데,
+      // full 에서 목록을 스크롤하듯 짧게 쓴 제스처가 곧장 peek 까지 가버려 "슝 떨어진다"는
+      // 인상을 준다(QA). 이 옵션으로 건너뛰기만 끄면 아무리 빨라도 한 칸씩(full→mid→peek)
+      // 움직인다 — "가볍게 툭 = 다음 단계"(velocity > 0.4) 규칙은 그대로 남는다.
+      snapToSequentialPoint
+      // 이 시트는 오버레이가 없는데(overlay={false}) fadeFromIndex 를 안 넘기면 vaul 이
+      // 마지막 인덱스를 기본값으로 잡아, 그 바로 아래 스냅(mid·detailPage)이 "오버레이가
+      // 걸리는 스냅"으로 취급된다. 그 상태에서 아래로 끌면 getPercentageDragged 가 1 을
+      // 돌려주고, dismissible={false} 와 만나 Root.onDrag 이 드래그를 통째로 무시한다 —
+      // 시트가 손을 안 따라오다 손 뗀 순간 스냅으로 튀는 원인(QA: 핸들 말고는 안 끌린다).
+      // 0 으로 고정해 페이드 대상 스냅을 최저점으로 밀어두면 그 분기에 걸리지 않는다.
+      fadeFromIndex={0}
+      // vaul 은 스크롤 때문에 드래그를 한 번 거절하면 그 뒤 500ms 동안 드래그를 계속
+      // 거절하고, 거절할 때마다 타이머를 다시 찍는다 — 손을 떼지 않는 한 영영 안 풀린다.
+      // 그래서 목록을 내리다 맨 위에 닿아 이어서 끌면 시트가 반응하지 않는다(실측). 0 으로
+      // 두면 스크롤이 맨 위(scrollTop 0)에 닿는 순간 같은 제스처가 그대로 시트 드래그로
+      // 넘어간다 — 스크롤 중에는 어차피 scrollTop 조건이 막아주므로 오작동하지 않는다.
+      scrollLockTimeout={0}
       snapPoints={
         hasSelection
           ? DETAIL_SNAP_POINTS
@@ -132,10 +173,14 @@ export function PlaceSheet({
             : BROWSE_SNAP_POINTS
       }
       activeSnapPoint={snap}
-      setActiveSnapPoint={onSnapChange}
+      setActiveSnapPoint={(next) => {
+        applySnapDuration(prevSnapRef.current, next);
+        onSnapChange(next);
+      }}
       container={shellContainer}
     >
       <DrawerContent
+        ref={contentRef}
         overlay={false}
         showHandle={!isFull || !isScrolled}
         style={{
