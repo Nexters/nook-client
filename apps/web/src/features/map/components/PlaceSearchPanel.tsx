@@ -22,6 +22,7 @@ export function PlaceSearchPanel({
   scrollPaddingBottom,
   onExit,
   onSelectPlace,
+  onInputFocus,
 }: {
   /** 내부 스크롤 허용 여부 — 시트의 스냅 규칙(`PlaceSheet` 의 canScroll)을 그대로 받는다. */
   canScroll: boolean;
@@ -34,6 +35,8 @@ export function PlaceSearchPanel({
   /** 검색 필드의 뒤로가기 — 검색 모드를 닫는다. */
   onExit: () => void;
   onSelectPlace: (id: number) => void;
+  /** 입력 포커스 시 — 시트가 낮은 스냅이면 결과가 보이는 높이로 올린다(MapPage 배선). */
+  onInputFocus: () => void;
 }) {
   const [query, setQuery] = useState('');
   // 그룹 칩 선택 — 어느 검색어에서 골랐는지와 함께 둔다. 검색어가 바뀌면 그룹 목록도
@@ -72,13 +75,19 @@ export function PlaceSearchPanel({
     <div className="flex h-full flex-col gap-3 px-4">
       {/* Figma `search field` — 뒤로가기가 필드 안 왼쪽에 붙는 형태라 공용 Input 을 못 쓰고
           직접 구현한다(§PlaceDirectInputDrawer 와 같은 이유). 포커스 보더는 Input 과 맞춘다. */}
-      <div className="flex h-11 w-full shrink-0 items-center gap-2 rounded-lg border border-gray-30 px-3 transition-colors focus-within:border-gray-100">
+      {/* data-vaul-no-drag: 이 줄은 vaul 드래그 대상에서 제외한다 — 안 그러면 뒤로가기/입력/
+          지우기 버튼 위에서의 탭이 vaul 의 드래그 처리에 걸려 고스트 클릭이 날 수 있다. */}
+      <div
+        data-vaul-no-drag
+        className="flex h-11 w-full shrink-0 items-center gap-2 rounded-lg border border-gray-30 px-3 transition-colors focus-within:border-gray-100"
+      >
         <button type="button" aria-label="검색 닫기" onClick={onExit} className="shrink-0">
           <Icon24Back />
         </button>
         <input
           ref={inputRef}
           value={query}
+          onFocus={onInputFocus}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="장소명을 입력해주세요"
           className="min-w-0 flex-1 bg-transparent text-b2 font-medium text-gray-100 outline-none placeholder:text-gray-50"
@@ -102,6 +111,12 @@ export function PlaceSearchPanel({
         <div
           style={{
             paddingBottom: scrollPaddingBottom ?? 'calc(1.25rem + env(safe-area-inset-bottom))',
+          }}
+          // 결과 영역에 손이 닿는 순간 입력 포커스를 푼다 — 키보드가 바로 내려가고 그
+          // 터치는 그대로 스크롤/시트 드래그로 이어진다(iOS 의 drag-dismiss 관례).
+          // 키보드가 화면을 가리거나 팬해 둔 상태를 스크롤 전에 해소하려는 것.
+          onPointerDown={() => {
+            if (document.activeElement === inputRef.current) inputRef.current?.blur();
           }}
           className={cn(
             'flex flex-1 flex-col',

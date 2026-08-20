@@ -1,6 +1,15 @@
+import { useRef } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { Thumbnail } from '@/shared/ui';
 import type { Place } from '../types';
+
+/**
+ * 카드가 지도 바텀시트(vaul) 안에 놓일 때, 카드 위에서 시작한 드래그로 시트를 끌어내려도
+ * vaul 이 클릭을 취소해주지 않아 손을 뗀 자리에 클릭이 그대로 발생한다(고스트 클릭) —
+ * touch-action:none 으로 브라우저의 기본 탭/드래그 판별을 꺼둔 채 자기가 preventDefault
+ * 를 안 하기 때문. 누른 지점에서 이 거리(px) 이상 움직였으면 드래그로 보고 클릭을 무시한다.
+ */
+const DRAG_CLICK_THRESHOLD_PX = 10;
 
 /**
  * Figma `장소 카드`.
@@ -22,10 +31,28 @@ function PlaceCard({ place, onClick, className }: PlaceCardProps) {
   const Comp = onClick ? 'button' : 'div';
   const isProcessing = place.thumbnailState === 'processing';
   const isFailed = place.thumbnailState === 'failed';
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
 
   return (
     <Comp
-      {...(onClick ? { type: 'button' as const, onClick } : {})}
+      {...(onClick
+        ? {
+            type: 'button' as const,
+            onPointerDown: (e: React.PointerEvent) => {
+              pointerDownPos.current = { x: e.clientX, y: e.clientY };
+            },
+            onClick: (e: React.MouseEvent) => {
+              const start = pointerDownPos.current;
+              pointerDownPos.current = null;
+              if (start) {
+                const dx = e.clientX - start.x;
+                const dy = e.clientY - start.y;
+                if (Math.hypot(dx, dy) > DRAG_CLICK_THRESHOLD_PX) return;
+              }
+              onClick();
+            },
+          }
+        : {})}
       className={cn(
         'flex w-full flex-col items-start gap-1 bg-gray-0 pb-2 text-left',
         onClick &&
