@@ -22,17 +22,23 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
-internal data class ShareSession(val accessToken: String, val refreshToken: String?, val revision: Int)
+internal data class ShareSession(val accessToken: String, val refreshToken: String?, val apiBaseUrl: String?, val revision: Int)
 internal class ShareAuthenticationRequiredException : IllegalStateException("로그인이 필요합니다")
 internal class SharePrivatePostException : IllegalStateException("비공개 게시물은 저장할 수 없습니다")
 
 class ShareApiClient(private val context: Context) {
     private val vault = ShareSessionVault(context)
-    private val baseUrl: String by lazy {
+    // 세션에 발급처(apiBaseUrl)가 기록돼 있으면 그쪽을 쓰고, 이건 그 기록이 없을 때의 폴백이다.
+    private val fallbackBaseUrl: String by lazy {
         val id = context.resources.getIdentifier("nook_api_base_url", "string", context.packageName)
         if (id == 0) throw IllegalStateException("Native API Base URL 미설정")
         context.getString(id).trimEnd('/')
     }
+
+    // 토큰은 발급한 API 에서만 유효하다. 빌드 variant 의 API 와 웹이 실제 쓰는 API 가
+    // 어긋나 있어도, 본앱이 세션에 함께 기록한 발급처로 보내면 항상 짝이 맞는다.
+    private fun baseUrl(session: ShareSession): String =
+        session.apiBaseUrl?.takeIf { it.isNotBlank() }?.trimEnd('/') ?: fallbackBaseUrl
 
     fun hasSession(): Boolean = vault.read() != null
 
@@ -68,10 +74,10 @@ class ShareApiClient(private val context: Context) {
 
     private fun protectedRequest(path: String, method: String = "GET", body: String? = null): String {
         val initial = vault.read() ?: throw ShareAuthenticationRequiredException()
-        var response = request(path, method, body, initial.accessToken)
+        var response = request(baseUrl(initial), path, method, body, initial.accessToken)
         if (response.first != 401) return requireSuccess(response)
         val refreshed = refresh(initial.revision) ?: throw ShareAuthenticationRequiredException()
-        response = request(path, method, body, refreshed.accessToken)
+        response = request(baseUrl(refreshed), path, method, body, refreshed.accessToken)
         if (response.first == 401) vault.clear()
         if (response.first == 401) throw ShareAuthenticationRequiredException()
         return requireSuccess(response)
@@ -85,17 +91,18 @@ class ShareApiClient(private val context: Context) {
                 if (current.revision > failedRevision) return current
                 val token = current.refreshToken ?: run { vault.clear(); return null }
                 val response = request(
-                    "/auth/token/refresh", "POST",
+                    baseUrl(current), "/auth/token/refresh", "POST",
                     JSONObject().put("refreshToken", token).toString(), null,
                 )
                 if (response.first in 400..499) { vault.clear(); return null }
                 val pair = unwrap(requireSuccess(response)).getJSONObject("value")
-                return vault.write(pair.getString("accessToken"), pair.getString("refreshToken"))
+                // 발급처 기록은 갱신을 거쳐도 유지돼야 다음 요청이 계속 같은 API 로 나간다.
+                return vault.write(pair.getString("accessToken"), pair.getString("refreshToken"), current.apiBaseUrl)
             }
         }
     }
 
-    private fun request(path: String, method: String, body: String?, token: String?): Pair<Int, String> {
+    private fun request(baseUrl: String, path: String, method: String, body: String?, token: String?): Pair<Int, String> {
         val connection = URL(baseUrl + path).openConnection() as HttpURLConnection
         return try {
             connection.requestMethod = method
@@ -149,11 +156,11 @@ private class ShareSessionVault(private val context: Context) {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, bytes.copyOfRange(0, 12)))
         val json = JSONObject(String(cipher.doFinal(bytes.copyOfRange(12, bytes.size)), Charsets.UTF_8))
-        ShareSession(json.getString("accessToken"), if (json.isNull("refreshToken")) null else json.getString("refreshToken"), json.getInt("revision"))
+        ShareSession(json.getString("accessToken"), if (json.isNull("refreshToken")) null else json.getString("refreshToken"), if (json.isNull("apiBaseUrl")) null else json.optString("apiBaseUrl"), json.getInt("revision"))
     } catch (_: Exception) { clear(); null }
-    fun write(accessToken: String, refreshToken: String?): ShareSession {
-        val value = ShareSession(accessToken, refreshToken, (read()?.revision ?: 0) + 1)
-        val json = JSONObject().put("schemaVersion", 1).put("accessToken", accessToken).put("refreshToken", refreshToken ?: JSONObject.NULL).put("revision", value.revision)
+    fun write(accessToken: String, refreshToken: String?, apiBaseUrl: String?): ShareSession {
+        val value = ShareSession(accessToken, refreshToken, apiBaseUrl, (read()?.revision ?: 0) + 1)
+        val json = JSONObject().put("schemaVersion", 1).put("accessToken", accessToken).put("refreshToken", refreshToken ?: JSONObject.NULL).put("apiBaseUrl", apiBaseUrl ?: JSONObject.NULL).put("revision", value.revision)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding"); cipher.init(Cipher.ENCRYPT_MODE, key())
         prefs.edit().putString("record", Base64.encodeToString(cipher.iv + cipher.doFinal(json.toString().toByteArray()), Base64.NO_WRAP)).commit()
         return value

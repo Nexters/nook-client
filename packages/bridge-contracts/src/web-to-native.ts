@@ -10,10 +10,17 @@ export type WebToNative =
   // BACK_REQUESTED 를 받았지만 웹에 더 돌아갈 곳이 없다. 셸이 OS 기본 동작(앱 내리기)을 한다.
   | BridgeMessage<'BACK_EXHAUSTED', Record<string, never>>
   | BridgeMessage<'REQUEST_PUSH_PERMISSION', Record<string, never>>
-  | BridgeMessage<'SESSION_GET', { requestId: string }>
+  // apiBaseUrl 은 웹이 토큰을 발급받은 API 오리진. 셸·확장이 저장된 토큰을 같은 곳으로
+  // 보내게 세션에 함께 기록한다. 구버전 웹은 안 보내므로 null 을 허용한다.
+  | BridgeMessage<'SESSION_GET', { requestId: string; apiBaseUrl: string | null }>
   | BridgeMessage<'SESSION_REFRESH', { requestId: string; revision: number }>
   | BridgeMessage<
       'SESSION_ESTABLISH',
-      { requestId: string; accessToken: string; refreshToken: string | null }
+      {
+        requestId: string;
+        accessToken: string;
+        refreshToken: string | null;
+        apiBaseUrl: string | null;
+      }
     >
   | BridgeMessage<'SESSION_CLEAR', { requestId: string }>;

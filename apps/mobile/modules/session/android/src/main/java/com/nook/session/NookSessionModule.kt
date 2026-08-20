@@ -17,8 +17,8 @@ class NookSessionModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("NookSession")
     AsyncFunction("getSession") { vault().read() }
-    AsyncFunction("setSession") { accessToken: String, refreshToken: String? ->
-      vault().write(accessToken, refreshToken)
+    AsyncFunction("setSession") { accessToken: String, refreshToken: String?, apiBaseUrl: String? ->
+      vault().write(accessToken, refreshToken, apiBaseUrl)
     }
     AsyncFunction("clearSession") {
       val context = requireNotNull(appContext.reactContext)
@@ -46,6 +46,8 @@ internal class AndroidSessionVault(context: Context) {
         "schemaVersion" to 1,
         "accessToken" to json.getString("accessToken"),
         "refreshToken" to if (json.isNull("refreshToken")) null else json.getString("refreshToken"),
+        // 이 필드가 없던 시절의 저장분은 null 로 읽힌다.
+        "apiBaseUrl" to if (json.isNull("apiBaseUrl")) null else json.optString("apiBaseUrl"),
         "revision" to json.getInt("revision"),
       )
     } catch (_: Exception) {
@@ -54,16 +56,17 @@ internal class AndroidSessionVault(context: Context) {
     }
   }
 
-  fun write(accessToken: String, refreshToken: String?): Map<String, Any?> = synchronized(this) {
+  fun write(accessToken: String, refreshToken: String?, apiBaseUrl: String?): Map<String, Any?> = synchronized(this) {
     require(accessToken.isNotBlank())
     val revision = ((read()?.get("revision") as? Number)?.toInt() ?: 0) + 1
     val json = JSONObject().put("schemaVersion", 1).put("accessToken", accessToken)
-      .put("refreshToken", refreshToken ?: JSONObject.NULL).put("revision", revision)
+      .put("refreshToken", refreshToken ?: JSONObject.NULL)
+      .put("apiBaseUrl", apiBaseUrl ?: JSONObject.NULL).put("revision", revision)
     val cipher = Cipher.getInstance("AES/GCM/NoPadding")
     cipher.init(Cipher.ENCRYPT_MODE, key())
     val encrypted = cipher.iv + cipher.doFinal(json.toString().toByteArray(Charsets.UTF_8))
     check(prefs.edit().putString("record", Base64.encodeToString(encrypted, Base64.NO_WRAP)).commit())
-    mapOf("schemaVersion" to 1, "accessToken" to accessToken, "refreshToken" to refreshToken, "revision" to revision)
+    mapOf("schemaVersion" to 1, "accessToken" to accessToken, "refreshToken" to refreshToken, "apiBaseUrl" to apiBaseUrl, "revision" to revision)
   }
 
   fun clear() { prefs.edit().remove("record").commit() }
