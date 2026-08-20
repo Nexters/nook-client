@@ -5,6 +5,7 @@ import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { toDisplayPost } from '@/features/map/lib/placePost';
 import { SavedPostCard, SavedPostPreview } from '@/features/post';
 import { usePostDetails } from '@/features/post/api/queries';
+import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { BackButton, Header } from '@/shared/ui';
 import { usePlacePosts } from './api/queries';
@@ -20,7 +21,10 @@ export function PlacePostsPage() {
   const postDetailQueries = usePostDetails(posts.map((post) => post.id));
   const sentinelRef = useInfiniteScrollSentinel(postsQuery);
   // 카드의 사진을 누르면 그 사진부터 확대 뷰를 얹는다(Figma `전체 보기`) — 장소 상세와 같다.
+  // 어느 사진인지는 컴포넌트 state 로 들고, 떠 있는지 여부만 히스토리 엔트리로 승격한다 —
+  // 뒤로가기 버튼·하드웨어 백·iOS 엣지 스와이프가 모두 "확대 뷰 닫기"로 수렴해야 한다.
   const [preview, setPreview] = useState<{ postIndex: number; imageIndex: number } | null>(null);
+  const [previewOpen, openPreview, closePreview] = useHistoryBackedFlag('savedPostPreview');
   const previewPost = preview ? posts[preview.postIndex] : undefined;
   const previewDetail = preview ? postDetailQueries[preview.postIndex]?.data : undefined;
 
@@ -37,7 +41,10 @@ export function PlacePostsPage() {
                 post={toDisplayPost(post, postDetailQueries[index]?.data)}
                 archives={postDetailQueries[index]?.data?.archives ?? []}
                 onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
-                onImageClick={(imageIndex) => setPreview({ postIndex: index, imageIndex })}
+                onImageClick={(imageIndex) => {
+                  setPreview({ postIndex: index, imageIndex });
+                  openPreview();
+                }}
               />
             </div>
           ))}
@@ -45,12 +52,12 @@ export function PlacePostsPage() {
         </div>
       )}
 
-      {preview && previewPost ? (
+      {previewOpen && preview && previewPost ? (
         <SavedPostPreview
           title={previewDetail?.title ?? previewPost.title}
           post={toDisplayPost(previewPost, previewDetail)}
           initialIndex={preview.imageIndex}
-          onClose={() => setPreview(null)}
+          onClose={closePreview}
         />
       ) : null}
     </PinnedHeaderLayout>

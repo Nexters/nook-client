@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import { ArchiveDetailPage } from '@/features/archive/ArchiveDetailPage';
@@ -9,6 +9,20 @@ import { ArchiveFormPage } from '@/features/archive/ArchiveFormPage';
 import { ArchivePage } from '@/features/archive/ArchivePage';
 import type { Archive } from '@/features/archive/types';
 import { ToastProvider } from '@/shared/toast';
+
+/**
+ * iOS 엣지 스와이프가 하는 일 — 화면을 거치지 않고 히스토리를 한 칸 되돌린다.
+ * WKWebView 는 웹에 이벤트를 주지 않고 히스토리를 직접 조작하므로, 라우터 레벨의
+ * navigate(-1) 이 그 경로를 그대로 재현한다.
+ */
+function HistoryBackProbe() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      히스토리 뒤로
+    </button>
+  );
+}
 
 /** `/map` 착지 확인용 — 실제 화면 대신 쿼리스트링을 그대로 보여준다. */
 function MapRouteProbe() {
@@ -63,6 +77,7 @@ function renderArchiveRoutes(initialPath: string) {
   return render(
     wrapper(
       <MemoryRouter initialEntries={[initialPath]}>
+        <HistoryBackProbe />
         <Routes>
           <Route path="/archive" element={<ArchivePage />} />
           <Route path="/archive/new" element={<ArchiveFormPage mode="create" />} />
@@ -357,6 +372,36 @@ describe('아카이브 화면', () => {
     expect(screen.queryByRole('button', { name: '삭제하기' })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '카페' })).toBeInTheDocument();
     expect(mocks.deleteArchivePosts).not.toHaveBeenCalled();
+  });
+
+  it('선택 삭제 모드에서 히스토리 뒤로(iOS 엣지 스와이프)면 모드만 종료되고 선택도 비워진다', async () => {
+    mocks.fetchArchivePosts.mockResolvedValue({
+      posts: [
+        { id: 7, name: '초록뷰 카페', placeCount: 3, authorHandle: '@abcde', thumbnails: [] },
+      ],
+      nextPage: undefined,
+      ownerNickname: 'Purr',
+      totalElements: 1,
+    });
+
+    renderArchiveRoutes('/archive/1');
+    expect(await screen.findByText('초록뷰 카페')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '선택 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: /초록뷰 카페/ }));
+    expect(screen.getByRole('button', { name: '1개 삭제하기' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '히스토리 뒤로' }));
+
+    // 모드만 접힌다 — 승격 전에는 여기서 아카이브 상세를 떠났다.
+    expect(screen.queryByRole('button', { name: /삭제하기/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '카페' })).toBeInTheDocument();
+
+    // 다시 들어가도 지난 선택은 남아 있지 않다.
+    fireEvent.click(screen.getByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '선택 삭제' }));
+    expect(screen.getByRole('button', { name: '삭제하기' })).toBeInTheDocument();
   });
 
   it('아카이브 편집은 기존 이름을 채우고 삭제 확인 후 삭제 요청을 보낸다', async () => {

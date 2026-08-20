@@ -37,7 +37,9 @@ vi.mock('@/features/map/components/PlaceSheet', async () => {
       selectedPlace,
       snap,
       instantOpen,
+      isSearchMode,
       onSnapChange,
+      onSelectPlace,
       onEnterSearch,
       onExitSearch,
       onSearchInputFocus,
@@ -45,7 +47,9 @@ vi.mock('@/features/map/components/PlaceSheet', async () => {
       selectedPlace: { name: string } | null;
       snap: number | string | null;
       instantOpen?: boolean;
+      isSearchMode: boolean;
       onSnapChange: (snap: number | string | null) => void;
+      onSelectPlace: (id: number) => void;
       onEnterSearch: () => void;
       onExitSearch: () => void;
       onSearchInputFocus: () => void;
@@ -54,6 +58,10 @@ vi.mock('@/features/map/components/PlaceSheet', async () => {
         <p>{selectedPlace ? `선택됨: ${selectedPlace.name}` : '선택 없음'}</p>
         <p>스냅: {String(snap)}</p>
         <p>즉시열림: {String(instantOpen ?? false)}</p>
+        <p>검색모드: {String(isSearchMode)}</p>
+        <button type="button" onClick={() => onSelectPlace(1)}>
+          검색 결과 선택
+        </button>
         <button type="button" onClick={() => onSnapChange(PEEK_SNAP_POINT)}>
           시트 내리기
         </button>
@@ -296,6 +304,19 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
     fireEvent.click(screen.getByRole('button', { name: '검색 입력 포커스' }));
 
     await screen.findByText(`스냅: ${MID_SNAP_POINT}`);
+  });
+
+  it('검색 결과에서 장소를 고르면 검색이 닫히고 선택이 URL 에 실린다', async () => {
+    renderMapAt('/map');
+    await screen.findByText('검색모드: false');
+
+    fireEvent.click(screen.getByRole('button', { name: '검색 진입' }));
+    await screen.findByText('검색모드: true');
+
+    fireEvent.click(screen.getByRole('button', { name: '검색 결과 선택' }));
+
+    await screen.findByText('검색모드: false');
+    expect(screen.getByTestId('search-params').textContent).toBe('?placeId=1');
   });
 
   it('mid/full 등 peek 이 아닌 높이에서는 입력 포커스가 스냅을 바꾸지 않는다', async () => {

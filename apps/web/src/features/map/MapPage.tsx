@@ -83,6 +83,10 @@ export function MapPage() {
   // null로 남아 있고, 그동안은 아래 `effectiveBounds`가 현재 위치 기준 근사값으로 대신한다
   // — 그래서 실제 idle을 영영 못 받아도 핀 조회 자체가 멈추지 않는다.
   const [bounds, setBounds] = useState<MapBounds | null>(null);
+  // 검색 패널은 히스토리에 승격하지 않는다 — iOS 엣지 스와이프는 화면 전체를 덮는 것에만
+  // 반응해야 하고(제품 결정), 이 패널은 시트 안에서 탐색 콘텐츠만 덮어 화면 높이를 채우지
+  // 않는다. 그래서 스와이프는 여기서도 "지도를 떠난다"가 맞다. 좌상단 뒤로가기는 버튼이
+  // 직접, Android 하드웨어 백은 useSlideScreen 의 인터셉터가 받는다.
   const [isSearchMode, setIsSearchMode] = useState(false);
 
   // 공유 링크(`?placeId=`)로 들어온 게스트에게 왜 상세가 안 열리는지 알려준다.
