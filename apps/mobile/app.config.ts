@@ -6,11 +6,18 @@ type AppVariant = keyof typeof nativePublicConfig.appIds;
 
 const KAKAO_MAVEN_REPOSITORY = 'https://devrepo.kakao.com/nexus/content/groups/public/';
 
-// Firebase 콘솔에서 플랫폼별로 앱을 등록해야 받을 수 있는 파일이다. iOS 는 등록돼 있어
-// 커밋 대신 로컬에 내려받아 쓰고(gitignore), Android 는 아직 등록 전이라 없다 — 둘 다
-// 없어도 빌드가 깨지지 않게 있을 때만 config 에 꽂는다.
-const GOOGLE_SERVICES_FILE_IOS = './GoogleService-Info.plist';
-const GOOGLE_SERVICES_FILE_ANDROID = './google-services.json';
+// Firebase 콘솔에서 플랫폼·variant(번들 ID)별로 앱을 등록해야 받을 수 있는 파일이다.
+// 커밋하지 않고(gitignore) 로컬 또는 EAS file environment variable 로 공급한다.
+// variant 마다 번들 ID 가 달라 Firebase 앱·설정 파일도 1:1 이어야 해서 경로를 나눈다.
+// 현재 등록 상태: iOS production 만 있음. iOS development·Android 는 Firebase 미등록.
+function googleServicesFile(variant: AppVariant, platform: 'ios' | 'android'): string {
+  const envOverride =
+    platform === 'ios'
+      ? process.env.GOOGLE_SERVICES_FILE_IOS
+      : process.env.GOOGLE_SERVICES_FILE_ANDROID;
+  const fileName = platform === 'ios' ? 'GoogleService-Info.plist' : 'google-services.json';
+  return envOverride ?? `./firebase/${variant}/${fileName}`;
+}
 
 // 웹의 gray-10. 네이티브 스플래시와 웹 첫 화면 배경을 같은 색으로 맞춰 전환 시 색 점프를 없앤다.
 const SPLASH_BACKGROUND_COLOR = '#f4f5f7';
@@ -39,6 +46,20 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     variant === 'development'
       ? process.env.KAKAO_NATIVE_APP_KEY_DEV
       : process.env.KAKAO_NATIVE_APP_KEY_PROD;
+
+  const iosGoogleServices = googleServicesFile(variant, 'ios');
+  const androidGoogleServices = googleServicesFile(variant, 'android');
+
+  // 파일이 없으면 Firebase 없이 빌드된다(런타임 가드가 푸시만 조용히 끈다). 로컬 Metro 까지
+  // 막지 않도록 평소엔 경고만 하고, EAS 의 production 빌드에서만 끊는다 — 여기서 안 끊으면
+  // CI 설정 실수(file env 누락)로 푸시가 통째로 죽은 스토어 빌드가 정상처럼 만들어진다.
+  if (variant === 'production' && !existsSync(iosGoogleServices)) {
+    const message =
+      `[firebase] iOS GoogleService-Info.plist 가 없다: ${iosGoogleServices} — ` +
+      'Firebase 콘솔에서 받아 그 경로에 두거나 GOOGLE_SERVICES_FILE_IOS(EAS file env)로 공급해라.';
+    if (process.env.EAS_BUILD === 'true') throw new Error(message);
+    console.warn(message);
+  }
 
   return {
     ...config,
@@ -119,9 +140,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // Sign in with Apple entitlement 을 주입한다. Apple Developer 의 App ID 에도
       // 같은 capability 가 켜져 있어야 프로비저닝이 맞는다.
       usesAppleSignIn: true,
-      ...(existsSync(GOOGLE_SERVICES_FILE_IOS)
-        ? { googleServicesFile: GOOGLE_SERVICES_FILE_IOS }
-        : {}),
+      ...(existsSync(iosGoogleServices) ? { googleServicesFile: iosGoogleServices } : {}),
       infoPlist: {
         ...config.ios?.infoPlist,
         // 미설정이면 EAS 가 매 빌드마다 물어보고 그 답을 app config 에 되쓴다. HTTPS 만
@@ -154,9 +173,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       ...config.android,
       package: appId,
-      ...(existsSync(GOOGLE_SERVICES_FILE_ANDROID)
-        ? { googleServicesFile: GOOGLE_SERVICES_FILE_ANDROID }
-        : {}),
+      ...(existsSync(androidGoogleServices) ? { googleServicesFile: androidGoogleServices } : {}),
       adaptiveIcon: {
         ...config.android?.adaptiveIcon,
         foregroundImage:

@@ -75,4 +75,41 @@ describe('pushTokens', () => {
 
     expect(mocks._delete).toHaveBeenCalledTimes(1);
   });
+
+  it('등록이 진행 중일 때 삭제가 끼어들면, 등록이 끝난 뒤 그 토큰을 지운다', async () => {
+    const { registerPushToken, deleteRegisteredPushToken } = await loadModule();
+
+    // PUT 응답을 붙잡아 두고 그 사이에 로그아웃(DELETE)이 들어오는 상황을 재현한다.
+    let resolveRegister!: (value: unknown) => void;
+    mocks.register.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveRegister = resolve;
+      }),
+    );
+
+    const registration = registerPushToken(IOS_TOKEN);
+    const deletion = deleteRegisteredPushToken();
+
+    // PUT 이 아직 안 끝났으니 DELETE 는 시작도 하지 않아야 한다.
+    await Promise.resolve();
+    expect(mocks._delete).not.toHaveBeenCalled();
+
+    resolveRegister(unitResponse());
+    await Promise.all([registration, deletion]);
+
+    // DELETE 가 방금 등록된 토큰을 지운다 — 로그아웃 뒤 토큰이 서버에 남지 않는다.
+    expect(mocks._delete).toHaveBeenCalledWith({ token: 'apns-token' }, { auth: 'required' });
+  });
+
+  it('삭제가 실패하면 토큰을 지우지 않아 재시도할 수 있다', async () => {
+    const { registerPushToken, deleteRegisteredPushToken } = await loadModule();
+    await registerPushToken(IOS_TOKEN);
+
+    mocks._delete.mockRejectedValueOnce(new Error('network'));
+    await expect(deleteRegisteredPushToken()).rejects.toThrow('network');
+
+    await deleteRegisteredPushToken();
+    expect(mocks._delete).toHaveBeenCalledTimes(2);
+    expect(mocks._delete).toHaveBeenLastCalledWith({ token: 'apns-token' }, { auth: 'required' });
+  });
 });
