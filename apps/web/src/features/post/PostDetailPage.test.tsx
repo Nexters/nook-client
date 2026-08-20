@@ -35,6 +35,8 @@ const POSTS: Record<number, PostDetail> = {
     processingStatus: 'COMPLETED',
     processingPercent: 100,
     places: [],
+    placeParsingStatus: 'COMPLETED',
+    placeParsingFailureReason: null,
     title: '지금 가기 좋은 초록뷰 카페',
     archives: [{ id: 1, name: '카페', color: 'yellow' }],
     memo: '지우랑 가면 좋겠다',
@@ -51,6 +53,8 @@ const POSTS: Record<number, PostDetail> = {
     processingStatus: 'COMPLETED',
     processingPercent: 100,
     places: [],
+    placeParsingStatus: 'COMPLETED',
+    placeParsingFailureReason: null,
     title: '몰래 가려고 저장해둔 서울 카페',
     archives: [{ id: 1, name: '카페', color: 'yellow' }],
     post: {
@@ -66,6 +70,8 @@ const POSTS: Record<number, PostDetail> = {
     processingStatus: 'COMPLETED',
     processingPercent: 100,
     places: [],
+    placeParsingStatus: 'FAILED',
+    placeParsingFailureReason: '게시물에서 위치 정보를 찾지 못했어요',
     title: '위치 태그 없이 올라온 카페 사진',
     archives: [{ id: 1, name: '카페', color: 'yellow' }],
     post: {
@@ -473,11 +479,38 @@ describe('게시물 상세', () => {
     expect(screen.getByRole('button', { name: /직접추가/ })).toBeInTheDocument();
   });
 
-  it('장소 파싱이 실패하면 에러 스낵바를 보여준다', async () => {
+  it('장소 파싱이 실패하면 연관 장소 영역에 실패 사유를 보여준다', async () => {
     await renderPost(3);
 
     expect(screen.getByRole('heading', { name: '게시물에 포함된 장소' })).toBeInTheDocument();
-    expect(screen.getByText('위치를 찾지 못 했어요')).toBeInTheDocument();
+    expect(screen.getByText('장소를 찾지 못했어요')).toBeInTheDocument();
+    expect(screen.getByText('게시물에서 위치 정보를 찾지 못했어요')).toBeInTheDocument();
+  });
+
+  it('장소 파싱이 끝나면 게시물 상세를 다시 불러온다', async () => {
+    mocks.fetchPlaceParsing
+      .mockResolvedValueOnce({
+        postId: 1,
+        placeParsingStatus: 'PROCESSING',
+        failureReason: null,
+        places: [],
+      })
+      .mockResolvedValue(PLACE_PARSING[1]);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    try {
+      renderRoute('/post/1');
+      await waitFor(() =>
+        expect(screen.getByText('게시물에 포함된 장소를 찾는 중…')).toBeInTheDocument(),
+      );
+      expect(mocks.fetchPostDetail).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(3000);
+
+      await waitFor(() => expect(mocks.fetchPostDetail).toHaveBeenCalledTimes(2));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('이미지를 누르면 확대 뷰가 열린다', async () => {

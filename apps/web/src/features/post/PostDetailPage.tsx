@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
@@ -141,15 +141,6 @@ export function PostDetailPage() {
     ...(relatedPlacesState.status === 'success' ? relatedPlacesState.bookmarkedPlaceIds : []),
     ...detailPlaces.filter((place) => place.bookmarked).map((place) => String(place.id)),
   ];
-
-  useEffect(() => {
-    if (relatedPlacesState.status !== 'error') return;
-    showToast({
-      variant: 'description',
-      title: '위치를 찾지 못 했어요',
-      description: '게시물은 저장됐지만 지도에는 표시되지 않아요',
-    });
-  }, [relatedPlacesState.status, showToast]);
 
   // 게스트가 닿는 경로는 공유 확장의 "앱에서 보기" 딥링크뿐이다. 게시물은 저장한
   // 사람만 볼 수 있어 그릴 내용이 없으니 진입을 월로 막는다.
