@@ -66,10 +66,6 @@ class ShareViewController: UIViewController {
 
     @MainActor
     private func loadGroups() {
-        guard let api else {
-            presentFeedback(.network) { [weak self] in self?.loadGroups() }
-            return
-        }
         guard api.hasSession() else {
             presentFeedback(.login) { [weak self] in self?.openContainingApp(path: "login") }
             return
@@ -78,7 +74,7 @@ class ShareViewController: UIViewController {
         Task { [weak self] in
             guard let self else { return }
             do {
-                let groups = try await api.groups()
+                let groups = try await self.api.groups()
                 self.mountScreen(groups: groups)
             } catch {
                 shareLogger.error("아카이브 조회 실패: \(String(describing: error), privacy: .public)")
@@ -133,8 +129,7 @@ class ShareViewController: UIViewController {
                     guard let url = self.firstSharedURL(in: texts) else {
                         throw ShareApiError.privatePost
                     }
-                    guard let api = self.api else { throw ShareApiError.configuration }
-                    let postId = try await api.save(url: url, groupIds: groups, memo: memo)
+                    let postId = try await self.api.save(url: url, groupIds: groups, memo: memo)
                     await MainActor.run {
                         finishSaving?(true)
                         self.presentFeedback(.success) { [weak self] in
@@ -164,8 +159,7 @@ class ShareViewController: UIViewController {
         Task { [weak self] in
             guard let self else { return }
             do {
-                guard let api = self.api else { throw ShareApiError.configuration }
-                let created = try await api.createGroup(name: name, colorIndex: colorIndex)
+                let created = try await self.api.createGroup(name: name, colorIndex: colorIndex)
                 finishCreating?(true)
                 self.replaceScreen(groups: existingGroups + [created])
             } catch {

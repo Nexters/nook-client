@@ -35,7 +35,7 @@ cp .env.example .env.local
 | `APP_VARIANT` | 선택 | `development`로 두면 `kr.co.everynook.app.dev` 식별자로 빌드된다. 비워두면 production 식별자 |
 | `APPLE_TEAM_ID` | 선택 (iOS) | 2-2절 참고 — 팀 계정에 초대된 게 아니라면 비워두고 Xcode가 본인 Apple ID로 서명하게 둔다 |
 | `KAKAO_NATIVE_APP_KEY_DEV`/`_PROD` | 선택 | 카카오 로그인을 직접 테스트할 때만 필요. 값 없어도 빌드·설치는 된다(로그인 버튼만 실패) |
-| `EXPO_PUBLIC_WEB_URL`/`EXPO_PUBLIC_API_BASE_URL` | 선택 | LAN IP로 로컬 웹을 띄워 확인할 때만 |
+| `EXPO_PUBLIC_WEB_URL` | 선택 | LAN IP로 로컬 웹을 띄워 확인할 때만 |
 
 ---
 

@@ -28,17 +28,14 @@ internal class SharePrivatePostException : IllegalStateException("비공개 게�
 
 class ShareApiClient(private val context: Context) {
     private val vault = ShareSessionVault(context)
-    // 세션에 발급처(apiBaseUrl)가 기록돼 있으면 그쪽을 쓰고, 이건 그 기록이 없을 때의 폴백이다.
-    private val fallbackBaseUrl: String by lazy {
-        val id = context.resources.getIdentifier("nook_api_base_url", "string", context.packageName)
-        if (id == 0) throw IllegalStateException("Native API Base URL 미설정")
-        context.getString(id).trimEnd('/')
-    }
 
-    // 토큰은 발급한 API 에서만 유효하다. 빌드 variant 의 API 와 웹이 실제 쓰는 API 가
-    // 어긋나 있어도, 본앱이 세션에 함께 기록한 발급처로 보내면 항상 짝이 맞는다.
+    // 토큰은 발급한 API 에서만 유효하므로 본앱이 세션에 기록해 둔 발급처로만 보낸다.
+    // 기록에는 버전 경로가 없고(웹 규약) 확장은 `/groups` 처럼 버전 없는 경로를 쓰므로 여기서 붙인다.
+    // 기록이 없으면 이 필드가 생기기 전의 세션이다 — 보낼 곳을 모르니 로그인 안내로 넘겨
+    // 본앱을 열게 한다. 저장소는 건드리지 않아 앱을 열면 재로그인 없이 이어진다.
     private fun baseUrl(session: ShareSession): String =
-        session.apiBaseUrl?.takeIf { it.isNotBlank() }?.trimEnd('/') ?: fallbackBaseUrl
+        session.apiBaseUrl?.takeIf { it.isNotBlank() }?.trimEnd('/')?.plus("/api/v1")
+            ?: throw ShareAuthenticationRequiredException()
 
     fun hasSession(): Boolean = vault.read() != null
 

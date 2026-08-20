@@ -7,10 +7,6 @@
     "development": "https://www.everynook.co.kr",
     "production": "https://www.everynook.co.kr"
   },
-  "apiBaseUrl": {
-    "development": "https://api-dev.everynook.co.kr/api/v1",
-    "production": "https://api.everynook.co.kr/api/v1"
-  },
   "android": {
     "kotlinVersion": "2.1.20"
   }
