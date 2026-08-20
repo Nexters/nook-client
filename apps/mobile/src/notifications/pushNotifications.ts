@@ -75,22 +75,7 @@ function isFirebaseConfigured(): boolean {
   }
 }
 
-/**
- * 권한을 요청하고, 허용된 경우 FCM 등록 토큰을 함께 돌려준다. 서버 등록은 웹이 이어서 한다.
- * 어떤 실패에도 reject 하지 않는다 — 웹이 requestId 로 응답을 기다리고 있어, 응답이 빠지면
- * Promise 가 영원히 pending 으로 남는다.
- */
-export async function requestPushPermissionAndToken(): Promise<PushPermissionOutcome> {
-  let status: PushPermissionStatus;
-  try {
-    const permission = await Notifications.requestPermissionsAsync({
-      ios: { allowAlert: true, allowBadge: true, allowSound: true },
-    });
-    status = toPermissionStatus(permission.status);
-  } catch {
-    return { status: 'undetermined' };
-  }
-
+async function withTokenIfGranted(status: PushPermissionStatus): Promise<PushPermissionOutcome> {
   if (status !== 'granted' || !platform || !isFirebaseConfigured()) {
     return { status };
   }
@@ -100,6 +85,32 @@ export async function requestPushPermissionAndToken(): Promise<PushPermissionOut
     return { status, token: { platform, value } };
   } catch {
     return { status };
+  }
+}
+
+/**
+ * 권한을 요청하고, 허용된 경우 FCM 등록 토큰을 함께 돌려준다. 서버 등록은 웹이 이어서 한다.
+ * 어떤 실패에도 reject 하지 않는다 — 웹이 requestId 로 응답을 기다리고 있어, 응답이 빠지면
+ * Promise 가 영원히 pending 으로 남는다.
+ */
+export async function requestPushPermissionAndToken(): Promise<PushPermissionOutcome> {
+  try {
+    const permission = await Notifications.requestPermissionsAsync({
+      ios: { allowAlert: true, allowBadge: true, allowSound: true },
+    });
+    return await withTokenIfGranted(toPermissionStatus(permission.status));
+  } catch {
+    return { status: 'undetermined' };
+  }
+}
+
+/** 다이얼로그 없이 현재 권한 상태만 조회한다. 이미 허용된 사용자의 토큰 재등록용. */
+export async function getPushStatusAndToken(): Promise<PushPermissionOutcome> {
+  try {
+    const permission = await Notifications.getPermissionsAsync();
+    return await withTokenIfGranted(toPermissionStatus(permission.status));
+  } catch {
+    return { status: 'undetermined' };
   }
 }
 

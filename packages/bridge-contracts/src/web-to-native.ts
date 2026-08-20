@@ -10,6 +10,9 @@ export type WebToNative =
   // BACK_REQUESTED 를 받았지만 웹에 더 돌아갈 곳이 없다. 셸이 OS 기본 동작(앱 내리기)을 한다.
   | BridgeMessage<'BACK_EXHAUSTED', Record<string, never>>
   | BridgeMessage<'REQUEST_PUSH_PERMISSION', { requestId: string }>
+  // 다이얼로그 없이 현재 권한 상태(허용이면 토큰 포함)만 조회한다. 응답은 REQUEST 쪽과
+  // 같은 PUSH_PERMISSION_RESULT 다 — OS 프롬프트를 띄우느냐만 다르다.
+  | BridgeMessage<'GET_PUSH_STATUS', { requestId: string }>
   // iOS 엣지 스와이프 뒤로가기를 화면 단위로 켜고 끈다. 셸의 제스처는 WebView 전역 prop 이라
   // 웹에서 화면별로 막을 수 없는데, "헤더 좌상단에 뒤로가기 버튼이 있는 화면인가"는 웹만
   // 안다 — 그 판정을 웹이 내려 셸에 알린다(제품 규칙: 그런 화면에서만 스와이프된다).

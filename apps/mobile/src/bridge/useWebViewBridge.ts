@@ -9,6 +9,7 @@ import {
   addNotificationOpenedListener,
   addPushTokenRefreshListener,
   getInitialNotificationOpened,
+  getPushStatusAndToken,
   type PushNotificationOpened,
   requestPushPermissionAndToken,
 } from '../notifications/pushNotifications';
@@ -179,6 +180,13 @@ export function useWebViewBridge() {
         case 'REQUEST_PUSH_PERMISSION': {
           const { requestId } = message.payload;
           void requestPushPermissionAndToken().then((outcome) => {
+            send({ v: 1, type: 'PUSH_PERMISSION_RESULT', payload: { requestId, ...outcome } });
+          });
+          break;
+        }
+        case 'GET_PUSH_STATUS': {
+          const { requestId } = message.payload;
+          void getPushStatusAndToken().then((outcome) => {
             send({ v: 1, type: 'PUSH_PERMISSION_RESULT', payload: { requestId, ...outcome } });
           });
           break;

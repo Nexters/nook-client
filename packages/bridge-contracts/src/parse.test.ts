@@ -253,6 +253,12 @@ describe('push notification messages', () => {
     expect(parseWebToNative('{"v":1,"type":"REQUEST_PUSH_PERMISSION","payload":{}}')).toBeNull();
   });
 
+  it('GET_PUSH_STATUS 요청을 파싱한다', () => {
+    expect(
+      parseWebToNative('{"v":1,"type":"GET_PUSH_STATUS","payload":{"requestId":"r1"}}'),
+    ).toEqual({ v: 1, type: 'GET_PUSH_STATUS', payload: { requestId: 'r1' } });
+  });
+
   it('토큰이 있는 PUSH_PERMISSION_RESULT 를 파싱한다', () => {
     expect(
       parseNativeToWeb(

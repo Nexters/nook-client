@@ -153,7 +153,8 @@ export function parseWebToNative(json: string): WebToNative | null {
         : null;
     }
     case 'SESSION_CLEAR':
-    case 'REQUEST_PUSH_PERMISSION': {
+    case 'REQUEST_PUSH_PERMISSION':
+    case 'GET_PUSH_STATUS': {
       const id = requestId(value.payload);
       return id ? { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id } } : null;
     }
