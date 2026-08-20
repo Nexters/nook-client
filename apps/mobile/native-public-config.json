@@ -4,8 +4,8 @@
     "production": "kr.co.everynook.app"
   },
   "webUrl": {
-    "development": "https://www.everynook.co.kr",
-    "production": "https://www.everynook.co.kr"
+    "development": "https://everynook.co.kr",
+    "production": "https://everynook.co.kr"
   },
   "apiBaseUrl": {
     "development": "https://api-dev.everynook.co.kr/api/v1",
