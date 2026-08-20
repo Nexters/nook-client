@@ -22,11 +22,10 @@
 | 배포 방식 | ad-hoc 내부 배포 — 등록된 기기 UDID에만 설치 가능 |
 | JS 번들 | 앱에 미내장. 실행 시 Mac의 Metro 서버에서 로드 |
 
-> development variant(`kr.co.everynook.app.dev`)는 dev ShareExtension 번들에 App Group
-> (`group.kr.co.everynook.app.dev`)이 배정되지 않아 현재 빌드가 실패한다. Individual
-> 멤버십이라 배정은 Account Holder만 developer.apple.com 포털에서 할 수 있다. 배정되기
-> 전까지 실기기 디버깅은 `prod-metro` 프로필을 사용한다. TestFlight 빌드와 번들 ID가 같아
-> 한 기기에 둘 중 하나만 설치된다.
+> `prod-metro`는 TestFlight/App Store의 production 앱과 번들 ID가 같아 한 기기에 둘 중
+> 하나만 설치된다. dev variant(`kr.co.everynook.app.dev`)로 빌드하는 `dev-metro`는 번들
+> ID가 달라 공존할 수 있다. (한때 dev ShareExtension의 App Group 미배정으로 dev 빌드가
+> 실패했으나 2026-08-19 배정 완료로 해소됐다.)
 
 ad-hoc 서명 자격 증명(배포 인증서 + ad-hoc 프로비저닝 프로파일)은 EAS 서버에 저장돼 있어
 (Ad Hoc Configuration — App Store Configuration과 별도로 공존), 빌드하는 PC에는 아무
