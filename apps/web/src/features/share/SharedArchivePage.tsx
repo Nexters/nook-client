@@ -103,10 +103,12 @@ export function SharedArchivePage() {
       subscribe.mutate(token, {
         onSuccess: () =>
           showToast({
-            variant: 'action',
-            title: '아카이브에 저장됐어요!',
+            variant: 'link',
+            title: '아카이브에 저장했어요!',
             actionLabel: '보러가기',
-            onAction: () => navigate(`/archive/${archive.id}`),
+            // 저장한 그 아카이브 상세가 아니라 내 아카이브 목록으로 보낸다 — 방금 저장한
+            // 것이 내 목록에 들어왔음을 그 자리에서 보여주는 쪽이라는 QA 결정.
+            onAction: () => navigate('/archive'),
           }),
         onError: () =>
           showToast({

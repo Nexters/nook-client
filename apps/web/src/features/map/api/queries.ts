@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
+import { usePlacePinToast } from '@/features/place/lib/usePlacePinToast';
 import type { MapBounds, SavedPlaceSearchPage } from '../types';
 import {
   disconnectPostPlace,
@@ -149,11 +150,15 @@ export function usePlacePosts(placeId: number | null) {
  */
 export function useUpdatePlaceBookmark() {
   const queryClient = useQueryClient();
+  const showPinToast = usePlacePinToast();
 
   return useMutation({
     mutationFn: ({ placeId, bookmarked }: { placeId: number; bookmarked: boolean }) =>
       updatePlaceBookmark(placeId, bookmarked),
-    onSuccess: (_data, { placeId }) => {
+    onSuccess: (_data, { placeId, bookmarked }) => {
+      // 결과 안내는 호출부가 아니라 여기서 한다 — 상세 헤더·스티키 헤더·연관 장소 행이
+      // 모두 이 훅 하나를 쓰므로, 진입점이 늘어도 스낵바가 저절로 따라온다.
+      showPinToast(bookmarked);
       queryClient.invalidateQueries({ queryKey: mapQueryKeys.detail(placeId) });
       queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll });
       // 연관 장소의 별 표시는 게시물 상세 응답(`postQueryKeys.detail` = ['posts', postId])의

@@ -52,6 +52,7 @@ function renderPanel(props: Partial<React.ComponentProps<typeof PlaceSearchPanel
         onExit={() => {}}
         onSelectPlace={() => {}}
         onInputFocus={() => {}}
+        onInputBlur={() => {}}
         {...props}
       />
     </QueryClientProvider>,
@@ -222,6 +223,32 @@ describe('PlaceSearchPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: '검색 닫기' }));
 
     expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  // 결과 블록은 검색어가 있어야 렌더되므로, 결과 영역에만 핸들러를 걸면 "검색에 막 들어와
+  // 아직 아무것도 안 친" 상태 — 정작 키보드가 떠 있는 그 상태 — 에서 포커스가 안 풀린다.
+  it('검색 결과가 아직 없어도 필드 밖을 누르면 입력 포커스가 풀린다', () => {
+    const onInputBlur = vi.fn();
+    const { container } = renderPanel({ onInputBlur });
+    const input = screen.getByPlaceholderText('장소명을 입력해주세요');
+    input.focus();
+
+    fireEvent.pointerDown(container.firstChild as Element);
+
+    expect(document.activeElement).not.toBe(input);
+    expect(onInputBlur).toHaveBeenCalled();
+  });
+
+  it('검색 필드 안을 누를 때는 포커스를 유지한다', () => {
+    const onInputBlur = vi.fn();
+    renderPanel({ onInputBlur });
+    const input = screen.getByPlaceholderText('장소명을 입력해주세요');
+    input.focus();
+
+    fireEvent.pointerDown(input);
+
+    expect(document.activeElement).toBe(input);
+    expect(onInputBlur).not.toHaveBeenCalled();
   });
 
   it('결과 카드를 누르면 장소 id 로 onSelectPlace 를 호출한다', async () => {

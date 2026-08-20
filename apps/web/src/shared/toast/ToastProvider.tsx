@@ -18,6 +18,8 @@ export type ToastRequest =
   | { variant: 'action'; title: string; actionLabel: string; onAction: () => void }
   /** 라벨이 "실행취소"로 고정된 되돌리기 전용 모양(장소 삭제 시안). */
   | { variant: 'undo'; title: string; onUndo: () => void }
+  /** undo 와 같은 파란 텍스트 액션이지만 라벨은 사용처가 정한다(공유 아카이브 저장 시안 253:10520). */
+  | { variant: 'link'; title: string; actionLabel: string; onAction: () => void }
   | { variant: 'simple'; title: string };
 
 interface ActiveToast {
@@ -136,6 +138,13 @@ function ToastRoot({
   onActionClick: () => void;
 }) {
   const simple = request.variant === 'simple';
+  // 파란 텍스트 액션 — 되돌리기(라벨 고정)와 자유 라벨(link)이 같은 모양을 쓴다.
+  const textAction =
+    request.variant === 'undo'
+      ? { label: UNDO_LABEL, onAction: request.onUndo }
+      : request.variant === 'link'
+        ? { label: request.actionLabel, onAction: request.onAction }
+        : null;
 
   return (
     <ToastPrimitive.Root
@@ -182,18 +191,18 @@ function ToastRoot({
         </ToastPrimitive.Action>
       ) : null}
 
-      {/* 되돌리기는 버튼이 아니라 파란 텍스트다(시안 `장소가 삭제 됐어요.`). */}
-      {request.variant === 'undo' ? (
-        <ToastPrimitive.Action altText={UNDO_LABEL} asChild>
+      {/* 되돌리기·보러가기는 버튼이 아니라 파란 텍스트다(시안 `장소가 삭제 됐어요.`). */}
+      {textAction ? (
+        <ToastPrimitive.Action altText={textAction.label} asChild>
           <button
             type="button"
             className="shrink-0 px-2 py-1 text-b2 font-semibold text-nook-blue"
             onClick={() => {
-              request.onUndo();
+              textAction.onAction();
               onActionClick();
             }}
           >
-            {UNDO_LABEL}
+            {textAction.label}
           </button>
         </ToastPrimitive.Action>
       ) : null}
