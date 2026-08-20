@@ -116,6 +116,14 @@ describe('아카이브 화면', () => {
     expect(screen.getByRole('heading', { name: '카페' })).toBeInTheDocument();
   });
 
+  it('목록에 없는 아카이브 상세는 못 찾는 화면 대신 목록으로 돌려보낸다', async () => {
+    renderArchiveRoutes('/archive/999');
+
+    // 삭제 직후 무효화가 팝업의 navigate 보다 먼저 끝났을 때도 같은 분기를 탄다.
+    expect(await screen.findByRole('button', { name: /카페/ })).toBeInTheDocument();
+    expect(screen.queryByText('아카이브를 찾을 수 없어요')).not.toBeInTheDocument();
+  });
+
   it('새 아카이브 생성은 이름이 비면 버튼이 비활성화되고, 입력하면 생성 요청을 보낸다', async () => {
     renderArchiveRoutes('/archive/new');
 
