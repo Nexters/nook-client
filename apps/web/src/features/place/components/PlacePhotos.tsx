@@ -7,6 +7,7 @@ import { Badge, Carousel } from '@/shared/ui';
  *
  * 사진은 대표 썸네일 + `photoUrls`(최대 5장) 로 최대 6장이다. 프레임은 212px 로 고정이고
  * 비율이 다른 사진은 `object-cover` 로 프레임 안쪽만 보여준다(시안이 같은 높이로 늘어선다).
+ * 사진이 아예 없는 장소도 있다 — 그때는 자리를 비우는 게 아니라 통째로 빠진다(시안 263:11099).
  *
  * 여러 장일 때만 우상단에 `2/6` 사진 태그가 붙는다 — 시안 라벨 "업체 이미지 1장인 경우
  * (장수 태그 X)". 태그는 사진이 아니라 캐러셀의 상태(6장 중 몇 번째)라 프레임 우상단에
@@ -28,10 +29,10 @@ const FRAME_CLASS = 'h-[212px] w-full overflow-hidden rounded-sm border border-g
 function PlacePhotos({ photos, onPhotoClick, className }: PlacePhotosProps) {
   const [active, setActive] = useState(0);
 
-  // 사진이 하나도 없으면 같은 크기의 빈 프레임으로 자리만 잡는다.
-  if (photos.length === 0) {
-    return <div className={cn(FRAME_CLASS, className)} />;
-  }
+  // 사진이 하나도 없으면 아무것도 그리지 않는다 — 빈 프레임으로 자리를 잡아두면 시트에
+  // 회색 상자만 덩그러니 남는다(QA). 사라진 만큼 시트가 낮아져야 콘텐츠가 꽉 차는데,
+  // 그 높이(스냅)는 시트가 정한다 — `DETAIL_SNAP_POINTS_WITHOUT_PHOTOS`.
+  if (photos.length === 0) return null;
 
   const slides = photos.map((src, index) => {
     const Comp = onPhotoClick ? 'button' : 'div';

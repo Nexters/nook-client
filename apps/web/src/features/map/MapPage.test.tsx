@@ -29,9 +29,13 @@ vi.mock('@/features/map/components/MapView', () => ({
 // 시트(vaul)는 선택 상태 표시와 스냅 변경 콜백만 노출하는 스텁으로 대체한다 —
 // 여기서 검증하는 건 MapPage 의 "URL(?placeId=) ↔ 선택 상태" 배선뿐이다.
 vi.mock('@/features/map/components/PlaceSheet', async () => {
-  const { PEEK_SNAP_POINT, DETAIL_PAGE_SNAP_POINT, MID_SNAP_POINT, FULL_SNAP_POINT } = await import(
-    '@/features/map/constants'
-  );
+  const {
+    DETAIL_COMPACT_SNAP_POINT,
+    DETAIL_PAGE_SNAP_POINT,
+    MID_SNAP_POINT,
+    PEEK_SNAP_POINT,
+    FULL_SNAP_POINT,
+  } = await import('@/features/map/constants');
   return {
     PlaceSheet: ({
       selectedPlace,
@@ -40,6 +44,7 @@ vi.mock('@/features/map/components/PlaceSheet', async () => {
       isSearchMode,
       onSnapChange,
       onSelectPlace,
+      onClose,
       onEnterSearch,
       onExitSearch,
       onSearchInputFocus,
@@ -50,6 +55,7 @@ vi.mock('@/features/map/components/PlaceSheet', async () => {
       isSearchMode: boolean;
       onSnapChange: (snap: number | string | null) => void;
       onSelectPlace: (id: number) => void;
+      onClose: () => void;
       onEnterSearch: () => void;
       onExitSearch: () => void;
       onSearchInputFocus: () => void;
@@ -64,6 +70,12 @@ vi.mock('@/features/map/components/PlaceSheet', async () => {
         </button>
         <button type="button" onClick={() => onSnapChange(PEEK_SNAP_POINT)}>
           시트 내리기
+        </button>
+        <button type="button" onClick={() => onSnapChange(DETAIL_COMPACT_SNAP_POINT)}>
+          시트 최저 높이로
+        </button>
+        <button type="button" onClick={onClose}>
+          상세 닫기
         </button>
         <button type="button" onClick={() => onSnapChange(DETAIL_PAGE_SNAP_POINT)}>
           시트 상세 높이로
@@ -136,6 +148,8 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
         lng: 126.951,
         bookmarked: true,
         thumbnail: null,
+        // 도메인 타입상 필수 — 사진 유무가 상세 스냅 배열을 가른다(사진 있는 쪽이 기본).
+        photos: ['https://img/1.jpg'],
       }),
     );
     // shareToken 이 있으면 이 쪽만 불린다(내 API 는 아예 안 탄다) — 이름을 다르게 둬서
@@ -148,6 +162,7 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
         lng: 126.951,
         bookmarked: false,
         thumbnail: null,
+        photos: ['https://img/1.jpg'],
       }),
     );
   });
@@ -169,14 +184,47 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
     expect(screen.getByTestId('search-params')).toHaveTextContent('?placeId=7');
   });
 
-  it('시트를 peek 까지 내려 선택을 해제하면 placeId 가 URL 에서 사라진다', async () => {
+  it('상세 헤더의 닫기를 누르면 선택이 풀리고 목록이 최소 높이로 돌아온다', async () => {
+    const { PEEK_SNAP_POINT } = await import('@/features/map/constants');
     renderMapAt('/map?placeId=5');
     await screen.findByText('선택됨: 장소 5');
 
-    fireEvent.click(screen.getByRole('button', { name: '시트 내리기' }));
+    fireEvent.click(screen.getByRole('button', { name: '상세 닫기' }));
 
     await screen.findByText('선택 없음');
+    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
     await waitFor(() => expect(screen.getByTestId('search-params')).toHaveTextContent(/^$/));
+  });
+
+  it('상세를 최저 스냅까지 끌어내려도 선택은 유지된다 — 목록으로 나가는 길은 닫기 버튼뿐이다', async () => {
+    const { DETAIL_COMPACT_SNAP_POINT } = await import('@/features/map/constants');
+    renderMapAt('/map?placeId=5');
+    await screen.findByText('선택됨: 장소 5');
+
+    fireEvent.click(screen.getByRole('button', { name: '시트 최저 높이로' }));
+
+    await screen.findByText(`스냅: ${DETAIL_COMPACT_SNAP_POINT}`);
+    expect(screen.getByText('선택됨: 장소 5')).toBeInTheDocument();
+    expect(screen.getByTestId('search-params')).toHaveTextContent('placeId=5');
+  });
+
+  it('사진이 없는 장소는 기본 높이(detailPage) 대신 최저 스냅으로 접혀 열린다', async () => {
+    const { DETAIL_COMPACT_SNAP_POINT } = await import('@/features/map/constants');
+    mocks.fetchPlaceDetail.mockResolvedValue({
+      id: 5,
+      name: '장소 5',
+      lat: 37.478,
+      lng: 126.951,
+      bookmarked: true,
+      thumbnail: null,
+      photos: [],
+    });
+
+    renderMapAt('/map?placeId=5');
+
+    await screen.findByText('선택됨: 장소 5');
+    // detailPage(0.5)는 사진 자리를 포함한 높이라 사진 없는 장소의 스냅 배열에 없다.
+    await screen.findByText(`스냅: ${DETAIL_COMPACT_SNAP_POINT}`);
   });
 
   it('상세를 펼치면(full) 스냅이 URL 에 기록되고, 기본 높이(0.5)로 돌아오면 파라미터가 사라진다', async () => {
@@ -219,6 +267,7 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
       lng: 126.951,
       bookmarked: false,
       thumbnail: null,
+      photos: ['https://img/1.jpg'],
     });
 
     renderMapAt('/map?placeId=5&shareToken=tok-123');
@@ -265,11 +314,12 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
     const { PEEK_SNAP_POINT } = await import('@/features/map/constants');
     renderMapAt('/map?placeId=5');
     await screen.findByText('선택됨: 장소 5');
+    // 목록 모드에도 있는 스냅(full)에서 눌러도 최소 높이로 돌아와야 한다(QA).
+    fireEvent.click(screen.getByRole('button', { name: '시트 펼치기' }));
 
     fireEvent.click(screen.getByRole('button', { name: '지도 탭' }));
 
     await screen.findByText('선택 없음');
-    // 상세 전용 스냅(detailPage)은 목록 모드 스냅 배열에 없다 — peek 으로 돌아와야 한다.
     await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
   });
 

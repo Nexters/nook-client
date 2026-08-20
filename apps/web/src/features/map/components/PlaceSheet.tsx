@@ -14,7 +14,9 @@ import {
 import {
   BROWSE_SNAP_POINTS,
   BROWSE_SNAP_POINTS_WITH_KEYBOARD,
+  DETAIL_COMPACT_SNAP_POINT,
   DETAIL_SNAP_POINTS,
+  DETAIL_SNAP_POINTS_WITHOUT_PHOTOS,
   FULL_SNAP_POINT,
 } from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
@@ -84,6 +86,14 @@ export function PlaceSheet({
   const [isAtBottom, setIsAtBottom] = useState(false);
   const isFull = snap === FULL_SNAP_POINT;
   const hasSelection = selectedPlace !== null || isPlaceDetailPending || isPlaceDetailError;
+  // 사진이 없는 장소는 detailPage 스냅을 빼서 최저 높이(detailCompact)가 곧 기본 높이가
+  // 된다. 상세가 아직 안 왔을 땐(pending) 사진이 있다고 보고 3점 배열을 유지한다 — 그
+  // 사이 활성 스냅은 detailPage 라, 여기서 먼저 2점 배열로 바꾸면 vaul 이 목록에 없는
+  // 스냅을 붙잡는다. 사진 없음이 확정되는 순간 MapPage 가 스냅을 detailCompact 로
+  // 내려주고 배열도 같은 렌더에서 함께 바뀐다.
+  const hasPhotos = selectedPlace ? selectedPlace.photos.length > 0 : true;
+  // 최저 스냅의 높이는 사진 없는 장소에 맞춰 잡은 것이라, 사진이 있는 장소도 여기선 접는다.
+  const showPhotos = snap !== DETAIL_COMPACT_SNAP_POINT;
   // 검색 입력에 포커스가 있는지 — 있으면 최소 스냅(peek)을 스냅 목록에서 빼서 키보드가
   // 뜬 채로 시트가 그 높이까지 내려가지 못하게 한다(BROWSE_SNAP_POINTS_WITH_KEYBOARD).
   const [searchInputFocused, setSearchInputFocused] = useState(false);
@@ -184,7 +194,9 @@ export function PlaceSheet({
       repositionInputs={false}
       snapPoints={
         hasSelection
-          ? DETAIL_SNAP_POINTS
+          ? hasPhotos
+            ? DETAIL_SNAP_POINTS
+            : DETAIL_SNAP_POINTS_WITHOUT_PHOTOS
           : searchInputFocused
             ? BROWSE_SNAP_POINTS_WITH_KEYBOARD
             : BROWSE_SNAP_POINTS
@@ -271,6 +283,7 @@ export function PlaceSheet({
                   key={selectedPlace.id}
                   place={selectedPlace}
                   expanded={isFull}
+                  showPhotos={showPhotos}
                   shareToken={shareToken}
                   userCoords={userCoords}
                   onClose={onClose}

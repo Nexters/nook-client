@@ -8,6 +8,7 @@ import { MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
 import {
+  DETAIL_COMPACT_SNAP_POINT,
   DETAIL_PAGE_SNAP_POINT,
   FULL_SNAP_POINT,
   MID_SNAP_POINT,
@@ -40,12 +41,17 @@ function parsePlaceIdParam(raw: string | null): number | null {
 
 /**
  * 상세 높이 복원용 `?snap=` 파라미터 — 상세 모드에서 머무를 수 있는 스냅만 유효값으로
- * 인정한다(peek 은 선택 해제라 기록될 일이 없다). 그 외 값이면 무시하고 기본 높이로 연다.
+ * 인정한다(peek 은 상세 스냅이 아니라 기록될 일이 없다). 그 외 값이면 무시하고 기본
+ * 높이로 연다.
  */
 function parseSnapParam(raw: string | null): number | null {
   if (!raw) return null;
   const parsed = Number(raw);
-  return parsed === DETAIL_PAGE_SNAP_POINT || parsed === FULL_SNAP_POINT ? parsed : null;
+  return parsed === DETAIL_COMPACT_SNAP_POINT ||
+    parsed === DETAIL_PAGE_SNAP_POINT ||
+    parsed === FULL_SNAP_POINT
+    ? parsed
+    : null;
 }
 
 export function MapPage() {
@@ -68,7 +74,7 @@ export function MapPage() {
   // 게스트는 상세 쿼리가 막혀 있어 그릴 내용이 없다 — 선택을 무시해 평범한 지도로 두고,
   // 대신 아래 effect 가 왜 안 열리는지 월로 알려준다(취소해도 빈 상세에 갇히지 않는다).
   const selectedPlaceId = isAuthenticated ? requestedPlaceId : null;
-  const [snap, setSnap] = useState<number | string | null>(() => {
+  const [requestedSnap, setSnap] = useState<number | string | null>(() => {
     if (selectedPlaceId === null) return PEEK_SNAP_POINT;
     return parseSnapParam(searchParams.get('snap')) ?? DETAIL_PAGE_SNAP_POINT;
   });
@@ -111,6 +117,16 @@ export function MapPage() {
   // 핀과 이동이 항상 같이 일어난다.
   const bboxPins = pinsQuery.data ?? [];
   const selectedPlace = selectedPlaceId !== null ? (placeDetailQuery.data ?? null) : null;
+
+  // 사진이 없는 장소에는 detailPage 스냅이 아예 없다(DETAIL_SNAP_POINTS_WITHOUT_PHOTOS).
+  // 상세가 오기 전엔 사진 유무를 몰라 기본 높이(detailPage)로 열어두므로, 사진 없음이
+  // 확정되면 그 높이를 detailCompact 로 접어 앉힌다. 이펙트로 setSnap 하지 않고 렌더에서
+  // 파생하는 이유: 이펙트는 한 프레임 늦게 도는데, 그 사이 시트는 이미 새 스냅 배열로
+  // 그려져 목록에 없는 스냅을 붙잡는다.
+  const snap =
+    selectedPlace && selectedPlace.photos.length === 0 && requestedSnap === DETAIL_PAGE_SNAP_POINT
+      ? DETAIL_COMPACT_SNAP_POINT
+      : requestedSnap;
   const pins =
     selectedPlace && !bboxPins.some((pin) => pin.id === selectedPlace.id)
       ? [
@@ -134,14 +150,13 @@ export function MapPage() {
     return () => setBottomMenuHidden(false);
   }, [selectedPlaceId, isSearchMode, setBottomMenuHidden]);
 
-  // 핸들러를 거치지 않고 URL 에서 ?placeId 만 사라지는 경우가 있다 — 장소 선택 상태에서
-  // 하단 탭 "지도"를 다시 누르면 같은 라우트로의 이동이라 remount 없이 파라미터만 빠진다.
-  // 그때 상세 전용 스냅(detailPage)은 목록 모드 스냅 배열(BROWSE_SNAP_POINTS)에 없으므로
-  // peek 으로 되돌린다.
+  // 선택이 풀리면 "최근 저장한 공간" 목록을 최소 높이로 되돌린다. 핸들러를 거치지 않고
+  // URL 에서 ?placeId 만 사라지는 경로도 여기로 수렴한다 — 장소 선택 상태에서 하단 탭
+  // "지도"를 다시 누르면 같은 라우트로의 이동이라 remount 없이 파라미터만 빠진다(QA:
+  // 그때도 목록 + 최소 높이로). 상세 전용 스냅(detailCompact·detailPage)은 목록 모드
+  // 스냅 배열(BROWSE_SNAP_POINTS)에 없기도 해서, 남겨두면 시트가 갈 곳을 잃는다.
   useEffect(() => {
-    if (selectedPlaceId === null) {
-      setSnap((prev) => (prev === DETAIL_PAGE_SNAP_POINT ? PEEK_SNAP_POINT : prev));
-    }
+    if (selectedPlaceId === null) setSnap(PEEK_SNAP_POINT);
   }, [selectedPlaceId]);
 
   if (location.status === 'loading') {
@@ -187,11 +202,8 @@ export function MapPage() {
     }
 
     setSnap(next);
-    // peek(최소 높이)까지 내려가면 상세를 접고 기본 목록으로 되돌린다.
-    if (next === PEEK_SNAP_POINT) {
-      setSelectedPlaceId(null);
-      return;
-    }
+    // 예전엔 peek 까지 내려가면 선택을 풀었지만, 이제 상세의 최저점은 detailCompact 라
+    // 끌어내려도 목록으로 나가지 않는다 — 나가는 길은 헤더의 닫기 버튼뿐이다(QA).
     // 상세를 보는 동안 스냅이 바뀌면 URL 에 기록한다(다른 화면으로 갔다 뒤로 돌아올 때
     // 보던 높이 그대로 복원). 기본 높이(detailPage)는 파라미터 없이도 같으므로 지워서
     // 평소 URL 을 깨끗하게 유지한다.
@@ -208,9 +220,12 @@ export function MapPage() {
     }
   }
 
-  /** 상세 헤더의 닫기/뒤로 — 시트를 내리는 것과 같은 상태로 되돌린다. */
+  /**
+   * 상세 헤더의 닫기/뒤로 — 목록으로 되돌아가는 유일한 길이다(끌어내리기로는 나갈 수
+   * 없다). 선택을 풀면 위 이펙트가 스냅을 peek 으로 되돌린다.
+   */
   function handleCloseDetail() {
-    handleSnapChange(PEEK_SNAP_POINT);
+    setSelectedPlaceId(null);
   }
 
   function handleEnterSearch() {
