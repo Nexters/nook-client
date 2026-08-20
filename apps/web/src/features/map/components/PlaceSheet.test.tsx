@@ -3,7 +3,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
-import { DETAIL_PAGE_SNAP_POINT, FULL_SNAP_POINT } from '@/features/map/constants';
+import {
+  DETAIL_COMPACT_SNAP_POINT,
+  DETAIL_PAGE_SNAP_POINT,
+  FULL_SNAP_POINT,
+} from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel } from '@/features/map/types';
 import { ToastProvider } from '@/shared/toast';
 import { PlaceSheet } from './PlaceSheet';
@@ -42,7 +46,7 @@ const PLACE: PlaceDetailModel = {
   postsTotal: 0,
 };
 
-function renderSheet(snap: number | string | null) {
+function renderSheet(snap: number | string | null, place: PlaceDetailModel = PLACE) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
@@ -51,7 +55,7 @@ function renderSheet(snap: number | string | null) {
           <MemoryRouter initialEntries={['/map']}>
             <PlaceSheet
               recentPlaces={[]}
-              selectedPlace={PLACE}
+              selectedPlace={place}
               isPlaceDetailPending={false}
               isPlaceDetailError={false}
               snap={snap}
@@ -163,5 +167,25 @@ describe('PlaceSheet 위로가기 버튼', () => {
     scrollTo(scroller, { scrollTop: bottom });
 
     expect(scrollToTopButton()).not.toBeInTheDocument();
+  });
+});
+
+describe('PlaceSheet — 사진 노출', () => {
+  const WITH_PHOTO: PlaceDetailModel = { ...PLACE, photos: ['https://img/1.jpg'] };
+  const photoButton = () => screen.queryByRole('button', { name: '1번째 사진 크게 보기' });
+
+  it('기본 높이(detailPage)에서는 장소 사진을 보여준다', () => {
+    renderSheet(DETAIL_PAGE_SNAP_POINT, WITH_PHOTO);
+
+    expect(photoButton()).toBeInTheDocument();
+  });
+
+  it('최저 스냅에서는 사진이 있어도 접는다 — 그 높이는 사진 없는 장소에 맞춰 잡은 것이다', () => {
+    renderSheet(DETAIL_COMPACT_SNAP_POINT, WITH_PHOTO);
+
+    expect(photoButton()).not.toBeInTheDocument();
+    // 이름·주소는 그대로 남는다(시안 263:11099).
+    expect(screen.getByText('아이소')).toBeInTheDocument();
+    expect(screen.getByText('서울 어딘가')).toBeInTheDocument();
   });
 });

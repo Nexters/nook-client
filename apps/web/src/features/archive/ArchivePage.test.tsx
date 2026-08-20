@@ -211,6 +211,9 @@ describe('아카이브 화면', () => {
 
     expect(await screen.findByText('저장한 게시물이 없어요')).toBeInTheDocument();
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    // 편집·공유 칩도 함께 내린다(시안 263:10971) — 두 액션은 더보기 메뉴에만 남는다.
+    expect(screen.queryByRole('button', { name: '아카이브 편집' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /공유/ })).not.toBeInTheDocument();
   });
 
   it('상세 더보기 메뉴의 아카이브 편집을 누르면 편집 화면으로 이동한다', async () => {

@@ -902,7 +902,7 @@ export function UiComponentsPage() {
           <PlacePhotos photos={SAMPLE_PHOTOS} onPhotoClick={() => setPhotosOpen(true)} />
           {/* 1장이면 캐러셀도 사진 태그도 없다 */}
           <PlacePhotos photos={[SAMPLE_IMAGE]} />
-          {/* 사진이 없으면 같은 크기의 빈 프레임 */}
+          {/* 사진이 없으면 아무것도 그리지 않는다 — 아래 여백이 붙지 않는 게 정상 */}
           <PlacePhotos photos={[]} />
         </div>
         {photosOpen ? (

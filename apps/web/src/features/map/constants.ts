@@ -1,12 +1,14 @@
 /**
  * Figma 시안 기준 스냅(뷰포트 대비 노출 비율).
- * peek: 핸들+타이틀만 살짝(≈185/812) · detailPage: 장소 상세 기본 노출(≈325/812) ·
- * mid: 카드 그리드 전체(≈617/812) · full: 전체화면(장소 상세 확장)
+ * peek: 핸들+타이틀만 살짝(≈185/812) · detailCompact: 사진 없는 장소 상세(172/812) ·
+ * detailPage: 장소 상세 기본 노출(≈325/812) · mid: 카드 그리드 전체(≈617/812) ·
+ * full: 전체화면(장소 상세 확장)
  *
  * vaul 은 snapPoints 배열을 오름차순(가장 접힌 상태 → 완전히 펼친 상태)으로 기대한다
- * (배열의 마지막 값을 "완전히 펼침"으로 취급). 아래 두 배열 순서를 바꾸지 않도록 주의.
+ * (배열의 마지막 값을 "완전히 펼침"으로 취급). 아래 배열들의 순서를 바꾸지 않도록 주의.
  */
 export const PEEK_SNAP_POINT = 0.23;
+export const DETAIL_COMPACT_SNAP_POINT = 0.21;
 export const DETAIL_PAGE_SNAP_POINT = 0.5;
 export const MID_SNAP_POINT = 0.76;
 export const FULL_SNAP_POINT = 1;
@@ -26,11 +28,27 @@ export const BROWSE_SNAP_POINTS = [PEEK_SNAP_POINT, MID_SNAP_POINT, FULL_SNAP_PO
 export const BROWSE_SNAP_POINTS_WITH_KEYBOARD = [MID_SNAP_POINT, FULL_SNAP_POINT];
 
 /**
- * 장소 선택(상세 보기) 상태의 스냅. mid 는 일부러 뺐다 — mid(카드 그리드 높이)는
- * 상세 콘텐츠와 무관한 높이라 여기 끼워 넣으면 아무 것도 안 바뀌는 정류장이 된다.
- * detailPage 에서 더 당기면 곧장 full 로 넘어간다.
+ * 장소 선택(상세 보기) 상태의 스냅.
+ *
+ * mid 는 일부러 뺐다 — mid(카드 그리드 높이)는 상세 콘텐츠와 무관한 높이라 여기 끼워
+ * 넣으면 아무 것도 안 바뀌는 정류장이 된다. detailPage 에서 더 당기면 곧장 full 이다.
+ *
+ * peek 도 뺐다. 최저점은 detailCompact 다 — 상세를 끝까지 끌어내리면 목록으로 튕겨
+ * 나가는 대신 "사진 없는 버전"의 상세가 그 높이에 걸린다(시안 263:11099). 목록으로
+ * 되돌아가는 길은 헤더의 닫기 버튼 하나로 모은다(제스처로 실수로 닫히지 않는다).
  */
-export const DETAIL_SNAP_POINTS = [PEEK_SNAP_POINT, DETAIL_PAGE_SNAP_POINT, FULL_SNAP_POINT];
+export const DETAIL_SNAP_POINTS = [
+  DETAIL_COMPACT_SNAP_POINT,
+  DETAIL_PAGE_SNAP_POINT,
+  FULL_SNAP_POINT,
+];
+
+/**
+ * 사진이 아예 없는 장소의 상세 스냅. detailPage 를 뺀다 — 그 높이는 사진 자리를 포함해
+ * 잡은 것이라, 사진이 없으면 태그 아래가 통째로 빈 여백이 된다. detailCompact 가 곧
+ * 이 장소의 "기본 높이"이고, 더 보려면 full 뿐이다.
+ */
+export const DETAIL_SNAP_POINTS_WITHOUT_PHOTOS = [DETAIL_COMPACT_SNAP_POINT, FULL_SNAP_POINT];
 
 /**
  * 개별 장소 핀(썸네일+이름표)을 그리는 최소 줌 레벨(네이버 지도 줌 — 클수록 확대, 기본 18).

@@ -293,11 +293,13 @@ function RelatedPlacesSection({
 /**
  * 지도 핀 클릭 시 드로어에 보여줄 장소 상세.
  * `expanded`(full 스냅) 일 때만 장소 info/저장된 게시물/게시물에 포함된 장소를 추가로 보여준다
- * — mid 스냅에서는 이름·태그·거리·주소·사진까지만 노출한다(Figma 126:13002 vs 126:13111).
+ * — detailPage 스냅에서는 이름·태그·거리·주소·사진까지만 노출한다(Figma 126:13002 vs 126:13111).
+ * 최저 스냅(detailCompact)에서는 사진까지 접어 이름·태그·거리·주소만 남는다(시안 263:11099).
  */
 export function PlaceDetail({
   place,
   expanded,
+  showPhotos = true,
   shareToken,
   userCoords,
   onClose,
@@ -305,6 +307,12 @@ export function PlaceDetail({
 }: {
   place: PlaceDetailModel;
   expanded: boolean;
+  /**
+   * 사진 캐러셀 노출 여부. 최저 스냅(detailCompact)의 시트 높이는 사진 없는 장소에
+   * 맞춰 잡은 것이라, 사진이 있는 장소도 그 높이에서는 사진을 접어야 시트 안에 들어간다.
+   * 사진이 아예 없는 장소는 이 값과 무관하게 `PlacePhotos` 가 알아서 아무것도 그리지 않는다.
+   */
+  showPhotos?: boolean;
   /**
    * 공유 아카이브 딥링크로 들어온 경우의 토큰. 있으면 상세를 공유자 기준 읽기 전용으로
    * 그린다 — 저장 토글·메모 편집·게시물에 포함된 장소의 북마크/스와이프 삭제를 숨긴다.
@@ -363,10 +371,12 @@ export function PlaceDetail({
         )}
       </div>
 
-      <PlacePhotos
-        photos={place.photos}
-        onPhotoClick={place.photos.length > 0 ? openPhotos : undefined}
-      />
+      {showPhotos ? (
+        <PlacePhotos
+          photos={place.photos}
+          onPhotoClick={place.photos.length > 0 ? openPhotos : undefined}
+        />
+      ) : null}
 
       {expanded && (
         <>

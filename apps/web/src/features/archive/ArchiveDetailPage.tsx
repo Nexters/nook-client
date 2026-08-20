@@ -202,7 +202,8 @@ export function ArchiveDetailPage() {
           <div
             className={cn(
               'flex flex-col gap-1 px-4 pt-2 pb-4',
-              // 빈 아카이브는 탭이 없어 정보 영역이 직접 경계선을 긋는다.
+              // 빈 아카이브는 탭도 액션 칩도 없어(아래 참고) 정보 영역이 헤더의 끝이다 —
+              // 경계선을 직접 긋는다.
               isEmpty && 'border-gray-20 border-b',
             )}
           >
@@ -222,8 +223,9 @@ export function ArchiveDetailPage() {
 
           {/* 편집·공유 칩 — 더보기 메뉴 안에도 같은 액션이 있지만(삭제 등과 함께),
               자주 쓰는 두 액션은 시안대로 바로 누를 수 있게 앞으로 뺀다. 공유 아카이브는
-              내 소유가 아니라(더보기 메뉴처럼) 노출하지 않는다. */}
-          {isAuthenticated && !isShared ? (
+              내 소유가 아니라(더보기 메뉴처럼) 노출하지 않는다. 빈 아카이브도 시안대로
+              내린다 — 아직 공유할 것이 없는 상태다. 두 액션 모두 더보기 메뉴에는 남는다. */}
+          {isAuthenticated && !isShared && !isEmpty ? (
             <div className="flex gap-2 px-4 pb-4">
               <button
                 type="button"
