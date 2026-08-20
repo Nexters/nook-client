@@ -23,10 +23,12 @@ describe('PlaceCard', () => {
     expect(container.querySelector('svg.animate-spin')).toBeInTheDocument();
   });
 
-  it('thumbnailState 가 failed 면 이름 대신 실패 문구를 보여준다', () => {
-    render(<PlaceCard place={{ ...BASE, thumbnailState: 'failed' }} />);
+  it('thumbnailState 가 failed 여도 이름과 카테고리는 그대로 보여준다', () => {
+    render(<PlaceCard place={{ ...BASE, region: '서울', thumbnailState: 'failed' }} />);
 
-    expect(screen.getByText('불러오지 못했어요.')).toBeInTheDocument();
-    expect(screen.queryByText('카페 온도')).not.toBeInTheDocument();
+    // 실패한 건 장소 사진뿐이라 텍스트는 정상 카드와 같아야 한다.
+    expect(screen.getByText('카페 온도')).toBeInTheDocument();
+    expect(screen.getByText('서울 • 카페')).toBeInTheDocument();
+    expect(screen.queryByText('불러오지 못했어요.')).not.toBeInTheDocument();
   });
 });
