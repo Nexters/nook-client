@@ -4,6 +4,7 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { RecentPlaceResponseThumbnailParsingStatus } from './recentPlaceResponseThumbnailParsingStatus.generated';
 
 export interface RecentPlaceResponse {
   /** 장소 주소 */
@@ -28,6 +29,8 @@ export interface RecentPlaceResponse {
   name: string;
   /** 장소 대표 태그 목록(최대 4개) */
   tags: string[];
+  /** 장소 썸네일 파싱 상태 */
+  thumbnailParsingStatus: RecentPlaceResponseThumbnailParsingStatus;
   /**
    * 장소 대표 썸네일 URL
    * @nullable

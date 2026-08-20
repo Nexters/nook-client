@@ -984,6 +984,19 @@
         ],
         "type": "object"
       },
+      "DeletePushTokenRequest": {
+        "properties": {
+          "token": {
+            "maxLength": 512,
+            "minLength": 0,
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "type": "object"
+      },
       "GroupOwnerResponse": {
         "properties": {
           "nickname": {
@@ -1097,6 +1110,16 @@
             },
             "type": "array"
           },
+          "thumbnailParsingStatus": {
+            "description": "장소 썸네일 파싱 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -1111,7 +1134,8 @@
           "latitude",
           "longitude",
           "name",
-          "tags"
+          "tags",
+          "thumbnailParsingStatus"
         ],
         "type": "object"
       },
@@ -1385,6 +1409,16 @@
             },
             "type": "array"
           },
+          "thumbnailParsingStatus": {
+            "description": "장소 썸네일 파싱 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -1399,7 +1433,8 @@
           "latitude",
           "longitude",
           "name",
-          "tags"
+          "tags",
+          "thumbnailParsingStatus"
         ],
         "type": "object"
       },
@@ -2139,6 +2174,16 @@
             },
             "type": "array"
           },
+          "thumbnailParsingStatus": {
+            "description": "장소 썸네일 파싱 상태",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -2153,7 +2198,8 @@
           "latitude",
           "longitude",
           "name",
-          "tags"
+          "tags",
+          "thumbnailParsingStatus"
         ],
         "type": "object"
       },
@@ -2194,6 +2240,27 @@
         },
         "required": [
           "refreshToken"
+        ],
+        "type": "object"
+      },
+      "RegisterPushTokenRequest": {
+        "properties": {
+          "platform": {
+            "enum": [
+              "IOS",
+              "ANDROID"
+            ],
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 512,
+            "minLength": 0,
+            "type": "string"
+          }
+        },
+        "required": [
+          "platform",
+          "token"
         ],
         "type": "object"
       },
@@ -3355,7 +3422,7 @@
     },
     "/api/v1/groups/{groupId}": {
       "delete": {
-        "operationId": "delete",
+        "operationId": "delete_1",
         "parameters": [
           {
             "description": "삭제할 그룹 식별자",
@@ -3596,6 +3663,66 @@
         "summary": "그룹 공유 링크 발급",
         "tags": [
           "Group Share"
+        ]
+      }
+    },
+    "/api/v1/me/push-tokens": {
+      "delete": {
+        "operationId": "delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeletePushTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUnit"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "내 기기 푸시 토큰 삭제",
+        "tags": [
+          "Push"
+        ]
+      },
+      "put": {
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPushTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUnit"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "내 기기 푸시 토큰 등록",
+        "tags": [
+          "Push"
         ]
       }
     },
