@@ -19,6 +19,9 @@ credentials.json
 *.key
 *.mobileprovision
 
+# eas build --local output
+/build/
+
 # Metro
 .metro-health-check*
 
