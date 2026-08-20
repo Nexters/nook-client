@@ -4,7 +4,7 @@
     "production": "kr.co.everynook.app"
   },
   "webUrl": {
-    "development": "https://everynook.co.kr",
+    "development": "https://app-dev.everynook.co.kr",
     "production": "https://everynook.co.kr"
   },
   "android": {
