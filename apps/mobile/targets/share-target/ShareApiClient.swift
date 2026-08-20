@@ -13,7 +13,7 @@ private struct ApiEnvelope<T: Decodable>: Decodable {
 }
 private struct ApiStatusEnvelope: Decodable { let resultType: String; let error: ApiFailure? }
 private struct TokenPair: Codable { let accessToken: String; let refreshToken: String }
-private struct SessionRecord: Codable { let schemaVersion: Int; let accessToken: String; let refreshToken: String?; let revision: Int }
+private struct SessionRecord: Codable { let schemaVersion: Int; let accessToken: String; let refreshToken: String?; let apiBaseUrl: String?; let revision: Int }
 private struct ServerGroup: Decodable { let id: Int64; let name: String; let color: String }
 private struct SavedPost: Decodable { let postId: Int64 }
 
@@ -21,7 +21,8 @@ enum ShareApiError: Error { case noSession, invalidResponse, http(Int), configur
 
 final class ShareApiClient {
     // API 버전 경로(/api/v1)까지 포함한 값이다. 웹의 VITE_API_BASE_URL 과 같은 규칙.
-    private let baseURL: String
+    // 세션에 발급처(apiBaseUrl)가 기록돼 있으면 그쪽을 쓰고, 이건 그 기록이 없을 때의 폴백이다.
+    private let fallbackBaseURL: String
     private let session = ShareSessionVault()
     private let decoder = JSONDecoder()
 
@@ -30,7 +31,20 @@ final class ShareApiClient {
         // 같은 앱 번들에 포함된 본앱의 Info.plist를 원본으로 사용해 환경별 API 설정을 공유한다.
         guard let value = Self.apiBaseURL(),
               !value.isEmpty, URL(string: value) != nil else { return nil }
-        baseURL = value.hasSuffix("/") ? String(value.dropLast()) : value
+        fallbackBaseURL = Self.normalized(value)
+    }
+
+    // 토큰은 발급한 API 에서만 유효하다. 빌드 variant 의 API 와 웹이 실제 쓰는 API 가
+    // 어긋나 있어도, 본앱이 세션에 함께 기록한 발급처로 보내면 항상 짝이 맞는다.
+    private func baseURL(for record: SessionRecord) -> String {
+        guard let stored = record.apiBaseUrl, !stored.isEmpty, URL(string: stored) != nil else {
+            return fallbackBaseURL
+        }
+        return Self.normalized(stored)
+    }
+
+    private static func normalized(_ value: String) -> String {
+        value.hasSuffix("/") ? String(value.dropLast()) : value
     }
 
     func hasSession() -> Bool {
@@ -66,13 +80,13 @@ final class ShareApiClient {
 
     private func protectedRequest(path: String, method: String = "GET", body: Data? = nil) async throws -> Data {
         guard let record = try session.read() else { throw ShareApiError.noSession }
-        let first = try await request(path: path, method: method, body: body, token: record.accessToken)
+        let first = try await request(base: baseURL(for: record), path: path, method: method, body: body, token: record.accessToken)
         if first.0 != 401 {
             guard (200..<300).contains(first.0) else { throw httpError(status: first.0, data: first.1) }
             return first.1
         }
         guard let refreshed = try await refresh(failedRevision: record.revision) else { throw ShareApiError.noSession }
-        let retry = try await request(path: path, method: method, body: body, token: refreshed.accessToken)
+        let retry = try await request(base: baseURL(for: refreshed), path: path, method: method, body: body, token: refreshed.accessToken)
         guard (200..<300).contains(retry.0) else {
             if retry.0 == 401 { try session.clear() }
             throw httpError(status: retry.0, data: retry.1)
@@ -90,16 +104,17 @@ final class ShareApiClient {
         if current.revision > failedRevision { return current }
         guard let refreshToken = current.refreshToken else { try session.clear(); return nil }
         let body = try JSONEncoder().encode(["refreshToken": refreshToken])
-        let response = try await request(path: "/auth/token/refresh", method: "POST", body: body, token: nil)
+        let response = try await request(base: baseURL(for: current), path: "/auth/token/refresh", method: "POST", body: body, token: nil)
         if (400..<500).contains(response.0) { try session.clear(); return nil }
         guard (200..<300).contains(response.0) else { throw ShareApiError.http(response.0) }
         let pair = try unwrap(ApiEnvelope<TokenPair>.self, response.1)
-        return try session.write(accessToken: pair.accessToken, refreshToken: pair.refreshToken)
+        // 발급처 기록은 갱신을 거쳐도 유지돼야 다음 요청이 계속 같은 API 로 나간다.
+        return try session.write(accessToken: pair.accessToken, refreshToken: pair.refreshToken, apiBaseUrl: current.apiBaseUrl)
     }
 
-    private func request(path: String, method: String, body: Data?, token: String?) async throws -> (Int, Data) {
+    private func request(base: String, path: String, method: String, body: Data?, token: String?) async throws -> (Int, Data) {
         // 절대 경로를 relativeTo 로 붙이면 base 의 /api/v1 이 버려지므로 문자열로 잇는다.
-        guard let url = URL(string: baseURL + path) else { throw ShareApiError.configuration }
+        guard let url = URL(string: base + path) else { throw ShareApiError.configuration }
         var request = URLRequest(url: url)
         request.httpMethod = method; request.httpBody = body; request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -176,8 +191,8 @@ private struct ShareSessionVault {
         guard status == errSecSuccess, let data = item as? Data else { throw ShareApiError.configuration }
         return try JSONDecoder().decode(SessionRecord.self, from: data)
     }
-    func write(accessToken: String, refreshToken: String?) throws -> SessionRecord {
-        let record = SessionRecord(schemaVersion: 1, accessToken: accessToken, refreshToken: refreshToken, revision: ((try read())?.revision ?? 0) + 1)
+    func write(accessToken: String, refreshToken: String?, apiBaseUrl: String?) throws -> SessionRecord {
+        let record = SessionRecord(schemaVersion: 1, accessToken: accessToken, refreshToken: refreshToken, apiBaseUrl: apiBaseUrl, revision: ((try read())?.revision ?? 0) + 1)
         var q = query; q[kSecValueData as String] = try JSONEncoder().encode(record); q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         SecItemDelete(query as CFDictionary)
         guard SecItemAdd(q as CFDictionary, nil) == errSecSuccess else { throw ShareApiError.configuration }

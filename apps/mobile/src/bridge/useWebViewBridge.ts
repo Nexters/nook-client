@@ -134,12 +134,16 @@ export function useWebViewBridge() {
           void restoreSession().then((session) => sendResult('web-ready', session));
           break;
         case 'SESSION_GET':
-          void restoreSession().then((session) => sendResult(message.payload.requestId, session));
+          void restoreSession(message.payload.apiBaseUrl).then((session) =>
+            sendResult(message.payload.requestId, session),
+          );
           break;
         case 'SESSION_ESTABLISH':
-          void establishSession(message.payload.accessToken, message.payload.refreshToken).then(
-            (session) => sendResult(message.payload.requestId, session),
-          );
+          void establishSession(
+            message.payload.accessToken,
+            message.payload.refreshToken,
+            message.payload.apiBaseUrl,
+          ).then((session) => sendResult(message.payload.requestId, session));
           break;
         case 'SESSION_REFRESH':
           void refreshSession(message.payload.revision).then((session) =>

@@ -71,6 +71,9 @@ export default function App() {
           // dev 서버 번들은 URL 이 그대로라 WebView 캐시에 남는다 — 코드를 고쳐도 옛 모듈이
           // 섞여 실행되면서(지도 스크립트 컨텍스트가 null 이 되는 등) 재현 불가한 오류를 만든다.
           cacheEnabled={!__DEV__}
+          // iOS 16.4+ 는 이 플래그가 있어야 Mac Safari 개발자 메뉴에서 WebView 를 검사할 수 있다
+          // (Android 크롬 inspect 대응). 스토어 빌드에서 열리지 않게 dev 번들에서만 켠다.
+          webviewDebuggingEnabled={__DEV__}
           style={styles.webview}
         />
       ) : null}

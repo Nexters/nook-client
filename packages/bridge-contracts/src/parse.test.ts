@@ -54,12 +54,50 @@ describe('session messages', () => {
   it('SESSION_ESTABLISH의 토큰 쌍을 검증한다', () => {
     expect(
       parseWebToNative(
+        '{"v":1,"type":"SESSION_ESTABLISH","payload":{"requestId":"r1","accessToken":"a","refreshToken":"r","apiBaseUrl":"https://api.example.com/api/v1"}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'SESSION_ESTABLISH',
+      payload: {
+        requestId: 'r1',
+        accessToken: 'a',
+        refreshToken: 'r',
+        apiBaseUrl: 'https://api.example.com/api/v1',
+      },
+    });
+  });
+
+  it('apiBaseUrl 이 없거나(구버전 웹) http 오리진이 아니면 null 로 받는다', () => {
+    expect(
+      parseWebToNative(
         '{"v":1,"type":"SESSION_ESTABLISH","payload":{"requestId":"r1","accessToken":"a","refreshToken":"r"}}',
       ),
     ).toEqual({
       v: 1,
       type: 'SESSION_ESTABLISH',
-      payload: { requestId: 'r1', accessToken: 'a', refreshToken: 'r' },
+      payload: { requestId: 'r1', accessToken: 'a', refreshToken: 'r', apiBaseUrl: null },
+    });
+    expect(
+      parseWebToNative(
+        '{"v":1,"type":"SESSION_GET","payload":{"requestId":"r1","apiBaseUrl":"ftp://nope"}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'SESSION_GET',
+      payload: { requestId: 'r1', apiBaseUrl: null },
+    });
+  });
+
+  it('SESSION_GET 의 apiBaseUrl 을 전달한다', () => {
+    expect(
+      parseWebToNative(
+        '{"v":1,"type":"SESSION_GET","payload":{"requestId":"r1","apiBaseUrl":"https://api.example.com/api/v1"}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'SESSION_GET',
+      payload: { requestId: 'r1', apiBaseUrl: 'https://api.example.com/api/v1' },
     });
   });
 
