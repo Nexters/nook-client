@@ -244,4 +244,20 @@ describe('push notification messages', () => {
       payload: { data: { postId: '1' }, title: '저장 완료' },
     });
   });
+
+  it('PUSH_TOKEN_REFRESHED 를 파싱한다', () => {
+    expect(
+      parseNativeToWeb(
+        '{"v":1,"type":"PUSH_TOKEN_REFRESHED","payload":{"token":{"platform":"android","value":"tok2"}}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'PUSH_TOKEN_REFRESHED',
+      payload: { token: { platform: 'android', value: 'tok2' } },
+    });
+  });
+
+  it('토큰이 없는 PUSH_TOKEN_REFRESHED 는 무시한다', () => {
+    expect(parseNativeToWeb('{"v":1,"type":"PUSH_TOKEN_REFRESHED","payload":{}}')).toBeNull();
+  });
 });

@@ -276,5 +276,11 @@ export function parseNativeToWeb(json: string): NativeToWeb | null {
       },
     };
   }
+  if (value.type === 'PUSH_TOKEN_REFRESHED') {
+    const pushToken = parsePushToken(value.payload.token);
+    return pushToken
+      ? { v: BRIDGE_VERSION, type: value.type, payload: { token: pushToken } }
+      : null;
+  }
   return null;
 }

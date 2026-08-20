@@ -1,6 +1,8 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { ProtectedAppLayout } from '@/app/layouts/ProtectedAppLayout';
 import { NativeBackHost } from '@/app/native-back';
+import { NativePushHost } from '@/app/native-push';
+import { PushTokenSyncHost } from '@/app/push-token-sync';
 import { RootScrollReset } from '@/app/scroll-reset';
 import { ArchiveDetailPage } from '@/features/archive/ArchiveDetailPage';
 import { ArchiveFormPage } from '@/features/archive/ArchiveFormPage';
@@ -53,6 +55,8 @@ export const router = createBrowserRouter([
       <>
         <RootScrollReset />
         <NativeBackHost />
+        <PushTokenSyncHost />
+        <NativePushHost />
       </>
     ),
     children: [

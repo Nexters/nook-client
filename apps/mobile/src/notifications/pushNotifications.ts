@@ -54,7 +54,7 @@ function toOpened({ notification }: Notifications.NotificationResponse): PushNot
 
 /**
  * 권한을 요청하고, 허용된 경우 FCM(Android)·APNs(iOS) 원시 디바이스 토큰을 함께 돌려준다.
- * 서버에 등록하는 API 는 아직 없어(백엔드 작업 진행 중) 토큰을 웹으로 넘기는 데까지만 한다.
+ * 서버 등록은 웹이 이어서 한다.
  */
 export async function requestPushPermissionAndToken(): Promise<PushPermissionOutcome> {
   const permission = await Notifications.requestPermissionsAsync({
@@ -89,4 +89,15 @@ export function addNotificationOpenedListener(
   return Notifications.addNotificationResponseReceivedListener((response) =>
     callback(toOpened(response)),
   );
+}
+
+/** FCM 토큰이 재발급된 경우(재설치·복원 등)를 구독한다. */
+export function addPushTokenRefreshListener(
+  callback: (token: PushToken) => void,
+): Notifications.EventSubscription {
+  return Notifications.addPushTokenListener((deviceToken) => {
+    if (deviceToken.type === 'ios' || deviceToken.type === 'android') {
+      callback({ platform: deviceToken.type, value: String(deviceToken.data) });
+    }
+  });
 }

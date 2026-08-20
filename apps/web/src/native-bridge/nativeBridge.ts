@@ -28,6 +28,7 @@ type Handler = (message: NativeToWeb) => void;
 type SessionResult = Extract<NativeToWeb, { type: 'SESSION_RESULT' }>['payload'];
 type SocialLoginResult = Extract<NativeToWeb, { type: 'SOCIAL_LOGIN_RESULT' }>['payload'];
 type ImagePickResult = Extract<NativeToWeb, { type: 'IMAGE_PICK_RESULT' }>['payload'];
+type PushPermissionResult = Extract<NativeToWeb, { type: 'PUSH_PERMISSION_RESULT' }>['payload'];
 
 // crypto.randomUUID 는 보안 컨텍스트에서만 존재한다. 실기기가 http://<LAN IP> 의
 // dev 서버를 볼 때는 비보안 컨텍스트라 undefined 다. 요청/응답 짝을 맞추는 용도라
@@ -61,6 +62,7 @@ class NativeBridge {
   private pending = new Map<string, (result: SessionResult) => void>();
   private pendingSocial = new Map<string, (result: SocialLoginResult) => void>();
   private pendingImagePick = new Map<string, (result: ImagePickResult) => void>();
+  private pendingPushPermission = new Map<string, (result: PushPermissionResult) => void>();
 
   get isNative(): boolean {
     return !!window.ReactNativeWebView;
@@ -130,6 +132,18 @@ class NativeBridge {
     });
   }
 
+  /**
+   * 셸이 알림 권한을 요청하고, 허용되면 FCM/APNs 토큰을 함께 돌려준다. 이미 허용/거부가
+   * 결정된 상태에서 다시 불러도 안전하다 — OS 가 다이얼로그 없이 현재 상태만 돌려준다.
+   */
+  requestPushPermission(): Promise<PushPermissionResult> {
+    const requestId = randomRequestId();
+    return new Promise((resolve) => {
+      this.pendingPushPermission.set(requestId, resolve);
+      this.send({ v: 1, type: 'REQUEST_PUSH_PERMISSION', payload: { requestId } });
+    });
+  }
+
   private receive(json: string): void {
     const message = parseNativeToWeb(json);
     if (!message) {
@@ -153,6 +167,13 @@ class NativeBridge {
       const resolve = this.pending.get(message.payload.requestId);
       if (resolve) {
         this.pending.delete(message.payload.requestId);
+        resolve(message.payload);
+      }
+    }
+    if (message.type === 'PUSH_PERMISSION_RESULT') {
+      const resolve = this.pendingPushPermission.get(message.payload.requestId);
+      if (resolve) {
+        this.pendingPushPermission.delete(message.payload.requestId);
         resolve(message.payload);
       }
     }

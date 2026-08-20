@@ -8,7 +8,7 @@ export type ImagePickStatus = 'success' | 'cancelled' | 'error';
 
 export type PushPermissionStatus = 'granted' | 'denied' | 'undetermined';
 
-/** FCM(Android)·APNs(iOS) 원시 디바이스 토큰. 서버 등록 API 는 아직 없어 웹이 값만 보관한다. */
+/** FCM(Android)·APNs(iOS) 원시 디바이스 토큰. 서버 등록(`PUT /api/v1/me/push-tokens`)은 웹이 한다. */
 export interface PushToken {
   platform: 'ios' | 'android';
   value: string;
@@ -69,4 +69,6 @@ export type NativeToWeb =
   | BridgeMessage<
       'PUSH_NOTIFICATION_OPENED',
       { data: Record<string, string>; title?: string; body?: string }
-    >;
+    >
+  // FCM 토큰이 재발급됐다(재설치·복원 등). 요청 없이 오는 이벤트라 requestId 가 없다.
+  | BridgeMessage<'PUSH_TOKEN_REFRESHED', { token: PushToken }>;

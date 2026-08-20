@@ -10,6 +10,7 @@ import { useLogout, useMyProfile, useSaveProfile, useWithdraw } from '@/features
 import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
 import { ProfileImageSheet } from '@/features/my/components/ProfileImageSheet';
+import { deleteRegisteredPushToken } from '@/features/notifications/api/pushTokens';
 import { nativeBridge } from '@/native-bridge';
 import {
   Icon16ArrowRight,
@@ -95,6 +96,8 @@ export function MyPage() {
     } catch {
       // 서버 로그아웃이 실패해도(만료된 토큰 등) 기기 세션은 지운다.
     }
+    // 토큰이 아직 유효할 때(clear() 로 지우기 전에) 이 기기를 발송 대상에서 뺀다.
+    await deleteRegisteredPushToken().catch(() => undefined);
     setDialog(null);
     // 세션이 지워지면 RequireAuth 가 로그인 화면으로 보낸다.
     await clearSession();
@@ -114,6 +117,7 @@ export function MyPage() {
       });
       return;
     }
+    await deleteRegisteredPushToken().catch(() => undefined);
     setDialog(null);
     await clearSession();
   };
