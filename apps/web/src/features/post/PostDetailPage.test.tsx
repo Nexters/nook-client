@@ -523,6 +523,19 @@ describe('게시물 상세', () => {
     expect(screen.getAllByRole('button', { name: '뒤로 가기' })).toHaveLength(2);
   });
 
+  it('n번째 이미지를 누르면 확대 뷰도 그 이미지부터 시작한다', async () => {
+    await renderPost(1);
+
+    fireEvent.click(screen.getByRole('button', { name: '2번째 이미지 크게 보기' }));
+
+    // 확대 뷰(body 포탈)의 인디케이터에서 지금 보고 있는 점만 진하다 — 상세의 캐러셀은
+    // 점을 끄므로(indicator=false) 여기 걸리는 점은 뷰어 것뿐이다.
+    const dots = document.querySelectorAll('[data-slot="carousel-indicator-dot"]');
+    expect(dots).toHaveLength(2);
+    expect(dots[1]).toHaveClass('bg-gray-100');
+    expect(dots[0]).not.toHaveClass('bg-gray-100');
+  });
+
   it('장소 행의 즐겨찾기를 토글하면 북마크 API 를 부르고 재조회된 서버 상태를 따른다', async () => {
     // 서버 흉내: 북마크 변경이 저장됐다가 다음 파싱 재조회에 반영된다.
     const places = PLACES.map((place) => ({ ...place }));
