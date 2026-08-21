@@ -119,14 +119,13 @@ describe('ToastProvider', () => {
     expect(screen.queryByText('지도에서 숨겼어요.')).not.toBeInTheDocument();
   });
 
-  it('노출 중 연달아 띄우면 먼저 뜬 토스트가 사라진 뒤에야 다음 토스트가 보인다', async () => {
+  it('액션이 달린 토스트끼리는 큐잉된다 — 먼저 뜬 게 사라진 뒤에야 다음이 보인다', async () => {
     renderHarness();
-    fireEvent.click(screen.getByText('show-description'));
-    fireEvent.click(screen.getByText('show-simple'));
+    fireEvent.click(screen.getByText('show-action'));
+    fireEvent.click(screen.getByText('show-undo'));
 
-    // 큐잉: 두 번째는 첫 번째가 소멸하기 전까지 보이지 않는다.
-    expect(screen.getByText('위치를 찾지 못 했어요')).toBeInTheDocument();
-    expect(screen.queryByText('지도에서 숨겼어요.')).not.toBeInTheDocument();
+    expect(screen.getByText('게시물 저장이 완료됐어요!')).toBeInTheDocument();
+    expect(screen.queryByText('장소가 삭제 됐어요.')).not.toBeInTheDocument();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(TOAST_DURATION_MS);
@@ -135,7 +134,55 @@ describe('ToastProvider', () => {
       await vi.advanceTimersByTimeAsync(TOAST_EXIT_MS);
     });
 
+    expect(screen.queryByText('게시물 저장이 완료됐어요!')).not.toBeInTheDocument();
+    expect(screen.getByText('장소가 삭제 됐어요.')).toBeInTheDocument();
+  });
+
+  // 핀 On/Off 를 연달아 누르면 새 문구가 3초 넘게 안 뜬다는 QA — 방금 한 동작의 피드백이
+  // 밀리면 화면이 이미 지난 상태를 말한다.
+  it('simple 은 떠 있는 알림을 기다리지 않고 즉시 갈아치운다', () => {
+    renderHarness();
+    fireEvent.click(screen.getByText('show-description'));
+    fireEvent.click(screen.getByText('show-simple'));
+
+    expect(screen.getByText('지도에서 숨겼어요.')).toBeInTheDocument();
     expect(screen.queryByText('위치를 찾지 못 했어요')).not.toBeInTheDocument();
+  });
+
+  it('simple 이 연달아 와도 마지막 것만 남는다 — 큐에 쌓아두지 않는다', async () => {
+    renderHarness();
+    fireEvent.click(screen.getByText('show-simple'));
+    fireEvent.click(screen.getByText('show-simple'));
+
+    expect(screen.getByText('지도에서 숨겼어요.')).toBeInTheDocument();
+
+    // 큐에 쌓였다면 첫 번째가 사라진 뒤 두 번째가 다시 떠오른다(수명·퇴장을 따로 진행시킨다).
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(TOAST_DURATION_MS);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(TOAST_EXIT_MS);
+    });
+
+    expect(screen.queryByText('지도에서 숨겼어요.')).not.toBeInTheDocument();
+  });
+
+  it('액션이 달린 토스트는 simple 에 밀려나지 않는다 — 누를 기회를 뺏지 않는다', async () => {
+    renderHarness();
+    fireEvent.click(screen.getByText('show-undo'));
+    fireEvent.click(screen.getByText('show-simple'));
+
+    expect(screen.getByText('장소가 삭제 됐어요.')).toBeInTheDocument();
+    expect(screen.queryByText('지도에서 숨겼어요.')).not.toBeInTheDocument();
+
+    // 수명과 퇴장 대기를 따로 진행시킨다 — 퇴장 타이머는 수명이 끝난 뒤에 걸린다.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(TOAST_DURATION_MS);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(TOAST_EXIT_MS);
+    });
+
     expect(screen.getByText('지도에서 숨겼어요.')).toBeInTheDocument();
   });
 

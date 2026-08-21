@@ -27,6 +27,14 @@ interface ActiveToast {
   request: ToastRequest;
 }
 
+/**
+ * 사용자가 누를 수 있는 액션이 달린 모양인지. 이런 토스트는 새 알림에 밀려나면 누를
+ * 기회 자체가 사라지므로, 아래 `showToast` 가 큐에서 걷어내지 않는다.
+ */
+function hasAction(request: ToastRequest): boolean {
+  return request.variant === 'action' || request.variant === 'undo' || request.variant === 'link';
+}
+
 interface ToastContextValue {
   showToast: (request: ToastRequest) => void;
 }
@@ -57,7 +65,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const showToast = useCallback((request: ToastRequest) => {
     nextIdRef.current += 1;
     const id = `toast-${nextIdRef.current}`;
-    setToasts((prev) => [...prev, { id, request }]);
+    setToasts((prev) =>
+      request.variant === 'simple'
+        ? // 액션 없는 단순 알림은 최신 것만 남긴다 — 3초 큐를 기다리는 사이 상태가 이미
+          // 바뀌어 지난 동작을 말하게 된다(핀 On/Off 를 연달아 누르면 새 문구가 3초 넘게
+          // 안 뜬다는 QA). 떠 있는 것은 즉시 갈아치우고(새 id 라 진입 애니메이션·3초 타이머를
+          // 새로 탄다) 아직 못 뜬 것도 버리되, 액션이 달린 토스트는 그대로 둔다.
+          [...prev.filter((toast) => hasAction(toast.request)), { id, request }]
+        : [...prev, { id, request }],
+    );
   }, []);
 
   const closeFront = useCallback(() => {
