@@ -7,8 +7,9 @@ import {
   DETAIL_COMPACT_SNAP_POINT,
   DETAIL_PAGE_SNAP_POINT,
   FULL_SNAP_POINT,
+  PEEK_SNAP_POINT,
 } from '@/features/map/constants';
-import type { PlaceDetail as PlaceDetailModel } from '@/features/map/types';
+import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { onBackGestureChange, resetBackGestureForTest } from '@/shared/lib/backGesture';
 import { ToastProvider } from '@/shared/toast';
 import { PlaceSheet } from './PlaceSheet';
@@ -47,7 +48,17 @@ const PLACE: PlaceDetailModel = {
   postsTotal: 0,
 };
 
-function renderSheet(snap: number | string | null, place: PlaceDetailModel | null = PLACE) {
+function renderSheet(
+  snap: number | string | null,
+  place: PlaceDetailModel | null = PLACE,
+  {
+    recentPlaces = [],
+    onSelectPlace = () => {},
+  }: {
+    recentPlaces?: RecentPlace[];
+    onSelectPlace?: (id: number, shareToken?: string | null) => void;
+  } = {},
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
@@ -55,14 +66,14 @@ function renderSheet(snap: number | string | null, place: PlaceDetailModel | nul
         <BottomMenuVisibilityProvider value={{ hidden: true, setHidden: () => {} }}>
           <MemoryRouter initialEntries={['/map']}>
             <PlaceSheet
-              recentPlaces={[]}
+              recentPlaces={recentPlaces}
               selectedPlace={place}
               isPlaceDetailPending={false}
               isPlaceDetailError={false}
               snap={snap}
               isSearchMode={false}
               onSnapChange={() => {}}
-              onSelectPlace={() => {}}
+              onSelectPlace={onSelectPlace}
               onClose={() => {}}
               onEnterSearch={() => {}}
               onExitSearch={() => {}}
@@ -247,5 +258,47 @@ describe('PlaceSheet — iOS 좌측 엣지 스와이프 허용 판정', () => {
     await settle();
 
     expect(calls.at(-1)).toBe(false);
+  });
+});
+
+describe('PlaceSheet 최근 저장한 공간 카드', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mapApi.fetchRecentPlaces.mockResolvedValue([]);
+  });
+
+  const RECENT: RecentPlace[] = [
+    {
+      id: 11,
+      name: '내 카페',
+      address: '서울 마포구',
+      accessType: 'OWNED',
+      shareToken: null,
+    },
+    {
+      id: 22,
+      name: '공유받은 카페',
+      address: '서울 성동구',
+      accessType: 'SHARED',
+      shareToken: 'tok-abc',
+    },
+  ];
+
+  it('구독한 공유 아카이브의 장소는 공유 토큰과 함께 선택을 올린다', () => {
+    const onSelectPlace = vi.fn();
+    renderSheet(PEEK_SNAP_POINT, null, { recentPlaces: RECENT, onSelectPlace });
+
+    fireEvent.click(screen.getByRole('button', { name: /공유받은 카페/ }));
+
+    expect(onSelectPlace).toHaveBeenCalledWith(22, 'tok-abc');
+  });
+
+  it('내 장소는 토큰이 없어 내 API 로 조회되게 둔다', () => {
+    const onSelectPlace = vi.fn();
+    renderSheet(PEEK_SNAP_POINT, null, { recentPlaces: RECENT, onSelectPlace });
+
+    fireEvent.click(screen.getByRole('button', { name: /내 카페/ }));
+
+    expect(onSelectPlace).toHaveBeenCalledWith(11, null);
   });
 });
