@@ -71,9 +71,11 @@ function OnboardingSlide({
   }, [active]);
 
   return (
-    <div aria-hidden={!active} className="w-full shrink-0">
-      {/* 시안 캔버스가 375x400 이라 비율을 고정해, 로딩 전에도 자리가 흔들리지 않게 한다. */}
-      <div className="mx-auto aspect-[375/400] w-full max-w-[375px]">
+    <div aria-hidden={!active} className="flex h-full w-full shrink-0 flex-col justify-center">
+      {/* 시안 캔버스가 375x400 이라 비율을 고정해, 로딩 전에도 자리가 흔들리지 않게 한다.
+          다만 세로가 짧은 기기(SE 등)에서는 이 400 이 그대로 들어가지 않아 문구가 잘렸다 —
+          줄어드는 쪽을 일러스트로 몰아 두고(min-h-0) 문구는 shrink-0 으로 지킨다. */}
+      <div className="mx-auto aspect-[375/400] w-full min-h-0 max-w-[375px]">
         {animationData ? (
           <Lottie
             lottieRef={lottieRef}
@@ -84,8 +86,10 @@ function OnboardingSlide({
         ) : null}
       </div>
 
-      <h2 className="mt-2 text-center text-h1 font-extrabold text-gray-100">{title}</h2>
-      <p className="mt-3 whitespace-pre-line text-center text-b2 text-gray-50">{description}</p>
+      <h2 className="mt-2 shrink-0 text-center text-h1 font-extrabold text-gray-100">{title}</h2>
+      <p className="mt-3 shrink-0 whitespace-pre-line text-center text-b2 text-gray-50">
+        {description}
+      </p>
     </div>
   );
 }
@@ -118,9 +122,9 @@ export function OnboardingCarousel() {
         pointerStartX.current = null;
       }}
     >
-      <div className="overflow-hidden">
+      <div className="min-h-0 overflow-hidden">
         <div
-          className="flex transition-transform duration-300 ease-out motion-reduce:transition-none"
+          className="flex h-full transition-transform duration-300 ease-out motion-reduce:transition-none"
           style={{ transform: `translateX(-${activeIndex * 100}%)` }}
         >
           {SLIDES.map(({ title, description }, index) => (
