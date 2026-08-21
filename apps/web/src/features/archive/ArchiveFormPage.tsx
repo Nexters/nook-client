@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
+import { useSlideScreen } from '@/app/slide-screen';
 import { EntryLoginWall } from '@/features/auth/components/LoginWall';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { capturePostHogEvent } from '@/lib/posthog';
+import { Icon24Close } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import {
   ARCHIVE_COLORS,
@@ -20,9 +22,6 @@ import { ArchiveDeletePopup } from './components/ArchiveDeletePopup';
 /** 시안의 카운터 표기(`0/20`) 기준. */
 const NAME_MAX_LENGTH = 20;
 
-/** 아래에서 올라오고/내려가는 전환 시간. 아래 `duration-300` 과 같은 값이어야 한다. */
-const SLIDE_DURATION_MS = 300;
-
 export interface ArchiveFormPageProps {
   /** `create` = Figma `새 아카이브 생성`, `edit` = Figma `아카이브 편집` */
   mode: 'create' | 'edit';
@@ -35,6 +34,7 @@ export interface ArchiveFormPageProps {
 export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
   const { archiveId } = useParams();
   const navigate = useNavigate();
+  const locationKey = useLocation().key;
   useHideBottomMenu();
 
   const isAuthenticated = useIsAuthenticated();
@@ -48,24 +48,24 @@ export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
   const [editedColor, setColor] = useState<ArchiveColor>();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  // 생성 화면만 시트처럼 아래에서 올라온다(편집은 기존대로 바로 뜬다).
-  // 첫 페인트는 화면 밖에서 시작해야 전환이 걸리므로 다음 프레임에 올린다.
-  const [slidIn, setSlidIn] = useState(editing);
-  const closeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  /**
+   * 이 화면을 떠나는 유일한 목적지 — 목록이다. 생성은 목록의 + 로만 들어오므로 보통은
+   * 되감으면 곧 목록이고(엔트리를 남기지 않는다), URL 로 직접 들어와 되감을 엔트리가
+   * 없을 때만 목록으로 대신 보낸다. react-router 는 첫 엔트리의 key 를 'default' 로 준다.
+   */
+  const leaveToList = useCallback(() => {
+    if (locationKey === 'default') navigate('/archive', { replace: true });
+    else navigate(-1);
+  }, [locationKey, navigate]);
 
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => setSlidIn(true));
-    return () => {
-      cancelAnimationFrame(frame);
-      clearTimeout(closeTimer.current);
-    };
-  }, []);
-
-  /** 생성 완료 — 화면이 아래로 내려간 뒤에 이동한다. */
-  const slideOutAndNavigate = (to: string) => {
-    setSlidIn(false);
-    closeTimer.current = setTimeout(() => navigate(to, { replace: true }), SLIDE_DURATION_MS);
-  };
+  /**
+   * 생성 화면은 시트처럼 아래에서 올라오고 아래로 내려가며 닫힌다(편집은 기존대로 바로
+   * 뜬다). 축만 다르고 "전환이 끝난 뒤 화면을 닫는다"는 계약은 같아 `useSlideScreen` 을
+   * 그대로 쓴다 — 우상단 닫기와 Android 하드웨어 백(훅의 인터셉터)이 같은 전환에서 만난다.
+   * iOS 좌측 스와이프는 좌상단 뒤로가기 버튼을 없애면서 함께 꺼진다(`shared/lib/backGesture`)
+   * — 아래로 내려가는 화면이 옆으로 밀려 나가면 전환 축이 어긋난다.
+   */
+  const { slidIn, slideOut } = useSlideScreen({ open: !editing, close: leaveToList });
 
   const name = editedName ?? archive?.name ?? '';
   const color = editedColor ?? archive?.color ?? ARCHIVE_COLORS[0];
@@ -98,7 +98,7 @@ export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
       {
         onSuccess: () => {
           capturePostHogEvent('archive_created', { color });
-          slideOutAndNavigate('/archive');
+          slideOut();
         },
       },
     );
@@ -121,12 +121,26 @@ export function ArchiveFormPage({ mode }: ArchiveFormPageProps) {
       // 슬라이드 동안 문서가 아래로 늘어나지 않도록 뷰포트에 고정한다(내용이 넘치면 안에서 스크롤).
       className={cn(
         'fixed inset-0 flex flex-col overflow-hidden bg-gray-0',
+        // duration 은 `useSlideScreen` 의 SLIDE_DURATION_MS 와 같은 값이어야 한다.
         'transition-transform duration-300 ease-out motion-reduce:transition-none',
-        slidIn ? 'translate-y-0' : 'translate-y-full',
+        // 편집은 전환 없이 바로 뜬다 — 아래에서 올라오는 건 생성뿐이다.
+        editing || slidIn ? 'translate-y-0' : 'translate-y-full',
       )}
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <Header left={<BackButton />} title={editing ? '아카이브 편집' : '새 아카이브 생성'} />
+      <Header
+        // 생성은 좌상단 뒤로가기 대신 우상단 닫기다(시안 273:10642) — 떠나는 길을 아래로
+        // 내려가는 전환 하나로 모은다. 편집은 옆에서 열리는 화면이라 그대로 뒤로가기다.
+        left={editing ? <BackButton /> : undefined}
+        title={editing ? '아카이브 편집' : '새 아카이브 생성'}
+        right={
+          editing ? undefined : (
+            <button type="button" onClick={slideOut} aria-label="닫기">
+              <Icon24Close />
+            </button>
+          )
+        }
+      />
 
       {/* 헤더는 위에 남기고, 넘치는 만큼은 이 안에서만 스크롤한다. */}
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
