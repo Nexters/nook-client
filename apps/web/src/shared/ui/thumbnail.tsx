@@ -22,6 +22,8 @@ const thumbnailVariants = cva(
         sm: 'size-16',
         /** 칸 너비를 채우는 정사각형 — 화면 폭에 따라 늘어나는 그리드용. */
         fluid: 'aspect-square w-full',
+        /** 칸 너비를 채우는 가로형(220x120) — 공유 프리뷰 카드의 커버용. */
+        wide: 'aspect-[11/6] w-full',
       },
     },
     defaultVariants: {
