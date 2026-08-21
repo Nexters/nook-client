@@ -18,6 +18,8 @@ expo-env.d.ts
 credentials.json
 *.key
 *.mobileprovision
+google-services.json
+GoogleService-Info.plist
 
 # eas build --local output
 /build/

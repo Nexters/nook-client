@@ -6,6 +6,14 @@ import { runSocialLogin } from '../auth/socialLogin';
 import { APP_VERSION, WEB_URL } from '../config/appConfig';
 import { runImagePick } from '../media/imagePicker';
 import {
+  addNotificationOpenedListener,
+  addPushTokenRefreshListener,
+  getInitialNotificationOpened,
+  getPushStatusAndToken,
+  type PushNotificationOpened,
+  requestPushPermissionAndToken,
+} from '../notifications/pushNotifications';
+import {
   clearSession,
   establishSession,
   refreshSession,
@@ -47,6 +55,9 @@ export function useWebViewBridge() {
   // 그대로 유지된다. 새 웹은 첫 화면을 그리면서 곧바로 제 값을 보내 덮어쓴다.
   const [backGestureEnabled, setBackGestureEnabled] = useState(true);
   const [webTarget, setWebTarget] = useState({ url: WEB_URL, revision: 0 });
+  // 웹이 아직 준비되기 전(콜드 스타트로 알림을 탭한 경우 포함)에 들어온 오픈 이벤트는
+  // 여기 잠깐 쥐고 있다가 WEB_READY 때 흘려보낸다.
+  const pendingNotificationOpened = useRef<PushNotificationOpened | null>(null);
 
   const applyAppLink = useCallback((appLink: string) => {
     const url = resolveAppLinkWebUrl(appLink, WEB_URL);
@@ -68,9 +79,11 @@ export function useWebViewBridge() {
     void Promise.all([
       Linking.getInitialURL().catch(() => null),
       restoreSession().catch(() => null),
-    ]).then(([initialUrl]) => {
+      getInitialNotificationOpened().catch(() => null),
+    ]).then(([initialUrl, , initialNotificationOpened]) => {
       if (!active) return;
       if (!receivedRuntimeLink && initialUrl) applyAppLink(initialUrl);
+      if (initialNotificationOpened) pendingNotificationOpened.current = initialNotificationOpened;
       setBootstrapped(true);
     });
 
@@ -114,6 +127,25 @@ export function useWebViewBridge() {
     return () => subscription.remove();
   }, [send]);
 
+  // 앱이 이미 떠서 웹이 준비된 상태로 알림을 탭한 경우. 콜드 스타트 쪽은 부트스트랩 이펙트가 맡는다.
+  useEffect(() => {
+    const subscription = addNotificationOpenedListener((opened) => {
+      if (webReady) {
+        send({ v: 1, type: 'PUSH_NOTIFICATION_OPENED', payload: opened });
+      } else {
+        pendingNotificationOpened.current = opened;
+      }
+    });
+    return () => subscription.remove();
+  }, [webReady, send]);
+
+  // 재설치·복원 등으로 FCM 토큰이 재발급된 경우. 요청 없이 오는 이벤트라 바로 흘려보낸다.
+  useEffect(() => {
+    return addPushTokenRefreshListener((token) => {
+      send({ v: 1, type: 'PUSH_TOKEN_REFRESHED', payload: { token } });
+    });
+  }, [send]);
+
   const onMessage = useCallback(
     (event: WebViewMessageEvent) => {
       if (!isTrustedUrl(event.nativeEvent.url, WEB_ORIGIN)) {
@@ -136,7 +168,29 @@ export function useWebViewBridge() {
           setWebReady(true);
           setLoadFailed(false);
           void restoreSession().then((session) => sendResult('web-ready', session));
+          if (pendingNotificationOpened.current) {
+            send({
+              v: 1,
+              type: 'PUSH_NOTIFICATION_OPENED',
+              payload: pendingNotificationOpened.current,
+            });
+            pendingNotificationOpened.current = null;
+          }
           break;
+        case 'REQUEST_PUSH_PERMISSION': {
+          const { requestId } = message.payload;
+          void requestPushPermissionAndToken().then((outcome) => {
+            send({ v: 1, type: 'PUSH_PERMISSION_RESULT', payload: { requestId, ...outcome } });
+          });
+          break;
+        }
+        case 'GET_PUSH_STATUS': {
+          const { requestId } = message.payload;
+          void getPushStatusAndToken().then((outcome) => {
+            send({ v: 1, type: 'PUSH_PERMISSION_RESULT', payload: { requestId, ...outcome } });
+          });
+          break;
+        }
         case 'SESSION_GET':
           void restoreSession(message.payload.apiBaseUrl).then((session) =>
             sendResult(message.payload.requestId, session),

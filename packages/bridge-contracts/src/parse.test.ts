@@ -241,3 +241,76 @@ describe('image pick messages', () => {
     expect(parseNativeToWeb(json)).toBeNull();
   });
 });
+
+describe('push notification messages', () => {
+  it('REQUEST_PUSH_PERMISSION 요청을 파싱한다', () => {
+    expect(
+      parseWebToNative('{"v":1,"type":"REQUEST_PUSH_PERMISSION","payload":{"requestId":"r1"}}'),
+    ).toEqual({ v: 1, type: 'REQUEST_PUSH_PERMISSION', payload: { requestId: 'r1' } });
+  });
+
+  it('requestId 가 없으면 무시한다', () => {
+    expect(parseWebToNative('{"v":1,"type":"REQUEST_PUSH_PERMISSION","payload":{}}')).toBeNull();
+  });
+
+  it('GET_PUSH_STATUS 요청을 파싱한다', () => {
+    expect(
+      parseWebToNative('{"v":1,"type":"GET_PUSH_STATUS","payload":{"requestId":"r1"}}'),
+    ).toEqual({ v: 1, type: 'GET_PUSH_STATUS', payload: { requestId: 'r1' } });
+  });
+
+  it('토큰이 있는 PUSH_PERMISSION_RESULT 를 파싱한다', () => {
+    expect(
+      parseNativeToWeb(
+        '{"v":1,"type":"PUSH_PERMISSION_RESULT","payload":{"requestId":"r1","status":"granted","token":{"platform":"ios","value":"tok"}}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'PUSH_PERMISSION_RESULT',
+      payload: { requestId: 'r1', status: 'granted', token: { platform: 'ios', value: 'tok' } },
+    });
+  });
+
+  it.each(['denied', 'undetermined'])('허용되지 않은 결과는 토큰 없이 파싱한다: %s', (status) => {
+    expect(
+      parseNativeToWeb(
+        `{"v":1,"type":"PUSH_PERMISSION_RESULT","payload":{"requestId":"r1","status":"${status}"}}`,
+      ),
+    ).toEqual({ v: 1, type: 'PUSH_PERMISSION_RESULT', payload: { requestId: 'r1', status } });
+  });
+
+  it.each([
+    '{"v":1,"type":"PUSH_PERMISSION_RESULT","payload":{"status":"granted"}}',
+    '{"v":1,"type":"PUSH_PERMISSION_RESULT","payload":{"requestId":"r1","status":"unknown"}}',
+  ])('requestId 누락이나 알 수 없는 status 는 무시한다: %s', (json) => {
+    expect(parseNativeToWeb(json)).toBeNull();
+  });
+
+  it('PUSH_NOTIFICATION_OPENED 의 문자열이 아닌 data 필드는 걸러낸다', () => {
+    expect(
+      parseNativeToWeb(
+        '{"v":1,"type":"PUSH_NOTIFICATION_OPENED","payload":{"data":{"postId":"1","count":2},"title":"저장 완료"}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'PUSH_NOTIFICATION_OPENED',
+      payload: { data: { postId: '1' }, title: '저장 완료' },
+    });
+  });
+
+  it('PUSH_TOKEN_REFRESHED 를 파싱한다', () => {
+    expect(
+      parseNativeToWeb(
+        '{"v":1,"type":"PUSH_TOKEN_REFRESHED","payload":{"token":{"platform":"android","value":"tok2"}}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'PUSH_TOKEN_REFRESHED',
+      payload: { token: { platform: 'android', value: 'tok2' } },
+    });
+  });
+
+  it('토큰이 없는 PUSH_TOKEN_REFRESHED 는 무시한다', () => {
+    expect(parseNativeToWeb('{"v":1,"type":"PUSH_TOKEN_REFRESHED","payload":{}}')).toBeNull();
+  });
+});

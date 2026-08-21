@@ -5,6 +5,7 @@ import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { EntryLoginWall } from '@/features/auth/components/LoginWall';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
+import { PushPrimingSheet } from '@/features/notifications/components/PushPrimingSheet';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
@@ -176,6 +177,9 @@ export function PostDetailPage() {
             <PostDetailErrorView />
           )}
         </div>
+        {/* 파싱 화면은 "완료되면 알림을 보내드릴게요"라고 약속한다 — 권한이 미결정인
+            사용자에게 여기서만 알림 허용을 권한다. 즉시 완료 저장은 이 분기를 안 탄다. */}
+        <PushPrimingSheet active={isProcessing} />
       </main>
     );
   }
