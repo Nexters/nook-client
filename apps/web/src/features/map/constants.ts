@@ -58,6 +58,19 @@ export const DETAIL_SNAP_POINTS_WITHOUT_PHOTOS = [DETAIL_COMPACT_SNAP_POINT, FUL
 export const PIN_DETAIL_MIN_ZOOM = 16;
 
 /**
+ * 지도를 처음 열 때의 확대 정도. 저장한 장소가 어디에 몰려 있는지 한눈에 보이는 광역
+ * 축척이라, 개별 핀 대신 클러스터 버블이 뜬다(`PIN_DETAIL_MIN_ZOOM` 보다 작으므로).
+ */
+export const DEFAULT_ZOOM = 9;
+
+/**
+ * 현재위치 버튼으로 되돌아갈 때의 확대 정도 — 초기 줌과 일부러 분리했다. 초기 화면은
+ * 전체 분포를 보는 축척이고, 현재위치는 "지금 내 주변"이라 개별 핀이 보이기 시작하는
+ * 선(`PIN_DETAIL_MIN_ZOOM` 과 같은 값)까지 당긴다.
+ */
+export const RECENTER_ZOOM = 16;
+
+/**
  * 클러스터 병합 반경(화면 픽셀). 기준 핀에서 이 거리 안에 있는 핀이 한 덩어리가 된다.
  * 키우면 더 넓은 범위를 하나로 묶는다. 버블 지름(44px)보다 넉넉해야 버블끼리 붙어 보이지 않는다.
  *

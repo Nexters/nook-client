@@ -15,8 +15,8 @@ import {
   PEEK_SNAP_POINT,
 } from '@/features/map/constants';
 import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
+import { toInitialBounds } from '@/features/map/initial-bounds';
 import type { MapBounds } from '@/features/map/types';
-import type { Coordinates } from '@/shared/lib/geolocation';
 import { useMapPins, usePlaceDetail, useRecentPlaces } from './api/queries';
 
 /**
@@ -27,17 +27,6 @@ import { useMapPins, usePlaceDetail, useRecentPlaces } from './api/queries';
 const DETAIL_ENTRY_STATE_KEY = 'placeDetail';
 
 const FALLBACK_CENTER = { lat: 37.5729, lng: 126.9762 }; // 위치 못 가져왔을 때 광화문 인근 폴백
-// 실제 뷰포트보다 넉넉한 값 — 지도가 처음 idle에 도달하면 실제 경계로 바로 교체된다.
-const INITIAL_BOUNDS_DELTA = 0.01;
-
-function toInitialBounds(center: Coordinates): MapBounds {
-  return {
-    north: center.lat + INITIAL_BOUNDS_DELTA,
-    south: center.lat - INITIAL_BOUNDS_DELTA,
-    east: center.lng + INITIAL_BOUNDS_DELTA,
-    west: center.lng - INITIAL_BOUNDS_DELTA,
-  };
-}
 
 /** `/map?placeId=123` 의 placeId 파라미터를 파싱한다. 없거나 숫자가 아니면 null. */
 function parsePlaceIdParam(raw: string | null): number | null {
