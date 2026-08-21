@@ -100,7 +100,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           // 로고·워드마크·태그라인이 한 장에 담긴 시안 이미지. 네이티브 스플래시는 이미지 하나만 받는다.
           image: './assets/splash.png',
           backgroundColor: SPLASH_BACKGROUND_COLOR,
-          imageWidth: 200,
+          // imageWidth 는 캔버스 전체를 몇 pt 로 그릴지다. 태그라인이 길어지며 시안 가로폭이
+          // 672 → 756px 로 넓어져서, 로고를 이전과 같은 크기로 유지하려면 같은 비율로 키워야 한다.
+          imageWidth: 225,
           resizeMode: 'contain',
           // Android 12+ 는 스플래시 이미지를 원형으로 잘라 보여준다(캔버스의 66.7%만 노출).
           // 태그라인까지 넣으면 가장자리가 잘려서, 원 안에 들어가는 로고+워드마크만 쓴다.
