@@ -26,6 +26,12 @@ function HistoryBackProbe() {
   );
 }
 
+/** 현재 쿼리스트링 프로브 — 진입 파라미터(`?new`)를 지웠는지 본다. */
+function SearchParamsProbe() {
+  const location = useLocation();
+  return <output data-testid="search">{location.search}</output>;
+}
+
 /** `/map` 착지 확인용 — 실제 화면 대신 쿼리스트링을 그대로 보여준다. */
 function MapRouteProbe() {
   const location = useLocation();
@@ -80,9 +86,9 @@ function renderArchiveRoutes(initialPath: string) {
     wrapper(
       <MemoryRouter initialEntries={[initialPath]}>
         <HistoryBackProbe />
+        <SearchParamsProbe />
         <Routes>
           <Route path="/archive" element={<ArchivePage />} />
-          <Route path="/archive/new" element={<ArchiveFormPage mode="create" />} />
           <Route path="/archive/:archiveId" element={<ArchiveDetailPage />} />
           <Route path="/archive/:archiveId/edit" element={<ArchiveFormPage mode="edit" />} />
           <Route path="/shared/:token/post/:postId" element={<div>공유 게시물 상세</div>} />
@@ -127,7 +133,8 @@ describe('아카이브 화면', () => {
   });
 
   it('새 아카이브 생성은 이름이 비면 버튼이 비활성화되고, 입력하면 생성 요청을 보낸다', async () => {
-    renderArchiveRoutes('/archive/new');
+    renderArchiveRoutes('/archive');
+    fireEvent.click(await screen.findByRole('button', { name: '새 아카이브 만들기' }));
 
     const submit = screen.getByRole('button', { name: '아카이브 만들기' });
     expect(submit).toBeDisabled();
@@ -553,8 +560,9 @@ describe('아카이브 화면', () => {
       return screen.findByRole('button', { name: '아카이브 만들기' });
     }
 
-    const createScreen = () => screen.getByRole('main');
-    const archiveList = () => screen.findByRole('button', { name: /카페/ });
+    /** 생성 오버레이. 사라졌으면 null 이다 — 목록의 main 과 섞이지 않게 data-slot 으로 잡는다. */
+    const createForm = () => document.querySelector('[data-slot="archive-form"]');
+    const archiveList = () => screen.getByRole('button', { name: /카페/ });
 
     it('좌상단 뒤로가기 대신 우상단 닫기를 두고, 좌측 스와이프는 허용하지 않는다', async () => {
       const gesture = listenBackGesture();
@@ -566,14 +574,23 @@ describe('아카이브 화면', () => {
       await vi.waitFor(() => expect(gesture.at(-1)).toBe(false));
     });
 
-    it('닫기를 누르면 화면이 아래로 내려간 다음 목록으로 돌아간다', async () => {
+    it('탭바·로고 헤더 위로 덮는다 — 셸 안에 두면 그것들에 가려진다', async () => {
+      await openCreateFromList();
+
+      // 셸은 스택 컨텍스트라, body 로 포탈된 그것들 위로 가려면 이 화면도 body 에 있어야 한다.
+      expect(createForm()?.parentElement).toBe(document.body);
+      expect(createForm()).toHaveClass('z-[70]');
+    });
+
+    it('닫기를 누르면 목록 위에서 아래로 내려간 다음 사라진다', async () => {
       await openCreateFromList();
 
       fireEvent.click(screen.getByRole('button', { name: '닫기' }));
 
-      // 이동보다 전환이 먼저다 — 아직 화면이 떠 있고 아래로 내려가는 중이다.
-      expect(createScreen()).toHaveClass('translate-y-full');
-      expect(await archiveList()).toBeInTheDocument();
+      // 내려가는 동안에도 뒤에는 목록이 그대로 있다 — 라우트였을 땐 이 자리가 빈 배경이었다.
+      expect(createForm()).toHaveClass('translate-y-full');
+      expect(archiveList()).toBeInTheDocument();
+      await vi.waitFor(() => expect(createForm()).toBeNull());
     });
 
     it('Android 하드웨어 백도 같은 전환을 태운다', async () => {
@@ -582,11 +599,12 @@ describe('아카이브 화면', () => {
       // 인터셉터가 받았으면 true — 히스토리 뒤로가기로 곧장 빠지지 않는다.
       expect(runBackInterceptors()).toBe(true);
 
-      expect(createScreen()).toHaveClass('translate-y-full');
-      expect(await archiveList()).toBeInTheDocument();
+      expect(createForm()).toHaveClass('translate-y-full');
+      await vi.waitFor(() => expect(createForm()).toBeNull());
+      expect(archiveList()).toBeInTheDocument();
     });
 
-    it('생성이 끝나도 같은 전환으로 목록으로 돌아간다', async () => {
+    it('생성이 끝나도 같은 전환으로 닫힌다', async () => {
       await openCreateFromList();
 
       fireEvent.change(screen.getByLabelText('아카이브 이름'), {
@@ -594,8 +612,19 @@ describe('아카이브 화면', () => {
       });
       fireEvent.click(screen.getByRole('button', { name: '아카이브 만들기' }));
 
-      await vi.waitFor(() => expect(createScreen()).toHaveClass('translate-y-full'));
-      expect(await archiveList()).toBeInTheDocument();
+      await vi.waitFor(() => expect(createForm()).toHaveClass('translate-y-full'));
+      await vi.waitFor(() => expect(createForm()).toBeNull());
+      expect(archiveList()).toBeInTheDocument();
+    });
+
+    it('목록 밖에서 `?new` 로 들어오면 목록 위에 열고 파라미터는 지운다 — 저장 시트 경로다', async () => {
+      renderArchiveRoutes('/archive?new=1');
+
+      expect(await screen.findByRole('button', { name: '아카이브 만들기' })).toBeInTheDocument();
+      // 오버레이가 목록보다 먼저 뜬다(목록은 응답을 기다린다) — 뒤에 목록이 채워지는 것까지 본다.
+      expect(await screen.findByRole('button', { name: /카페/ })).toBeInTheDocument();
+      // 남겨두면 새로고침·뒤로가기로 다시 열린다.
+      await vi.waitFor(() => expect(screen.getByTestId('search').textContent).toBe(''));
     });
 
     it('편집 화면은 그대로 좌상단 뒤로가기를 쓴다 — 옆에서 열리는 화면이다', async () => {
