@@ -108,6 +108,20 @@ function LocationProbe() {
   return <output data-testid="search-params">{location.search}</output>;
 }
 
+/**
+ * iOS 좌측 엣지 스와이프·Android 하드웨어 백이 하는 일 — 히스토리 되감기 하나다.
+ * 스와이프는 WKWebView 가 직접 되감아 JS 를 거치지 않으므로, 웹에서 검증할 수 있는
+ * 것도 "되감으면 무엇이 되는가"뿐이다.
+ */
+function HistoryBackProbe() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      뒤로가기
+    </button>
+  );
+}
+
 /** 하단 탭바의 "지도" 링크처럼 파라미터 없는 `/map` 으로 이동하는 프로브. */
 function MapTabLinkProbe() {
   const navigate = useNavigate();
@@ -118,16 +132,22 @@ function MapTabLinkProbe() {
   );
 }
 
-function renderMapAt(entry: string) {
+/**
+ * `from` 을 주면 그 화면에서 지도로 넘어온 히스토리를 만든다 — 되감을 엔트리가 있는
+ * 상태(딥링크 진입 등)와 없는 상태를 구분해야 하는 테스트에서 쓴다.
+ */
+function renderMapAt(entry: string, { from }: { from?: string } = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
-        <MemoryRouter initialEntries={[entry]}>
+        <MemoryRouter initialEntries={from ? [from, entry] : [entry]}>
           <LocationProbe />
           <MapTabLinkProbe />
+          <HistoryBackProbe />
           <Routes>
             <Route path="/map" element={<MapPage />} />
+            <Route path="/before" element={<p>지도에 오기 전 화면</p>} />
           </Routes>
         </MemoryRouter>
       </BottomMenuVisibilityProvider>
@@ -379,5 +399,95 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
     fireEvent.click(screen.getByRole('button', { name: '검색 입력 포커스' }));
 
     await screen.findByText(`스냅: ${FULL_SNAP_POINT}`);
+  });
+});
+
+/**
+ * iOS 좌측 엣지 스와이프는 WKWebView 가 자기 히스토리를 되감는 동작이라 웹이 목적지를
+ * 정할 수 없다 — 정할 수 있는 건 "직전 엔트리가 무엇인가"뿐이다. 전체화면 상세에서
+ * 스와이프가 상세 닫기가 되도록, 상세를 열 때 엔트리를 하나 쌓는다.
+ */
+describe('MapPage — 상세의 히스토리 엔트리', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.fetchMapPins.mockResolvedValue([]);
+    mocks.fetchRecentPlaces.mockResolvedValue([]);
+    mocks.fetchPlaceDetail.mockImplementation((id: number) =>
+      Promise.resolve({
+        id,
+        name: `장소 ${id}`,
+        lat: 37.478,
+        lng: 126.951,
+        bookmarked: true,
+        thumbnail: null,
+        photos: ['https://img/1.jpg'],
+      }),
+    );
+  });
+
+  it('목록에서 상세를 열면 뒤로가기가 상세만 닫는다 — 지도를 떠나지 않는다', async () => {
+    const { PEEK_SNAP_POINT } = await import('@/features/map/constants');
+    renderMapAt('/map', { from: '/before' });
+
+    fireEvent.click(await screen.findByRole('button', { name: '핀 7 클릭' }));
+    await screen.findByText('선택됨: 장소 7');
+
+    fireEvent.click(screen.getByRole('button', { name: '뒤로가기' }));
+
+    await screen.findByText('선택 없음');
+    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
+    expect(screen.queryByText('지도에 오기 전 화면')).not.toBeInTheDocument();
+  });
+
+  it('전체화면(full)까지 펼친 뒤 뒤로가기해도 한 번에 목록으로 돌아온다 — 스냅 기록은 엔트리를 쌓지 않는다', async () => {
+    renderMapAt('/map', { from: '/before' });
+
+    fireEvent.click(await screen.findByRole('button', { name: '핀 7 클릭' }));
+    await screen.findByText('선택됨: 장소 7');
+    fireEvent.click(screen.getByRole('button', { name: '시트 펼치기' }));
+    await waitFor(() => expect(screen.getByTestId('search-params')).toHaveTextContent('snap=1'));
+
+    fireEvent.click(screen.getByRole('button', { name: '뒤로가기' }));
+
+    await screen.findByText('선택 없음');
+    expect(screen.queryByText('지도에 오기 전 화면')).not.toBeInTheDocument();
+  });
+
+  it('보던 장소를 다른 장소로 바꿔도 엔트리를 더 쌓지 않는다 — 뒤로가기 한 번에 목록이다', async () => {
+    renderMapAt('/map', { from: '/before' });
+
+    fireEvent.click(await screen.findByRole('button', { name: '핀 7 클릭' }));
+    await screen.findByText('선택됨: 장소 7');
+    fireEvent.click(screen.getByRole('button', { name: '검색 결과 선택' }));
+    await screen.findByText('선택됨: 장소 1');
+
+    fireEvent.click(screen.getByRole('button', { name: '뒤로가기' }));
+
+    await screen.findByText('선택 없음');
+    expect(screen.queryByText('지도에 오기 전 화면')).not.toBeInTheDocument();
+  });
+
+  it('상세를 닫으면 그 엔트리도 함께 사라진다 — 앞으로가기로 되살아나지 않는다', async () => {
+    renderMapAt('/map', { from: '/before' });
+
+    fireEvent.click(await screen.findByRole('button', { name: '핀 7 클릭' }));
+    await screen.findByText('선택됨: 장소 7');
+    fireEvent.click(screen.getByRole('button', { name: '상세 닫기' }));
+    await screen.findByText('선택 없음');
+
+    // 파라미터만 지웠다면 엔트리가 남아 이 되감기가 방금 닫은 상세로 돌아간다.
+    fireEvent.click(screen.getByRole('button', { name: '뒤로가기' }));
+
+    expect(await screen.findByText('지도에 오기 전 화면')).toBeInTheDocument();
+  });
+
+  it('딥링크로 곧장 들어온 상세의 닫기는 히스토리를 되감지 않는다 — 지도에 남는다', async () => {
+    renderMapAt('/map?placeId=5', { from: '/before' });
+    await screen.findByText('선택됨: 장소 5');
+
+    fireEvent.click(screen.getByRole('button', { name: '상세 닫기' }));
+
+    await screen.findByText('선택 없음');
+    expect(screen.queryByText('지도에 오기 전 화면')).not.toBeInTheDocument();
   });
 });

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import {
   DETAIL_COMPACT_SNAP_POINT,
@@ -9,6 +9,7 @@ import {
   FULL_SNAP_POINT,
 } from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel } from '@/features/map/types';
+import { onBackGestureChange, resetBackGestureForTest } from '@/shared/lib/backGesture';
 import { ToastProvider } from '@/shared/toast';
 import { PlaceSheet } from './PlaceSheet';
 
@@ -46,7 +47,7 @@ const PLACE: PlaceDetailModel = {
   postsTotal: 0,
 };
 
-function renderSheet(snap: number | string | null, place: PlaceDetailModel = PLACE) {
+function renderSheet(snap: number | string | null, place: PlaceDetailModel | null = PLACE) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
@@ -187,5 +188,64 @@ describe('PlaceSheet — 사진 노출', () => {
     // 이름·주소는 그대로 남는다(시안 263:11099).
     expect(screen.getByText('아이소')).toBeInTheDocument();
     expect(screen.getByText('서울 어딘가')).toBeInTheDocument();
+  });
+});
+
+describe('PlaceSheet — iOS 좌측 엣지 스와이프 허용 판정', () => {
+  // 판정 레지스트리는 모듈 전역이라 테스트마다 초기화한다. RTL 자동 cleanup 은 이보다
+  // 늦게 돌아 카운터를 음수로 떨어뜨리므로 언마운트를 먼저 끝낸다(backGesture.test 와 동일).
+  afterEach(() => {
+    cleanup();
+    resetBackGestureForTest();
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mapApi.fetchRecentPlaces.mockResolvedValue([]);
+  });
+
+  /**
+   * 알림은 마이크로태스크로 미뤄진다 — 큐가 빌 때까지 기다린다. 이 사이 vaul 이 스냅
+   * 배치를 state 로 반영하므로 act 로 감싼다(안 감싸면 경고만 남고 결과는 같다).
+   */
+  const settle = () =>
+    act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+  function listen() {
+    const calls: boolean[] = [];
+    onBackGestureChange((enabled) => calls.push(enabled));
+    return calls;
+  }
+
+  it('전체화면(full)까지 올린 상세에서는 허용한다', async () => {
+    const calls = listen();
+    await settle();
+
+    renderSheet(FULL_SNAP_POINT);
+    await settle();
+
+    expect(calls.at(-1)).toBe(true);
+  });
+
+  it('기본 높이(detailPage)에서는 허용하지 않는다 — 화면 절반만 덮는 상태다', async () => {
+    const calls = listen();
+    await settle();
+
+    renderSheet(DETAIL_PAGE_SNAP_POINT);
+    await settle();
+
+    expect(calls.at(-1)).toBe(false);
+  });
+
+  it('선택 없는 목록 모드의 full 에서는 허용하지 않는다 — 되감을 상세가 없다', async () => {
+    const calls = listen();
+    await settle();
+
+    renderSheet(FULL_SNAP_POINT, null);
+    await settle();
+
+    expect(calls.at(-1)).toBe(false);
   });
 });
