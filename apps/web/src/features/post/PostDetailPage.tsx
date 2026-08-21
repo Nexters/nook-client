@@ -53,6 +53,13 @@ export function PostDetailPage() {
   const [memoOpen, setMemoOpen] = useState(false);
   // 뒤로가기(버튼·하드웨어 백·스와이프)로 닫혀야 해서 히스토리 엔트리로 승격한다.
   const [viewerOpen, openViewer, closeViewer] = useHistoryBackedFlag('imageViewer');
+  // 확대뷰가 시작할 이미지 — 누른 그 이미지다. 열림 여부는 위 히스토리 플래그가 소유하고,
+  // 인덱스는 거기 딸린 부가 정보라 컴포넌트 state 로 든다(뒤로가기 계약은 그대로).
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const openViewerAt = (index: number) => {
+    setViewerIndex(index);
+    openViewer();
+  };
   const relatedPlacesState = useRelatedPlaces(postId);
   const [directInputOpen, setDirectInputOpen] = useState(false);
   const { showToast } = useToast();
@@ -183,7 +190,7 @@ export function PostDetailPage() {
       contentStyle={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
     >
       <main>
-        <PostImages images={images} onImageClick={openViewer} />
+        <PostImages images={images} onImageClick={openViewerAt} />
 
         <div className="flex flex-col gap-2 px-4 pt-1">
           <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
@@ -228,7 +235,10 @@ export function PostDetailPage() {
       {/* fixed 오버레이 — 페이지가 뷰포트보다 길면 셸(will-change-transform)에 붙어
           화면 밖으로 밀려나니 body 로 포탈해 뷰포트 기준으로 띄운다. */}
       {viewerOpen
-        ? createPortal(<PostImageViewer images={images} onClose={closeViewer} />, document.body)
+        ? createPortal(
+            <PostImageViewer images={images} initialIndex={viewerIndex} onClose={closeViewer} />,
+            document.body,
+          )
         : null}
 
       <PlaceDirectInputDrawer

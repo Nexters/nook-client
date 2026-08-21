@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigationType, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useNavigationType, useSearchParams } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
@@ -15,22 +15,18 @@ import {
   PEEK_SNAP_POINT,
 } from '@/features/map/constants';
 import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
+import { toInitialBounds } from '@/features/map/initial-bounds';
 import type { MapBounds } from '@/features/map/types';
-import type { Coordinates } from '@/shared/lib/geolocation';
 import { useMapPins, usePlaceDetail, useRecentPlaces } from './api/queries';
 
-const FALLBACK_CENTER = { lat: 37.5729, lng: 126.9762 }; // 위치 못 가져왔을 때 광화문 인근 폴백
-// 실제 뷰포트보다 넉넉한 값 — 지도가 처음 idle에 도달하면 실제 경계로 바로 교체된다.
-const INITIAL_BOUNDS_DELTA = 0.01;
+/**
+ * 상세를 이 화면 안에서 열어(핀·카드 클릭) 히스토리 엔트리를 하나 쌓았다는 표시.
+ * 딥링크로 곧장 `?placeId=` 에 도착한 경우와 구분한다 — 그때는 직전 엔트리가 "지도에 오기
+ * 전 화면"이라, 닫기가 히스토리를 되감으면 지도를 통째로 떠나버린다.
+ */
+const DETAIL_ENTRY_STATE_KEY = 'placeDetail';
 
-function toInitialBounds(center: Coordinates): MapBounds {
-  return {
-    north: center.lat + INITIAL_BOUNDS_DELTA,
-    south: center.lat - INITIAL_BOUNDS_DELTA,
-    east: center.lng + INITIAL_BOUNDS_DELTA,
-    west: center.lng - INITIAL_BOUNDS_DELTA,
-  };
-}
+const FALLBACK_CENTER = { lat: 37.5729, lng: 126.9762 }; // 위치 못 가져왔을 때 광화문 인근 폴백
 
 /** `/map?placeId=123` 의 placeId 파라미터를 파싱한다. 없거나 숫자가 아니면 null. */
 function parsePlaceIdParam(raw: string | null): number | null {
@@ -59,6 +55,11 @@ export function MapPage() {
   const { setHidden: setBottomMenuHidden } = useBottomMenuVisibility();
   const mapRef = useRef<MapViewHandle>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const historyState = useLocation().state as Record<string, unknown> | null;
+  // 지금 보고 있는 상세가 우리가 push 한 엔트리 위에 떠 있는가 — 닫기가 파라미터 삭제여야
+  // 하는지 뒤로가기여야 하는지를 가른다(`DETAIL_ENTRY_STATE_KEY`).
+  const detailIsHistoryEntry = historyState?.[DETAIL_ENTRY_STATE_KEY] === true;
   // 선택된 장소는 컴포넌트 state 가 아니라 URL(`?placeId=`)이 원본이다 — 딥링크(연관 장소
   // 클릭 등)로 들어와도 핀을 직접 클릭한 것과 같고, 아카이브 상세 등으로 나갔다 뒤로
   // 돌아오면 히스토리 엔트리의 URL 로 보던 장소 상세가 그대로 복원되며, 새로고침에도
@@ -168,11 +169,19 @@ export function MapPage() {
   }
 
   /**
-   * 선택 변경은 URL 에 replace 로 반영한다 — 히스토리를 쌓지 않아 뒤로가기는 지도
-   * "이전 화면"으로 나가는 기존 동작 그대로고, 아카이브 상세처럼 push 로 떠난 화면에서
-   * 뒤로 돌아올 때만 마지막 선택이 복원된다.
+   * 선택 변경을 URL 에 반영한다.
+   *
+   * 목록에서 상세를 새로 열 때만 히스토리 엔트리를 쌓는다(push). iOS 좌측 엣지 스와이프는
+   * WKWebView 가 자기 히스토리를 되감는 동작이라 웹이 가로챌 수 없고 "직전 엔트리가
+   * 무엇인가"만 정할 수 있다 — 전체화면까지 올린 상세에서 스와이프·Android 백·헤더 닫기가
+   * 모두 "상세 닫고 목록으로"에서 만나려면 그 목록이 직전 엔트리여야 한다.
+   *
+   * 보던 장소를 다른 장소로 바꾸는 경우(연관 장소 등)는 더 쌓지 않는다 — 상세를 옮겨 다닌
+   * 횟수만큼 뒤로가기를 반복해야 목록에 닿는 건 화면 단위 감각과 어긋난다. 선택을 푸는
+   * 경로도 replace 다(되감을 엔트리가 있으면 아래 `handleCloseDetail` 이 먼저 가로챈다).
    */
   function setSelectedPlaceId(id: number | null) {
+    const opensDetail = id !== null && selectedPlaceId === null;
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -183,7 +192,12 @@ export function MapPage() {
         else next.set('placeId', String(id));
         return next;
       },
-      { replace: true },
+      {
+        replace: !opensDetail,
+        // state 를 넘기지 않으면 react-router 가 undefined 로 덮어써 마커가 사라진다 —
+        // 상세를 옮겨 다니거나 스냅을 바꾸는 동안에도 그대로 실어 보낸다.
+        state: opensDetail ? { ...historyState, [DETAIL_ENTRY_STATE_KEY]: true } : historyState,
+      },
     );
   }
 
@@ -215,7 +229,7 @@ export function MapPage() {
           else params.set('snap', String(next));
           return params;
         },
-        { replace: true },
+        { replace: true, state: historyState },
       );
     }
   }
@@ -223,8 +237,16 @@ export function MapPage() {
   /**
    * 상세 헤더의 닫기/뒤로 — 목록으로 되돌아가는 유일한 길이다(끌어내리기로는 나갈 수
    * 없다). 선택을 풀면 위 이펙트가 스냅을 peek 으로 되돌린다.
+   *
+   * 우리가 push 해서 열었으면 그 엔트리를 되감아야 한다 — 파라미터만 지우면 엔트리가 남아
+   * 앞으로가기 제스처가 방금 닫은 상세를 되살린다. 딥링크로 곧장 들어온 상세에는 되감을
+   * 우리 엔트리가 없으므로 파라미터만 지워 지도에 남는다.
    */
   function handleCloseDetail() {
+    if (detailIsHistoryEntry) {
+      navigate(-1);
+      return;
+    }
     setSelectedPlaceId(null);
   }
 

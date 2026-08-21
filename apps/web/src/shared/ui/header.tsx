@@ -14,9 +14,11 @@ import { cn } from '@/shared/lib/utils';
  *   Logo_Transparency    → <Header variant="transparent" left={<Logo />} />
  *   Back                 → <Header left={<BackButton />} title="새 아카이브 생성" right={<ShareButton />} />
  *   bottom               → <Header size="bottom" left={<BackButton />} title="새 아카이브 생성" />
+ *   Close(우상단만)       → <Header title="새 아카이브 생성" right={닫기 버튼} />
  *
- * `right` 를 비우면 24px 자리를 빈 칸으로 남겨 제목이 한쪽으로 쏠리지 않게 한다
- * (시안의 `bottom` variant 가 쓰는 방식 그대로).
+ * 제목이 있는 헤더에서 비어 있는 좌·우 슬롯은 24px 빈 칸으로 채워 제목이 한쪽으로
+ * 쏠리지 않게 한다(시안의 `bottom` variant 가 쓰는 방식 그대로) — 한쪽에만 아이콘이
+ * 있는 시안도 제목은 가운데다. 슬롯이 둘 다 빈 로고 단독 헤더에는 제목이 없다.
  */
 const headerVariants = cva('flex w-full items-center justify-between gap-2 px-4', {
   variants: {
@@ -51,13 +53,17 @@ export interface HeaderProps
 }
 
 function Header({ variant, size, left, title, right, className, ...props }: HeaderProps) {
+  // 제목의 좌우 균형을 맞추는 빈 칸(아이콘 하나 폭).
+  const balance = <span aria-hidden="true" className="size-6 shrink-0" />;
+
   return (
     <header
       data-slot="header"
       className={cn(headerVariants({ variant, size }), className)}
       {...props}
     >
-      {left}
+      {/* 제목이 있을 때만 균형을 맞춘다 — 로고 단독 헤더는 좌측 정렬이 맞다. */}
+      {left ?? (title ? balance : null)}
       {title ? (
         <p
           className={cn(
@@ -68,8 +74,7 @@ function Header({ variant, size, left, title, right, className, ...props }: Head
           {title}
         </p>
       ) : null}
-      {/* 제목이 있을 때만 우측 균형을 맞춘다 — 로고 단독 헤더는 좌측 정렬이 맞다. */}
-      {right ?? (title ? <span aria-hidden="true" className="size-6 shrink-0" /> : null)}
+      {right ?? (title ? balance : null)}
     </header>
   );
 }

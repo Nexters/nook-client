@@ -10,10 +10,12 @@ import { BackButton, Carousel, Header } from '@/shared/ui';
  */
 export interface PostImageViewerProps {
   images: string[];
+  /** 확대뷰가 시작할 위치 — 상세에서 누른 그 이미지다(기본값 0). */
+  initialIndex?: number;
   onClose: () => void;
 }
 
-function PostImageViewer({ images, onClose }: PostImageViewerProps) {
+function PostImageViewer({ images, initialIndex = 0, onClose }: PostImageViewerProps) {
   // 헤더 버튼 말고 아래로 쓸어내려서도 닫는다 — 전체화면이라 버튼까지 손이 가기 멀다.
   const swipe = useSwipeDownToDismiss(onClose);
 
@@ -51,7 +53,12 @@ function PostImageViewer({ images, onClose }: PostImageViewerProps) {
             transition: swipe.returning ? 'translate 200ms ease-out' : undefined,
           }}
         >
-          <Carousel padded={false} gap={0} className="absolute inset-x-0 top-0">
+          <Carousel
+            padded={false}
+            gap={0}
+            initialIndex={initialIndex}
+            className="absolute inset-x-0 top-0"
+          >
             {images.map((src, index) => (
               <img
                 // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.

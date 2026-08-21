@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Container as MapDiv, NaverMap, useNavermaps } from 'react-naver-maps';
 import { PlacePin } from '@/features/map/components/PlacePin';
 
-// 홈 지도(MapView DEFAULT_ZOOM)와 같은 확대 정도 — 프리뷰도 같은 축척으로 보여준다.
+// 장소 1곳을 보여주는 축척이라 홈 지도의 초기 줌(constants `DEFAULT_ZOOM`, 광역)과는 무관하다.
 const PREVIEW_ZOOM = 18;
 
 /**

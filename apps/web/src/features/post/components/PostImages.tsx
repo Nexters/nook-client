@@ -44,7 +44,8 @@ function useFrame(src: string | undefined): Frame {
 
 export interface PostImagesProps {
   images: string[];
-  onImageClick: () => void;
+  /** 누른 이미지의 위치를 넘긴다 — 확대뷰가 그 이미지부터 시작해야 한다. */
+  onImageClick: (index: number) => void;
 }
 
 function PostImages({ images, onImageClick }: PostImagesProps) {
@@ -57,7 +58,7 @@ function PostImages({ images, onImageClick }: PostImagesProps) {
       <button
         type="button"
         aria-label="이미지 크게 보기"
-        onClick={onImageClick}
+        onClick={() => onImageClick(0)}
         // 캐러셀 슬라이드와 같은 좌우 16px 여백.
         className="w-full px-4"
       >
@@ -81,7 +82,7 @@ function PostImages({ images, onImageClick }: PostImagesProps) {
           key={index}
           type="button"
           aria-label={`${index + 1}번째 이미지 크게 보기`}
-          onClick={onImageClick}
+          onClick={() => onImageClick(index)}
           // 좌우 16px 여백은 첫/마지막 슬라이드가 만든다 — 스크롤 컨테이너에 padding 을
           // 주면 다음 이미지가 화면 끝까지 이어지지 않고 잘린다(시안은 끝까지 이어진다).
           className={cn(

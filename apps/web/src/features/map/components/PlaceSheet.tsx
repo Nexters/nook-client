@@ -22,6 +22,7 @@ import {
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
 import { Icon16ArrowDown, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
+import { AllowBackGesture } from '@/shared/lib/backGesture';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import { cn } from '@/shared/lib/utils';
 import { Drawer, DrawerContent, FloatingButton, Header } from '@/shared/ui';
@@ -231,6 +232,13 @@ export function PlaceSheet({
           layoutClassNames.drawer.className,
         )}
       >
+        {/* 전체화면(full)까지 올린 상세만 iOS 좌측 엣지 스와이프를 허용한다. 이 시트의
+            뒤로가기는 공용 `BackButton` 이 아니라 아래 스티키 헤더의 raw 버튼이라 자동
+            판정에 잡히지 않고, detailPage(0.5)·detailCompact 는 화면 절반 이하라 애초에
+            제스처 대상이 아니다(전체 높이를 덮는 화면만 — 제품 규칙). 선택 없는 목록
+            모드의 full 도 되감을 상세가 없어 함께 빠진다. 되감을 엔트리는 `MapPage` 가
+            상세를 열 때 쌓는다 — 스와이프는 그 엔트리로 되감기는 것이 곧 상세 닫기다. */}
+        {isFull && hasSelection ? <AllowBackGesture /> : null}
         {showStickyHeader && selectedPlace ? (
           <Header
             size="bottom"

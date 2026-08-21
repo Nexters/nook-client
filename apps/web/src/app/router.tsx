@@ -84,10 +84,6 @@ export const router = createBrowserRouter([
             element: <ArchivePage />,
           },
           {
-            path: 'archive/new',
-            element: <ArchiveFormPage mode="create" />,
-          },
-          {
             path: 'archive/:archiveId',
             element: <ArchiveDetailPage />,
           },
