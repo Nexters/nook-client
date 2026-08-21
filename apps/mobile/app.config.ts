@@ -9,7 +9,7 @@ const KAKAO_MAVEN_REPOSITORY = 'https://devrepo.kakao.com/nexus/content/groups/p
 // Firebase 콘솔에서 플랫폼·variant(번들 ID)별로 앱을 등록해야 받을 수 있는 파일이다.
 // 커밋하지 않고(gitignore) 로컬 또는 EAS file environment variable 로 공급한다.
 // variant 마다 번들 ID 가 달라 Firebase 앱·설정 파일도 1:1 이어야 해서 경로를 나눈다.
-// 현재 등록 상태: iOS production 만 있음. iOS development·Android 는 Firebase 미등록.
+// 현재 등록 상태: iOS production·development 등록됨. Android 는 Firebase 미등록.
 function googleServicesFile(variant: AppVariant, platform: 'ios' | 'android'): string {
   const envOverride =
     platform === 'ios'
@@ -50,9 +50,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const androidGoogleServices = googleServicesFile(variant, 'android');
 
   // 파일이 없으면 Firebase 없이 빌드된다(런타임 가드가 푸시만 조용히 끈다). 로컬 Metro 까지
-  // 막지 않도록 평소엔 경고만 하고, EAS 의 production 빌드에서만 끊는다 — 여기서 안 끊으면
-  // CI 설정 실수(file env 누락)로 푸시가 통째로 죽은 스토어 빌드가 정상처럼 만들어진다.
-  if (variant === 'production' && !existsSync(iosGoogleServices)) {
+  // 막지 않도록 평소엔 경고만 하고, EAS 빌드에서는 variant 와 무관하게 끊는다 — 여기서 안 끊으면
+  // 설정 실수(file env 누락)로 푸시가 통째로 죽은 스토어 빌드가 정상처럼 만들어진다.
+  if (!existsSync(iosGoogleServices)) {
     const message =
       `[firebase] iOS GoogleService-Info.plist 가 없다: ${iosGoogleServices} — ` +
       'Firebase 콘솔에서 받아 그 경로에 두거나 GOOGLE_SERVICES_FILE_IOS(EAS file env)로 공급해라.';
