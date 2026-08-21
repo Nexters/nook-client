@@ -190,9 +190,10 @@ describe('SharedArchivePage', () => {
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: '공유' }));
 
-    // 프리뷰 카드 — 아카이브 이름과 소유자, 개수 요약.
-    // 유일한 텍스트는 "@ehoidi • 12 Places" 이므로 이것으로 프리뷰 카드 렌더 여부를 확인한다.
-    expect(screen.getByText('@ehoidi • 12 Places')).toBeInTheDocument();
+    // 프리뷰 카드 — 아카이브 이름과 소유자, 개수 요약. 시안(279:10740)대로 소유자와
+    // 개수가 2px 원 구분점을 사이에 둔 별개 요소라, 각각으로 렌더 여부를 확인한다.
+    expect(screen.getByText('@ehoidi')).toBeInTheDocument();
+    expect(screen.getByText('12 Places')).toBeInTheDocument();
     // 공유 수단.
     expect(screen.getByText('링크 복사')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '더보기' })).toBeInTheDocument();
