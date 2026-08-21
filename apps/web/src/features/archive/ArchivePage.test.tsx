@@ -116,6 +116,29 @@ describe('아카이브 화면', () => {
     mocks.removeSharedArchive.mockReset().mockResolvedValue(undefined);
   });
 
+  it('목록을 기다리는 동안 카드 자리에 스켈레톤 3장을 깔고, 도착하면 치운다', async () => {
+    // 응답을 손으로 풀어 pending 구간을 붙잡는다.
+    let resolveArchives: (value: Archive[]) => void = () => {};
+    mocks.fetchArchives.mockReturnValue(
+      new Promise<Archive[]>((resolve) => {
+        resolveArchives = resolve;
+      }),
+    );
+
+    renderArchiveRoutes('/archive');
+
+    // 예전엔 이 구간에 아무것도 없어서 목록 영역이 통째로 비어 보였다.
+    const cards = document.querySelectorAll('[data-slot="archive-card-skeleton"]');
+    expect(cards).toHaveLength(3);
+    // 빈 상태 문구가 스쳐 지나가서는 안 된다(스켈레톤이 그 역할을 대신한다).
+    expect(screen.queryByText('아직 생성한 아카이브가 없어요')).not.toBeInTheDocument();
+
+    resolveArchives(ARCHIVES);
+
+    expect(await screen.findByRole('button', { name: /카페/ })).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="archive-card-skeleton"]')).not.toBeInTheDocument();
+  });
+
   it('목록에서 아카이브를 누르면 상세로 이동한다', async () => {
     renderArchiveRoutes('/archive');
 
