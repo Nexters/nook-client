@@ -31,6 +31,7 @@ import {
 } from './api/queries';
 import { ArchiveDeletePopup } from './components/ArchiveDeletePopup';
 import { ArchiveDetailMenu } from './components/ArchiveDetailMenu';
+import { ArchiveDetailSkeleton, CollectionGridSkeleton } from './components/ArchiveDetailSkeleton';
 import { ArchiveEmpty } from './components/ArchiveEmpty';
 import { CollectionCard } from './components/CollectionCard';
 import { GUEST_ARCHIVE } from './guest';
@@ -139,7 +140,9 @@ export function ArchiveDetailPage() {
   // 그리드/목록 끝(sentinel)이 화면에 들어오면 활성 탭의 다음 페이지를 당긴다.
   const sentinelRef = useInfiniteScrollSentinel(activeTab === 'posts' ? postsQuery : placesQuery);
 
-  if (isAuthenticated && isPending) return null;
+  // 메타를 기다리는 동안엔 헤더까지 빈 화면이었다 — 뒤로가기만이라도 즉시 눌리게
+  // 헤더는 실물로 두고 이름·탭·카드 자리만 뼈대로 채운다.
+  if (isAuthenticated && isPending) return <ArchiveDetailSkeleton />;
 
   // 목록에 없는 아카이브 — 삭제 직후(목록 무효화가 삭제 팝업의 navigate 보다 먼저 끝나
   // 한 프레임 이 분기를 지난다)와 지워진 아카이브가 히스토리·딥링크로 되살아난 경우다.
@@ -289,34 +292,42 @@ export function ArchiveDetailPage() {
         {isEmpty ? (
           <ArchiveEmpty message="저장한 게시물이 없어요" />
         ) : activeTab === 'posts' ? (
-          <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
-            {posts?.map((post) => (
-              <CollectionCard
-                key={post.id}
-                archive={post}
-                selected={selecting ? selectedPostIds.has(post.id) : undefined}
-                onClick={
-                  isShared
-                    ? // `/post/{id}`는 소유 데이터 전용이라 공유 게시물에선 404 다 — 공유 상세로 보낸다.
-                      // shareToken 이 없거나(비정상 데이터) 처리 중·실패 게시물(상세에 보여줄
-                      // 데이터가 없다)이면 기존처럼 undefined 로 둔다.
-                      archive.shareToken && !post.processingState
-                      ? () => navigate(`/shared/${archive.shareToken}/post/${post.id}`)
-                      : undefined
-                    : selecting
-                      ? () => togglePostSelected(post.id)
-                      : () => navigate(`/post/${post.id}`)
-                }
-              />
-            ))}
-          </div>
-        ) : places?.length === 0 ? (
+          // 첫 페이지가 오기 전엔 카드 자리를 뼈대로 채운다 — 빈 아카이브(ArchiveEmpty)와
+          // 헷갈리지 않게, 아직 오지 않은 것과 없는 것을 다른 화면으로 구분한다.
+          posts === undefined ? (
+            <CollectionGridSkeleton />
+          ) : (
+            <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
+              {posts?.map((post) => (
+                <CollectionCard
+                  key={post.id}
+                  archive={post}
+                  selected={selecting ? selectedPostIds.has(post.id) : undefined}
+                  onClick={
+                    isShared
+                      ? // `/post/{id}`는 소유 데이터 전용이라 공유 게시물에선 404 다 — 공유 상세로 보낸다.
+                        // shareToken 이 없거나(비정상 데이터) 처리 중·실패 게시물(상세에 보여줄
+                        // 데이터가 없다)이면 기존처럼 undefined 로 둔다.
+                        archive.shareToken && !post.processingState
+                        ? () => navigate(`/shared/${archive.shareToken}/post/${post.id}`)
+                        : undefined
+                      : selecting
+                        ? () => togglePostSelected(post.id)
+                        : () => navigate(`/post/${post.id}`)
+                  }
+                />
+              ))}
+            </div>
+          )
+        ) : places === undefined ? (
+          <CollectionGridSkeleton />
+        ) : places.length === 0 ? (
           <ArchiveEmpty message="저장한 장소가 없어요" />
         ) : (
           // 게시물 탭과 같은 2열 그리드 — 카드도 최근 저장한 공간 바텀시트와 같은
           // 세로형 장소 카드(PlaceCard)를 쓴다.
           <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
-            {places?.map((place) => (
+            {places.map((place) => (
               <PlaceCard
                 key={place.id}
                 place={place}

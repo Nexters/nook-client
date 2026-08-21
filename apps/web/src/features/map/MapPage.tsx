@@ -180,14 +180,17 @@ export function MapPage() {
    * 횟수만큼 뒤로가기를 반복해야 목록에 닿는 건 화면 단위 감각과 어긋난다. 선택을 푸는
    * 경로도 replace 다(되감을 엔트리가 있으면 아래 `handleCloseDetail` 이 먼저 가로챈다).
    */
-  function setSelectedPlaceId(id: number | null) {
+  function setSelectedPlaceId(id: number | null, nextShareToken?: string | null) {
     const opensDetail = id !== null && selectedPlaceId === null;
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        // 스냅 기록과 공유 토큰은 보고 있던 장소에 대한 것이라, 선택이 바뀌거나 풀리면 함께 버린다.
+        // 스냅 기록은 보고 있던 장소에 대한 것이라, 선택이 바뀌거나 풀리면 버린다.
         next.delete('snap');
-        next.delete('shareToken');
+        // 공유 토큰도 장소마다 다시 정해진다 — 고르는 쪽이 토큰을 알고 있으면(구독한
+        // 공유 아카이브의 장소) 그 토큰으로 갈아끼우고, 모르면 지워 내 API 로 조회한다.
+        if (nextShareToken) next.set('shareToken', nextShareToken);
+        else next.delete('shareToken');
         if (id === null) next.delete('placeId');
         else next.set('placeId', String(id));
         return next;
@@ -201,8 +204,13 @@ export function MapPage() {
     );
   }
 
-  function handlePlaceClick(id: number) {
-    setSelectedPlaceId(id);
+  /**
+   * 장소 선택 — 핀·최근 목록·검색 결과·연관 장소가 모두 이 길로 들어온다.
+   * `placeShareToken` 은 고르는 쪽이 "이건 구독한 공유 아카이브의 장소"라고 알고 있을 때만
+   * 실린다(현재는 최근 저장한 공간 목록뿐 — `/places/recent` 만 accessType 을 내려준다).
+   */
+  function handlePlaceClick(id: number, placeShareToken?: string | null) {
+    setSelectedPlaceId(id, placeShareToken);
     setSnap(DETAIL_PAGE_SNAP_POINT); // detailPage 스냅으로 열어 상세를 보여준다
     // 검색 결과에서 골랐어도 상세가 콘텐츠를 통째로 대체하므로 검색은 그대로 닫는다.
     setIsSearchMode(false);

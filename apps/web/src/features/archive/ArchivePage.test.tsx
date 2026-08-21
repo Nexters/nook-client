@@ -116,6 +116,69 @@ describe('아카이브 화면', () => {
     mocks.removeSharedArchive.mockReset().mockResolvedValue(undefined);
   });
 
+  it('목록을 기다리는 동안 카드 자리에 스켈레톤 3장을 깔고, 도착하면 치운다', async () => {
+    // 응답을 손으로 풀어 pending 구간을 붙잡는다.
+    let resolveArchives: (value: Archive[]) => void = () => {};
+    mocks.fetchArchives.mockReturnValue(
+      new Promise<Archive[]>((resolve) => {
+        resolveArchives = resolve;
+      }),
+    );
+
+    renderArchiveRoutes('/archive');
+
+    // 예전엔 이 구간에 아무것도 없어서 목록 영역이 통째로 비어 보였다.
+    const cards = document.querySelectorAll('[data-slot="archive-card-skeleton"]');
+    expect(cards).toHaveLength(3);
+    // 빈 상태 문구가 스쳐 지나가서는 안 된다(스켈레톤이 그 역할을 대신한다).
+    expect(screen.queryByText('아직 생성한 아카이브가 없어요')).not.toBeInTheDocument();
+
+    resolveArchives(ARCHIVES);
+
+    expect(await screen.findByRole('button', { name: /카페/ })).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="archive-card-skeleton"]')).not.toBeInTheDocument();
+  });
+
+  it('아카이브 상세는 메타를 기다리는 동안 헤더를 살려둔 채 카드 자리를 뼈대로 채운다', async () => {
+    let resolveArchives: (value: Archive[]) => void = () => {};
+    mocks.fetchArchives.mockReturnValue(
+      new Promise<Archive[]>((resolve) => {
+        resolveArchives = resolve;
+      }),
+    );
+
+    renderArchiveRoutes('/archive/1');
+
+    // 예전엔 이 구간이 헤더째 빈 화면이었다 — 최소한 뒤로가기는 즉시 눌려야 한다.
+    expect(screen.getByRole('button', { name: '뒤로 가기' })).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+
+    resolveArchives(ARCHIVES);
+
+    expect(await screen.findByRole('heading', { name: '카페' })).toBeInTheDocument();
+  });
+
+  it('아카이브 상세의 첫 페이지가 오기 전엔 빈 상태 대신 카드 자리를 뼈대로 채운다', async () => {
+    let resolvePosts: (value: unknown) => void = () => {};
+    mocks.fetchArchivePosts.mockReturnValue(
+      new Promise((resolve) => {
+        resolvePosts = resolve;
+      }),
+    );
+
+    renderArchiveRoutes('/archive/1');
+
+    // 아직 오지 않은 것과 없는 것은 다른 화면이어야 한다.
+    expect(await screen.findByRole('heading', { name: '카페' })).toBeInTheDocument();
+    expect(screen.queryByText('저장한 게시물이 없어요')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+
+    resolvePosts({ posts: [], nextPage: undefined, totalElements: 0 });
+
+    expect(await screen.findByText('저장한 게시물이 없어요')).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="skeleton"]')).not.toBeInTheDocument();
+  });
+
   it('목록에서 아카이브를 누르면 상세로 이동한다', async () => {
     renderArchiveRoutes('/archive');
 

@@ -33,7 +33,18 @@ export interface RecentPlace {
   thumbnail?: string;
   /** 썸네일 파싱 처리 상태. `features/place`의 `Place.thumbnailState`와 같은 의미다. */
   thumbnailState?: 'processing' | 'failed';
+  /**
+   * 이 장소에 닿는 경로 — `SHARED` 는 내가 저장한 게 아니라 구독한 공유 아카이브를
+   * 통해서만 보이는 장소다. 상세를 내 API 로 조회하면 게시물이 비어 내려오므로
+   * 아래 `shareToken` 으로 공유 공개 API 를 타야 한다.
+   */
+  accessType: PlaceAccessType;
+  /** `accessType` 이 `SHARED` 일 때만 있는 공유 그룹 토큰. 내 장소면 null 이다. */
+  shareToken: string | null;
 }
+
+/** 장소 접근 유형 — `RecentPlaceResponse.accessType` 을 그대로 옮긴 형태. */
+export type PlaceAccessType = 'OWNED' | 'SHARED';
 
 /**
  * 저장한 공간 검색 결과 한 건 — 검색 모드의 장소 카드가 그리는 최소 형태.

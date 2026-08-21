@@ -26,6 +26,8 @@ const RECENT_PLACE_BASE: RecentPlaceResponse = {
   tags: [],
   thumbnailParsingStatus: 'COMPLETED',
   thumbnailUrl: 'https://img.example/ongi.jpg',
+  accessType: 'OWNED',
+  shareToken: null,
 };
 
 describe('toRecentPlace', () => {
@@ -41,6 +43,24 @@ describe('toRecentPlace', () => {
       expect(place.thumbnailState).toBe('processing');
     },
   );
+
+  it('구독한 공유 아카이브의 장소는 accessType 과 공유 토큰을 그대로 옮긴다', () => {
+    const place = toRecentPlace({
+      ...RECENT_PLACE_BASE,
+      accessType: 'SHARED',
+      shareToken: 'tok-abc',
+    });
+
+    expect(place.accessType).toBe('SHARED');
+    expect(place.shareToken).toBe('tok-abc');
+  });
+
+  it('내 장소는 공유 토큰이 없어 null 로 좁힌다', () => {
+    const place = toRecentPlace({ ...RECENT_PLACE_BASE, accessType: 'OWNED', shareToken: null });
+
+    expect(place.accessType).toBe('OWNED');
+    expect(place.shareToken).toBeNull();
+  });
 
   it('썸네일이 없고 파싱 상태가 FAILED 면 thumbnailState 를 failed 로 표시한다', () => {
     const place = toRecentPlace({

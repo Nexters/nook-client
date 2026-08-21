@@ -70,7 +70,11 @@ export function PlaceSheet({
   /** 저장한 공간 검색 모드 — 탐색 콘텐츠 위로 검색 패널이 슬라이드되어 덮는다. */
   isSearchMode: boolean;
   onSnapChange: (snap: number | string | null) => void;
-  onSelectPlace: (id: number) => void;
+  /**
+   * 장소 선택. 두 번째 인자는 그 장소가 구독한 공유 아카이브의 것일 때의 공유 토큰이다 —
+   * 넘기면 상세를 공유 공개 API 로 조회해 공유자 기준 읽기 전용으로 그린다.
+   */
+  onSelectPlace: (id: number, shareToken?: string | null) => void;
   onClose: () => void;
   onEnterSearch: () => void;
   onExitSearch: () => void;
@@ -327,7 +331,9 @@ export function PlaceSheet({
                           thumbnail: place.thumbnail,
                           thumbnailState: place.thumbnailState,
                         }}
-                        onClick={() => onSelectPlace(place.id)}
+                        // 구독한 공유 아카이브의 장소는 내 API 로는 게시물이 비어 오므로
+                        // 토큰을 함께 넘겨 공유 공개 API 로 조회하게 한다.
+                        onClick={() => onSelectPlace(place.id, place.shareToken)}
                       />
                     ))}
                   </div>

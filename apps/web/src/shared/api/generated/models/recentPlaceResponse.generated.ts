@@ -4,9 +4,12 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { RecentPlaceResponseAccessType } from './recentPlaceResponseAccessType.generated';
 import type { RecentPlaceResponseThumbnailParsingStatus } from './recentPlaceResponseThumbnailParsingStatus.generated';
 
 export interface RecentPlaceResponse {
+  /** 장소 접근 유형. 공유 그룹 구독으로만 접근하는 장소는 SHARED입니다. */
+  accessType: RecentPlaceResponseAccessType;
   /** 장소 주소 */
   address: string;
   /**
@@ -27,6 +30,11 @@ export interface RecentPlaceResponse {
   longitude: number;
   /** 장소명 */
   name: string;
+  /**
+   * 공유 그룹 접근 토큰. accessType이 SHARED일 때만 내려가고 내 장소면 null입니다.
+   * @nullable
+   */
+  shareToken?: string | null;
   /** 장소 대표 태그 목록(최대 4개) */
   tags: string[];
   /** 장소 썸네일 파싱 상태 */

@@ -54,7 +54,7 @@ vi.mock('@/features/map/components/PlaceSheet', async () => {
       instantOpen?: boolean;
       isSearchMode: boolean;
       onSnapChange: (snap: number | string | null) => void;
-      onSelectPlace: (id: number) => void;
+      onSelectPlace: (id: number, shareToken?: string | null) => void;
       onClose: () => void;
       onEnterSearch: () => void;
       onExitSearch: () => void;
@@ -67,6 +67,10 @@ vi.mock('@/features/map/components/PlaceSheet', async () => {
         <p>검색모드: {String(isSearchMode)}</p>
         <button type="button" onClick={() => onSelectPlace(1)}>
           검색 결과 선택
+        </button>
+        {/* 최근 저장한 공간의 구독 아카이브 장소 — 카드가 토큰을 함께 넘긴다. */}
+        <button type="button" onClick={() => onSelectPlace(9, 'tok-shared')}>
+          공유 장소 선택
         </button>
         <button type="button" onClick={() => onSnapChange(PEEK_SNAP_POINT)}>
           시트 내리기
@@ -312,6 +316,33 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
     fireEvent.click(screen.getByRole('button', { name: '핀 7 클릭' }));
 
     // 토큰이 버려졌으니 이후 선택은 내 상세 API 로 조회된다.
+    await screen.findByText('선택됨: 장소 7');
+    expect(screen.getByTestId('search-params')).toHaveTextContent(/^\?placeId=7$/);
+  });
+
+  it('구독한 공유 아카이브의 장소를 고르면 그 토큰을 URL 에 실어 공유 공개 API 로 조회한다', async () => {
+    renderMapAt('/map');
+    await screen.findByText('선택 없음');
+
+    fireEvent.click(screen.getByRole('button', { name: '공유 장소 선택' }));
+
+    // 내 API 로는 게시물이 비어 내려오는 장소라, 반드시 공유 공개 API 를 타야 한다.
+    await screen.findByText('선택됨: 공유 장소 9');
+    expect(mocks.fetchSharedPlaceDetail).toHaveBeenCalledWith('tok-shared', 9);
+    expect(mocks.fetchPlaceDetail).not.toHaveBeenCalled();
+    // 토큰이 URL 에 남아야 아카이브 상세 등으로 나갔다 뒤로 돌아와도 같은 화면이 복원된다.
+    expect(screen.getByTestId('search-params')).toHaveTextContent('shareToken=tok-shared');
+  });
+
+  it('공유 장소를 본 뒤 내 장소를 고르면 토큰이 버려져 내 API 로 돌아온다', async () => {
+    renderMapAt('/map');
+    await screen.findByText('선택 없음');
+
+    fireEvent.click(screen.getByRole('button', { name: '공유 장소 선택' }));
+    await screen.findByText('선택됨: 공유 장소 9');
+
+    fireEvent.click(screen.getByRole('button', { name: '핀 7 클릭' }));
+
     await screen.findByText('선택됨: 장소 7');
     expect(screen.getByTestId('search-params')).toHaveTextContent(/^\?placeId=7$/);
   });

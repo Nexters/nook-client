@@ -94,6 +94,10 @@ export function toRecentPlace(dto: RecentPlaceResponse): RecentPlace {
     address: dto.address,
     thumbnail: dto.thumbnailUrl ?? undefined,
     thumbnailState: toThumbnailState(dto.thumbnailUrl, dto.thumbnailParsingStatus),
+    accessType: dto.accessType,
+    // 서버 계약상 SHARED 일 때만 채워지지만, 토큰 없는 SHARED 가 섞여 내려와도
+    // 내 API 로 조회하는 기존 경로로 흘러가게 둔다(공유 상세를 부를 수단이 없다).
+    shareToken: dto.shareToken ?? null,
   };
 }
 
