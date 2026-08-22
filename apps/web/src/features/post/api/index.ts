@@ -84,12 +84,13 @@ function toPostArchive(dto: SavedPostGroupResponse): PostArchive {
   };
 }
 
-/** 서버 DTO → 화면 모델. `media` 는 순서(`sequence`)대로 정렬하고 이미지만 쓴다(영상은 시안 미정). */
+/**
+ * 서버 DTO → 화면 모델. `media` 는 순서(`sequence`)대로 정렬해 URL 만 넘긴다.
+ * 영상(`type: VIDEO`)도 걸러내지 않는다 — 릴스처럼 영상만 있는 게시물은 걸러내면
+ * 미디어 영역이 통째로 비어버린다. `<img>`/`<video>` 판단은 `Media` 가 URL 로 한다.
+ */
 export function toPostDetail(dto: SavedPostDetailResponse): PostDetail {
-  const images = [...dto.media]
-    .filter((media) => media.type === 'IMAGE')
-    .sort((a, b) => a.sequence - b.sequence)
-    .map((media) => media.url);
+  const images = [...dto.media].sort((a, b) => a.sequence - b.sequence).map((media) => media.url);
 
   return {
     processingStatus: dto.processingStatus,

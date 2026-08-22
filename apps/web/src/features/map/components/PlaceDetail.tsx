@@ -1,5 +1,6 @@
 import { useQueries } from '@tanstack/react-query';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
 import { toDisplayPost } from '@/features/map/lib/placePost';
@@ -14,7 +15,7 @@ import {
 import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
 import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
-import { MemoSheet, SavedPostCard } from '@/features/post';
+import { MemoSheet, SavedPostCard, SavedPostViewer } from '@/features/post';
 import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
 import { postQueryKeys } from '@/features/post/api/queries';
 import type { PostDetail } from '@/features/post/types';
@@ -115,10 +116,15 @@ function SavedPostsSection({
   const posts = place.posts;
   const postDetailQueries = usePostDetails(posts, shareToken);
   const navigate = useNavigate();
+  // 미디어를 누르면 열리는 확대뷰 — 어느 카드의 몇 번째 미디어인지 함께 들고 있어야
+  // 그 미디어부터 시작할 수 있다.
+  const [viewing, setViewing] = useState<{ postIndex: number; mediaIndex: number } | null>(null);
 
   if (posts.length === 0) return null;
 
   const detailAt = (index: number) => postDetailQueries[index]?.data;
+  const viewingPost = viewing ? posts[viewing.postIndex] : undefined;
+  const viewingDetail = viewing ? detailAt(viewing.postIndex) : undefined;
   // 모아보기 페이지는 내 API 만 쓴다 — 공유 링크로 들어온(아직 저장 안 한) 장소는 그쪽에서
   // 404 가 난다. 그래서 공유 진입일 땐 넘기지 않고 예전처럼 카드를 전부 펼친다.
   const expandAll = Boolean(shareToken) || posts.length === 1;
@@ -134,6 +140,7 @@ function SavedPostsSection({
               post={toDisplayPost(post, detailAt(index))}
               archives={detailAt(index)?.archives ?? []}
               onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
+              onMediaClick={(mediaIndex) => setViewing({ postIndex: index, mediaIndex })}
             />
           ))}
         </div>
@@ -165,6 +172,20 @@ function SavedPostsSection({
           </Carousel>
         </div>
       )}
+
+      {/* 장소 상세는 vaul 드로어(transform) 안이라 fixed 의 기준이 드로어가 된다 —
+          `PlacePhotoViewer` 와 같은 이유로 body 로 포탈해 화면 전체를 덮는다. */}
+      {viewingPost
+        ? createPortal(
+            <SavedPostViewer
+              post={toDisplayPost(viewingPost, viewingDetail)}
+              title={viewingDetail?.title ?? viewingPost.title}
+              initialIndex={viewing?.mediaIndex}
+              onClose={() => setViewing(null)}
+            />,
+            document.body,
+          )
+        : null}
     </>
   );
 }

@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
+import { isVideoUrl } from '@/shared/lib/media';
 import { cn } from '@/shared/lib/utils';
-import { Carousel } from '@/shared/ui';
+import { Carousel, Media, VideoPlayer } from '@/shared/ui';
 
 /**
- * 게시물 상세의 이미지 영역.
+ * 게시물 상세의 미디어 영역(이미지·영상).
  *
  * 첫 장의 원본 크기로 프레임 비율을 정하고(세로 240x300 / 가로 240x180 / 정방 240x240),
  * 뒤따르는 이미지는 비율이 달라도 같은 프레임에 `cover` 로 채운다 — 줄 높이가 들쭉날쭉하지
  * 않게 하려는 시안 의도라 프레임은 첫 장 하나로만 결정한다.
  *
- * 단일 이미지는 프레임 없이 원본 비율 그대로 보여준다(`contain`).
+ * 단일 미디어는 시안(8월 21일 작업, 177:23840)이 이미지와 영상을 갈라 놓았다 —
+ * 이미지는 강제 crop 없이 원본 비율 그대로(가로 100%, 세로 유동), 영상은 343:429 고정
+ * 프레임에 `cover` 로 잘라 넣는다. 영상 비율이 제각각이라 프레임을 따라가게 두면 줄 높이가
+ * 튀기 때문이다.
  */
 const FRAME = {
   portrait: 'aspect-[240/300]',
@@ -19,12 +23,16 @@ const FRAME = {
 
 type Frame = keyof typeof FRAME;
 
-/** 첫 장을 미리 읽어 프레임을 고른다. 읽기 전에는 시안 기본값인 세로형으로 둔다. */
+/**
+ * 첫 장을 미리 읽어 프레임을 고른다. 읽기 전에는 시안 기본값인 세로형으로 둔다.
+ * 첫 장이 영상이면 읽지 못해 기본값(세로형)이 그대로 쓰인다 — 영상은 대개 단독이라
+ * 프레임 없는 단일 레이아웃으로 빠진다.
+ */
 function useFrame(src: string | undefined): Frame {
   const [frame, setFrame] = useState<Frame>('portrait');
 
   useEffect(() => {
-    if (!src) return;
+    if (!src || isVideoUrl(src)) return;
     let alive = true;
     const image = new Image();
     image.onload = () => {
@@ -42,17 +50,41 @@ function useFrame(src: string | undefined): Frame {
   return frame;
 }
 
+/** 단일 이미지의 크기 — 프레임 없이 원본 비율을 유지한다. */
+const SINGLE_CLASS =
+  'block h-auto max-h-[min(70dvh,520px)] w-full rounded-sm bg-gray-10 object-contain';
+
 export interface PostImagesProps {
+  /** 이미지·영상 URL. 서버 순서(`sequence`)를 그대로 유지한다. */
   images: string[];
   onImageClick: () => void;
+  /** 단일 영상의 확대 버튼. 넘기지 않으면 버튼을 그리지 않는다. */
+  onVideoExpand?: () => void;
 }
 
-function PostImages({ images, onImageClick }: PostImagesProps) {
+function PostImages({ images, onImageClick, onVideoExpand }: PostImagesProps) {
   const frame = useFrame(images[0]);
 
   if (images.length === 0) return null;
 
   if (images.length === 1) {
+    const src = images[0];
+
+    // 영상은 컨트롤을 직접 눌러야 해서 확대 보기 버튼으로 감싸지 않는다
+    // (버튼 안에서 재생 버튼을 누르면 확대 뷰가 같이 열린다) — 확대는 시안대로
+    // 프레임 우하단의 자체 버튼이 맡는다.
+    if (src && isVideoUrl(src)) {
+      return (
+        <div className="w-full px-4">
+          <VideoPlayer
+            src={src}
+            onExpand={onVideoExpand}
+            className="aspect-[343/429] w-full rounded-sm bg-gray-10"
+          />
+        </div>
+      );
+    }
+
     return (
       <button
         type="button"
@@ -61,11 +93,7 @@ function PostImages({ images, onImageClick }: PostImagesProps) {
         // 캐러셀 슬라이드와 같은 좌우 16px 여백.
         className="w-full px-4"
       >
-        <img
-          src={images[0]}
-          alt=""
-          className="block h-auto max-h-[min(70dvh,520px)] w-full rounded-sm bg-gray-10 object-contain"
-        />
+        <Media src={src} className={SINGLE_CLASS} />
       </button>
     );
   }
@@ -91,7 +119,8 @@ function PostImages({ images, onImageClick }: PostImagesProps) {
             index === images.length - 1 && 'mr-4',
           )}
         >
-          <img src={src} alt="" className="size-full object-cover" />
+          {/* 캐러셀에서는 영상도 첫 프레임만 — 재생은 확대 보기(`PostImageViewer`)에서 한다. */}
+          <Media src={src} className="size-full object-cover" />
         </button>
       ))}
     </Carousel>

@@ -44,4 +44,10 @@ describe('PostImageViewer', () => {
 
     expect(container.querySelectorAll('img')).toHaveLength(3);
   });
+
+  it('영상 URL 은 재생 컨트롤이 붙은 video 로 그린다', () => {
+    const { container } = renderViewer(['a.mp4']);
+
+    expect(container.querySelector('video')).toHaveAttribute('controls');
+  });
 });

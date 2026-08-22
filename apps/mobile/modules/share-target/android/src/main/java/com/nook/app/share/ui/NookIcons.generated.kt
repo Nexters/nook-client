@@ -26,6 +26,7 @@ enum class NookIconName {
     Icon16Clock,
     Icon16Copy,
     Icon16ExclamationCircle,
+    Icon16Expand,
     Icon16Info,
     Icon16Insta,
     Icon16Location,
@@ -64,6 +65,8 @@ enum class NookIconName {
     Icon24MappinOff,
     Icon24MappinOn,
     Icon24More,
+    Icon24Pause,
+    Icon24Play,
     Icon24Share,
     Icon32ArchiveSelected,
     Icon32ArchiveUnselected,
@@ -103,6 +106,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon16Clock -> 16f to 16f
             NookIconName.Icon16Copy -> 16f to 16f
             NookIconName.Icon16ExclamationCircle -> 16.25f to 16.25f
+            NookIconName.Icon16Expand -> 16f to 16f
             NookIconName.Icon16Info -> 16f to 16f
             NookIconName.Icon16Insta -> 16f to 16f
             NookIconName.Icon16Location -> 16f to 16f
@@ -141,6 +145,8 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon24MappinOff -> 24f to 24f
             NookIconName.Icon24MappinOn -> 24f to 24f
             NookIconName.Icon24More -> 24f to 24f
+            NookIconName.Icon24Pause -> 24f to 24f
+            NookIconName.Icon24Play -> 24f to 24f
             NookIconName.Icon24Share -> 24f to 24f
             NookIconName.Icon32ArchiveSelected -> 32f to 32f
             NookIconName.Icon32ArchiveUnselected -> 32f to 32f
@@ -531,6 +537,59 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
                 close()
             }
             drawPath(path = path0, color = Color(0xFF4E5662), style = Stroke(width = 1.25f, cap = StrokeCap.Round))
+        }
+        NookIconName.Icon16Expand -> {
+            val path0 = Path().apply {
+
+                moveTo(9.5925f, 7.155f)
+                lineTo(12.8125f, 3.935f)
+                lineTo(12.8125f, 6.625f)
+                cubicTo(12.8125f, 6.8239f, 12.8915f, 7.0147f, 13.0322f, 7.1553f)
+                cubicTo(13.1728f, 7.296f, 13.3636f, 7.375f, 13.5625f, 7.375f)
+                cubicTo(13.7614f, 7.375f, 13.9522f, 7.296f, 14.0928f, 7.1553f)
+                cubicTo(14.2335f, 7.0147f, 14.3125f, 6.8239f, 14.3125f, 6.625f)
+                lineTo(14.3125f, 2.125f)
+                cubicTo(14.3125f, 1.9261f, 14.2335f, 1.7353f, 14.0928f, 1.5947f)
+                cubicTo(13.9522f, 1.454f, 13.7614f, 1.375f, 13.5625f, 1.375f)
+                lineTo(9.0625f, 1.375f)
+                cubicTo(8.8636f, 1.375f, 8.6728f, 1.454f, 8.5322f, 1.5947f)
+                cubicTo(8.3915f, 1.7353f, 8.3125f, 1.9261f, 8.3125f, 2.125f)
+                cubicTo(8.3125f, 2.3239f, 8.3915f, 2.5147f, 8.5322f, 2.6553f)
+                cubicTo(8.6728f, 2.796f, 8.8636f, 2.875f, 9.0625f, 2.875f)
+                lineTo(11.7525f, 2.875f)
+                lineTo(8.5325f, 6.095f)
+                cubicTo(8.4f, 6.2372f, 8.3279f, 6.4252f, 8.3313f, 6.6195f)
+                cubicTo(8.3348f, 6.8138f, 8.4135f, 6.9992f, 8.5509f, 7.1366f)
+                cubicTo(8.6883f, 7.274f, 8.8737f, 7.3527f, 9.068f, 7.3562f)
+                cubicTo(9.2623f, 7.3596f, 9.4503f, 7.2875f, 9.5925f, 7.155f)
+                close()
+                moveTo(1.6875f, 13.875f)
+                lineTo(1.6875f, 9.375f)
+                cubicTo(1.6875f, 9.1761f, 1.7665f, 8.9853f, 1.9072f, 8.8447f)
+                cubicTo(2.0478f, 8.704f, 2.2386f, 8.625f, 2.4375f, 8.625f)
+                cubicTo(2.6364f, 8.625f, 2.8272f, 8.704f, 2.9678f, 8.8447f)
+                cubicTo(3.1085f, 8.9853f, 3.1875f, 9.1761f, 3.1875f, 9.375f)
+                lineTo(3.1875f, 12.065f)
+                lineTo(6.4075f, 8.845f)
+                cubicTo(6.5497f, 8.7125f, 6.7377f, 8.6404f, 6.932f, 8.6438f)
+                cubicTo(7.1263f, 8.6472f, 7.3117f, 8.726f, 7.4491f, 8.8634f)
+                cubicTo(7.5865f, 9.0008f, 7.6653f, 9.1862f, 7.6687f, 9.3805f)
+                cubicTo(7.6721f, 9.5748f, 7.6f, 9.7628f, 7.4675f, 9.905f)
+                lineTo(5.8575f, 11.515f)
+                lineTo(4.2475f, 13.125f)
+                lineTo(6.9375f, 13.125f)
+                cubicTo(7.1364f, 13.125f, 7.3272f, 13.204f, 7.4678f, 13.3447f)
+                cubicTo(7.6085f, 13.4853f, 7.6875f, 13.6761f, 7.6875f, 13.875f)
+                cubicTo(7.6875f, 14.0739f, 7.6085f, 14.2647f, 7.4678f, 14.4053f)
+                cubicTo(7.3272f, 14.546f, 7.1364f, 14.625f, 6.9375f, 14.625f)
+                lineTo(2.4375f, 14.625f)
+                cubicTo(2.3389f, 14.6254f, 2.2412f, 14.6063f, 2.15f, 14.5687f)
+                cubicTo(2.0588f, 14.5312f, 1.976f, 14.4759f, 1.9063f, 14.4062f)
+                cubicTo(1.8366f, 14.3365f, 1.7813f, 14.2537f, 1.7438f, 14.1625f)
+                cubicTo(1.7062f, 14.0713f, 1.6871f, 13.9736f, 1.6875f, 13.875f)
+                close()
+            }
+            drawPath(path = path0, color = Color(0xFFFFFFFF))
         }
         NookIconName.Icon16Info -> {
             val path0 = Path().apply {
@@ -2834,6 +2893,24 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
                 close()
             }
             drawPath(path = path2, color = Color(0xFF848B96))
+        }
+        NookIconName.Icon24Pause -> {
+            drawRoundRect(color = Color(0xFFFFFFFF), topLeft = Offset(3f, 3f), size = Size(6f, 18f), cornerRadius = CornerRadius(1f))
+            drawRoundRect(color = Color(0xFFFFFFFF), topLeft = Offset(15f, 3f), size = Size(6f, 18f), cornerRadius = CornerRadius(1f))
+        }
+        NookIconName.Icon24Play -> {
+            val path0 = Path().apply {
+
+                moveTo(19.7793f, 10.7121f)
+                cubicTo(20.3802f, 11.0934f, 20.3802f, 12.0466f, 19.7793f, 12.4279f)
+                lineTo(5.5821f, 21.4358f)
+                cubicTo(4.9812f, 21.8171f, 4.23f, 21.3405f, 4.23f, 20.5779f)
+                lineTo(4.23f, 2.5621f)
+                cubicTo(4.23f, 1.7995f, 4.9812f, 1.3229f, 5.5821f, 1.7042f)
+                lineTo(19.7793f, 10.7121f)
+                close()
+            }
+            drawPath(path = path0, color = Color(0xFFFFFFFF))
         }
         NookIconName.Icon24Share -> {
             drawCircle(color = Color(0xFF848B96), center = Offset(17.3028f, 5.77743f), radius = 2.69735f, style = Stroke(width = 1.5f, cap = StrokeCap.Butt))

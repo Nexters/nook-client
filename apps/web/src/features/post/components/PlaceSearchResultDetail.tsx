@@ -3,7 +3,7 @@ import { PlaceDetailHeader, PlaceInfo } from '@/features/place';
 import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import type { Post } from '@/features/post';
 import { cn } from '@/shared/lib/utils';
-import { Carousel } from '@/shared/ui';
+import { Carousel, Media } from '@/shared/ui';
 
 export interface PlaceSearchResultDetailProps {
   place: Place;
@@ -36,7 +36,7 @@ function PostThumbnailButton({
         className,
       )}
     >
-      {cover ? <img src={cover} alt="" className="size-full object-cover" /> : null}
+      {cover ? <Media src={cover} className="size-full object-cover" /> : null}
     </button>
   );
 }

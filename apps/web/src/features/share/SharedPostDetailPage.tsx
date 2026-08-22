@@ -10,6 +10,7 @@ import { ExpandableCaption } from '@/features/post/components/ExpandableCaption'
 import { OriginalPostLink } from '@/features/post/components/OriginalPostLink';
 import { PostImages } from '@/features/post/components/PostImages';
 import { PostImageViewer } from '@/features/post/components/PostImageViewer';
+import { PostVideoViewer } from '@/features/post/components/PostVideoViewer';
 import { Icon16Archive, Icon16ArrowDown, Icon16Pen } from '@/shared/icons/NookIcons';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { useToast } from '@/shared/toast';
@@ -33,6 +34,8 @@ export function SharedPostDetailPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   // 뒤로가기(버튼·하드웨어 백·스와이프)로 닫혀야 해서 히스토리 엔트리로 승격한다.
   const [viewerOpen, openViewer, closeViewer] = useHistoryBackedFlag('imageViewer');
+  // 영상 확대뷰는 이미지 뷰어와 레이아웃이 달라 별도 레이어다. 닫는 방식은 같다.
+  const [videoViewerOpen, openVideoViewer, closeVideoViewer] = useHistoryBackedFlag('videoViewer');
 
   const detailQuery = useSharedPostDetail(token, sharedPostId);
   const savePost = useSaveSharedPost();
@@ -90,7 +93,7 @@ export function SharedPostDetailPage() {
       contentStyle={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
     >
       <main>
-        <PostImages images={images} onImageClick={openViewer} />
+        <PostImages images={images} onImageClick={openViewer} onVideoExpand={openVideoViewer} />
 
         <div className="flex flex-col gap-2 px-4 pt-1">
           <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
@@ -171,6 +174,14 @@ export function SharedPostDetailPage() {
           화면 밖으로 밀려나니 body 로 포탈해 뷰포트 기준으로 띄운다. */}
       {viewerOpen
         ? createPortal(<PostImageViewer images={images} onClose={closeViewer} />, document.body)
+        : null}
+
+      {/* 확대 버튼은 단일 영상일 때만 뜨므로 여는 쪽이 곧 images[0] 이다. */}
+      {videoViewerOpen && images[0]
+        ? createPortal(
+            <PostVideoViewer src={images[0]} onClose={closeVideoViewer} />,
+            document.body,
+          )
         : null}
 
       {loginWall}

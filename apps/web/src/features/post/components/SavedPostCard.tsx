@@ -1,22 +1,62 @@
 import type * as React from 'react';
 import type { PostArchive } from '@/features/post/types';
+import { isVideoUrl } from '@/shared/lib/media';
 import { cn } from '@/shared/lib/utils';
-import { ArchiveTag, Carousel } from '@/shared/ui';
+import { ArchiveTag, Carousel, Media, Thumbnail } from '@/shared/ui';
 import type { Post } from '../types';
 import { ExpandableCaption } from './ExpandableCaption';
 import { OriginalPostLink } from './OriginalPostLink';
 
 /**
  * Figma `저장된 게시물`.
- * 게시물 상세 카드 — 제목 + 저장된 아카이브/공유자 + 이미지 캐러셀 + 본문 + 원본 링크.
+ * 게시물 상세 카드 — 제목 + 저장된 아카이브/공유자 + 미디어 + 본문 + 원본 링크.
  *
- * 이미지 줄은 시안이 140x175 를 가로로 늘어놓고 화면(343)을 넘기므로 공용 `Carousel`
- * (네이티브 scroll-snap)에 얹는다. 다만 여기엔 점 인디케이터를 두지 않는다
- * (`indicator={false}`) — 인디케이터가 있는 건 독립 `캐러셀` 쪽이다.
+ * 미디어 줄은 장수에 따라 시안이 갈린다(8월 21일 작업).
+ *   여러 개(177:24457) — 140x175 를 가로로 늘어놓고 화면(343)을 넘기므로 공용 `Carousel`
+ *     (네이티브 scroll-snap)에 얹는다. 점 인디케이터는 두지 않는다(`indicator={false}`)
+ *     — 인디케이터가 있는 건 독립 `캐러셀` 쪽이다.
+ *   단일 이미지(177:23309) — 343x212 박스 안에 167x208 썸네일을 가운데 둔다. 세로 사진이
+ *     한 장뿐일 때 폭을 억지로 채우지 않으려는 시안 의도라, 박스와 썸네일이 따로 있다.
+ *   단일 영상(177:23190) — 같은 343x212 를 `cover` 로 꽉 채운다. 잘리는 건 시안대로 둔다.
  *
  * 본문은 `ExpandableCaption` 에 맡긴다 — 게시물 상세와 같이 "더보기"로 펼치고,
  * 펼친 뒤엔 "접기" 버튼이나 본문을 눌러 접는다. 여기선 2줄로 접는다.
  */
+/** 단일 미디어가 앉는 프레임. 375 폭 기준 343x212 를 비율로 고정한다. */
+const SINGLE_FRAME = 'aspect-[343/212] w-full';
+
+/**
+ * 미디어를 감싸는 껍데기. `onMediaClick` 이 없으면 버튼이 아니라 그냥 `div` 로 남는다 —
+ * 아무 일도 하지 않는 버튼은 스크린리더에 잡히고 포커스만 먹는다.
+ */
+function MediaButton({
+  index,
+  onMediaClick,
+  className,
+  children,
+}: {
+  index: number;
+  onMediaClick?: (index: number) => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  if (!onMediaClick) return <div className={className}>{children}</div>;
+
+  return (
+    <button
+      type="button"
+      aria-label={`${index + 1}번째 미디어 크게 보기`}
+      onClick={() => onMediaClick(index)}
+      className={cn(
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100',
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 export interface SavedPostCardProps {
   post: Post;
   /** 이 게시물이 저장된 아카이브들 (표시용 이름/색만 받는다). 여러 아카이브에 저장될 수 있다. */
@@ -25,6 +65,8 @@ export interface SavedPostCardProps {
   title?: React.ReactNode;
   /** 넘기면 아카이브 태그가 버튼이 된다 — 게시물 상세와 같이 그 아카이브 상세로 보낼 때 쓴다. */
   onArchiveClick?: (archiveId: number) => void;
+  /** 넘기면 미디어가 버튼이 된다 — 누른 위치를 넘겨 그 미디어부터 확대뷰를 연다. */
+  onMediaClick?: (index: number) => void;
   className?: string;
 }
 
@@ -33,6 +75,7 @@ function SavedPostCard({
   archives,
   title = '저장된 게시물',
   onArchiveClick,
+  onMediaClick,
   className,
 }: SavedPostCardProps) {
   const images = post.images ?? [];
@@ -62,7 +105,23 @@ function SavedPostCard({
         ) : null}
       </div>
 
-      {images.length > 0 ? (
+      {images.length === 1 ? (
+        // 미디어 아래 본문까지 12px — 여러 장일 때의 pb-3 과 같은 간격이다.
+        <div className="w-full pb-3">
+          <MediaButton index={0} onMediaClick={onMediaClick} className={SINGLE_FRAME}>
+            {isVideoUrl(images[0]) ? (
+              // 영상은 프레임을 꽉 채우고 잘리는 대로 둔다 — 원본을 축소해 맞추지 않는다.
+              <Media src={images[0]} className="size-full rounded-sm object-cover" />
+            ) : (
+              // 이미지는 잘리지 않게 167:208 썸네일로 가운데에 앉힌다. 박스의 테두리·배경은
+              // `Thumbnail` 이 이미 갖고 있는 것과 같은 토큰이다.
+              <span className="flex size-full items-center justify-center rounded-sm border border-gray-20 bg-gray-10">
+                <Thumbnail src={images[0]} className="aspect-[167/208] h-full w-auto" />
+              </span>
+            )}
+          </MediaButton>
+        </div>
+      ) : images.length > 1 ? (
         <div className="w-full pb-3">
           {/* 스크롤 영역만 부모의 좌우 16px 여백 밖으로 뺀다 — 넘기는 중인 이미지는 화면
               끝까지 이어지고, 첫/마지막 이미지의 여백은 ml-4/mr-4 가 대신 만든다
@@ -71,18 +130,20 @@ function SavedPostCard({
               폭을 넓히지 못하고 왼쪽으로 밀리기만 한다. */}
           <Carousel indicator={false} className="-mx-4 w-auto">
             {images.map((src, index) => (
-              <div
+              <MediaButton
                 // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
                 // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
                 key={index}
+                index={index}
+                onMediaClick={onMediaClick}
                 className={cn(
                   'h-[175px] w-35 overflow-hidden rounded-sm',
                   index === 0 && 'ml-4',
                   index === images.length - 1 && 'mr-4',
                 )}
               >
-                <img src={src} alt="" className="size-full object-cover" />
-              </div>
+                <Media src={src} className="size-full object-cover" />
+              </MediaButton>
             ))}
           </Carousel>
         </div>

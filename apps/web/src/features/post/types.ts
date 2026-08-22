@@ -13,7 +13,10 @@ export interface Post {
   sharedBy?: string;
   /** 본문. 길면 카드에서 2줄로 접히고 "더보기"가 붙는다. */
   caption?: string;
-  /** 본문 이미지들. 카드에서 가로 캐러셀로 펼친다. */
+  /**
+   * 본문 미디어 URL. 카드에서 가로 캐러셀로 펼친다.
+   * 영상도 섞여 들어온다 — 렌더 시 `Media` 가 URL 로 `<img>`/`<video>` 를 고른다.
+   */
   images?: string[];
   /** 원본 게시물 URL. 없으면 원본 보기 행을 렌더하지 않는다. */
   originalUrl?: string;

@@ -1,5 +1,5 @@
 import { useSwipeDownToDismiss } from '@/shared/lib/useSwipeDownToDismiss';
-import { BackButton, Carousel, Header } from '@/shared/ui';
+import { BackButton, Carousel, Header, Media } from '@/shared/ui';
 
 /**
  * Figma `게시물 상세 > 이미지 확대 뷰`.
@@ -53,12 +53,13 @@ function PostImageViewer({ images, onClose }: PostImageViewerProps) {
         >
           <Carousel padded={false} gap={0} className="absolute inset-x-0 top-0">
             {images.map((src, index) => (
-              <img
+              <Media
                 // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
                 // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
                 key={index}
                 src={src}
-                alt=""
+                // 확대 뷰에서는 영상을 재생할 수 있게 컨트롤을 노출한다.
+                controls
                 className="aspect-[375/495] w-full object-cover"
               />
             ))}

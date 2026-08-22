@@ -28,6 +28,7 @@ import { PostImages } from './components/PostImages';
 import { PostImageViewer } from './components/PostImageViewer';
 import { PostInfo } from './components/PostInfo';
 import { GoHomeTooltip, PostParsingView } from './components/PostParsingView';
+import { PostVideoViewer } from './components/PostVideoViewer';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
 import type { SearchedPlace } from './types';
 
@@ -53,6 +54,8 @@ export function PostDetailPage() {
   const [memoOpen, setMemoOpen] = useState(false);
   // 뒤로가기(버튼·하드웨어 백·스와이프)로 닫혀야 해서 히스토리 엔트리로 승격한다.
   const [viewerOpen, openViewer, closeViewer] = useHistoryBackedFlag('imageViewer');
+  // 영상 확대뷰는 이미지 뷰어와 레이아웃이 달라 별도 레이어다. 닫는 방식은 같다.
+  const [videoViewerOpen, openVideoViewer, closeVideoViewer] = useHistoryBackedFlag('videoViewer');
   const relatedPlacesState = useRelatedPlaces(postId);
   const [directInputOpen, setDirectInputOpen] = useState(false);
   const { showToast } = useToast();
@@ -81,7 +84,7 @@ export function PostDetailPage() {
   // 같은 목적지(지도)로 보낸다. 뷰어가 떠 있으면 히스토리 뒤로(뷰어 닫기)에 양보한다.
   useBackInterceptor(
     useCallback(() => {
-      if (viewerOpen) return false;
+      if (viewerOpen || videoViewerOpen) return false;
       if (isProcessing) {
         navigate('/map', { replace: true });
         return true;
@@ -89,7 +92,14 @@ export function PostDetailPage() {
       if (!enteredFromShare) return false;
       navigate(shareEntryBackTarget, { replace: true });
       return true;
-    }, [isProcessing, enteredFromShare, viewerOpen, navigate, shareEntryBackTarget]),
+    }, [
+      isProcessing,
+      enteredFromShare,
+      viewerOpen,
+      videoViewerOpen,
+      navigate,
+      shareEntryBackTarget,
+    ]),
   );
 
   const updateBookmarkMutation = useUpdatePlaceBookmark(postId);
@@ -192,7 +202,7 @@ export function PostDetailPage() {
       contentStyle={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
     >
       <main>
-        <PostImages images={images} onImageClick={openViewer} />
+        <PostImages images={images} onImageClick={openViewer} onVideoExpand={openVideoViewer} />
 
         <div className="flex flex-col gap-2 px-4 pt-1">
           <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
@@ -238,6 +248,14 @@ export function PostDetailPage() {
           화면 밖으로 밀려나니 body 로 포탈해 뷰포트 기준으로 띄운다. */}
       {viewerOpen
         ? createPortal(<PostImageViewer images={images} onClose={closeViewer} />, document.body)
+        : null}
+
+      {/* 확대 버튼은 단일 영상일 때만 뜨므로 여는 쪽이 곧 images[0] 이다. */}
+      {videoViewerOpen && images[0]
+        ? createPortal(
+            <PostVideoViewer src={images[0]} onClose={closeVideoViewer} />,
+            document.body,
+          )
         : null}
 
       <PlaceDirectInputDrawer

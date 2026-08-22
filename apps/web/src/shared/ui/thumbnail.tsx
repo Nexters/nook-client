@@ -3,6 +3,7 @@ import type * as React from 'react';
 import emptyThumbnailLg from '@/assets/images/98_Group.svg';
 import { Icon16ExclamationCircle } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
+import { Media } from './media';
 
 /**
  * Figma `Thumbnail/98_Group`(Default/Empty/Plus) + `Thumbnail/60_img_x` 기준.
@@ -62,7 +63,7 @@ function Thumbnail({
   return (
     <div data-slot="thumbnail" className={cn(thumbnailVariants({ size }), className)} {...props}>
       {resolvedSrc ? (
-        <img src={resolvedSrc} alt={src ? alt : ''} className="size-full object-cover" />
+        <Media src={resolvedSrc} alt={src ? alt : ''} className="size-full object-cover" />
       ) : null}
       {overflowCount !== undefined ? (
         <span className="absolute inset-0 flex items-center justify-center bg-black/50 font-mono text-e2 text-gray-0">
