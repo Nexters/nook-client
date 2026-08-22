@@ -19,6 +19,43 @@
           }
         }
       },
+      "ApiResponseAppVersionPolicyResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AppVersionPolicyResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
       "ApiResponseAuthActionResponse": {
         "description": "공통 API 응답",
         "properties": {
@@ -861,6 +898,41 @@
         },
         "required": [
           "resultType"
+        ],
+        "type": "object"
+      },
+      "AppVersionPolicyResponse": {
+        "properties": {
+          "latestBuildNumber": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "latestVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "storeUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updateType": {
+            "enum": [
+              "NONE",
+              "RECOMMEND",
+              "FORCE"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "updateType"
         ],
         "type": "object"
       },
@@ -3053,6 +3125,51 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/public/v1/app-version-policy": {
+      "get": {
+        "operationId": "getPolicy",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-App-Platform",
+            "required": true,
+            "schema": {
+              "enum": [
+                "IOS",
+                "ANDROID"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-App-Build-Number",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAppVersionPolicyResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "앱 버전 정책 조회",
+        "tags": [
+          "App Version"
+        ]
+      }
+    },
     "/api/public/v1/groups/{token}": {
       "get": {
         "operationId": "get",

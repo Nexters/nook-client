@@ -7,6 +7,7 @@
 
 import { orvalMutator } from '../orval-mutator';
 import type {
+  ApiResponseAppVersionPolicyResponse,
   ApiResponseAuthActionResponse,
   ApiResponseConnectedPlaceResponse,
   ApiResponseGroupPlacePageResponse,
@@ -57,6 +58,22 @@ import type {
   UpdatePlaceMemoRequest,
   UpdatePostMemoRequest,
 } from './models';
+export const getGetPolicyUrl = () => {
+  return `/api/public/v1/app-version-policy`;
+};
+
+/**
+ * @summary 앱 버전 정책 조회
+ */
+export const getPolicy = async (
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseAppVersionPolicyResponse> => {
+  return orvalMutator<ApiResponseAppVersionPolicyResponse>(getGetPolicyUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
 export const getGetUrl = (token: string) => {
   return `/api/public/v1/groups/${token}`;
 };
