@@ -60,7 +60,18 @@ function PostVideoViewer({ src, onClose }: PostVideoViewerProps) {
           className="absolute inset-x-0 top-0 z-10"
           style={{ paddingTop: 'env(safe-area-inset-top)' }}
         >
-          <Header variant="transparent" left={<BackButton onClick={onClose} />} />
+          <Header
+            variant="transparent"
+            left={
+              // 이 버튼은 영상 위에 바로 얹힌다 — 기본 회색 쉐브론은 밝은 장면에서 묻힌다.
+              // 아이콘이 stroke 색을 SVG 에 박고 있어(`Icon24Back`) 자손 path 를 직접 덮는다.
+              // 그림자는 어두운 장면에서도 획이 뜨게 하는 시안 값이다.
+              <BackButton
+                onClick={onClose}
+                className="drop-shadow-[0_0_5px_rgba(0,0,0,0.5)] [&_path]:stroke-gray-0"
+              />
+            }
+          />
         </div>
         {/* 영상은 헤더 아래 남은 공간이 아니라 화면 전체를 기준으로 세로 가운데에 온다.
             `PostImageViewer` 와 같은 이유로 가운데 보정(-50%)과 끌어내린 거리를 한 값에 합친다. */}
