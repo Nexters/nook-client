@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { GroupPlaceSummaryResponse, GroupResponse } from '@/shared/api';
-import { toArchive, toArchivePlace } from '.';
+import type {
+  GroupPlaceSummaryResponse,
+  GroupPostSummaryResponse,
+  GroupResponse,
+} from '@/shared/api';
+import { toArchive, toArchivePlace, toArchivePost } from '.';
 
 const BASE: GroupResponse = {
   id: 27,
@@ -89,5 +93,64 @@ describe('toArchivePlace', () => {
     });
 
     expect(place.thumbnailState).toBeUndefined();
+  });
+});
+
+describe('toArchivePost', () => {
+  const POST_BASE: GroupPostSummaryResponse = {
+    postId: 1,
+    title: '지금 가기 좋은 초록뷰 카페',
+    memo: null,
+    placeCount: 3,
+    authorIdentifier: 'nook.official',
+    processingStatus: 'COMPLETED',
+    processingPercent: 100,
+    savedAt: '2026-08-20T00:00:00Z',
+  };
+
+  it('영상이면 서버가 뽑아 준 포스터를 커버로 쓴다', () => {
+    // 그리드는 재생하지 않는 자리라 정지 화면 하나 보자고 영상을 받을 이유가 없다.
+    const post = toArchivePost({
+      ...POST_BASE,
+      representativeMedia: {
+        url: 'https://cdn.example/reel.mp4',
+        thumbnailUrl: 'https://cdn.example/reel-poster.jpg',
+        type: 'VIDEO',
+        sequence: 0,
+      },
+    });
+
+    expect(post.thumbnails).toEqual(['https://cdn.example/reel-poster.jpg']);
+    // 카드가 재생 표시를 얹을 수 있게 종류도 함께 넘긴다 — 포스터만 보면 사진과 같다.
+    expect(post.coverType).toBe('VIDEO');
+  });
+
+  it('포스터가 없으면 영상 URL 을 그대로 쓴다', () => {
+    const post = toArchivePost({
+      ...POST_BASE,
+      representativeMedia: {
+        url: 'https://cdn.example/reel.mp4',
+        thumbnailUrl: null,
+        type: 'VIDEO',
+        sequence: 0,
+      },
+    });
+
+    expect(post.thumbnails).toEqual(['https://cdn.example/reel.mp4']);
+    expect(post.coverType).toBe('VIDEO');
+  });
+
+  it('이미지면 coverType 을 IMAGE 로 넘긴다', () => {
+    const post = toArchivePost({
+      ...POST_BASE,
+      representativeMedia: {
+        url: 'https://cdn.example/photo.jpg',
+        thumbnailUrl: null,
+        type: 'IMAGE',
+        sequence: 0,
+      },
+    });
+
+    expect(post.coverType).toBe('IMAGE');
   });
 });

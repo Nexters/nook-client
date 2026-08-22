@@ -63,6 +63,7 @@ import {
   Header,
   Input,
   Media,
+  MediaBadge,
   Popup,
   ShareButton,
   Snackbar,
@@ -187,7 +188,7 @@ const MOCK_POST: Post = {
   caption:
     '북적이는 성수에서 여유로운 카페를 찾고 있다면 망설임 없이 추천드릴 퍼머넌트해비탯🥛 ' +
     '성수는 사람이 많아서 카페를 잘 안 가게 되는데 여기는 통창 너머로 골목이 보여서 오래 앉아 있게 돼요.',
-  images: Array.from({ length: 4 }, () => SAMPLE_IMAGE),
+  media: Array.from({ length: 4 }, () => ({ url: SAMPLE_IMAGE, type: 'IMAGE' }) as const),
   originalUrl: 'https://example.com/post',
   thumbnail: SAMPLE_IMAGE,
 };
@@ -723,6 +724,24 @@ export function UiComponentsPage() {
         <Row label="영상 URL — video (썸네일 / controls)">
           <Media src={SAMPLE_VIDEO} className="size-24 rounded-sm bg-gray-10 object-cover" />
           <Media src={SAMPLE_VIDEO} controls className="size-24 rounded-sm bg-gray-10" />
+        </Row>
+      </Section>
+
+      <Section title="MediaBadge">
+        <p className="text-b3 text-gray-50">
+          미디어 위에 얹는 종류 표시입니다. 카드·목록은 재생하지 않는 자리라 영상도 정지 화면으로
+          보여서, 이게 없으면 사진과 구별이 안 됩니다. 부모가 `relative` 여야 하고 자리는 우상단 8px
+          고정입니다.
+        </p>
+        <Row label="IMAGE / VIDEO">
+          <span className="relative block size-24 overflow-hidden rounded-sm">
+            <img src={SAMPLE_IMAGE} alt="" className="size-full object-cover" />
+            <MediaBadge type="IMAGE" />
+          </span>
+          <span className="relative block size-24 overflow-hidden rounded-sm">
+            <img src={SAMPLE_IMAGE} alt="" className="size-full object-cover" />
+            <MediaBadge type="VIDEO" />
+          </span>
         </Row>
       </Section>
 

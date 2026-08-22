@@ -54,7 +54,14 @@ function postDetail(places: ParsedPlace[], archives: PostDetail['archives'] = []
     places,
     placeParsingStatus: 'COMPLETED',
     placeParsingFailureReason: null,
-    post: { id: '1', authorHandle: '@nook', images: ['first.jpg', 'second.jpg'] },
+    post: {
+      id: '1',
+      authorHandle: '@nook',
+      media: [
+        { url: 'first.jpg', type: 'IMAGE' },
+        { url: 'second.jpg', type: 'IMAGE' },
+      ],
+    },
   };
 }
 
@@ -374,6 +381,37 @@ describe('PlaceDetail 저장된 게시물', () => {
 
     expect(await screen.findByRole('heading', { name: '저장된 게시물' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /저장된 게시물/ })).not.toBeInTheDocument();
+  });
+
+  /**
+   * 장소 상세 응답(`PlacePostMediaResponse`)엔 영상 포스터가 없다. 타일은 게시물 상세를
+   * 어차피 따로 조회하고 있으므로(배지·Places 수), 거기 실린 포스터를 커버로 써야 한다 —
+   * 안 그러면 목록에서 영상이 통째로 받아진다.
+   */
+  it('타일 커버는 게시물 상세가 오면 영상 포스터로 바뀐다', async () => {
+    mocks.fetchPostDetail.mockImplementation(async () => {
+      const detail = postDetail([parsedPlace(2, '퍼머넌트해비탯')]);
+      return {
+        ...detail,
+        post: {
+          ...detail.post,
+          media: [{ url: 'reel.mp4', thumbnailUrl: 'reel-poster.jpg', type: 'VIDEO' as const }],
+        },
+      };
+    });
+
+    // 게시물이 2건이어야 카드가 아니라 타일 캐러셀로 그려진다.
+    renderDetail(undefined, {
+      ...PLACE,
+      posts: PLACE.posts.map((post) => ({ ...post, thumbnail: 'reel.mp4' })),
+    });
+
+    await waitFor(() => {
+      expect(document.querySelector('img[src="reel-poster.jpg"]')).not.toBeNull();
+    });
+    expect(document.querySelector('video')).toBeNull();
+    // 포스터만 그리면 정지 이미지와 구별이 안 된다 — 재생 표시가 함께 떠야 한다.
+    expect(document.querySelector('[data-slot="media-badge"][data-type="VIDEO"]')).not.toBeNull();
   });
 
   it('캐러셀 타일을 누르면 그 게시물 상세 페이지로 간다', async () => {

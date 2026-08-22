@@ -69,7 +69,7 @@ export function SharedPostDetailPage() {
 
   const detail = detailQuery.data;
   const { post, title, archives, memo } = detail;
-  const images = post.images ?? [];
+  const media = post.media ?? [];
   // 로그인 + 저장 이력: 공유 상세의 archives 는 "내가 같은 원본을 저장한 내 아카이브".
   const [firstSavedArchive] = archives;
 
@@ -100,7 +100,7 @@ export function SharedPostDetailPage() {
       contentStyle={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
     >
       <main>
-        <PostImages images={images} onImageClick={openViewerAt} onVideoExpand={openVideoViewer} />
+        <PostImages media={media} onImageClick={openViewerAt} onVideoExpand={openVideoViewer} />
 
         <div className="flex flex-col gap-2 px-4 pt-1">
           <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
@@ -181,15 +181,15 @@ export function SharedPostDetailPage() {
           화면 밖으로 밀려나니 body 로 포탈해 뷰포트 기준으로 띄운다. */}
       {viewerOpen
         ? createPortal(
-            <PostImageViewer images={images} initialIndex={viewerIndex} onClose={closeViewer} />,
+            <PostImageViewer media={media} initialIndex={viewerIndex} onClose={closeViewer} />,
             document.body,
           )
         : null}
 
-      {/* 확대 버튼은 단일 영상일 때만 뜨므로 여는 쪽이 곧 images[0] 이다. */}
-      {videoViewerOpen && images[0]
+      {/* 확대 버튼은 단일 영상일 때만 뜨므로 여는 쪽이 곧 media[0] 이다. */}
+      {videoViewerOpen && media[0]
         ? createPortal(
-            <PostVideoViewer src={images[0]} onClose={closeVideoViewer} />,
+            <PostVideoViewer src={media[0].url} onClose={closeVideoViewer} />,
             document.body,
           )
         : null}

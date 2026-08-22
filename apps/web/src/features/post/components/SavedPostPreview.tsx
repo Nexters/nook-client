@@ -1,7 +1,6 @@
 import { createPortal } from 'react-dom';
 import { Icon24Back } from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
-import { isVideoUrl } from '@/shared/lib/media';
 import { Carousel, Header, Media, VideoPlayer } from '@/shared/ui';
 import type { Post } from '../types';
 import { OriginalPostLink } from './OriginalPostLink';
@@ -33,7 +32,7 @@ export interface SavedPostPreviewProps {
 }
 
 function SavedPostPreview({ title, post, initialIndex = 0, onClose }: SavedPostPreviewProps) {
-  const images = post.images ?? [];
+  const media = post.media ?? [];
 
   return createPortal(
     // z-70: 전체화면 오버레이라 탭바(60)까지 덮는다.
@@ -51,17 +50,17 @@ function SavedPostPreview({ title, post, initialIndex = 0, onClose }: SavedPostP
         }
       />
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        {images.length > 0 ? (
+        {media.length > 0 ? (
           <Carousel padded={false} gap={0} initialIndex={initialIndex}>
-            {images.map((src, index) =>
+            {media.map((item, index) =>
               // 미디어 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
-              isVideoUrl(src) ? (
-                // 확대해서 보러 온 자리라 영상은 재생시킨다(카드에서는 첫 프레임만이었다).
+              // 확대해서 보러 온 자리라 영상은 포스터가 있어도 원본을 재생한다.
+              item.type === 'VIDEO' ? (
                 // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
-                <VideoPlayer key={index} src={src} className={FRAME_CLASS} />
+                <VideoPlayer key={index} src={item.url} className={FRAME_CLASS} />
               ) : (
                 // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
-                <Media key={index} src={src} className={FRAME_CLASS} />
+                <Media key={index} src={item.url} className={FRAME_CLASS} />
               ),
             )}
           </Carousel>

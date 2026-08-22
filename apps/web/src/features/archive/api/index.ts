@@ -116,7 +116,12 @@ export function toArchivePost(dto: GroupPostSummaryResponse): ArchivePost {
     // 제목이 없는 게시물(메모만 저장 등)도 카드가 비어 보이지 않게 메모로 대체한다.
     name: dto.title || dto.memo || '제목 없는 게시물',
     placeCount: dto.placeCount,
-    thumbnails: dto.representativeMedia ? [dto.representativeMedia.url] : [],
+    // 그리드는 재생하지 않는 자리라 영상이면 서버가 뽑아 준 포스터를 먼저 쓴다.
+    // 포스터가 없으면 영상 URL 그대로 — `Media` 가 첫 프레임을 그린다.
+    thumbnails: dto.representativeMedia
+      ? [dto.representativeMedia.thumbnailUrl ?? dto.representativeMedia.url]
+      : [],
+    coverType: dto.representativeMedia?.type,
     authorHandle: dto.authorIdentifier ?? undefined,
     // 저장 직후엔 BE 가 본문/장소를 비동기로 처리한다 — 끝나기 전엔(혹은 실패하면) 위
     // 필드들이 비어 있는 게 정상이라, 그대로 두면 "제목 없는 게시물·0 Places"로 보인다.

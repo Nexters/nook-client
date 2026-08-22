@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { PostMedia } from '../types';
 import { PostImages } from './PostImages';
 
 /**
@@ -9,10 +10,15 @@ import { PostImages } from './PostImages';
  */
 const IMAGE_URL = 'https://cdn.example.com/posts/1.jpg';
 const VIDEO_URL = 'https://cdn.example.com/posts/1.mp4?token=abc';
+const POSTER_URL = 'https://cdn.example.com/posts/1-poster.jpg';
+
+const IMAGE: PostMedia = { url: IMAGE_URL, type: 'IMAGE' };
+// 포스터를 일부러 붙여 둔다 — 여기는 재생하는 자리라 포스터가 있어도 원본을 써야 한다.
+const VIDEO: PostMedia = { url: VIDEO_URL, thumbnailUrl: POSTER_URL, type: 'VIDEO' };
 
 describe('PostImages', () => {
   it('영상 1개면 시안 컨트롤을 얹은 video 로 그린다', () => {
-    const { container } = render(<PostImages images={[VIDEO_URL]} onImageClick={vi.fn()} />);
+    const { container } = render(<PostImages media={[VIDEO]} onImageClick={vi.fn()} />);
 
     const video = container.querySelector('video');
     expect(video).toHaveAttribute('src', VIDEO_URL);
@@ -25,28 +31,31 @@ describe('PostImages', () => {
 
   it('영상 확대는 onVideoExpand 를 넘겼을 때만 버튼이 생긴다', () => {
     const onVideoExpand = vi.fn();
-    const { rerender } = render(<PostImages images={[VIDEO_URL]} onImageClick={vi.fn()} />);
+    const { rerender } = render(<PostImages media={[VIDEO]} onImageClick={vi.fn()} />);
     expect(screen.queryByRole('button', { name: '영상 크게 보기' })).not.toBeInTheDocument();
 
-    rerender(
-      <PostImages images={[VIDEO_URL]} onImageClick={vi.fn()} onVideoExpand={onVideoExpand} />,
-    );
+    rerender(<PostImages media={[VIDEO]} onImageClick={vi.fn()} onVideoExpand={onVideoExpand} />);
     screen.getByRole('button', { name: '영상 크게 보기' }).click();
     expect(onVideoExpand).toHaveBeenCalled();
   });
 
   it('이미지 1개면 확대 보기 버튼 안의 img 로 그린다', () => {
-    const { container } = render(<PostImages images={[IMAGE_URL]} onImageClick={vi.fn()} />);
+    const { container } = render(<PostImages media={[IMAGE]} onImageClick={vi.fn()} />);
 
     expect(container.querySelector('video')).toBeNull();
     expect(screen.getByRole('button', { name: '이미지 크게 보기' })).toBeInTheDocument();
     expect(container.querySelector('img')).toHaveAttribute('src', IMAGE_URL);
   });
 
+  it('포스터가 있어도 상세에서는 원본 영상을 쓴다', () => {
+    const { container } = render(<PostImages media={[VIDEO]} onImageClick={vi.fn()} />);
+
+    expect(container.querySelector('video')).toHaveAttribute('src', VIDEO_URL);
+    expect(container.querySelector('img')).toBeNull();
+  });
+
   it('이미지와 영상이 섞이면 캐러셀에 둘 다 남는다', () => {
-    const { container } = render(
-      <PostImages images={[IMAGE_URL, VIDEO_URL]} onImageClick={vi.fn()} />,
-    );
+    const { container } = render(<PostImages media={[IMAGE, VIDEO]} onImageClick={vi.fn()} />);
 
     expect(container.querySelectorAll('img')).toHaveLength(1);
     expect(container.querySelectorAll('video')).toHaveLength(1);

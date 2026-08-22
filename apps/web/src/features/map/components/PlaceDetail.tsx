@@ -20,12 +20,12 @@ import { postQueryKeys } from '@/features/post/api/queries';
 import type { PostDetail } from '@/features/post/types';
 import { fetchSharedPostDetail } from '@/features/share/api';
 import { sharedQueryKeys } from '@/features/share/api/queries';
-import { Icon16ArrowRight, Icon20Images } from '@/shared/icons/NookIcons';
+import { Icon16ArrowRight } from '@/shared/icons/NookIcons';
 import { type Coordinates, formatDistance } from '@/shared/lib/geolocation';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
-import { Badge, Carousel, Thumbnail } from '@/shared/ui';
+import { Badge, Carousel, MediaBadge, Thumbnail } from '@/shared/ui';
 import {
   useDisconnectPlaceFromPosts,
   useUpdatePlaceBookmark,
@@ -79,7 +79,12 @@ function SavedPostTile({
   detail?: PostDetail;
   onClick: () => void;
 }) {
-  const imageCount = detail?.post.images?.length ?? 0;
+  const media = detail?.post.media ?? [];
+  // 장소 상세 응답(`PlacePostMediaResponse`)엔 영상 포스터가 없다 — 게시물 상세가 오면
+  // 거기 실린 포스터를 먼저 쓰고, 오기 전에는 얇은 응답의 URL 로 버틴다(영상이면 첫 프레임).
+  const cover = media[0] ? (media[0].thumbnailUrl ?? media[0].url) : post.thumbnail;
+  // 커버가 실제로 있을 때만 종류를 표시한다 — 고스트 이미지 위에 얹으면 거짓말이 된다.
+  const coverType = cover ? (media[0]?.type ?? post.thumbnailType) : undefined;
   // 장소 수는 게시물 상세에만 있다 — 아직 안 왔으면 "0 Places" 대신 계정만 보여준다.
   const subtitle = [
     formatAuthorHandle(post.authorHandle),
@@ -95,8 +100,8 @@ function SavedPostTile({
       className="flex w-42 flex-col gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
     >
       <div className="relative w-full">
-        <Thumbnail src={post.thumbnail} className="aspect-[167/208] h-auto w-full" />
-        {imageCount > 1 ? <Icon20Images className="absolute top-2 right-2" /> : null}
+        <Thumbnail src={cover} className="aspect-[167/208] h-auto w-full" />
+        {coverType ? <MediaBadge type={coverType} /> : null}
       </div>
       <div className="flex w-full flex-col">
         <p className="truncate text-b3 font-semibold text-gray-90">{post.title}</p>

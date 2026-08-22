@@ -82,6 +82,11 @@ export interface PlaceDetailPost {
   title: string;
   authorHandle?: string;
   thumbnail?: string;
+  /**
+   * 대표 미디어 종류. `PlacePostMediaResponse` 에는 영상 포스터가 없어서 `thumbnail` 은
+   * 영상 URL 일 수 있다 — 게시물 상세가 오기 전 카드를 그릴 때 종류를 알아야 한다.
+   */
+  thumbnailType?: 'IMAGE' | 'VIDEO';
   savedAt: string;
 }
 

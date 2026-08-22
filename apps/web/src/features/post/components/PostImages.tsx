@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { isVideoUrl } from '@/shared/lib/media';
 import { cn } from '@/shared/lib/utils';
 import { Carousel, Media, VideoPlayer } from '@/shared/ui';
+import type { PostMedia } from '../types';
 
 /**
  * 게시물 상세의 미디어 영역(이미지·영상).
@@ -28,11 +28,12 @@ type Frame = keyof typeof FRAME;
  * 첫 장이 영상이면 읽지 못해 기본값(세로형)이 그대로 쓰인다 — 영상은 대개 단독이라
  * 프레임 없는 단일 레이아웃으로 빠진다.
  */
-function useFrame(src: string | undefined): Frame {
+function useFrame(first: PostMedia | undefined): Frame {
   const [frame, setFrame] = useState<Frame>('portrait');
 
   useEffect(() => {
-    if (!src || isVideoUrl(src)) return;
+    const src = first?.type === 'IMAGE' ? first.url : undefined;
+    if (!src) return;
     let alive = true;
     const image = new Image();
     image.onload = () => {
@@ -45,7 +46,7 @@ function useFrame(src: string | undefined): Frame {
     return () => {
       alive = false;
     };
-  }, [src]);
+  }, [first]);
 
   return frame;
 }
@@ -55,30 +56,31 @@ const SINGLE_CLASS =
   'block h-auto max-h-[min(70dvh,520px)] w-full rounded-sm bg-gray-10 object-contain';
 
 export interface PostImagesProps {
-  /** 이미지·영상 URL. 서버 순서(`sequence`)를 그대로 유지한다. */
-  images: string[];
+  /** 본문 미디어. 서버 순서(`sequence`)를 그대로 유지한다. */
+  media: PostMedia[];
   /** 누른 이미지의 위치를 넘긴다 — 확대뷰가 그 이미지부터 시작해야 한다. */
   onImageClick: (index: number) => void;
   /** 단일 영상의 확대 버튼. 넘기지 않으면 버튼을 그리지 않는다. */
   onVideoExpand?: () => void;
 }
 
-function PostImages({ images, onImageClick, onVideoExpand }: PostImagesProps) {
-  const frame = useFrame(images[0]);
+function PostImages({ media, onImageClick, onVideoExpand }: PostImagesProps) {
+  const frame = useFrame(media[0]);
 
-  if (images.length === 0) return null;
+  if (media.length === 0) return null;
 
-  if (images.length === 1) {
-    const src = images[0];
+  if (media.length === 1 && media[0]) {
+    const first = media[0];
 
     // 영상은 컨트롤을 직접 눌러야 해서 확대 보기 버튼으로 감싸지 않는다
     // (버튼 안에서 재생 버튼을 누르면 확대 뷰가 같이 열린다) — 확대는 시안대로
     // 프레임 우하단의 자체 버튼이 맡는다.
-    if (src && isVideoUrl(src)) {
+    // 여기는 재생하는 자리라 포스터가 있어도 원본 영상을 쓴다.
+    if (first.type === 'VIDEO') {
       return (
         <div className="w-full px-4">
           <VideoPlayer
-            src={src}
+            src={first.url}
             onExpand={onVideoExpand}
             className="aspect-[343/429] w-full rounded-sm bg-gray-10"
           />
@@ -94,7 +96,7 @@ function PostImages({ images, onImageClick, onVideoExpand }: PostImagesProps) {
         // 캐러셀 슬라이드와 같은 좌우 16px 여백.
         className="w-full px-4"
       >
-        <Media src={src} className={SINGLE_CLASS} />
+        <Media src={first.url} className={SINGLE_CLASS} />
       </button>
     );
   }
@@ -103,7 +105,7 @@ function PostImages({ images, onImageClick, onVideoExpand }: PostImagesProps) {
     // 여러 장이 동시에 보이는 캐러셀이라 인디케이터가 현재 위치를 가리키지 못한다.
     // 점을 감싸던 py-3 가 하단 여백 노릇을 하고 있었으므로 12px 을 직접 채운다.
     <Carousel indicator={false} className="pb-3">
-      {images.map((src, index) => (
+      {media.map((item, index) => (
         <button
           // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
           // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
@@ -117,11 +119,11 @@ function PostImages({ images, onImageClick, onVideoExpand }: PostImagesProps) {
             'w-60 overflow-hidden rounded-sm',
             FRAME[frame],
             index === 0 && 'ml-4',
-            index === images.length - 1 && 'mr-4',
+            index === media.length - 1 && 'mr-4',
           )}
         >
           {/* 캐러셀에서는 영상도 첫 프레임만 — 재생은 확대 보기(`PostImageViewer`)에서 한다. */}
-          <Media src={src} className="size-full object-cover" />
+          <Media src={item.url} className="size-full object-cover" />
         </button>
       ))}
     </Carousel>

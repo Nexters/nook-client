@@ -2,6 +2,24 @@ import type { Place } from '@/features/place';
 import type { ArchiveColor } from '@/shared/ui';
 
 /**
+ * 게시물 본문 미디어 한 장.
+ *
+ * 종류와 영상 포스터를 서버가 함께 준다(`SavedPostMediaResponse`). 화면이 갈리는 축이
+ * 둘이라 URL 하나로는 부족하다 — 레이아웃은 `type` 이 정하고(영상 자리는 포스터가 있어도
+ * 영상 자리다), 무엇을 그릴지는 `thumbnailUrl ?? url` 이 정한다.
+ */
+export interface PostMedia {
+  url: string;
+  /**
+   * 영상 포스터 이미지. 재생하지 않는 자리(카드·목록·그리드)는 이걸 먼저 쓴다 —
+   * 정지 화면 하나 보자고 영상을 통째로 받을 이유가 없다. 서버가 못 뽑으면 비어 있고,
+   * 그때는 영상 URL 을 그대로 써서 첫 프레임을 보여준다.
+   */
+  thumbnailUrl?: string;
+  type: 'IMAGE' | 'VIDEO';
+}
+
+/**
  * 저장된 게시물 — 사용자가 외부(인스타그램 등)에서 공유해 들여온 원본 글.
  * 표시에 필요한 최소 형태만 둔다.
  */
@@ -13,11 +31,8 @@ export interface Post {
   sharedBy?: string;
   /** 본문. 길면 카드에서 2줄로 접히고 "더보기"가 붙는다. */
   caption?: string;
-  /**
-   * 본문 미디어 URL. 카드에서 가로 캐러셀로 펼친다.
-   * 영상도 섞여 들어온다 — 렌더 시 `Media` 가 URL 로 `<img>`/`<video>` 를 고른다.
-   */
-  images?: string[];
+  /** 본문 미디어. 서버 순서(`sequence`)대로 정렬돼 있고, 카드에서 가로 캐러셀로 펼친다. */
+  media?: PostMedia[];
   /** 원본 게시물 URL. 없으면 원본 보기 행을 렌더하지 않는다. */
   originalUrl?: string;
   /** 목록·안내 띠에서 쓰는 대표 이미지 */

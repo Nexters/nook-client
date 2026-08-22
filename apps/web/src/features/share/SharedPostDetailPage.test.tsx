@@ -32,7 +32,7 @@ const DETAIL: PostDetail = {
     id: '5',
     authorHandle: '@nook.official',
     caption: '초록뷰가 아름다운 카페',
-    images: [],
+    media: [],
     originalUrl: 'https://instagram.com/p/x',
   },
   processingStatus: 'COMPLETED',

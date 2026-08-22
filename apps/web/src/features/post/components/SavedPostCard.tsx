@@ -1,6 +1,5 @@
 import type * as React from 'react';
 import type { PostArchive } from '@/features/post/types';
-import { isVideoUrl } from '@/shared/lib/media';
 import { cn } from '@/shared/lib/utils';
 import { ArchiveTag, Carousel, Media, Thumbnail } from '@/shared/ui';
 import type { Post } from '../types';
@@ -18,6 +17,9 @@ import { OriginalPostLink } from './OriginalPostLink';
  *   단일 이미지(177:23309) — 343x212 박스 안에 167x208 썸네일을 가운데 둔다. 세로 사진이
  *     한 장뿐일 때 폭을 억지로 채우지 않으려는 시안 의도라, 박스와 썸네일이 따로 있다.
  *   단일 영상(177:23190) — 같은 343x212 를 `cover` 로 꽉 채운다. 잘리는 건 시안대로 둔다.
+ *
+ * 여기는 재생하지 않는 자리라 영상은 포스터(`thumbnailUrl`)를 먼저 그린다. 다만 **레이아웃은
+ * 종류(`type`)가 정한다** — 포스터가 있어도 영상 자리는 영상 자리라 167x208 틀을 타지 않는다.
  *
  * 본문은 `ExpandableCaption` 에 맡긴다 — 게시물 상세와 같이 "더보기"로 펼치고,
  * 펼친 뒤엔 "접기" 버튼이나 본문을 눌러 접는다. 여기선 2줄로 접는다.
@@ -81,7 +83,7 @@ function SavedPostCard({
   onImageClick,
   className,
 }: SavedPostCardProps) {
-  const images = post.images ?? [];
+  const media = post.media ?? [];
 
   return (
     // overflow 를 잘라내지 않는다 — 이미지 줄이 부모 여백 밖으로 나가야 한다(아래 -mx-4).
@@ -108,23 +110,26 @@ function SavedPostCard({
         ) : null}
       </div>
 
-      {images.length === 1 ? (
+      {media.length === 1 && media[0] ? (
         // 미디어 아래 본문까지 12px — 여러 장일 때의 pb-3 과 같은 간격이다.
         <div className="w-full pb-3">
           <MediaButton index={0} onImageClick={onImageClick} className={SINGLE_FRAME}>
-            {isVideoUrl(images[0]) ? (
+            {media[0].type === 'VIDEO' ? (
               // 영상은 프레임을 꽉 채우고 잘리는 대로 둔다 — 원본을 축소해 맞추지 않는다.
-              <Media src={images[0]} className="size-full rounded-sm object-cover" />
+              <Media
+                src={media[0].thumbnailUrl ?? media[0].url}
+                className="size-full rounded-sm object-cover"
+              />
             ) : (
               // 이미지는 잘리지 않게 167:208 썸네일로 가운데에 앉힌다. 박스의 테두리·배경은
               // `Thumbnail` 이 이미 갖고 있는 것과 같은 토큰이다.
               <span className="flex size-full items-center justify-center rounded-sm border border-gray-20 bg-gray-10">
-                <Thumbnail src={images[0]} className="aspect-[167/208] h-full w-auto" />
+                <Thumbnail src={media[0].url} className="aspect-[167/208] h-full w-auto" />
               </span>
             )}
           </MediaButton>
         </div>
-      ) : images.length > 1 ? (
+      ) : media.length > 1 ? (
         <div className="w-full pb-3">
           {/* 스크롤 영역만 부모의 좌우 16px 여백 밖으로 뺀다 — 넘기는 중인 이미지는 화면
               끝까지 이어지고, 첫/마지막 이미지의 여백은 ml-4/mr-4 가 대신 만든다
@@ -132,7 +137,7 @@ function SavedPostCard({
               `w-auto` 는 Carousel 기본 `w-full` 을 덮는다 — width 가 고정이면 음수 마진이
               폭을 넓히지 못하고 왼쪽으로 밀리기만 한다. */}
           <Carousel indicator={false} className="-mx-4 w-auto">
-            {images.map((src, index) => {
+            {media.map((item, index) => {
               const Slide = onImageClick ? 'button' : 'div';
               return (
                 <Slide
@@ -149,13 +154,13 @@ function SavedPostCard({
                   className={cn(
                     'h-[175px] w-35 overflow-hidden rounded-sm',
                     index === 0 && 'ml-4',
-                    index === images.length - 1 && 'mr-4',
+                    index === media.length - 1 && 'mr-4',
                     onImageClick &&
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100',
                   )}
                 >
-                  {/* 캐러셀에서는 영상도 첫 프레임만 — 재생은 확대 뷰에서 한다. */}
-                  <Media src={src} className="size-full object-cover" />
+                  {/* 캐러셀도 재생하지 않는 자리다 — 영상은 포스터, 없으면 첫 프레임. */}
+                  <Media src={item.thumbnailUrl ?? item.url} className="size-full object-cover" />
                 </Slide>
               );
             })}

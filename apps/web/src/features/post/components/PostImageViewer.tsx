@@ -1,5 +1,6 @@
 import { useSwipeDownToDismiss } from '@/shared/lib/useSwipeDownToDismiss';
-import { BackButton, Carousel, Header, Media } from '@/shared/ui';
+import { BackButton, Carousel, Header, Media, VideoPlayer } from '@/shared/ui';
+import type { PostMedia } from '../types';
 
 /**
  * Figma `게시물 상세 > 이미지 확대 뷰`.
@@ -8,14 +9,17 @@ import { BackButton, Carousel, Header, Media } from '@/shared/ui';
  *
  * 슬라이드가 화면 폭과 같아 `padded={false}` 로 스냅의 좌측 여백을 없앤다.
  */
+/** 시안의 슬라이드 크기 — 화면 폭을 꽉 채운다. */
+const SLIDE_CLASS = 'aspect-[375/495] w-full object-cover';
+
 export interface PostImageViewerProps {
-  images: string[];
+  media: PostMedia[];
   /** 확대뷰가 시작할 위치 — 상세에서 누른 그 이미지다(기본값 0). */
   initialIndex?: number;
   onClose: () => void;
 }
 
-function PostImageViewer({ images, initialIndex = 0, onClose }: PostImageViewerProps) {
+function PostImageViewer({ media, initialIndex = 0, onClose }: PostImageViewerProps) {
   // 헤더 버튼 말고 아래로 쓸어내려서도 닫는다 — 전체화면이라 버튼까지 손이 가기 멀다.
   const swipe = useSwipeDownToDismiss(onClose);
 
@@ -59,17 +63,17 @@ function PostImageViewer({ images, initialIndex = 0, onClose }: PostImageViewerP
             initialIndex={initialIndex}
             className="absolute inset-x-0 top-0"
           >
-            {images.map((src, index) => (
-              <Media
-                // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
+            {media.map((item, index) =>
+              // 미디어 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
+              // 크게 보려고 들어온 자리라 영상은 포스터가 있어도 원본을 재생한다.
+              item.type === 'VIDEO' ? (
                 // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
-                key={index}
-                src={src}
-                // 확대 뷰에서는 영상을 재생할 수 있게 컨트롤을 노출한다.
-                controls
-                className="aspect-[375/495] w-full object-cover"
-              />
-            ))}
+                <VideoPlayer key={index} src={item.url} className={SLIDE_CLASS} />
+              ) : (
+                // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
+                <Media key={index} src={item.url} className={SLIDE_CLASS} />
+              ),
+            )}
           </Carousel>
         </div>
       </div>

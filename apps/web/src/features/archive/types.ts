@@ -39,6 +39,12 @@ export interface CollectionSummary {
   /** 카드의 `N Places` 표기. 게시물은 `GroupPostSummaryResponse.placeCount` 가 채운다. */
   placeCount: number;
   thumbnails?: string[];
+  /**
+   * 커버(`thumbnails[0]`)의 미디어 종류 — 카드가 그 위에 종류 표시를 얹는다.
+   * 공개 아카이브(`Archive`)의 커버는 게시물 미디어가 아니라 아카이브 대표 사진이라
+   * 비워 둔다(표시 없음).
+   */
+  coverType?: 'IMAGE' | 'VIDEO';
   authorHandle?: string;
   /**
    * 저장 직후 BE 가 아직 처리(본문 크롤링·장소 파싱) 중이거나(`processing`) 처리에

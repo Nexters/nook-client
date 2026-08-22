@@ -159,6 +159,7 @@ function toPlaceDetailPost(dto: PlacePostResponse): PlaceDetailPost {
     title: dto.title || '제목 없는 게시물',
     authorHandle: dto.authorIdentifier ?? undefined,
     thumbnail: dto.representativeMedia?.url,
+    thumbnailType: dto.representativeMedia?.type === 'VIDEO' ? 'VIDEO' : 'IMAGE',
     savedAt: dto.savedAt,
   };
 }

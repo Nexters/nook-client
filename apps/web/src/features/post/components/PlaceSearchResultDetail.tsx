@@ -25,7 +25,9 @@ function PostThumbnailButton({
   onClick: () => void;
   className?: string;
 }) {
-  const cover = post.images?.[0];
+  // 재생하지 않는 커버라 영상은 포스터를 먼저 쓴다 — 없으면 영상 URL 로 첫 프레임.
+  const first = post.media?.[0];
+  const cover = first && (first.thumbnailUrl ?? first.url);
   return (
     <button
       type="button"
