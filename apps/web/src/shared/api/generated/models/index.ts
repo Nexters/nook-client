@@ -7,6 +7,8 @@
 
 export * from './apiError.generated';
 export * from './apiErrorData.generated';
+export * from './apiResponseAppVersionPolicyResponse.generated';
+export * from './apiResponseAppVersionPolicyResponseResultType.generated';
 export * from './apiResponseAuthActionResponse.generated';
 export * from './apiResponseAuthActionResponseResultType.generated';
 export * from './apiResponseConnectedPlaceResponse.generated';
@@ -53,6 +55,8 @@ export * from './apiResponseTokenResponse.generated';
 export * from './apiResponseTokenResponseResultType.generated';
 export * from './apiResponseUnit.generated';
 export * from './apiResponseUnitResultType.generated';
+export * from './appVersionPolicyResponse.generated';
+export * from './appVersionPolicyResponseUpdateType.generated';
 export * from './authActionResponse.generated';
 export * from './connectedPlaceResponse.generated';
 export * from './connectPostPlaceRequest.generated';

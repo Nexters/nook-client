@@ -2,6 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import type * as React from 'react';
 import emptyThumbnailLg from '@/assets/images/98_Group.svg';
 import { cn } from '@/shared/lib/utils';
+import { Media } from './media';
 
 /**
  * Figma `Thumbnail/98_Group`(Default/Empty/Plus) + `Thumbnail/60_img_x` 기준.
@@ -75,7 +76,9 @@ function Thumbnail({
 
   return (
     <div data-slot="thumbnail" className={cn(thumbnailVariants({ size }), className)} {...props}>
-      <img
+      {/* 실제 사진 자리엔 영상이 섞여 들어온다 — 어떤 태그로 그릴지는 `Media` 가 URL 로
+          정한다. 고스트(기본 이미지)는 항상 이미지라 분기와 무관하다. */}
+      <Media
         src={resolvedSrc}
         alt={showingRealImage ? alt : ''}
         // 고스트는 실제 사진과 달리 상자를 꽉 채우려는 그림이 아니라, 상자 비율과

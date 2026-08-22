@@ -312,6 +312,27 @@ export function Icon16ExclamationCircle({ size, width, height, ...props }: NookI
   );
 }
 
+export function Icon16Expand({ size, width, height, ...props }: NookIconProps) {
+  const renderedWidth = width ?? size ?? 16;
+  const renderedHeight = height ?? (size === undefined ? 16 : size * 1);
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={renderedWidth}
+      height={renderedHeight}
+      fill="none"
+      role="presentation"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M9.5925 7.155L12.8125 3.935V6.625C12.8125 6.8239 12.8915 7.0147 13.0322 7.1553C13.1728 7.296 13.3636 7.375 13.5625 7.375C13.7614 7.375 13.9522 7.296 14.0928 7.1553C14.2335 7.0147 14.3125 6.8239 14.3125 6.625V2.125C14.3125 1.9261 14.2335 1.7353 14.0928 1.5947C13.9522 1.454 13.7614 1.375 13.5625 1.375H9.0625C8.8636 1.375 8.6728 1.454 8.5322 1.5947C8.3915 1.7353 8.3125 1.9261 8.3125 2.125C8.3125 2.3239 8.3915 2.5147 8.5322 2.6553C8.6728 2.796 8.8636 2.875 9.0625 2.875H11.7525L8.5325 6.095C8.4 6.2372 8.3279 6.4252 8.3313 6.6195C8.3348 6.8138 8.4135 6.9992 8.5509 7.1366C8.6883 7.274 8.8737 7.3527 9.068 7.3562C9.2623 7.3596 9.4503 7.2875 9.5925 7.155ZM1.6875 13.875V9.375C1.6875 9.1761 1.7665 8.9853 1.9072 8.8447C2.0478 8.704 2.2386 8.625 2.4375 8.625C2.6364 8.625 2.8272 8.704 2.9678 8.8447C3.1085 8.9853 3.1875 9.1761 3.1875 9.375V12.065L6.4075 8.845C6.5497 8.7125 6.7377 8.6404 6.932 8.6438C7.1263 8.6472 7.3117 8.726 7.4491 8.8634C7.5865 9.0008 7.6653 9.1862 7.6687 9.3805C7.6721 9.5748 7.6 9.7628 7.4675 9.905L5.8575 11.515L4.2475 13.125H6.9375C7.1364 13.125 7.3272 13.204 7.4678 13.3447C7.6085 13.4853 7.6875 13.6761 7.6875 13.875C7.6875 14.0739 7.6085 14.2647 7.4678 14.4053C7.3272 14.546 7.1364 14.625 6.9375 14.625H2.4375C2.3389 14.6254 2.2412 14.6063 2.15 14.5687C2.0588 14.5312 1.976 14.4759 1.9063 14.4062C1.8366 14.3365 1.7813 14.2537 1.7438 14.1625C1.7062 14.0713 1.6871 13.9736 1.6875 13.875Z"
+        fill="#FFFFFF"
+      />
+    </svg>
+  );
+}
+
 export function Icon16Info({ size, width, height, ...props }: NookIconProps) {
   const renderedWidth = width ?? size ?? 16;
   const renderedHeight = height ?? (size === undefined ? 16 : size * 1);
@@ -948,6 +969,27 @@ export function Icon20Picture({ size, width, height, ...props }: NookIconProps) 
   );
 }
 
+export function Icon20PlayMini({ size, width, height, ...props }: NookIconProps) {
+  const renderedWidth = width ?? size ?? 20;
+  const renderedHeight = height ?? (size === undefined ? 20 : size * 1);
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      width={renderedWidth}
+      height={renderedHeight}
+      fill="none"
+      role="presentation"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M6.3 2.8411 C6.0731 2.6981 5.8119 2.6185 5.5438 2.6106 C5.2756 2.6028 5.0103 2.667 4.7754 2.7966 C4.5405 2.9262 4.3446 3.1165 4.2083 3.3475 C4.0719 3.5785 4 3.8419 4 4.1101 V15.8901 C4 16.1584 4.0719 16.4218 4.2083 16.6528 C4.3446 16.8838 4.5405 17.074 4.7754 17.2036 C5.0103 17.3332 5.2756 17.3975 5.5438 17.3896 C5.8119 17.3818 6.0731 17.3022 6.3 17.1591 L15.644 11.2691 C15.8584 11.134 16.0351 10.9467 16.1576 10.7248 C16.28 10.5029 16.3442 10.2536 16.3442 10.0001 C16.3442 9.7467 16.28 9.4974 16.1576 9.2755 C16.0351 9.0535 15.8584 8.8663 15.644 8.7311 L6.3 2.8401 V2.8411 Z"
+        fill="#FFFFFF"
+      />
+    </svg>
+  );
+}
+
 export function Icon24Add({ size, width, height, ...props }: NookIconProps) {
   const renderedWidth = width ?? size ?? 24;
   const renderedHeight = height ?? (size === undefined ? 24 : size * 1);
@@ -1300,6 +1342,46 @@ export function Icon24More({ size, width, height, ...props }: NookIconProps) {
       <path d="M3.25 10.75H5.75V13.25H3.25V10.75Z" fill="#848B96" />
       <path d="M10.75 10.75H13.25V13.25H10.75V10.75Z" fill="#848B96" />
       <path d="M18.25 10.75H20.75V13.25H18.25V10.75Z" fill="#848B96" />
+    </svg>
+  );
+}
+
+export function Icon24Pause({ size, width, height, ...props }: NookIconProps) {
+  const renderedWidth = width ?? size ?? 24;
+  const renderedHeight = height ?? (size === undefined ? 24 : size * 1);
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={renderedWidth}
+      height={renderedHeight}
+      fill="none"
+      role="presentation"
+      aria-hidden="true"
+      {...props}
+    >
+      <rect x="3" y="3" width="6" height="18" rx="1" fill="#FFFFFF" />
+      <rect x="15" y="3" width="6" height="18" rx="1" fill="#FFFFFF" />
+    </svg>
+  );
+}
+
+export function Icon24Play({ size, width, height, ...props }: NookIconProps) {
+  const renderedWidth = width ?? size ?? 24;
+  const renderedHeight = height ?? (size === undefined ? 24 : size * 1);
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={renderedWidth}
+      height={renderedHeight}
+      fill="none"
+      role="presentation"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M19.7793 10.7121C20.3802 11.0934 20.3802 12.0466 19.7793 12.4279L5.5821 21.4358C4.9812 21.8171 4.23 21.3405 4.23 20.5779L4.23 2.5621C4.23 1.7995 4.9812 1.3229 5.5821 1.7042L19.7793 10.7121Z"
+        fill="#FFFFFF"
+      />
     </svg>
   );
 }

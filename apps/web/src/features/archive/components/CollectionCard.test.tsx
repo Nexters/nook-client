@@ -60,4 +60,63 @@ describe('CollectionCard', () => {
       'https://img/1.jpg',
     );
   });
+
+  it('커버가 영상이면 포스터 위에 재생 표시를 얹는다', () => {
+    // 포스터는 그냥 사진이라 이게 없으면 영상인 줄 알 수가 없다.
+    const { container } = render(
+      <CollectionCard
+        archive={{ ...BASE, thumbnails: ['poster.jpg'], coverType: 'VIDEO' as const }}
+      />,
+    );
+
+    expect(
+      container.querySelector('[data-slot="media-badge"][data-type="VIDEO"]'),
+    ).toBeInTheDocument();
+  });
+
+  it('커버가 이미지면 재생 표시 대신 사진 표시를 얹는다', () => {
+    const { container } = render(
+      <CollectionCard
+        archive={{ ...BASE, thumbnails: ['photo.jpg'], coverType: 'IMAGE' as const }}
+      />,
+    );
+
+    expect(container.querySelector('[data-slot="media-badge"]')).toHaveAttribute(
+      'data-type',
+      'IMAGE',
+    );
+  });
+
+  it('공개 아카이브 커버(coverType 없음)에는 아무 표시도 얹지 않는다', () => {
+    const { container } = render(
+      <CollectionCard archive={{ ...BASE, thumbnails: ['photo.jpg'] }} />,
+    );
+
+    expect(container.querySelector('[data-slot="media-badge"]')).not.toBeInTheDocument();
+  });
+
+  it('선택 삭제 모드에서는 같은 자리를 체크가 쓰므로 재생 표시를 내린다', () => {
+    const { container } = render(
+      <CollectionCard
+        archive={{ ...BASE, thumbnails: ['poster.jpg'], coverType: 'VIDEO' as const }}
+        selected={false}
+      />,
+    );
+
+    expect(
+      container.querySelector('[data-slot="media-badge"][data-type="VIDEO"]'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('커버가 아직 없는 처리 중 카드에는 재생 표시를 얹지 않는다', () => {
+    const { container } = render(
+      <CollectionCard
+        archive={{ ...BASE, coverType: 'VIDEO' as const, processingState: 'processing' }}
+      />,
+    );
+
+    expect(
+      container.querySelector('[data-slot="media-badge"][data-type="VIDEO"]'),
+    ).not.toBeInTheDocument();
+  });
 });

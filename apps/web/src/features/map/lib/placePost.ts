@@ -20,6 +20,11 @@ export function toDisplayPost(placePost: PlaceDetailPost, detail?: PostDetail): 
   return {
     id: String(placePost.id),
     authorHandle: formatAuthorHandle(placePost.authorHandle),
-    images: [placePost.thumbnail ?? SAVED_POST_IMAGE],
+    // 이 응답엔 영상 포스터가 없다(`PlacePostMediaResponse`) — 종류만 옮기고 URL 은 그대로 쓴다.
+    media: [
+      placePost.thumbnail
+        ? { url: placePost.thumbnail, type: placePost.thumbnailType ?? 'IMAGE' }
+        : { url: SAVED_POST_IMAGE, type: 'IMAGE' },
+    ],
   };
 }

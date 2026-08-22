@@ -1,9 +1,8 @@
 import { createPortal } from 'react-dom';
 import { Icon24Back } from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
-import { Carousel, Header } from '@/shared/ui';
+import { Carousel, Header, Media, VideoPlayer } from '@/shared/ui';
 import type { Post } from '../types';
-import { ExpandableCaption } from './ExpandableCaption';
 import { OriginalPostLink } from './OriginalPostLink';
 
 /**
@@ -18,17 +17,22 @@ import { OriginalPostLink } from './OriginalPostLink';
  * 장소 상세와 같은 이유로 body 로 포탈한다 — 이 뷰가 열리는 장소 상세는 vaul 드로어
  * 안에 있고, 드로어는 스냅을 transform 으로 움직여 그 조상이 fixed 의 기준 박스가
  * 되어버린다(포탈 없이는 드로어 안쪽만 덮는다).
+ *
+ * 본문은 접지 않고 전문을 보여준다(Figma `8월 21일 작업 > 게시물 보기` 177:23785) —
+ * 카드에서 2줄로 잘려 있던 걸 마저 읽으러 들어오는 화면이라 여기서 또 접으면 의미가 없다.
  */
+/** 시안의 미디어 프레임 — 375x469. */
+const FRAME_CLASS = 'aspect-[375/469] w-full object-cover';
 export interface SavedPostPreviewProps {
   title: string;
   post: Post;
-  /** 처음 보여줄 사진 위치 — 카드에서 누른 그 사진부터 연다. */
+  /** 처음 보여줄 미디어 위치 — 카드에서 누른 그 미디어부터 연다. */
   initialIndex?: number;
   onClose: () => void;
 }
 
 function SavedPostPreview({ title, post, initialIndex = 0, onClose }: SavedPostPreviewProps) {
-  const images = post.images ?? [];
+  const media = post.media ?? [];
 
   return createPortal(
     // z-70: 전체화면 오버레이라 탭바(60)까지 덮는다.
@@ -46,19 +50,28 @@ function SavedPostPreview({ title, post, initialIndex = 0, onClose }: SavedPostP
         }
       />
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        {images.length > 0 ? (
+        {media.length > 0 ? (
           <Carousel padded={false} gap={0} initialIndex={initialIndex}>
-            {images.map((src, index) => (
-              // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
-              // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
-              <img key={index} src={src} alt="" className="aspect-[375/469] w-full object-cover" />
-            ))}
+            {media.map((item, index) =>
+              // 미디어 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
+              // 확대해서 보러 온 자리라 영상은 포스터가 있어도 원본을 재생한다.
+              item.type === 'VIDEO' ? (
+                // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
+                <VideoPlayer key={index} src={item.url} className={FRAME_CLASS} />
+              ) : (
+                // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
+                <Media key={index} src={item.url} className={FRAME_CLASS} />
+              ),
+            )}
           </Carousel>
         ) : null}
 
         <div className="flex flex-col gap-2 px-4 py-4">
           <h1 className="text-h1 font-semibold text-gray-100">{title}</h1>
-          {post.caption ? <ExpandableCaption caption={post.caption} lines={2} /> : null}
+          {/* 원문 줄바꿈을 그대로 살린다 — 해시태그 줄이 붙어버리면 읽기 어렵다. */}
+          {post.caption ? (
+            <p className="whitespace-pre-wrap text-b2 text-gray-90">{post.caption}</p>
+          ) : null}
           {post.originalUrl ? (
             <OriginalPostLink label={post.authorHandle} href={post.originalUrl} className="mt-2" />
           ) : null}

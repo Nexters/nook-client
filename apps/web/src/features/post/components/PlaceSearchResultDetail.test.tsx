@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { Post } from '../types';
 import { PlaceSearchResultDetail } from './PlaceSearchResultDetail';
 
 const PLACE = {
@@ -11,9 +12,22 @@ const PLACE = {
   keywords: ['조용한', '정갈한'],
 };
 
-const POSTS = [
-  { id: 'p1', authorHandle: '@a', images: ['a.png'], originalUrl: 'https://x.com/1' },
-  { id: 'p2', authorHandle: '@a', images: ['b.png', 'c.png'], originalUrl: 'https://x.com/2' },
+const POSTS: Post[] = [
+  {
+    id: 'p1',
+    authorHandle: '@a',
+    media: [{ url: 'a.png', type: 'IMAGE' }],
+    originalUrl: 'https://x.com/1',
+  },
+  {
+    id: 'p2',
+    authorHandle: '@a',
+    media: [
+      { url: 'b.png', type: 'IMAGE' },
+      { url: 'c.png', type: 'IMAGE' },
+    ],
+    originalUrl: 'https://x.com/2',
+  },
 ];
 
 describe('PlaceSearchResultDetail', () => {

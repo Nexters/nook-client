@@ -20,6 +20,7 @@ import type {
   PlaceParsingResult,
   PostArchive,
   PostDetail,
+  PostMedia,
   SearchedPlace,
 } from '../types';
 
@@ -84,12 +85,22 @@ function toPostArchive(dto: SavedPostGroupResponse): PostArchive {
   };
 }
 
-/** 서버 DTO → 화면 모델. `media` 는 순서(`sequence`)대로 정렬하고 이미지만 쓴다(영상은 시안 미정). */
+/**
+ * 서버 DTO → 화면 모델. `media` 는 순서(`sequence`)대로 정렬해 그대로 넘긴다.
+ * 영상(`type: VIDEO`)도 걸러내지 않는다 — 릴스처럼 영상만 있는 게시물은 걸러내면
+ * 미디어 영역이 통째로 비어버린다.
+ *
+ * 종류와 포스터를 URL 로 추측하지 않고 서버가 준 값을 그대로 들고 간다 — 화면마다
+ * 재생할지(원본 URL) 정지 화면만 보일지(포스터)가 다르고, 확장자 없는 CDN URL 도 있다.
+ */
 export function toPostDetail(dto: SavedPostDetailResponse): PostDetail {
-  const images = [...dto.media]
-    .filter((media) => media.type === 'IMAGE')
+  const media: PostMedia[] = [...dto.media]
     .sort((a, b) => a.sequence - b.sequence)
-    .map((media) => media.url);
+    .map((item) => ({
+      url: item.url,
+      thumbnailUrl: item.thumbnailUrl ?? undefined,
+      type: item.type,
+    }));
 
   return {
     processingStatus: dto.processingStatus,
@@ -106,7 +117,7 @@ export function toPostDetail(dto: SavedPostDetailResponse): PostDetail {
       id: String(dto.postId),
       authorHandle: formatAuthorHandle(dto.authorIdentifier, dto.canonicalUrl),
       caption: dto.body ?? undefined,
-      images,
+      media,
       originalUrl: dto.canonicalUrl,
     },
   };

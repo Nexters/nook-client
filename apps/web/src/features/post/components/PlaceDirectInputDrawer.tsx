@@ -300,7 +300,7 @@ function PlaceDirectInputDrawer({
             <Dialog.Content>
               <Dialog.Title className="sr-only">이미지 확대 보기</Dialog.Title>
               <PostImageViewer
-                images={viewingPost.images ?? []}
+                media={viewingPost.media ?? []}
                 onClose={() => setViewingPost(null)}
               />
             </Dialog.Content>
