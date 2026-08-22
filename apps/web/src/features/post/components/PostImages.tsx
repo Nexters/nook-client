@@ -57,7 +57,8 @@ const SINGLE_CLASS =
 export interface PostImagesProps {
   /** 이미지·영상 URL. 서버 순서(`sequence`)를 그대로 유지한다. */
   images: string[];
-  onImageClick: () => void;
+  /** 누른 이미지의 위치를 넘긴다 — 확대뷰가 그 이미지부터 시작해야 한다. */
+  onImageClick: (index: number) => void;
   /** 단일 영상의 확대 버튼. 넘기지 않으면 버튼을 그리지 않는다. */
   onVideoExpand?: () => void;
 }
@@ -89,7 +90,7 @@ function PostImages({ images, onImageClick, onVideoExpand }: PostImagesProps) {
       <button
         type="button"
         aria-label="이미지 크게 보기"
-        onClick={onImageClick}
+        onClick={() => onImageClick(0)}
         // 캐러셀 슬라이드와 같은 좌우 16px 여백.
         className="w-full px-4"
       >
@@ -109,7 +110,7 @@ function PostImages({ images, onImageClick, onVideoExpand }: PostImagesProps) {
           key={index}
           type="button"
           aria-label={`${index + 1}번째 이미지 크게 보기`}
-          onClick={onImageClick}
+          onClick={() => onImageClick(index)}
           // 좌우 16px 여백은 첫/마지막 슬라이드가 만든다 — 스크롤 컨테이너에 padding 을
           // 주면 다음 이미지가 화면 끝까지 이어지지 않고 잘린다(시안은 끝까지 이어진다).
           className={cn(

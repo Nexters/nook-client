@@ -1,14 +1,36 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import { ArchiveDetailPage } from '@/features/archive/ArchiveDetailPage';
 import { ArchiveFormPage } from '@/features/archive/ArchiveFormPage';
 import { ArchivePage } from '@/features/archive/ArchivePage';
 import type { Archive } from '@/features/archive/types';
+import { onBackGestureChange } from '@/shared/lib/backGesture';
+import { runBackInterceptors } from '@/shared/lib/backInterceptors';
 import { ToastProvider } from '@/shared/toast';
+
+/**
+ * iOS 엣지 스와이프가 하는 일 — 화면을 거치지 않고 히스토리를 한 칸 되돌린다.
+ * WKWebView 는 웹에 이벤트를 주지 않고 히스토리를 직접 조작하므로, 라우터 레벨의
+ * navigate(-1) 이 그 경로를 그대로 재현한다.
+ */
+function HistoryBackProbe() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      히스토리 뒤로
+    </button>
+  );
+}
+
+/** 현재 쿼리스트링 프로브 — 진입 파라미터(`?new`)를 지웠는지 본다. */
+function SearchParamsProbe() {
+  const location = useLocation();
+  return <output data-testid="search">{location.search}</output>;
+}
 
 /** `/map` 착지 확인용 — 실제 화면 대신 쿼리스트링을 그대로 보여준다. */
 function MapRouteProbe() {
@@ -63,9 +85,10 @@ function renderArchiveRoutes(initialPath: string) {
   return render(
     wrapper(
       <MemoryRouter initialEntries={[initialPath]}>
+        <HistoryBackProbe />
+        <SearchParamsProbe />
         <Routes>
           <Route path="/archive" element={<ArchivePage />} />
-          <Route path="/archive/new" element={<ArchiveFormPage mode="create" />} />
           <Route path="/archive/:archiveId" element={<ArchiveDetailPage />} />
           <Route path="/archive/:archiveId/edit" element={<ArchiveFormPage mode="edit" />} />
           <Route path="/shared/:token/post/:postId" element={<div>공유 게시물 상세</div>} />
@@ -93,6 +116,69 @@ describe('아카이브 화면', () => {
     mocks.removeSharedArchive.mockReset().mockResolvedValue(undefined);
   });
 
+  it('목록을 기다리는 동안 카드 자리에 스켈레톤 3장을 깔고, 도착하면 치운다', async () => {
+    // 응답을 손으로 풀어 pending 구간을 붙잡는다.
+    let resolveArchives: (value: Archive[]) => void = () => {};
+    mocks.fetchArchives.mockReturnValue(
+      new Promise<Archive[]>((resolve) => {
+        resolveArchives = resolve;
+      }),
+    );
+
+    renderArchiveRoutes('/archive');
+
+    // 예전엔 이 구간에 아무것도 없어서 목록 영역이 통째로 비어 보였다.
+    const cards = document.querySelectorAll('[data-slot="archive-card-skeleton"]');
+    expect(cards).toHaveLength(3);
+    // 빈 상태 문구가 스쳐 지나가서는 안 된다(스켈레톤이 그 역할을 대신한다).
+    expect(screen.queryByText('아직 생성한 아카이브가 없어요')).not.toBeInTheDocument();
+
+    resolveArchives(ARCHIVES);
+
+    expect(await screen.findByRole('button', { name: /카페/ })).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="archive-card-skeleton"]')).not.toBeInTheDocument();
+  });
+
+  it('아카이브 상세는 메타를 기다리는 동안 헤더를 살려둔 채 카드 자리를 뼈대로 채운다', async () => {
+    let resolveArchives: (value: Archive[]) => void = () => {};
+    mocks.fetchArchives.mockReturnValue(
+      new Promise<Archive[]>((resolve) => {
+        resolveArchives = resolve;
+      }),
+    );
+
+    renderArchiveRoutes('/archive/1');
+
+    // 예전엔 이 구간이 헤더째 빈 화면이었다 — 최소한 뒤로가기는 즉시 눌려야 한다.
+    expect(screen.getByRole('button', { name: '뒤로 가기' })).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+
+    resolveArchives(ARCHIVES);
+
+    expect(await screen.findByRole('heading', { name: '카페' })).toBeInTheDocument();
+  });
+
+  it('아카이브 상세의 첫 페이지가 오기 전엔 빈 상태 대신 카드 자리를 뼈대로 채운다', async () => {
+    let resolvePosts: (value: unknown) => void = () => {};
+    mocks.fetchArchivePosts.mockReturnValue(
+      new Promise((resolve) => {
+        resolvePosts = resolve;
+      }),
+    );
+
+    renderArchiveRoutes('/archive/1');
+
+    // 아직 오지 않은 것과 없는 것은 다른 화면이어야 한다.
+    expect(await screen.findByRole('heading', { name: '카페' })).toBeInTheDocument();
+    expect(screen.queryByText('저장한 게시물이 없어요')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
+
+    resolvePosts({ posts: [], nextPage: undefined, totalElements: 0 });
+
+    expect(await screen.findByText('저장한 게시물이 없어요')).toBeInTheDocument();
+    expect(document.querySelector('[data-slot="skeleton"]')).not.toBeInTheDocument();
+  });
+
   it('목록에서 아카이브를 누르면 상세로 이동한다', async () => {
     renderArchiveRoutes('/archive');
 
@@ -101,8 +187,17 @@ describe('아카이브 화면', () => {
     expect(screen.getByRole('heading', { name: '카페' })).toBeInTheDocument();
   });
 
+  it('목록에 없는 아카이브 상세는 못 찾는 화면 대신 목록으로 돌려보낸다', async () => {
+    renderArchiveRoutes('/archive/999');
+
+    // 삭제 직후 무효화가 팝업의 navigate 보다 먼저 끝났을 때도 같은 분기를 탄다.
+    expect(await screen.findByRole('button', { name: /카페/ })).toBeInTheDocument();
+    expect(screen.queryByText('아카이브를 찾을 수 없어요')).not.toBeInTheDocument();
+  });
+
   it('새 아카이브 생성은 이름이 비면 버튼이 비활성화되고, 입력하면 생성 요청을 보낸다', async () => {
-    renderArchiveRoutes('/archive/new');
+    renderArchiveRoutes('/archive');
+    fireEvent.click(await screen.findByRole('button', { name: '새 아카이브 만들기' }));
 
     const submit = screen.getByRole('button', { name: '아카이브 만들기' });
     expect(submit).toBeDisabled();
@@ -196,6 +291,9 @@ describe('아카이브 화면', () => {
 
     expect(await screen.findByText('저장한 게시물이 없어요')).toBeInTheDocument();
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    // 편집·공유 칩도 함께 내린다(시안 263:10971) — 두 액션은 더보기 메뉴에만 남는다.
+    expect(screen.queryByRole('button', { name: '아카이브 편집' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /공유/ })).not.toBeInTheDocument();
   });
 
   it('상세 더보기 메뉴의 아카이브 편집을 누르면 편집 화면으로 이동한다', async () => {
@@ -359,6 +457,36 @@ describe('아카이브 화면', () => {
     expect(mocks.deleteArchivePosts).not.toHaveBeenCalled();
   });
 
+  it('선택 삭제 모드에서 히스토리 뒤로(iOS 엣지 스와이프)면 모드만 종료되고 선택도 비워진다', async () => {
+    mocks.fetchArchivePosts.mockResolvedValue({
+      posts: [
+        { id: 7, name: '초록뷰 카페', placeCount: 3, authorHandle: '@abcde', thumbnails: [] },
+      ],
+      nextPage: undefined,
+      ownerNickname: 'Purr',
+      totalElements: 1,
+    });
+
+    renderArchiveRoutes('/archive/1');
+    expect(await screen.findByText('초록뷰 카페')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '선택 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: /초록뷰 카페/ }));
+    expect(screen.getByRole('button', { name: '1개 삭제하기' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '히스토리 뒤로' }));
+
+    // 모드만 접힌다 — 승격 전에는 여기서 아카이브 상세를 떠났다.
+    expect(screen.queryByRole('button', { name: /삭제하기/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '카페' })).toBeInTheDocument();
+
+    // 다시 들어가도 지난 선택은 남아 있지 않다.
+    fireEvent.click(screen.getByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '선택 삭제' }));
+    expect(screen.getByRole('button', { name: '삭제하기' })).toBeInTheDocument();
+  });
+
   it('아카이브 편집은 기존 이름을 채우고 삭제 확인 후 삭제 요청을 보낸다', async () => {
     renderArchiveRoutes('/archive/1/edit');
 
@@ -372,9 +500,33 @@ describe('아카이브 화면', () => {
     expect(await screen.findByText('"카페" 아카이브가 삭제 됐어요.')).toBeInTheDocument();
   });
 
-  it('공유받은 아카이브 카드는 소유자 닉네임을 보여준다', async () => {
-    renderArchiveRoutes('/archive');
-    expect(await screen.findByText('by ehoidi')).toBeInTheDocument();
+  it('공유받은 아카이브 카드는 색 칩 대신 프로필 이미지를 놓고 소유자 닉네임을 보여준다', async () => {
+    const { container } = renderArchiveRoutes('/archive');
+
+    expect(await screen.findByText('ehoidi')).toBeInTheDocument();
+    // 목록의 공유 아카이브는 하나뿐이고, 내 아카이브(OWNED)는 색 칩을 그대로 쓴다.
+    const avatars = container.querySelectorAll('[data-slot="avatar"]');
+    expect(avatars).toHaveLength(1);
+    // 이 소유자에겐 profileImageUrl 이 없어 Avatar 의 기본(엠티) 이미지가 들어간다.
+    expect(avatars[0]?.querySelector('img')).toHaveAttribute('src');
+  });
+
+  it('공유받은 아카이브 소유자에게 프로필 이미지가 있으면 그 이미지를 쓴다', async () => {
+    mocks.fetchArchives.mockResolvedValue(
+      ARCHIVES.map((archive) =>
+        archive.accessType === 'SHARED'
+          ? { ...archive, owner: { nickname: 'ehoidi', profileImageUrl: 'https://img/me.png' } }
+          : archive,
+      ),
+    );
+
+    const { container } = renderArchiveRoutes('/archive');
+
+    expect(await screen.findByText('ehoidi')).toBeInTheDocument();
+    expect(container.querySelector('[data-slot="avatar"] img')).toHaveAttribute(
+      'src',
+      'https://img/me.png',
+    );
   });
 
   it('공유받은 아카이브 상세의 게시물 카드는 공유 게시물 상세로 이동한다', async () => {
@@ -411,8 +563,8 @@ describe('아카이브 화면', () => {
 
     renderArchiveRoutes('/archive/3');
     // 처리 실패 카드는 onClick 이 없어 button 이 아니라 div 로 렌더된다 — 탭할 버튼 자체가 없다.
-    expect(await screen.findByText('처리 실패')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /처리 실패/ })).not.toBeInTheDocument();
+    expect(await screen.findByText('불러오지 못했어요.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /불러오지 못했어요/ })).not.toBeInTheDocument();
   });
 
   it('공유받은 아카이브 상세의 장소 카드도 지도의 장소 상세로 이동한다', async () => {
@@ -449,5 +601,101 @@ describe('아카이브 화면', () => {
 
     // mutate 는 두 번째 인자로 mutation context 를 넘기므로 첫 인자만 본다.
     await vi.waitFor(() => expect(mocks.removeSharedArchive.mock.calls[0]?.[0]).toBe(3));
+  });
+
+  /**
+   * 생성 화면은 아래에서 올라오는 시트라, 나가는 길도 아래로 내려가는 전환 하나로 모은다
+   * (시안 273:10642 — 좌상단 뒤로가기 대신 우상단 닫기). 옆으로 밀려 나가는 iOS 좌측
+   * 스와이프는 축이 어긋나 허용하지 않는다.
+   */
+  describe('새 아카이브 생성 화면 나가기', () => {
+    /** 지금 이 화면이 iOS 좌측 스와이프를 허용하는지 — 셸에 알리는 그 값 그대로다. */
+    function listenBackGesture() {
+      const calls: boolean[] = [];
+      onBackGestureChange((enabled) => calls.push(enabled));
+      return calls;
+    }
+
+    /** 목록의 + 로 들어간다 — 실제 진입 경로이자, 되감을 히스토리를 만드는 유일한 길이다. */
+    async function openCreateFromList() {
+      renderArchiveRoutes('/archive');
+      fireEvent.click(await screen.findByRole('button', { name: '새 아카이브 만들기' }));
+      return screen.findByRole('button', { name: '아카이브 만들기' });
+    }
+
+    /** 생성 오버레이. 사라졌으면 null 이다 — 목록의 main 과 섞이지 않게 data-slot 으로 잡는다. */
+    const createForm = () => document.querySelector('[data-slot="archive-form"]');
+    const archiveList = () => screen.getByRole('button', { name: /카페/ });
+
+    it('좌상단 뒤로가기 대신 우상단 닫기를 두고, 좌측 스와이프는 허용하지 않는다', async () => {
+      const gesture = listenBackGesture();
+      await openCreateFromList();
+
+      expect(screen.getByRole('button', { name: '닫기' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '뒤로 가기' })).not.toBeInTheDocument();
+      // 허용 판정은 공용 뒤로가기 버튼의 존재가 곧 규칙이다 — 버튼이 없으니 꺼져 있다.
+      await vi.waitFor(() => expect(gesture.at(-1)).toBe(false));
+    });
+
+    it('탭바·로고 헤더 위로 덮는다 — 셸 안에 두면 그것들에 가려진다', async () => {
+      await openCreateFromList();
+
+      // 셸은 스택 컨텍스트라, body 로 포탈된 그것들 위로 가려면 이 화면도 body 에 있어야 한다.
+      expect(createForm()?.parentElement).toBe(document.body);
+      expect(createForm()).toHaveClass('z-[70]');
+    });
+
+    it('닫기를 누르면 목록 위에서 아래로 내려간 다음 사라진다', async () => {
+      await openCreateFromList();
+
+      fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+
+      // 내려가는 동안에도 뒤에는 목록이 그대로 있다 — 라우트였을 땐 이 자리가 빈 배경이었다.
+      expect(createForm()).toHaveClass('translate-y-full');
+      expect(archiveList()).toBeInTheDocument();
+      await vi.waitFor(() => expect(createForm()).toBeNull());
+    });
+
+    it('Android 하드웨어 백도 같은 전환을 태운다', async () => {
+      await openCreateFromList();
+
+      // 인터셉터가 받았으면 true — 히스토리 뒤로가기로 곧장 빠지지 않는다.
+      expect(runBackInterceptors()).toBe(true);
+
+      expect(createForm()).toHaveClass('translate-y-full');
+      await vi.waitFor(() => expect(createForm()).toBeNull());
+      expect(archiveList()).toBeInTheDocument();
+    });
+
+    it('생성이 끝나도 같은 전환으로 닫힌다', async () => {
+      await openCreateFromList();
+
+      fireEvent.change(screen.getByLabelText('아카이브 이름'), {
+        target: { value: '토요일 모임' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: '아카이브 만들기' }));
+
+      await vi.waitFor(() => expect(createForm()).toHaveClass('translate-y-full'));
+      await vi.waitFor(() => expect(createForm()).toBeNull());
+      expect(archiveList()).toBeInTheDocument();
+    });
+
+    it('목록 밖에서 `?new` 로 들어오면 목록 위에 열고 파라미터는 지운다 — 저장 시트 경로다', async () => {
+      renderArchiveRoutes('/archive?new=1');
+
+      expect(await screen.findByRole('button', { name: '아카이브 만들기' })).toBeInTheDocument();
+      // 오버레이가 목록보다 먼저 뜬다(목록은 응답을 기다린다) — 뒤에 목록이 채워지는 것까지 본다.
+      expect(await screen.findByRole('button', { name: /카페/ })).toBeInTheDocument();
+      // 남겨두면 새로고침·뒤로가기로 다시 열린다.
+      await vi.waitFor(() => expect(screen.getByTestId('search').textContent).toBe(''));
+    });
+
+    it('편집 화면은 그대로 좌상단 뒤로가기를 쓴다 — 옆에서 열리는 화면이다', async () => {
+      renderArchiveRoutes('/archive/1/edit');
+
+      expect(await screen.findByDisplayValue('카페')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '뒤로 가기' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '닫기' })).not.toBeInTheDocument();
+    });
   });
 });

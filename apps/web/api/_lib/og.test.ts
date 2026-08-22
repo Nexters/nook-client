@@ -39,7 +39,7 @@ describe('renderSharedArchiveHtml', () => {
 
     expect(html).toContain('<title>성수 카페 - Nook</title>');
     expect(html).toContain('property="og:title" content="성수 카페 - Nook"');
-    expect(html).toContain('property="og:description" content="ehoidi님의 아카이브 · 12개 저장"');
+    expect(html).toContain('property="og:description" content="@ehoidi · 12 Places"');
     expect(html).toContain('property="og:image" content="https://img.example/thumb.jpg"');
     expect(html).toContain(
       'property="og:url" content="https://www.everynook.co.kr/shared/tok-123"',
@@ -75,14 +75,14 @@ describe('renderSharedArchiveHtml', () => {
     );
   });
 
-  it('닉네임이 없으면 "님의" 없이 건수만 보여준다', () => {
+  it('닉네임이 없으면 "@닉네임 · " 없이 건수만 보여준다', () => {
     const html = renderSharedArchiveHtml(BASE_HTML, {
       archive: { name: '닉네임 없는 아카이브', postCount: 3 },
       shareUrl: 'https://www.everynook.co.kr/shared/no-nick',
       fallbackImageUrl: 'https://www.everynook.co.kr/og-default.png',
     });
 
-    expect(html).toContain('property="og:description" content="아카이브 · 3개 저장"');
+    expect(html).toContain('property="og:description" content="3 Places"');
   });
 
   it('아카이브 이름에 HTML 특수문자가 있으면 이스케이프한다(마크업 삽입 방지)', () => {
@@ -110,7 +110,7 @@ describe('renderSharedArchiveHtml', () => {
 
     expect(html).toContain('<title>성수 카페 - Nook</title>');
     expect(html).toContain('property="og:title" content="성수 카페 - Nook"');
-    expect(html).toContain('property="og:description" content="ehoidi님의 아카이브 · 12개 저장"');
+    expect(html).toContain('property="og:description" content="@ehoidi · 12 Places"');
     expect(html).toContain('property="og:image" content="https://img.example/thumb.jpg"');
     expect(html).toContain(
       'property="og:url" content="https://www.everynook.co.kr/shared/tok-123"',

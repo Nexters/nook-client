@@ -10,8 +10,8 @@
 > 아예 달라서 절을 완전히 나눴다 — 필요한 플랫폼 절만 읽으면 된다.
 >
 > EAS 클라우드로 서명된 dev-client 빌드나 배포용 빌드는 다루지 않는다 — 그건
-> [배포 빌드 설치 가이드](<[NOOK] 배포_빌드_설치_가이드.md>)와
-> [iOS EAS 빌드 및 App Store 제출](<[NOOK-115] 01.iOS_EAS_빌드_및_App_Store_제출.md>) 참고.
+> [배포 빌드 설치 가이드](<[NOOK-NATIVE] 배포_빌드_설치_가이드.md>)와
+> [iOS EAS 빌드 및 App Store 제출](<[NOOK-NATIVE] iOS_EAS_빌드_및_App_Store_제출_개요.md>) 참고.
 
 ## 1. 공통: 클론 & 설치
 
@@ -35,7 +35,7 @@ cp .env.example .env.local
 | `APP_VARIANT` | 선택 | `development`로 두면 `kr.co.everynook.app.dev` 식별자로 빌드된다. 비워두면 production 식별자 |
 | `APPLE_TEAM_ID` | 선택 (iOS) | 2-2절 참고 — 팀 계정에 초대된 게 아니라면 비워두고 Xcode가 본인 Apple ID로 서명하게 둔다 |
 | `KAKAO_NATIVE_APP_KEY_DEV`/`_PROD` | 선택 | 카카오 로그인을 직접 테스트할 때만 필요. 값 없어도 빌드·설치는 된다(로그인 버튼만 실패) |
-| `EXPO_PUBLIC_WEB_URL`/`EXPO_PUBLIC_API_BASE_URL` | 선택 | LAN IP로 로컬 웹을 띄워 확인할 때만 |
+| `EXPO_PUBLIC_WEB_URL` | 선택 | LAN IP로 로컬 웹을 띄워 확인할 때만 |
 
 ---
 
@@ -184,12 +184,12 @@ pnpm android    # adb devices에 잡힌 기기에 설치
 - 네이티브가 바뀌는 경우(라이브러리 추가·삭제, `app.config.ts`·`app.json` 변경, 권한/엔타이틀먼트
   변경)만 플랫폼별 2-3절/3-3절을 다시 실행한다.
 - 로컬 웹을 앱 WebView에 띄우는 법(포트 프록시, LAN IP·네이버 지도 SDK 제약 등)은
-  [배포 빌드 설치 가이드의 "로컬 웹을 앱에 띄울 때" 절](<[NOOK] 배포_빌드_설치_가이드.md>)을
+  [배포 빌드 설치 가이드의 "로컬 웹을 앱에 띄울 때" 절](<[NOOK-NATIVE] 배포_빌드_설치_가이드.md>)을
   그대로 따른다 — 로컬 빌드든 EAS dev-client 빌드든 동일하다.
 
 ## 5. 이 문서가 다루지 않는 것
 
 - EAS 클라우드로 서명된 dev-client/배포용 빌드 설치, 새 테스트 기기 등록:
-  [배포 빌드 설치 가이드](<[NOOK] 배포_빌드_설치_가이드.md>)
+  [배포 빌드 설치 가이드](<[NOOK-NATIVE] 배포_빌드_설치_가이드.md>)
 - production 빌드와 App Store Connect 제출:
-  [iOS EAS 빌드 및 App Store 제출](<[NOOK-115] 01.iOS_EAS_빌드_및_App_Store_제출.md>)
+  [iOS EAS 빌드 및 App Store 제출](<[NOOK-NATIVE] iOS_EAS_빌드_및_App_Store_제출_개요.md>)

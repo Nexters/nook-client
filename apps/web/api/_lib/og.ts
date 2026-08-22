@@ -35,8 +35,8 @@ function setTitle(html: string, title: string): string {
 }
 
 function toDescription(archive: SharedArchiveMeta): string {
-  const owner = archive.ownerNickname ? `${archive.ownerNickname}님의 ` : '';
-  return `${owner}아카이브 · ${archive.postCount}개 저장`;
+  const owner = archive.ownerNickname ? `@${archive.ownerNickname} · ` : '';
+  return `${owner}${archive.postCount} Places`;
 }
 
 /**

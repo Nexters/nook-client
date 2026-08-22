@@ -66,6 +66,7 @@ function renderPage(token = 'tok-123', options: { withAwaitSession?: boolean } =
         <Routes>
           <Route path="/shared/:token" element={element} />
           <Route path="/shared/:token/post/:postId" element={<div>공유 게시물 상세</div>} />
+          <Route path="/archive" element={<div>아카이브 목록 화면</div>} />
           <Route path="/archive/:archiveId/edit" element={<div>아카이브 편집 화면</div>} />
           <Route path="/login" element={<div>로그인 화면</div>} />
           <Route path="/map" element={<MapRouteProbe />} />
@@ -140,7 +141,11 @@ describe('SharedArchivePage', () => {
     await vi.waitFor(() =>
       expect(mocks.subscribeSharedArchive).toHaveBeenCalledWith('tok-123', expect.anything()),
     );
-    expect(await screen.findByText('아카이브에 저장됐어요!')).toBeInTheDocument();
+    expect(await screen.findByText('아카이브에 저장했어요!')).toBeInTheDocument();
+
+    // 보러가기는 저장한 아카이브 상세가 아니라 내 아카이브 목록으로 보낸다.
+    fireEvent.click(screen.getByRole('button', { name: '보러가기' }));
+    expect(await screen.findByText('아카이브 목록 화면')).toBeInTheDocument();
   });
 
   it('이미 내 목록에 있는 아카이브는 저장 버튼이 완료 상태다', async () => {
@@ -185,9 +190,10 @@ describe('SharedArchivePage', () => {
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: '공유' }));
 
-    // 프리뷰 카드 — 아카이브 이름과 소유자, 개수 요약.
-    // 유일한 텍스트는 "@ehoidi • 12 Places" 이므로 이것으로 프리뷰 카드 렌더 여부를 확인한다.
-    expect(screen.getByText('@ehoidi • 12 Places')).toBeInTheDocument();
+    // 프리뷰 카드 — 아카이브 이름과 소유자, 개수 요약. 시안(279:10740)대로 소유자와
+    // 개수가 2px 원 구분점을 사이에 둔 별개 요소라, 각각으로 렌더 여부를 확인한다.
+    expect(screen.getByText('@ehoidi')).toBeInTheDocument();
+    expect(screen.getByText('12 Places')).toBeInTheDocument();
     // 공유 수단.
     expect(screen.getByText('링크 복사')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '더보기' })).toBeInTheDocument();

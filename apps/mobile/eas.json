@@ -10,7 +10,7 @@
         "APPLE_TEAM_ID": "TDTGJZTB57"
       }
     },
-    "development": {
+    "dev-metro": {
       "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
@@ -19,7 +19,7 @@
         "APP_VARIANT": "development"
       }
     },
-    "device": {
+    "prod-metro": {
       "extends": "base",
       "developmentClient": true,
       "distribution": "internal",
@@ -28,7 +28,19 @@
         "APP_VARIANT": "production"
       }
     },
-    "production": {
+    "dev-store": {
+      "extends": "base",
+      "distribution": "store",
+      "environment": "development",
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "development"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
+      }
+    },
+    "prod-store": {
       "extends": "base",
       "distribution": "store",
       "environment": "production",
@@ -39,37 +51,19 @@
       "ios": {
         "resourceClass": "m-medium"
       }
-    },
-    "preview": {
-      "extends": "base",
-      "distribution": "store",
-      "environment": "development",
-      "autoIncrement": true,
-      "env": {
-        "APP_VARIANT": "development"
-      },
-      "ios": {
-        "resourceClass": "m-medium"
-      }
     }
   },
   "submit": {
-    "production": {
+    "prod-store": {
       "ios": {
         "ascAppId": "6798223287",
-        "appleTeamId": "TDTGJZTB57",
-        "ascApiKeyPath": "$EXPO_ASC_API_KEY_PATH",
-        "ascApiKeyId": "$EXPO_ASC_KEY_ID",
-        "ascApiKeyIssuerId": "$EXPO_ASC_ISSUER_ID"
+        "appleTeamId": "TDTGJZTB57"
       }
     },
-    "preview": {
+    "dev-store": {
       "ios": {
         "ascAppId": "6803065807",
-        "appleTeamId": "TDTGJZTB57",
-        "ascApiKeyPath": "$EXPO_ASC_API_KEY_PATH",
-        "ascApiKeyId": "$EXPO_ASC_KEY_ID",
-        "ascApiKeyIssuerId": "$EXPO_ASC_ISSUER_ID"
+        "appleTeamId": "TDTGJZTB57"
       }
     }
   }

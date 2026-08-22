@@ -6,7 +6,9 @@ import { CurrentLocationDot } from '@/features/map/components/CurrentLocationDot
 import { PlacePin } from '@/features/map/components/PlacePin';
 import {
   CLUSTER_ZOOM_STEP,
+  DEFAULT_ZOOM,
   PIN_DETAIL_MIN_ZOOM,
+  RECENTER_ZOOM,
   SELECTED_PLACE_VERTICAL_RATIO,
 } from '@/features/map/constants';
 import { clusterPins } from '@/features/map/pin-cluster';
@@ -14,8 +16,6 @@ import type { MapBounds, MapPin } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
 
 const FALLBACK_CENTER = { lat: 37.5729, lng: 126.9762 }; // 위치 못 가져왔을 때 광화문 인근 폴백
-// 확대 정도는 여기서 조정한다. 네이버 지도는 숫자가 클수록 더 확대된다(대략 1~21).
-const DEFAULT_ZOOM = 18;
 
 export type MapViewHandle = {
   /** 지도를 초기 중심 좌표·줌으로 되돌린다(현재 위치 버튼용). */
@@ -85,7 +85,8 @@ export function MapView({
         const currentMap = mapRef.current;
         if (!currentMap) return;
         currentMap.setCenter(new navermaps.LatLng(center.lat, center.lng));
-        currentMap.setZoom(DEFAULT_ZOOM);
+        // 초기 줌이 아니라 "내 주변" 축척으로 당긴다(`RECENTER_ZOOM`).
+        currentMap.setZoom(RECENTER_ZOOM);
         setRecenterCount((prev) => prev + 1);
       },
     }),

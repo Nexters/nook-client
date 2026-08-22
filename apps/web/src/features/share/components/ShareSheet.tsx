@@ -16,6 +16,7 @@ interface ShareSheetProps {
 
 /**
  * Figma `공유 드로어`(138:6075) — 프리뷰 카드 + 공유 수단.
+ * 프리뷰 카드는 279:10740 기준으로 갱신했다(가로형 커버 + 8px 캡션).
  * 카카오톡·스토리는 SDK 연동이 필요해 후속(§13) — 지금은 링크 복사와 OS 공유 시트만.
  */
 export function ShareSheet({ open, onOpenChange, url, archive }: ShareSheetProps) {
@@ -59,20 +60,35 @@ export function ShareSheet({ open, onOpenChange, url, archive }: ShareSheetProps
             paddingBottom: 'max(2rem, calc(env(safe-area-inset-bottom) + 1rem))',
           }}
         >
-          {/* 프리뷰 카드 — 받는 사람이 보게 될 아카이브 요약. */}
-          <div className="mx-auto flex w-full max-w-60 flex-col overflow-hidden rounded-sm border border-gray-20 bg-gray-0">
-            <Thumbnail size="fluid" src={archive.thumbnails?.[0]} alt="" />
-            <div className="flex flex-col gap-1 p-3">
+          {/* 프리뷰 카드 — 받는 사람이 보게 될 아카이브 요약(Figma 279:10740).
+              커버는 카드 안에 꽉 차는 가로형이라, Thumbnail 이 기본으로 갖는
+              테두리·라운드는 지운다(카드 자신의 테두리와 겹쳐 이중선이 된다). */}
+          <div className="mx-auto flex w-full max-w-55 flex-col overflow-hidden rounded-xl border border-gray-20 bg-gray-0">
+            <Thumbnail
+              size="wide"
+              src={archive.thumbnails?.[0]}
+              alt=""
+              className="rounded-none border-0"
+            />
+            <div className="flex flex-col p-2">
               <span className="flex items-center gap-1.5">
                 <span
-                  className={`size-2 shrink-0 ${COLOR_BG_CLASS[archive.color]}`}
+                  className={`size-1.5 shrink-0 ${COLOR_BG_CLASS[archive.color]}`}
                   aria-hidden="true"
                 />
-                <span className="truncate text-b2 font-medium text-gray-100">{archive.name}</span>
+                <span className="truncate text-b3 font-semibold text-gray-100">{archive.name}</span>
               </span>
-              <span className="font-mono text-e2 text-gray-60">
-                {ownerNickname ? `@${ownerNickname} • ` : ''}
-                {archive.placeCount} Places
+              <span className="flex items-center gap-1 text-s1 text-gray-40">
+                {ownerNickname ? (
+                  <>
+                    <span className="truncate">@{ownerNickname}</span>
+                    <span
+                      className="size-0.5 shrink-0 rounded-full bg-gray-40"
+                      aria-hidden="true"
+                    />
+                  </>
+                ) : null}
+                <span className="shrink-0">{archive.placeCount} Places</span>
               </span>
             </div>
           </div>

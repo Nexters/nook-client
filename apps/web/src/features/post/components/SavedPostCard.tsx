@@ -26,27 +26,27 @@ import { OriginalPostLink } from './OriginalPostLink';
 const SINGLE_FRAME = 'aspect-[343/212] w-full';
 
 /**
- * 미디어를 감싸는 껍데기. `onMediaClick` 이 없으면 버튼이 아니라 그냥 `div` 로 남는다 —
+ * 단일 미디어를 감싸는 껍데기. `onImageClick` 이 없으면 버튼이 아니라 그냥 `div` 로 남는다 —
  * 아무 일도 하지 않는 버튼은 스크린리더에 잡히고 포커스만 먹는다.
  */
 function MediaButton({
   index,
-  onMediaClick,
+  onImageClick,
   className,
   children,
 }: {
   index: number;
-  onMediaClick?: (index: number) => void;
+  onImageClick?: (index: number) => void;
   className?: string;
   children: React.ReactNode;
 }) {
-  if (!onMediaClick) return <div className={className}>{children}</div>;
+  if (!onImageClick) return <div className={className}>{children}</div>;
 
   return (
     <button
       type="button"
-      aria-label={`${index + 1}번째 미디어 크게 보기`}
-      onClick={() => onMediaClick(index)}
+      aria-label={`${index + 1}번째 사진 크게 보기`}
+      onClick={() => onImageClick(index)}
       className={cn(
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100',
         className,
@@ -65,8 +65,11 @@ export interface SavedPostCardProps {
   title?: React.ReactNode;
   /** 넘기면 아카이브 태그가 버튼이 된다 — 게시물 상세와 같이 그 아카이브 상세로 보낼 때 쓴다. */
   onArchiveClick?: (archiveId: number) => void;
-  /** 넘기면 미디어가 버튼이 된다 — 누른 위치를 넘겨 그 미디어부터 확대뷰를 연다. */
-  onMediaClick?: (index: number) => void;
+  /**
+   * 넘기면 미디어가 버튼이 된다 — 누른 위치를 준다(`SavedPostPreview` 확대 뷰).
+   * 오버레이 열림 상태는 사용처가 갖는다(확대 뷰 제목인 게시물 제목을 이 카드는 모른다).
+   */
+  onImageClick?: (index: number) => void;
   className?: string;
 }
 
@@ -75,7 +78,7 @@ function SavedPostCard({
   archives,
   title = '저장된 게시물',
   onArchiveClick,
-  onMediaClick,
+  onImageClick,
   className,
 }: SavedPostCardProps) {
   const images = post.images ?? [];
@@ -108,7 +111,7 @@ function SavedPostCard({
       {images.length === 1 ? (
         // 미디어 아래 본문까지 12px — 여러 장일 때의 pb-3 과 같은 간격이다.
         <div className="w-full pb-3">
-          <MediaButton index={0} onMediaClick={onMediaClick} className={SINGLE_FRAME}>
+          <MediaButton index={0} onImageClick={onImageClick} className={SINGLE_FRAME}>
             {isVideoUrl(images[0]) ? (
               // 영상은 프레임을 꽉 채우고 잘리는 대로 둔다 — 원본을 축소해 맞추지 않는다.
               <Media src={images[0]} className="size-full rounded-sm object-cover" />
@@ -129,22 +132,33 @@ function SavedPostCard({
               `w-auto` 는 Carousel 기본 `w-full` 을 덮는다 — width 가 고정이면 음수 마진이
               폭을 넓히지 못하고 왼쪽으로 밀리기만 한다. */}
           <Carousel indicator={false} className="-mx-4 w-auto">
-            {images.map((src, index) => (
-              <MediaButton
-                // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
-                // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
-                key={index}
-                index={index}
-                onMediaClick={onMediaClick}
-                className={cn(
-                  'h-[175px] w-35 overflow-hidden rounded-sm',
-                  index === 0 && 'ml-4',
-                  index === images.length - 1 && 'mr-4',
-                )}
-              >
-                <Media src={src} className="size-full object-cover" />
-              </MediaButton>
-            ))}
+            {images.map((src, index) => {
+              const Slide = onImageClick ? 'button' : 'div';
+              return (
+                <Slide
+                  // 이미지 URL 은 중복될 수 있고 순서가 고정이라 위치를 key 로 쓴다.
+                  // biome-ignore lint/suspicious/noArrayIndexKey: 고정 순서 목록
+                  key={index}
+                  {...(onImageClick
+                    ? {
+                        type: 'button' as const,
+                        onClick: () => onImageClick(index),
+                        'aria-label': `${index + 1}번째 사진 크게 보기`,
+                      }
+                    : {})}
+                  className={cn(
+                    'h-[175px] w-35 overflow-hidden rounded-sm',
+                    index === 0 && 'ml-4',
+                    index === images.length - 1 && 'mr-4',
+                    onImageClick &&
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100',
+                  )}
+                >
+                  {/* 캐러셀에서는 영상도 첫 프레임만 — 재생은 확대 뷰에서 한다. */}
+                  <Media src={src} className="size-full object-cover" />
+                </Slide>
+              );
+            })}
           </Carousel>
         </div>
       ) : null}

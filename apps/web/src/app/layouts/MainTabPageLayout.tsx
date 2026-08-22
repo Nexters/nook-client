@@ -1,10 +1,14 @@
-import { type ReactNode, useEffect, useLayoutEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import nookLogo from '@/assets/logo/header_logo.svg';
 import { env } from '@/shared/config/env';
+import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { cn } from '@/shared/lib/utils';
 import { Header } from '@/shared/ui';
+
+/** 탭 루트에서 Android 백이 수렴하는 홈 탭 — 로그인 후 진입 경로(`ENTRY_PATH`)와 같다. */
+const HOME_TAB_PATH = '/map';
 
 interface MainTabPageLayoutProps {
   children: ReactNode;
@@ -15,6 +19,19 @@ interface MainTabPageLayoutProps {
 export function MainTabPageLayout({ children, variant = 'gray' }: MainTabPageLayoutProps) {
   const overlay = variant === 'transparent';
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  // 탭 이동이 히스토리를 덮어쓰므로(BottomMenu 의 `replace`) 탭 루트에는 돌아갈 엔트리가
+  // 없다 — 그대로 두면 Android 백이 어느 탭에서든 곧장 앱을 내린다. 홈이 아닌 탭에서는
+  // 홈으로 먼저 보내고(Android 관례), 홈에서만 통과시켜 앱이 내려가게 한다.
+  // 인터셉터는 `BACK_REQUESTED`(Android) 경로 전용이라 iOS 스와이프에는 영향이 없다.
+  useBackInterceptor(
+    useCallback(() => {
+      if (pathname === HOME_TAB_PATH) return false;
+      navigate(HOME_TAB_PATH, { replace: true });
+      return true;
+    }, [pathname, navigate]),
+  );
   const logoTapCount = useRef(0);
   const logoTapResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 

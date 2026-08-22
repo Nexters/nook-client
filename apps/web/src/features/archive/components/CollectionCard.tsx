@@ -1,4 +1,9 @@
-import { Icon24CheckOff, Icon24CheckOn } from '@/shared/icons/NookIcons';
+import {
+  Icon14Processing,
+  Icon16Sad,
+  Icon24CheckOff,
+  Icon24CheckOn,
+} from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { Thumbnail } from '@/shared/ui';
 import type { CollectionSummary } from '../types';
@@ -66,23 +71,36 @@ function CollectionCard({ archive, onClick, selected, className }: CollectionCar
         ) : null}
       </span>
       <div className="flex w-full flex-col">
-        <p className="truncate text-b3 font-semibold text-gray-90">
-          {isProcessing ? '처리 중…' : isFailed ? '처리 실패' : archive.name}
-        </p>
-        {isProcessing || isFailed ? null : (
+        {isProcessing || isFailed ? (
           <div className="flex items-center gap-1">
-            {archive.authorHandle ? (
-              <>
-                <span className="truncate font-mono text-e2 text-gray-60">
-                  {archive.authorHandle}
-                </span>
-                <span className="size-0.5 shrink-0 rounded-full bg-gray-60" aria-hidden="true" />
-              </>
-            ) : null}
-            <span className="shrink-0 font-mono text-e2 text-gray-60">
-              {archive.placeCount} Places
-            </span>
+            {/* 처리 중 표시는 정지 아이콘이 아니라 실제로 도는 스피너여야 한다(QA) —
+                아이콘 자체가 회색 링 + 진한 호라서 회전만 얹으면 스피너가 된다. */}
+            {isProcessing ? (
+              <Icon14Processing className="shrink-0 animate-spin" />
+            ) : (
+              <Icon16Sad className="shrink-0" />
+            )}
+            <p className="truncate text-b3 font-semibold text-gray-60">
+              {isProcessing ? '게시글 불러오는 중...' : '불러오지 못했어요.'}
+            </p>
           </div>
+        ) : (
+          <>
+            <p className="truncate text-b3 font-semibold text-gray-90">{archive.name}</p>
+            <div className="flex items-center gap-1">
+              {archive.authorHandle ? (
+                <>
+                  <span className="truncate font-mono text-e2 text-gray-60">
+                    {archive.authorHandle}
+                  </span>
+                  <span className="size-0.5 shrink-0 rounded-full bg-gray-60" aria-hidden="true" />
+                </>
+              ) : null}
+              <span className="shrink-0 font-mono text-e2 text-gray-60">
+                {archive.placeCount} Places
+              </span>
+            </div>
+          </>
         )}
       </div>
     </Comp>

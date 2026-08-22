@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { EntryLoginWall } from '@/features/auth/components/LoginWall';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
+import { PushPrimingSheet } from '@/features/notifications/components/PushPrimingSheet';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
@@ -54,6 +55,13 @@ export function PostDetailPage() {
   const [memoOpen, setMemoOpen] = useState(false);
   // 뒤로가기(버튼·하드웨어 백·스와이프)로 닫혀야 해서 히스토리 엔트리로 승격한다.
   const [viewerOpen, openViewer, closeViewer] = useHistoryBackedFlag('imageViewer');
+  // 확대뷰가 시작할 이미지 — 누른 그 이미지다. 열림 여부는 위 히스토리 플래그가 소유하고,
+  // 인덱스는 거기 딸린 부가 정보라 컴포넌트 state 로 든다(뒤로가기 계약은 그대로).
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const openViewerAt = (index: number) => {
+    setViewerIndex(index);
+    openViewer();
+  };
   // 영상 확대뷰는 이미지 뷰어와 레이아웃이 달라 별도 레이어다. 닫는 방식은 같다.
   const [videoViewerOpen, openVideoViewer, closeVideoViewer] = useHistoryBackedFlag('videoViewer');
   const relatedPlacesState = useRelatedPlaces(postId);
@@ -152,15 +160,6 @@ export function PostDetailPage() {
     ...detailPlaces.filter((place) => place.bookmarked).map((place) => String(place.id)),
   ];
 
-  useEffect(() => {
-    if (relatedPlacesState.status !== 'error') return;
-    showToast({
-      variant: 'description',
-      title: '위치를 찾지 못 했어요',
-      description: '게시물은 저장됐지만 지도에는 표시되지 않아요',
-    });
-  }, [relatedPlacesState.status, showToast]);
-
   // 게스트가 닿는 경로는 공유 확장의 "앱에서 보기" 딥링크뿐이다. 게시물은 저장한
   // 사람만 볼 수 있어 그릴 내용이 없으니 진입을 월로 막는다.
   if (!isAuthenticated) {
@@ -188,6 +187,9 @@ export function PostDetailPage() {
             <PostDetailErrorView />
           )}
         </div>
+        {/* 파싱 화면은 "완료되면 알림을 보내드릴게요"라고 약속한다 — 권한이 미결정인
+            사용자에게 여기서만 알림 허용을 권한다. 즉시 완료 저장은 이 분기를 안 탄다. */}
+        <PushPrimingSheet active={isProcessing} />
       </main>
     );
   }
@@ -202,7 +204,7 @@ export function PostDetailPage() {
       contentStyle={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
     >
       <main>
-        <PostImages images={images} onImageClick={openViewer} onVideoExpand={openVideoViewer} />
+        <PostImages images={images} onImageClick={openViewerAt} onVideoExpand={openVideoViewer} />
 
         <div className="flex flex-col gap-2 px-4 pt-1">
           <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
@@ -247,7 +249,10 @@ export function PostDetailPage() {
       {/* fixed 오버레이 — 페이지가 뷰포트보다 길면 셸(will-change-transform)에 붙어
           화면 밖으로 밀려나니 body 로 포탈해 뷰포트 기준으로 띄운다. */}
       {viewerOpen
-        ? createPortal(<PostImageViewer images={images} onClose={closeViewer} />, document.body)
+        ? createPortal(
+            <PostImageViewer images={images} initialIndex={viewerIndex} onClose={closeViewer} />,
+            document.body,
+          )
         : null}
 
       {/* 확대 버튼은 단일 영상일 때만 뜨므로 여는 쪽이 곧 images[0] 이다. */}

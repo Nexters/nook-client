@@ -18,11 +18,21 @@ export type ToastRequest =
   | { variant: 'action'; title: string; actionLabel: string; onAction: () => void }
   /** 라벨이 "실행취소"로 고정된 되돌리기 전용 모양(장소 삭제 시안). */
   | { variant: 'undo'; title: string; onUndo: () => void }
+  /** undo 와 같은 파란 텍스트 액션이지만 라벨은 사용처가 정한다(공유 아카이브 저장 시안 253:10520). */
+  | { variant: 'link'; title: string; actionLabel: string; onAction: () => void }
   | { variant: 'simple'; title: string };
 
 interface ActiveToast {
   id: string;
   request: ToastRequest;
+}
+
+/**
+ * 사용자가 누를 수 있는 액션이 달린 모양인지. 이런 토스트는 새 알림에 밀려나면 누를
+ * 기회 자체가 사라지므로, 아래 `showToast` 가 큐에서 걷어내지 않는다.
+ */
+function hasAction(request: ToastRequest): boolean {
+  return request.variant === 'action' || request.variant === 'undo' || request.variant === 'link';
 }
 
 interface ToastContextValue {
@@ -55,7 +65,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const showToast = useCallback((request: ToastRequest) => {
     nextIdRef.current += 1;
     const id = `toast-${nextIdRef.current}`;
-    setToasts((prev) => [...prev, { id, request }]);
+    setToasts((prev) =>
+      request.variant === 'simple'
+        ? // 액션 없는 단순 알림은 최신 것만 남긴다 — 3초 큐를 기다리는 사이 상태가 이미
+          // 바뀌어 지난 동작을 말하게 된다(핀 On/Off 를 연달아 누르면 새 문구가 3초 넘게
+          // 안 뜬다는 QA). 떠 있는 것은 즉시 갈아치우고(새 id 라 진입 애니메이션·3초 타이머를
+          // 새로 탄다) 아직 못 뜬 것도 버리되, 액션이 달린 토스트는 그대로 둔다.
+          [...prev.filter((toast) => hasAction(toast.request)), { id, request }]
+        : [...prev, { id, request }],
+    );
   }, []);
 
   const closeFront = useCallback(() => {
@@ -136,6 +154,13 @@ function ToastRoot({
   onActionClick: () => void;
 }) {
   const simple = request.variant === 'simple';
+  // 파란 텍스트 액션 — 되돌리기(라벨 고정)와 자유 라벨(link)이 같은 모양을 쓴다.
+  const textAction =
+    request.variant === 'undo'
+      ? { label: UNDO_LABEL, onAction: request.onUndo }
+      : request.variant === 'link'
+        ? { label: request.actionLabel, onAction: request.onAction }
+        : null;
 
   return (
     <ToastPrimitive.Root
@@ -182,18 +207,18 @@ function ToastRoot({
         </ToastPrimitive.Action>
       ) : null}
 
-      {/* 되돌리기는 버튼이 아니라 파란 텍스트다(시안 `장소가 삭제 됐어요.`). */}
-      {request.variant === 'undo' ? (
-        <ToastPrimitive.Action altText={UNDO_LABEL} asChild>
+      {/* 되돌리기·보러가기는 버튼이 아니라 파란 텍스트다(시안 `장소가 삭제 됐어요.`). */}
+      {textAction ? (
+        <ToastPrimitive.Action altText={textAction.label} asChild>
           <button
             type="button"
             className="shrink-0 px-2 py-1 text-b2 font-semibold text-nook-blue"
             onClick={() => {
-              request.onUndo();
+              textAction.onAction();
               onActionClick();
             }}
           >
-            {UNDO_LABEL}
+            {textAction.label}
           </button>
         </ToastPrimitive.Action>
       ) : null}

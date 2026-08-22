@@ -16,6 +16,15 @@ describe('parseWebToNative', () => {
     });
   });
 
+  it('SET_BACK_GESTURE 는 enabled 가 boolean 일 때만 통과한다', () => {
+    expect(
+      parseWebToNative('{"v":1,"type":"SET_BACK_GESTURE","payload":{"enabled":false}}'),
+    ).toEqual({ v: 1, type: 'SET_BACK_GESTURE', payload: { enabled: false } });
+    expect(
+      parseWebToNative('{"v":1,"type":"SET_BACK_GESTURE","payload":{"enabled":"yes"}}'),
+    ).toBeNull();
+  });
+
   it.each([
     'null',
     '[]',
@@ -54,12 +63,50 @@ describe('session messages', () => {
   it('SESSION_ESTABLISH의 토큰 쌍을 검증한다', () => {
     expect(
       parseWebToNative(
+        '{"v":1,"type":"SESSION_ESTABLISH","payload":{"requestId":"r1","accessToken":"a","refreshToken":"r","apiBaseUrl":"https://api.example.com/api/v1"}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'SESSION_ESTABLISH',
+      payload: {
+        requestId: 'r1',
+        accessToken: 'a',
+        refreshToken: 'r',
+        apiBaseUrl: 'https://api.example.com/api/v1',
+      },
+    });
+  });
+
+  it('apiBaseUrl 이 없거나(구버전 웹) http 오리진이 아니면 null 로 받는다', () => {
+    expect(
+      parseWebToNative(
         '{"v":1,"type":"SESSION_ESTABLISH","payload":{"requestId":"r1","accessToken":"a","refreshToken":"r"}}',
       ),
     ).toEqual({
       v: 1,
       type: 'SESSION_ESTABLISH',
-      payload: { requestId: 'r1', accessToken: 'a', refreshToken: 'r' },
+      payload: { requestId: 'r1', accessToken: 'a', refreshToken: 'r', apiBaseUrl: null },
+    });
+    expect(
+      parseWebToNative(
+        '{"v":1,"type":"SESSION_GET","payload":{"requestId":"r1","apiBaseUrl":"ftp://nope"}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'SESSION_GET',
+      payload: { requestId: 'r1', apiBaseUrl: null },
+    });
+  });
+
+  it('SESSION_GET 의 apiBaseUrl 을 전달한다', () => {
+    expect(
+      parseWebToNative(
+        '{"v":1,"type":"SESSION_GET","payload":{"requestId":"r1","apiBaseUrl":"https://api.example.com/api/v1"}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'SESSION_GET',
+      payload: { requestId: 'r1', apiBaseUrl: 'https://api.example.com/api/v1' },
     });
   });
 
@@ -192,5 +239,78 @@ describe('image pick messages', () => {
     '{"v":1,"type":"IMAGE_PICK_RESULT","payload":{"requestId":"r1","source":"album","status":"unknown"}}',
   ])('이미지가 없는 success 나 알 수 없는 status 는 무시한다: %s', (json) => {
     expect(parseNativeToWeb(json)).toBeNull();
+  });
+});
+
+describe('push notification messages', () => {
+  it('REQUEST_PUSH_PERMISSION 요청을 파싱한다', () => {
+    expect(
+      parseWebToNative('{"v":1,"type":"REQUEST_PUSH_PERMISSION","payload":{"requestId":"r1"}}'),
+    ).toEqual({ v: 1, type: 'REQUEST_PUSH_PERMISSION', payload: { requestId: 'r1' } });
+  });
+
+  it('requestId 가 없으면 무시한다', () => {
+    expect(parseWebToNative('{"v":1,"type":"REQUEST_PUSH_PERMISSION","payload":{}}')).toBeNull();
+  });
+
+  it('GET_PUSH_STATUS 요청을 파싱한다', () => {
+    expect(
+      parseWebToNative('{"v":1,"type":"GET_PUSH_STATUS","payload":{"requestId":"r1"}}'),
+    ).toEqual({ v: 1, type: 'GET_PUSH_STATUS', payload: { requestId: 'r1' } });
+  });
+
+  it('토큰이 있는 PUSH_PERMISSION_RESULT 를 파싱한다', () => {
+    expect(
+      parseNativeToWeb(
+        '{"v":1,"type":"PUSH_PERMISSION_RESULT","payload":{"requestId":"r1","status":"granted","token":{"platform":"ios","value":"tok"}}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'PUSH_PERMISSION_RESULT',
+      payload: { requestId: 'r1', status: 'granted', token: { platform: 'ios', value: 'tok' } },
+    });
+  });
+
+  it.each(['denied', 'undetermined'])('허용되지 않은 결과는 토큰 없이 파싱한다: %s', (status) => {
+    expect(
+      parseNativeToWeb(
+        `{"v":1,"type":"PUSH_PERMISSION_RESULT","payload":{"requestId":"r1","status":"${status}"}}`,
+      ),
+    ).toEqual({ v: 1, type: 'PUSH_PERMISSION_RESULT', payload: { requestId: 'r1', status } });
+  });
+
+  it.each([
+    '{"v":1,"type":"PUSH_PERMISSION_RESULT","payload":{"status":"granted"}}',
+    '{"v":1,"type":"PUSH_PERMISSION_RESULT","payload":{"requestId":"r1","status":"unknown"}}',
+  ])('requestId 누락이나 알 수 없는 status 는 무시한다: %s', (json) => {
+    expect(parseNativeToWeb(json)).toBeNull();
+  });
+
+  it('PUSH_NOTIFICATION_OPENED 의 문자열이 아닌 data 필드는 걸러낸다', () => {
+    expect(
+      parseNativeToWeb(
+        '{"v":1,"type":"PUSH_NOTIFICATION_OPENED","payload":{"data":{"postId":"1","count":2},"title":"저장 완료"}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'PUSH_NOTIFICATION_OPENED',
+      payload: { data: { postId: '1' }, title: '저장 완료' },
+    });
+  });
+
+  it('PUSH_TOKEN_REFRESHED 를 파싱한다', () => {
+    expect(
+      parseNativeToWeb(
+        '{"v":1,"type":"PUSH_TOKEN_REFRESHED","payload":{"token":{"platform":"android","value":"tok2"}}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'PUSH_TOKEN_REFRESHED',
+      payload: { token: { platform: 'android', value: 'tok2' } },
+    });
+  });
+
+  it('토큰이 없는 PUSH_TOKEN_REFRESHED 는 무시한다', () => {
+    expect(parseNativeToWeb('{"v":1,"type":"PUSH_TOKEN_REFRESHED","payload":{}}')).toBeNull();
   });
 });

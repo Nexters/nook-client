@@ -5,12 +5,14 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { useEffect, useRef } from 'react';
 import { archiveQueryKeys } from '@/features/archive/api/queries';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { mapQueryKeys } from '@/features/map/api/queries';
 import type { Place } from '@/features/place';
+import { usePlacePinToast } from '@/features/place/lib/usePlacePinToast';
 import type { Coordinates } from '@/shared/lib/geolocation';
-import type { ParsedPlace, PostDetail, SearchedPlace } from '../types';
+import type { ParsedPlace, PlaceParsingStatus, PostDetail, SearchedPlace } from '../types';
 import {
   connectPostPlace,
   disconnectPostPlace,
@@ -69,6 +71,9 @@ export function usePostDetail(postId: number | undefined): PostDetailState {
 export type RelatedPlacesState =
   | { status: 'loading' }
   | { status: 'success'; places: Place[]; bookmarkedPlaceIds: string[] }
+  /** 장소 파싱이 `FAILED`로 끝난 경우 — 서버가 내려준 실패 사유(없을 수 있다)를 함께 든다. */
+  | { status: 'failed'; reason: string | null }
+  /** 파싱 결과 조회 자체(네트워크 등)가 실패한 경우 — 사유를 알 수 없다. */
   | { status: 'error' };
 
 /** 파싱 응답의 장소를 화면 도메인 `Place` 로 좁힌다 — distance 는 응답에 없어 생략한다(PlaceRow 가 옵셔널 처리). */
@@ -93,6 +98,7 @@ export function toPlace(parsed: ParsedPlace): Place {
  */
 export function useRelatedPlaces(postId: number | undefined): RelatedPlacesState {
   const isAuthenticated = useIsAuthenticated();
+  const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: postQueryKeys.placeParsing(postId ?? -1),
     queryFn: () => fetchPlaceParsing(postId as number),
@@ -119,6 +125,23 @@ export function useRelatedPlaces(postId: number | undefined): RelatedPlacesState
     },
   });
 
+  // 폴링이 PENDING/PROCESSING 에서 종료 상태(COMPLETED/FAILED)로 넘어가는 시점에 한 번만
+  // 게시물 상세 쿼리를 무효화한다 — 상세 응답의 places/placeParsingStatus 는 크롤링
+  // 완료 시점 스냅샷이라, 그 뒤 끝난 장소 파싱 결과를 반영하려면 다시 조회해야 한다.
+  // 진입 시 이미 종료 상태였던 경우(막 폴링을 시작한 게 아님)까지 매번 무효화하지
+  // 않도록 "직전 상태가 폴링 중이었는지"를 기준으로 삼는다.
+  const prevStatusRef = useRef<PlaceParsingStatus | undefined>(undefined);
+  useEffect(() => {
+    const status = query.data?.placeParsingStatus;
+    const wasPolling =
+      prevStatusRef.current === 'PENDING' || prevStatusRef.current === 'PROCESSING';
+    const isSettled = status === 'COMPLETED' || status === 'FAILED';
+    if (wasPolling && isSettled && postId !== undefined) {
+      queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(postId) });
+    }
+    prevStatusRef.current = status;
+  }, [query.data?.placeParsingStatus, postId, queryClient]);
+
   if (query.isPending) return { status: 'loading' };
   if (query.isError) return { status: 'error' };
 
@@ -126,7 +149,9 @@ export function useRelatedPlaces(postId: number | undefined): RelatedPlacesState
   if (result.placeParsingStatus === 'PENDING' || result.placeParsingStatus === 'PROCESSING') {
     return { status: 'loading' };
   }
-  if (result.placeParsingStatus === 'FAILED') return { status: 'error' };
+  if (result.placeParsingStatus === 'FAILED') {
+    return { status: 'failed', reason: result.failureReason };
+  }
   return {
     status: 'success',
     places: result.places.map(toPlace),
@@ -175,11 +200,14 @@ export function useUpdatePostMemo(postId: number | undefined) {
  */
 export function useUpdatePlaceBookmark(postId: number | undefined) {
   const queryClient = useQueryClient();
+  const showPinToast = usePlacePinToast();
 
   return useMutation({
     mutationFn: ({ placeId, bookmarked }: { placeId: number; bookmarked: boolean }) =>
       updatePlaceBookmark(placeId, bookmarked),
-    onSuccess: (_data, { placeId }) => {
+    onSuccess: (_data, { placeId, bookmarked }) => {
+      // 지도 쪽 같은 이름의 훅과 같은 정책 — 결과 스낵바는 뮤테이션이 띄운다.
+      showPinToast(bookmarked);
       if (postId !== undefined) {
         queryClient.invalidateQueries({ queryKey: postQueryKeys.placeParsing(postId) });
         // 직접 연결한 장소의 북마크 상태는 게시물 상세(places)로 내려온다 — 상세도 갱신한다.

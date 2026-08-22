@@ -53,6 +53,9 @@ export interface PostDetail {
   memo?: string;
   /** 게시물에서 파싱된 연관 장소. 파싱 전이면 비어 있다. */
   places: ParsedPlace[];
+  placeParsingStatus: PlaceParsingStatus;
+  /** 장소 파싱 실패 사유. `placeParsingStatus`가 `FAILED`일 때만 값이 있다. */
+  placeParsingFailureReason: string | null;
 }
 
 /** 게시물 장소 파싱 상태. `PENDING`/`PROCESSING` 동안 폴링한다. */

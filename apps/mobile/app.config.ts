@@ -1,9 +1,23 @@
+import { existsSync } from 'node:fs';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 import nativePublicConfig from './native-public-config.json';
 
 type AppVariant = keyof typeof nativePublicConfig.appIds;
 
 const KAKAO_MAVEN_REPOSITORY = 'https://devrepo.kakao.com/nexus/content/groups/public/';
+
+// Firebase 콘솔에서 플랫폼·variant(번들 ID)별로 앱을 등록해야 받을 수 있는 파일이다.
+// 커밋하지 않고(gitignore) 로컬 또는 EAS file environment variable 로 공급한다.
+// variant 마다 번들 ID 가 달라 Firebase 앱·설정 파일도 1:1 이어야 해서 경로를 나눈다.
+// 현재 등록 상태: iOS production·development 등록됨. Android 는 Firebase 미등록.
+function googleServicesFile(variant: AppVariant, platform: 'ios' | 'android'): string {
+  const envOverride =
+    platform === 'ios'
+      ? process.env.GOOGLE_SERVICES_FILE_IOS
+      : process.env.GOOGLE_SERVICES_FILE_ANDROID;
+  const fileName = platform === 'ios' ? 'GoogleService-Info.plist' : 'google-services.json';
+  return envOverride ?? `./firebase/${variant}/${fileName}`;
+}
 
 // 웹의 gray-10. 네이티브 스플래시와 웹 첫 화면 배경을 같은 색으로 맞춰 전환 시 색 점프를 없앤다.
 const SPLASH_BACKGROUND_COLOR = '#f4f5f7';
@@ -22,7 +36,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   // 기본값은 SSOT 에서 오고, env 는 로컬 개발용 오버라이드로만 쓴다
   // (실기기에서 vite preview 를 LAN IP 로 띄우는 경우 등).
   const webUrl = process.env.EXPO_PUBLIC_WEB_URL ?? nativePublicConfig.webUrl[variant];
-  const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL ?? nativePublicConfig.apiBaseUrl[variant];
 
   // 카카오 앱 키는 평문으로 커밋하지 않는다. EAS Environment Variables(KAKAO_NATIVE_APP_KEY_DEV/PROD)
   // 또는 로컬 .env 로만 공급한다. eas.json 의 environment 필드(EAS 가 자동 주입하는 기준)가 아니라
@@ -33,13 +46,26 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ? process.env.KAKAO_NATIVE_APP_KEY_DEV
       : process.env.KAKAO_NATIVE_APP_KEY_PROD;
 
+  const iosGoogleServices = googleServicesFile(variant, 'ios');
+  const androidGoogleServices = googleServicesFile(variant, 'android');
+
+  // 파일이 없으면 Firebase 없이 빌드된다(런타임 가드가 푸시만 조용히 끈다). 로컬 Metro 까지
+  // 막지 않도록 평소엔 경고만 하고, EAS 빌드에서는 variant 와 무관하게 끊는다 — 여기서 안 끊으면
+  // 설정 실수(file env 누락)로 푸시가 통째로 죽은 스토어 빌드가 정상처럼 만들어진다.
+  if (!existsSync(iosGoogleServices)) {
+    const message =
+      `[firebase] iOS GoogleService-Info.plist 가 없다: ${iosGoogleServices} — ` +
+      'Firebase 콘솔에서 받아 그 경로에 두거나 GOOGLE_SERVICES_FILE_IOS(EAS file env)로 공급해라.';
+    if (process.env.EAS_BUILD === 'true') throw new Error(message);
+    console.warn(message);
+  }
+
   return {
     ...config,
-    // JS 는 process.env 대신 여기서 읽는다. 네이티브(Info.plist)와 같은 출처를 보게 하려는 것.
+    // JS 는 process.env 대신 여기서 읽는다.
     extra: {
       ...config.extra,
       webUrl,
-      apiBaseUrl,
     },
     name: variant === 'production' ? 'Nook' : `Nook (${variant})`,
     slug: 'nook',
@@ -49,11 +75,22 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...(config.plugins ?? []),
       '@bacons/apple-targets',
       'expo-apple-authentication',
+      'expo-notifications',
+      // SPM(기본값)으로 받으면 use_frameworks! 를 dynamic 으로 바꿔야 하는데, 그러면
+      // kakao-login 이 링크 단계에서 깨진다(_RCTRegisterModule 심볼을 못 찾음).
+      // CocoaPods 로 받게 돌려 기존 static 링크를 그대로 둔다.
+      ['@react-native-firebase/app', { ios: { disableSPM: true } }],
+      '@react-native-firebase/messaging',
       [
         'expo-build-properties',
         {
           android: {
             extraMavenRepos: [KAKAO_MAVEN_REPOSITORY],
+          },
+          ios: {
+            // GoogleUtilities(Firebase 의 CocoaPods 의존성)가 모듈을 정의하지 않아
+            // 기본 static 링크에서 Swift 가 못 읽는다 — modular_headers 로 강제한다.
+            extraPods: [{ name: 'GoogleUtilities', modular_headers: true }],
           },
         },
       ],
@@ -63,7 +100,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           // 로고·워드마크·태그라인이 한 장에 담긴 시안 이미지. 네이티브 스플래시는 이미지 하나만 받는다.
           image: './assets/splash.png',
           backgroundColor: SPLASH_BACKGROUND_COLOR,
-          imageWidth: 200,
+          // imageWidth 는 캔버스 전체를 몇 pt 로 그릴지다. 태그라인이 길어지며 시안 가로폭이
+          // 672 → 756px 로 넓어져서, 로고를 이전과 같은 크기로 유지하려면 같은 비율로 키워야 한다.
+          imageWidth: 225,
           resizeMode: 'contain',
           // Android 12+ 는 스플래시 이미지를 원형으로 잘라 보여준다(캔버스의 66.7%만 노출).
           // 태그라인까지 넣으면 가장자리가 잘려서, 원 안에 들어가는 로고+워드마크만 쓴다.
@@ -101,6 +140,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // Sign in with Apple entitlement 을 주입한다. Apple Developer 의 App ID 에도
       // 같은 capability 가 켜져 있어야 프로비저닝이 맞는다.
       usesAppleSignIn: true,
+      ...(existsSync(iosGoogleServices) ? { googleServicesFile: iosGoogleServices } : {}),
       infoPlist: {
         ...config.ios?.infoPlist,
         // 미설정이면 EAS 가 매 빌드마다 물어보고 그 답을 app config 에 되쓴다. HTTPS 만
@@ -120,7 +160,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         NSLocationWhenInUseUsageDescription:
           '지도에서 현재 위치와 저장한 장소까지의 거리를 보여주기 위해 위치 정보를 사용해요.',
         NookSessionAccessGroup: sessionAccessGroup,
-        NookApiBaseUrl: apiBaseUrl,
         NookAppGroup: `group.${appId}`,
       },
       entitlements: {
@@ -133,6 +172,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       ...config.android,
       package: appId,
+      ...(existsSync(androidGoogleServices) ? { googleServicesFile: androidGoogleServices } : {}),
       adaptiveIcon: {
         ...config.android?.adaptiveIcon,
         foregroundImage:

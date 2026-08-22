@@ -3,6 +3,8 @@ import type {
   ImagePickStatus,
   NativeToWeb,
   PickedImage,
+  PushPermissionStatus,
+  PushToken,
   SocialCredential,
   SocialLoginStatus,
 } from './native-to-web';
@@ -47,6 +49,31 @@ function isImagePickStatus(value: unknown): value is ImagePickStatus {
   return value === 'success' || value === 'cancelled' || value === 'error';
 }
 
+function isPushPermissionStatus(value: unknown): value is PushPermissionStatus {
+  return value === 'granted' || value === 'denied' || value === 'undetermined';
+}
+
+function isPushTokenPlatform(value: unknown): value is PushToken['platform'] {
+  return value === 'ios' || value === 'android';
+}
+
+function parsePushToken(value: unknown): PushToken | null {
+  if (!isRecord(value)) return null;
+  const { platform, value: tokenValue } = value;
+  return isPushTokenPlatform(platform) && typeof tokenValue === 'string' && tokenValue.length > 0
+    ? { platform, value: tokenValue }
+    : null;
+}
+
+function parseStringRecord(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  );
+}
+
 function parsePickedImage(value: unknown): PickedImage | null {
   if (!isRecord(value)) return null;
   const { base64, mimeType, width, height } = value;
@@ -64,6 +91,12 @@ function parsePickedImage(value: unknown): PickedImage | null {
 
 function token(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+// 구버전 웹은 이 필드를 보내지 않으므로 없거나 형식이 어긋나면 null 로 받는다.
+function apiBaseUrl(payload: Record<string, unknown>): string | null {
+  const value = payload.apiBaseUrl;
+  return typeof value === 'string' && /^https?:\/\//.test(value) ? value : null;
 }
 
 /** 자격증명은 provider 마다 필드가 달라, 최소 하나라도 있어야 유효한 것으로 본다. */
@@ -95,8 +128,10 @@ export function parseWebToNative(json: string): WebToNative | null {
       return typeof value.payload.url === 'string'
         ? { v: BRIDGE_VERSION, type: value.type, payload: { url: value.payload.url } }
         : null;
-    case 'REQUEST_PUSH_PERMISSION':
-      return { v: BRIDGE_VERSION, type: value.type, payload: {} };
+    case 'SET_BACK_GESTURE':
+      return typeof value.payload.enabled === 'boolean'
+        ? { v: BRIDGE_VERSION, type: value.type, payload: { enabled: value.payload.enabled } }
+        : null;
     case 'SOCIAL_LOGIN': {
       const id = requestId(value.payload);
       return id && isSocialProvider(value.payload.provider)
@@ -117,10 +152,21 @@ export function parseWebToNative(json: string): WebToNative | null {
           }
         : null;
     }
-    case 'SESSION_GET':
-    case 'SESSION_CLEAR': {
+    case 'SESSION_CLEAR':
+    case 'REQUEST_PUSH_PERMISSION':
+    case 'GET_PUSH_STATUS': {
       const id = requestId(value.payload);
       return id ? { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id } } : null;
+    }
+    case 'SESSION_GET': {
+      const id = requestId(value.payload);
+      return id
+        ? {
+            v: BRIDGE_VERSION,
+            type: value.type,
+            payload: { requestId: id, apiBaseUrl: apiBaseUrl(value.payload) },
+          }
+        : null;
     }
     case 'SESSION_REFRESH': {
       const id = requestId(value.payload);
@@ -148,6 +194,7 @@ export function parseWebToNative(json: string): WebToNative | null {
               requestId: id,
               accessToken: value.payload.accessToken,
               refreshToken,
+              apiBaseUrl: apiBaseUrl(value.payload),
             },
           }
         : null;
@@ -225,6 +272,36 @@ export function parseNativeToWeb(json: string): NativeToWeb | null {
         : null;
     }
     return { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id, status } };
+  }
+  if (value.type === 'PUSH_PERMISSION_RESULT') {
+    const id = requestId(value.payload);
+    const { status } = value.payload;
+    if (!id || !isPushPermissionStatus(status)) return null;
+
+    const pushToken = parsePushToken(value.payload.token);
+    return {
+      v: BRIDGE_VERSION,
+      type: value.type,
+      payload: pushToken ? { requestId: id, status, token: pushToken } : { requestId: id, status },
+    };
+  }
+  if (value.type === 'PUSH_NOTIFICATION_OPENED') {
+    const { title, body } = value.payload;
+    return {
+      v: BRIDGE_VERSION,
+      type: value.type,
+      payload: {
+        data: parseStringRecord(value.payload.data),
+        ...(typeof title === 'string' ? { title } : {}),
+        ...(typeof body === 'string' ? { body } : {}),
+      },
+    };
+  }
+  if (value.type === 'PUSH_TOKEN_REFRESHED') {
+    const pushToken = parsePushToken(value.payload.token);
+    return pushToken
+      ? { v: BRIDGE_VERSION, type: value.type, payload: { token: pushToken } }
+      : null;
   }
   return null;
 }

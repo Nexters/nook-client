@@ -87,3 +87,39 @@ export function getPlaceSheetLayoutClassNames(
     },
   };
 }
+
+/**
+ * 스냅 전환 duration 을 담는 CSS 변수. vaul 이 매 프레임 transition 을 inline style 로
+ * 덮어써서 global.css 의 `!important` 규칙으로만 오버라이드되는데, 그 규칙이 이 변수를
+ * 읽는다(정의는 `global.css` 의 `[data-vaul-drawer]`).
+ */
+export const SNAP_DURATION_VAR = '--sheet-snap-duration';
+
+/** 뷰포트 한 화면(스냅 거리 1.0)을 지나는 데 쓰는 시간(초). 사실상 시트의 이동 속도다. */
+const SNAP_SECONDS_PER_VIEWPORT = 1.2;
+/** 아주 짧은 전환(mid↔full 0.24)이 툭 끊겨 보이지 않을 만큼의 하한. */
+const SNAP_DURATION_MIN_S = 0.6;
+/** 가장 긴 전환(full→peek 0.77)도 늘어지지 않게 두는 상한. */
+const SNAP_DURATION_MAX_S = 0.95;
+
+/**
+ * 스냅 사이를 오갈 때 쓸 transition duration(초).
+ *
+ * vaul 은 이동 거리와 무관하게 고정 시간을 쓰므로, full→peek 처럼 화면을 가로지르는
+ * 전환이 mid↔full 같은 짧은 전환과 같은 시간에 끝나 "슝 떨어진다"는 인상을 준다(QA).
+ * 거리에 비례시키면 속도가 일정해져 짧은 건 산뜻하게, 긴 건 차분하게 움직인다.
+ *
+ * 비율이 아닌 스냅(vaul 계약상 가능한 px 문자열)이면 계산할 수 없으므로 null 을 준다 —
+ * 호출부가 기본값으로 되돌린다.
+ */
+export function getSnapTransitionDurationSeconds(
+  from: number | string | null,
+  to: number | string | null,
+): number | null {
+  if (typeof from !== 'number' || typeof to !== 'number') return null;
+  const distance = Math.abs(to - from);
+  return Math.min(
+    SNAP_DURATION_MAX_S,
+    Math.max(SNAP_DURATION_MIN_S, distance * SNAP_SECONDS_PER_VIEWPORT),
+  );
+}

@@ -1,6 +1,16 @@
+import { useRef } from 'react';
+import { Icon14Processing } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { Thumbnail } from '@/shared/ui';
 import type { Place } from '../types';
+
+/**
+ * 카드가 지도 바텀시트(vaul) 안에 놓일 때, 카드 위에서 시작한 드래그로 시트를 끌어내려도
+ * vaul 이 클릭을 취소해주지 않아 손을 뗀 자리에 클릭이 그대로 발생한다(고스트 클릭) —
+ * touch-action:none 으로 브라우저의 기본 탭/드래그 판별을 꺼둔 채 자기가 preventDefault
+ * 를 안 하기 때문. 누른 지점에서 이 거리(px) 이상 움직였으면 드래그로 보고 클릭을 무시한다.
+ */
+const DRAG_CLICK_THRESHOLD_PX = 10;
 
 /**
  * Figma `장소 카드`.
@@ -20,10 +30,32 @@ export interface PlaceCardProps {
 
 function PlaceCard({ place, onClick, className }: PlaceCardProps) {
   const Comp = onClick ? 'button' : 'div';
+  const isProcessing = place.thumbnailState === 'processing';
+  // 파싱 실패는 장소 "사진" 크롤링만 실패한 것이다 — 이름·지역·카테고리는 응답에 그대로
+  // 있으므로 텍스트는 정상 노출하고, 실패 표시는 썸네일(고스트)만 맡는다.
+  const isFailed = place.thumbnailState === 'failed';
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
 
   return (
     <Comp
-      {...(onClick ? { type: 'button' as const, onClick } : {})}
+      {...(onClick
+        ? {
+            type: 'button' as const,
+            onPointerDown: (e: React.PointerEvent) => {
+              pointerDownPos.current = { x: e.clientX, y: e.clientY };
+            },
+            onClick: (e: React.MouseEvent) => {
+              const start = pointerDownPos.current;
+              pointerDownPos.current = null;
+              if (start) {
+                const dx = e.clientX - start.x;
+                const dy = e.clientY - start.y;
+                if (Math.hypot(dx, dy) > DRAG_CLICK_THRESHOLD_PX) return;
+              }
+              onClick();
+            },
+          }
+        : {})}
       className={cn(
         'flex w-full flex-col items-start gap-1 bg-gray-0 pb-2 text-left',
         onClick &&
@@ -32,12 +64,29 @@ function PlaceCard({ place, onClick, className }: PlaceCardProps) {
       )}
     >
       {/* 시안 167x208. 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
-      <Thumbnail src={place.thumbnail} alt="" className="aspect-[167/208] h-auto w-full" />
+      <Thumbnail
+        src={place.thumbnail}
+        alt=""
+        loading={isProcessing}
+        failed={isFailed}
+        className="aspect-[167/208] h-auto w-full"
+      />
       <div className="flex w-full flex-col gap-0.5 p-1">
-        <p className="line-clamp-2 text-b2 font-semibold text-gray-90">{place.name}</p>
-        <p className="truncate text-b3 font-medium text-gray-60">
-          {[place.region, place.category].filter(Boolean).join(' • ')}
-        </p>
+        {isProcessing ? (
+          <div className="flex items-center gap-1">
+            {/* 게시물 카드(CollectionCard)와 같다 — 처리 중 표시는 정지 아이콘이 아니라
+                실제로 도는 스피너여야 한다(QA). 아이콘이 회색 링 + 진한 호라 회전만 얹는다. */}
+            <Icon14Processing className="shrink-0 animate-spin" />
+            <p className="truncate text-b2 font-semibold text-gray-60">장소 정보 불러오는 중...</p>
+          </div>
+        ) : (
+          <>
+            <p className="line-clamp-2 text-b2 font-semibold text-gray-90">{place.name}</p>
+            <p className="truncate text-b3 font-medium text-gray-60">
+              {[place.region, place.category].filter(Boolean).join(' • ')}
+            </p>
+          </>
+        )}
       </div>
     </Comp>
   );

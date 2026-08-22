@@ -636,6 +636,19 @@ export function UiComponentsPage() {
             >
               4. simple
             </Button>
+            <Button
+              size="sm"
+              onClick={() =>
+                showToast({
+                  variant: 'link',
+                  title: '아카이브에 저장했어요!',
+                  actionLabel: '보러가기',
+                  onAction: () => setLastAction('토스트 보러가기(링크)'),
+                })
+              }
+            >
+              5. link
+            </Button>
           </ButtonGroup>
         </Row>
       </Section>
@@ -930,7 +943,7 @@ export function UiComponentsPage() {
           <PlacePhotos photos={SAMPLE_PHOTOS} onPhotoClick={() => setPhotosOpen(true)} />
           {/* 1장이면 캐러셀도 사진 태그도 없다 */}
           <PlacePhotos photos={[SAMPLE_IMAGE]} />
-          {/* 사진이 없으면 같은 크기의 빈 프레임 */}
+          {/* 사진이 없으면 아무것도 그리지 않는다 — 아래 여백이 붙지 않는 게 정상 */}
           <PlacePhotos photos={[]} />
         </div>
         {photosOpen ? (
@@ -950,6 +963,9 @@ export function UiComponentsPage() {
         <div className="mx-auto grid w-full max-w-[343px] grid-cols-2 gap-2">
           <PlaceCard place={MOCK_PLACE} onClick={() => setLastAction('장소 카드')} />
           <PlaceCard place={MOCK_PLACE_LONG} />
+          {/* 처리 중엔 스피너 문구, 실패는 고스트 썸네일 + 정상 텍스트(사진만 실패한 거라서). */}
+          <PlaceCard place={{ ...MOCK_PLACE, id: 'p1-processing', thumbnailState: 'processing' }} />
+          <PlaceCard place={{ ...MOCK_PLACE, id: 'p1-failed', thumbnailState: 'failed' }} />
         </div>
       </Section>
 

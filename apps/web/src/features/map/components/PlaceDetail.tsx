@@ -1,6 +1,5 @@
 import { useQueries } from '@tanstack/react-query';
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
 import { toDisplayPost } from '@/features/map/lib/placePost';
@@ -15,7 +14,7 @@ import {
 import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
 import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
-import { MemoSheet, SavedPostCard, SavedPostViewer } from '@/features/post';
+import { MemoSheet, SavedPostCard, SavedPostPreview } from '@/features/post';
 import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
 import { postQueryKeys } from '@/features/post/api/queries';
 import type { PostDetail } from '@/features/post/types';
@@ -23,6 +22,7 @@ import { fetchSharedPostDetail } from '@/features/share/api';
 import { sharedQueryKeys } from '@/features/share/api/queries';
 import { Icon16ArrowRight, Icon20Images } from '@/shared/icons/NookIcons';
 import { type Coordinates, formatDistance } from '@/shared/lib/geolocation';
+import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
 import { Badge, Carousel, Thumbnail } from '@/shared/ui';
@@ -116,15 +116,18 @@ function SavedPostsSection({
   const posts = place.posts;
   const postDetailQueries = usePostDetails(posts, shareToken);
   const navigate = useNavigate();
-  // 미디어를 누르면 열리는 확대뷰 — 어느 카드의 몇 번째 미디어인지 함께 들고 있어야
-  // 그 미디어부터 시작할 수 있다.
-  const [viewing, setViewing] = useState<{ postIndex: number; mediaIndex: number } | null>(null);
+  // 펼쳐진 카드의 사진을 누르면 이 자리 위에 확대 뷰를 얹는다(Figma `전체 보기`).
+  // 어느 게시물의 몇 번째 사진인지 둘 다 필요하다 — 그 사진부터 열린다.
+  // 떠 있는지 여부만 히스토리 엔트리로 승격해, 좌상단 뒤로가기·하드웨어 백·iOS 엣지
+  // 스와이프가 모두 "확대 뷰 닫기"로 수렴하게 한다.
+  const [preview, setPreview] = useState<{ postIndex: number; imageIndex: number } | null>(null);
+  const [previewOpen, openPreview, closePreview] = useHistoryBackedFlag('savedPostPreview');
 
   if (posts.length === 0) return null;
 
   const detailAt = (index: number) => postDetailQueries[index]?.data;
-  const viewingPost = viewing ? posts[viewing.postIndex] : undefined;
-  const viewingDetail = viewing ? detailAt(viewing.postIndex) : undefined;
+  const previewPost = preview ? posts[preview.postIndex] : undefined;
+  const previewDetail = preview ? detailAt(preview.postIndex) : undefined;
   // 모아보기 페이지는 내 API 만 쓴다 — 공유 링크로 들어온(아직 저장 안 한) 장소는 그쪽에서
   // 404 가 난다. 그래서 공유 진입일 땐 넘기지 않고 예전처럼 카드를 전부 펼친다.
   const expandAll = Boolean(shareToken) || posts.length === 1;
@@ -140,7 +143,10 @@ function SavedPostsSection({
               post={toDisplayPost(post, detailAt(index))}
               archives={detailAt(index)?.archives ?? []}
               onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
-              onMediaClick={(mediaIndex) => setViewing({ postIndex: index, mediaIndex })}
+              onImageClick={(imageIndex) => {
+                setPreview({ postIndex: index, imageIndex });
+                openPreview();
+              }}
             />
           ))}
         </div>
@@ -173,19 +179,14 @@ function SavedPostsSection({
         </div>
       )}
 
-      {/* 장소 상세는 vaul 드로어(transform) 안이라 fixed 의 기준이 드로어가 된다 —
-          `PlacePhotoViewer` 와 같은 이유로 body 로 포탈해 화면 전체를 덮는다. */}
-      {viewingPost
-        ? createPortal(
-            <SavedPostViewer
-              post={toDisplayPost(viewingPost, viewingDetail)}
-              title={viewingDetail?.title ?? viewingPost.title}
-              initialIndex={viewing?.mediaIndex}
-              onClose={() => setViewing(null)}
-            />,
-            document.body,
-          )
-        : null}
+      {previewOpen && previewPost ? (
+        <SavedPostPreview
+          title={previewDetail?.title ?? previewPost.title}
+          post={toDisplayPost(previewPost, previewDetail)}
+          initialIndex={preview?.imageIndex}
+          onClose={closePreview}
+        />
+      ) : null}
     </>
   );
 }
@@ -292,11 +293,13 @@ function RelatedPlacesSection({
 /**
  * 지도 핀 클릭 시 드로어에 보여줄 장소 상세.
  * `expanded`(full 스냅) 일 때만 장소 info/저장된 게시물/게시물에 포함된 장소를 추가로 보여준다
- * — mid 스냅에서는 이름·태그·거리·주소·사진까지만 노출한다(Figma 126:13002 vs 126:13111).
+ * — detailPage 스냅에서는 이름·태그·거리·주소·사진까지만 노출한다(Figma 126:13002 vs 126:13111).
+ * 최저 스냅(detailCompact)에서는 사진까지 접어 이름·태그·거리·주소만 남는다(시안 263:11099).
  */
 export function PlaceDetail({
   place,
   expanded,
+  showPhotos = true,
   shareToken,
   userCoords,
   onClose,
@@ -304,6 +307,12 @@ export function PlaceDetail({
 }: {
   place: PlaceDetailModel;
   expanded: boolean;
+  /**
+   * 사진 캐러셀 노출 여부. 최저 스냅(detailCompact)의 시트 높이는 사진 없는 장소에
+   * 맞춰 잡은 것이라, 사진이 있는 장소도 그 높이에서는 사진을 접어야 시트 안에 들어간다.
+   * 사진이 아예 없는 장소는 이 값과 무관하게 `PlacePhotos` 가 알아서 아무것도 그리지 않는다.
+   */
+  showPhotos?: boolean;
   /**
    * 공유 아카이브 딥링크로 들어온 경우의 토큰. 있으면 상세를 공유자 기준 읽기 전용으로
    * 그린다 — 저장 토글·메모 편집·게시물에 포함된 장소의 북마크/스와이프 삭제를 숨긴다.
@@ -318,7 +327,9 @@ export function PlaceDetail({
 }) {
   const readOnly = Boolean(shareToken);
   const { showToast } = useToast();
-  const [photosOpen, setPhotosOpen] = useState(false);
+  // 사진 전체보기는 상세 위에 얹는 오버레이라 뒤로가기 = 닫기다 — 스와이프도 같게
+  // 동작해야 해서 히스토리 엔트리로 승격한다.
+  const [photosOpen, openPhotos, closePhotos] = useHistoryBackedFlag('placePhotos');
   const [memoOpen, setMemoOpen] = useState(false);
   const updateMemo = useUpdatePlaceMemo(place.id);
 
@@ -360,10 +371,12 @@ export function PlaceDetail({
         )}
       </div>
 
-      <PlacePhotos
-        photos={place.photos}
-        onPhotoClick={place.photos.length > 0 ? () => setPhotosOpen(true) : undefined}
-      />
+      {showPhotos ? (
+        <PlacePhotos
+          photos={place.photos}
+          onPhotoClick={place.photos.length > 0 ? openPhotos : undefined}
+        />
+      ) : null}
 
       {expanded && (
         <>
@@ -392,11 +405,7 @@ export function PlaceDetail({
       )}
 
       {photosOpen && (
-        <PlacePhotoViewer
-          title={place.name}
-          photos={place.photos}
-          onClose={() => setPhotosOpen(false)}
-        />
+        <PlacePhotoViewer title={place.name} photos={place.photos} onClose={closePhotos} />
       )}
 
       {/* 게시물 상세와 같은 `메모하기` 바텀시트를 그대로 쓴다 — 저장 대상만 장소 메모다.

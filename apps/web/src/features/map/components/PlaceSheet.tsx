@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { useAppShellContainer } from '@/app/providers';
 import { useSlideScreen } from '@/app/slide-screen';
@@ -6,22 +6,34 @@ import { EmptySavedPlaces } from '@/features/map/components/EmptySavedPlaces';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { PlaceSearchPanel } from '@/features/map/components/PlaceSearchPanel';
-import { getPlaceSheetLayoutClassNames } from '@/features/map/components/place-sheet-layout';
+import {
+  getPlaceSheetLayoutClassNames,
+  getSnapTransitionDurationSeconds,
+  SNAP_DURATION_VAR,
+} from '@/features/map/components/place-sheet-layout';
 import {
   BROWSE_SNAP_POINTS,
+  BROWSE_SNAP_POINTS_WITH_KEYBOARD,
+  DETAIL_COMPACT_SNAP_POINT,
   DETAIL_SNAP_POINTS,
+  DETAIL_SNAP_POINTS_WITHOUT_PHOTOS,
   FULL_SNAP_POINT,
-  MID_SNAP_POINT,
 } from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
 import { Icon16ArrowDown, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
+import { AllowBackGesture } from '@/shared/lib/backGesture';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import { cn } from '@/shared/lib/utils';
 import { Drawer, DrawerContent, FloatingButton, Header } from '@/shared/ui';
 
 /** 이 값을 넘겨 스크롤된 것으로 판단한다(0 근처의 미세한 바운스/오차 무시). */
 const SCROLL_HIDE_HANDLE_THRESHOLD = 4;
+/**
+ * 바닥까지 이 거리 안이면 "맨 아래에 도착"으로 본다. scrollHeight·clientHeight 는 소수점
+ * 레이아웃에서 1px 안쪽으로 어긋나 정확히 같아지지 않는 경우가 있어 여유를 둔다.
+ */
+const SCROLL_AT_BOTTOM_THRESHOLD = 8;
 
 export function PlaceSheet({
   recentPlaces,
@@ -38,6 +50,7 @@ export function PlaceSheet({
   onClose,
   onEnterSearch,
   onExitSearch,
+  onSearchInputFocus,
 }: {
   recentPlaces: RecentPlace[];
   selectedPlace: PlaceDetailModel | null;
@@ -57,26 +70,49 @@ export function PlaceSheet({
   /** 저장한 공간 검색 모드 — 탐색 콘텐츠 위로 검색 패널이 슬라이드되어 덮는다. */
   isSearchMode: boolean;
   onSnapChange: (snap: number | string | null) => void;
-  onSelectPlace: (id: number) => void;
+  /**
+   * 장소 선택. 두 번째 인자는 그 장소가 구독한 공유 아카이브의 것일 때의 공유 토큰이다 —
+   * 넘기면 상세를 공유 공개 API 로 조회해 공유자 기준 읽기 전용으로 그린다.
+   */
+  onSelectPlace: (id: number, shareToken?: string | null) => void;
   onClose: () => void;
   onEnterSearch: () => void;
   onExitSearch: () => void;
+  /** 검색 입력이 포커스될 때 — 낮은 스냅이면 결과가 보이는 높이로 올리는 용도(MapPage). */
+  onSearchInputFocus: () => void;
 }) {
   const shellContainer = useAppShellContainer();
+  const contentRef = useRef<HTMLDivElement>(null);
   // BottomMenu 를 숨기는 조건은 MapPage(선택된 장소 유무)가 정하고, 여기선 그 결과값만
   // 그대로 읽는다 — 나중에 숨기는 이유가 늘어나도 이 시트 레이아웃은 자동으로 따라간다.
   const { hidden: bottomMenuHidden } = useBottomMenuVisibility();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(false);
   const isFull = snap === FULL_SNAP_POINT;
   const hasSelection = selectedPlace !== null || isPlaceDetailPending || isPlaceDetailError;
-  // 내부 스크롤은 목록이 충분히 펼쳐진 스냅에서만 허용한다(탐색: mid 이상=Figma
-  // 94:4075·94:4165, 상세: full). 그 아래 스냅에서는 시트 안 어디를 잡아도 드래그가
-  // 드로어 이동으로만 동작해야 하므로(제스처 주인은 상태마다 하나) overflow 를 잠근다.
-  const canScroll = hasSelection ? isFull : snap === MID_SNAP_POINT || isFull;
+  // 사진이 없는 장소는 detailPage 스냅을 빼서 최저 높이(detailCompact)가 곧 기본 높이가
+  // 된다. 상세가 아직 안 왔을 땐(pending) 사진이 있다고 보고 3점 배열을 유지한다 — 그
+  // 사이 활성 스냅은 detailPage 라, 여기서 먼저 2점 배열로 바꾸면 vaul 이 목록에 없는
+  // 스냅을 붙잡는다. 사진 없음이 확정되는 순간 MapPage 가 스냅을 detailCompact 로
+  // 내려주고 배열도 같은 렌더에서 함께 바뀐다.
+  const hasPhotos = selectedPlace ? selectedPlace.photos.length > 0 : true;
+  // 최저 스냅의 높이는 사진 없는 장소에 맞춰 잡은 것이라, 사진이 있는 장소도 여기선 접는다.
+  const showPhotos = snap !== DETAIL_COMPACT_SNAP_POINT;
+  // 검색 입력에 포커스가 있는지 — 있으면 최소 스냅(peek)을 스냅 목록에서 빼서 키보드가
+  // 뜬 채로 시트가 그 높이까지 내려가지 못하게 한다(BROWSE_SNAP_POINTS_WITH_KEYBOARD).
+  const [searchInputFocused, setSearchInputFocused] = useState(false);
+  // 내부 스크롤은 full 스냅에서만 허용한다. 그 아래 스냅(mid 포함)에서는 시트 안 어디를
+  // 잡아도 드래그가 드로어 이동으로만 동작해야 하므로(제스처 주인은 상태마다 하나)
+  // overflow 를 잠근다 — mid 에서 아래로 끌면 vaul 이 자동으로 드래그로 라우팅해 full 로
+  // 펼쳐진다(QA).
+  const canScroll = isFull;
   // 스크롤을 내리면 드래그핸들 대신 고정 헤더가 뜬다(Figma `스크롤시 헤더 변경`).
   // 맨 위로 되돌아오면 다시 핸들로 바뀐다.
   const showStickyHeader = isFull && isScrolled && selectedPlace !== null;
+  // "위로가기"는 목록 맨 아래에 닿았을 때만 뜬다(QA) — 스크롤을 내리는 내내 떠 있으면
+  // 콘텐츠를 가린다. isScrolled 를 함께 보므로 스크롤이 없는 짧은 상세에서는 뜨지 않는다.
+  const showScrollToTop = showStickyHeader && isAtBottom;
   const layoutClassNames = getPlaceSheetLayoutClassNames(bottomMenuHidden, snap, showStickyHeader);
   // 검색 패널의 오른쪽→왼쪽 슬라이드 — 전체화면 전환(slide-screen)과 같은 전환/뒤로가기
   // 계약을 그대로 쓴다(Android 하드웨어 백도 검색 닫기로 수렴). 패널이 탐색 콘텐츠 위를
@@ -99,13 +135,36 @@ export function PlaceSheet({
     return () => clearTimeout(timer);
   }, [suppressTransition]);
 
-  // 스크롤이 "불가 → 가능"으로 바뀌는 순간과 보는 장소가 바뀔 때만 맨 위로 되돌린다.
-  // isFull 이 아니라 canScroll 을 트리거로 쓰는 이유: 탐색 모드 mid ↔ full 은 둘 다
-  // 스크롤 가능한 스냅이라, 그 사이를 오갈 때 보던 위치를 잃지 않아야 한다.
+  // 이번 전환의 이동 거리에 맞춘 duration 을 시트에 실어 보낸다(global.css 가 이 변수를
+  // 읽는다). 두 경로로 들어온다 — 드래그를 놓은 순간엔 vaul 이 리렌더를 기다리지 않고
+  // 그 자리에서 transform 을 걸어버리므로 아래 setActiveSnapPoint 래퍼가 동기로 먼저
+  // 넣고, 화면이 스냅을 직접 바꾸는 경우(장소 선택 등)는 이 레이아웃 이펙트가 맡는다.
+  // useEffect 가 아니라 useLayoutEffect 인 이유: vaul 의 스냅 이펙트는 passive 라
+  // 자식이어도 모든 layout effect 뒤에 돈다 — 여기서 넣어야 이번 전환에 반영된다.
+  const prevSnapRef = useRef(snap);
+  const applySnapDuration = (from: number | string | null, to: number | string | null) => {
+    const duration = getSnapTransitionDurationSeconds(from, to);
+    if (duration === null) contentRef.current?.style.removeProperty(SNAP_DURATION_VAR);
+    else contentRef.current?.style.setProperty(SNAP_DURATION_VAR, `${duration}s`);
+  };
+  useLayoutEffect(() => {
+    if (prevSnapRef.current === snap) return;
+    applySnapDuration(prevSnapRef.current, snap);
+    prevSnapRef.current = snap;
+  });
+
+  // 검색을 닫으면 입력도 함께 사라진다 — blur 이벤트는 언마운트 때 오지 않으므로
+  // 포커스 플래그를 직접 내려 peek 을 다시 열어준다.
+  useEffect(() => {
+    if (!isSearchMode) setSearchInputFocused(false);
+  }, [isSearchMode]);
+
+  // full 진입(스크롤 불가 → 가능)과 보는 장소가 바뀔 때만 맨 위로 되돌린다.
   // biome-ignore lint/correctness/useExhaustiveDependencies: canScroll/selectedPlace.id 는 본문에서 값을 쓰지 않는 트리거 전용 의존성
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
     setIsScrolled(false);
+    setIsAtBottom(false);
   }, [canScroll, selectedPlace?.id]);
 
   return (
@@ -113,12 +172,49 @@ export function PlaceSheet({
       open
       dismissible={false}
       modal={false}
-      snapPoints={hasSelection ? DETAIL_SNAP_POINTS : BROWSE_SNAP_POINTS}
+      // 빠르게 쓸어내리면(vaul 기준 velocity > 2) 중간 스냅을 건너뛰고 끝까지 떨어지는데,
+      // full 에서 목록을 스크롤하듯 짧게 쓴 제스처가 곧장 peek 까지 가버려 "슝 떨어진다"는
+      // 인상을 준다(QA). 이 옵션으로 건너뛰기만 끄면 아무리 빨라도 한 칸씩(full→mid→peek)
+      // 움직인다 — "가볍게 툭 = 다음 단계"(velocity > 0.4) 규칙은 그대로 남는다.
+      snapToSequentialPoint
+      // 이 시트는 오버레이가 없는데(overlay={false}) fadeFromIndex 를 안 넘기면 vaul 이
+      // 마지막 인덱스를 기본값으로 잡아, 그 바로 아래 스냅(mid·detailPage)이 "오버레이가
+      // 걸리는 스냅"으로 취급된다. 그 상태에서 아래로 끌면 getPercentageDragged 가 1 을
+      // 돌려주고, dismissible={false} 와 만나 Root.onDrag 이 드래그를 통째로 무시한다 —
+      // 시트가 손을 안 따라오다 손 뗀 순간 스냅으로 튀는 원인(QA: 핸들 말고는 안 끌린다).
+      // 0 으로 고정해 페이드 대상 스냅을 최저점으로 밀어두면 그 분기에 걸리지 않는다.
+      fadeFromIndex={0}
+      // vaul 은 스크롤 때문에 드래그를 한 번 거절하면 그 뒤 500ms 동안 드래그를 계속
+      // 거절하고, 거절할 때마다 타이머를 다시 찍는다 — 손을 떼지 않는 한 영영 안 풀린다.
+      // 그래서 목록을 내리다 맨 위에 닿아 이어서 끌면 시트가 반응하지 않는다(실측). 0 으로
+      // 두면 스크롤이 맨 위(scrollTop 0)에 닿는 순간 같은 제스처가 그대로 시트 드래그로
+      // 넘어간다 — 스크롤 중에는 어차피 scrollTop 조건이 막아주므로 오작동하지 않는다.
+      scrollLockTimeout={0}
+      // 키보드가 뜨면 vaul 이 드로어의 인라인 height 를 직접 덮어쓴다 —
+      // `visualViewportHeight - rect.top` 으로 다시 계산하는데, 이 시트는 늘 컨테이너를
+      // 꽉 채우는 높이라(place-sheet-layout) mid 스냅에서 밀려난 몫까지 한 번 더 빠져
+      // 시트가 뚝 낮아진다. 키보드가 내려간 뒤에도 px 로 굳은 값이 남아 우리 계산을
+      // 계속 밀어낸다. 스냅 높이의 주인은 place-sheet-layout 하나여야 하므로 끈다 —
+      // 검색 입력은 시트 최상단이라 어차피 키보드에 가리지 않는다(QA).
+      repositionInputs={false}
+      snapPoints={
+        hasSelection
+          ? hasPhotos
+            ? DETAIL_SNAP_POINTS
+            : DETAIL_SNAP_POINTS_WITHOUT_PHOTOS
+          : searchInputFocused
+            ? BROWSE_SNAP_POINTS_WITH_KEYBOARD
+            : BROWSE_SNAP_POINTS
+      }
       activeSnapPoint={snap}
-      setActiveSnapPoint={onSnapChange}
+      setActiveSnapPoint={(next) => {
+        applySnapDuration(prevSnapRef.current, next);
+        onSnapChange(next);
+      }}
       container={shellContainer}
     >
       <DrawerContent
+        ref={contentRef}
         overlay={false}
         showHandle={!isFull || !isScrolled}
         style={{
@@ -140,6 +236,13 @@ export function PlaceSheet({
           layoutClassNames.drawer.className,
         )}
       >
+        {/* 전체화면(full)까지 올린 상세만 iOS 좌측 엣지 스와이프를 허용한다. 이 시트의
+            뒤로가기는 공용 `BackButton` 이 아니라 아래 스티키 헤더의 raw 버튼이라 자동
+            판정에 잡히지 않고, detailPage(0.5)·detailCompact 는 화면 절반 이하라 애초에
+            제스처 대상이 아니다(전체 높이를 덮는 화면만 — 제품 규칙). 선택 없는 목록
+            모드의 full 도 되감을 상세가 없어 함께 빠진다. 되감을 엔트리는 `MapPage` 가
+            상세를 열 때 쌓는다 — 스와이프는 그 엔트리로 되감기는 것이 곧 상세 닫기다. */}
+        {isFull && hasSelection ? <AllowBackGesture /> : null}
         {showStickyHeader && selectedPlace ? (
           <Header
             size="bottom"
@@ -166,11 +269,18 @@ export function PlaceSheet({
         <div className="relative" style={{ height: contentHeight }}>
           <div
             ref={scrollRef}
+            data-slot="place-sheet-scroller"
             onScroll={(e) => {
               if (!isFull) return;
-              setIsScrolled(e.currentTarget.scrollTop > SCROLL_HIDE_HANDLE_THRESHOLD);
+              const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+              setIsScrolled(scrollTop > SCROLL_HIDE_HANDLE_THRESHOLD);
+              setIsAtBottom(scrollTop + clientHeight >= scrollHeight - SCROLL_AT_BOTTOM_THRESHOLD);
             }}
             style={scrollerStyle}
+            // 검색 오버레이가 이 영역을 덮는 동안엔 완전히 죽여둔다 — 안 그러면 오버레이 위의
+            // 드래그/탭이 아래 목록 카드의 클릭으로 새는 경우가 있다(빠르게 내리는 제스처가
+            // 카드 클릭으로 오인되면 handlePlaceClick 이 검색모드를 강제 종료해 버림, QA).
+            inert={isSearchMode || undefined}
             className={cn(
               'flex h-full flex-col gap-3 px-4',
               canScroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
@@ -185,6 +295,7 @@ export function PlaceSheet({
                   key={selectedPlace.id}
                   place={selectedPlace}
                   expanded={isFull}
+                  showPhotos={showPhotos}
                   shareToken={shareToken}
                   userCoords={userCoords}
                   onClose={onClose}
@@ -218,8 +329,11 @@ export function PlaceSheet({
                           name: place.name,
                           category: place.category ?? '',
                           thumbnail: place.thumbnail,
+                          thumbnailState: place.thumbnailState,
                         }}
-                        onClick={() => onSelectPlace(place.id)}
+                        // 구독한 공유 아카이브의 장소는 내 API 로는 게시물이 비어 오므로
+                        // 토큰을 함께 넘겨 공유 공개 API 로 조회하게 한다.
+                        onClick={() => onSelectPlace(place.id, place.shareToken)}
                       />
                     ))}
                   </div>
@@ -244,13 +358,18 @@ export function PlaceSheet({
                 scrollPaddingBottom={scrollerStyle.paddingBottom}
                 onExit={slideOutSearch}
                 onSelectPlace={onSelectPlace}
+                onInputFocus={() => {
+                  setSearchInputFocused(true);
+                  onSearchInputFocus();
+                }}
+                onInputBlur={() => setSearchInputFocused(false)}
               />
             </div>
           ) : null}
         </div>
 
-        {/* 스크롤을 내린 동안만 뜨는 "위로가기"(Figma `Button/48_up`). */}
-        {showStickyHeader ? (
+        {/* 목록 맨 아래에 닿았을 때만 뜨는 "위로가기"(Figma `Button/48_up`). */}
+        {showScrollToTop ? (
           <FloatingButton
             floating={false}
             size="lg"

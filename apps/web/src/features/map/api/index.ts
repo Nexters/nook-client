@@ -70,13 +70,34 @@ export async function fetchMapPins(bounds: MapBounds): Promise<MapPin[]> {
   return (pins ?? []).map(toMapPin);
 }
 
-function toRecentPlace(dto: RecentPlaceResponse): RecentPlace {
+/**
+ * 썸네일 로딩/실패 표시 파생 — 썸네일 URL 이 이미 있으면 파싱 상태와 무관하게 완료로
+ * 본다(`features/post/api/queries.ts`의 `toPlace`와 같은 방어 로직: 서버가 PENDING 에
+ * 멈춰있는 케이스 대응). 각 feature 가 자기 진입점을 소유하는 컨벤션이라 archive 쪽에도
+ * 같은 함수가 따로 있다.
+ */
+function toThumbnailState(
+  thumbnailUrl: string | null | undefined,
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED',
+): 'processing' | 'failed' | undefined {
+  if (thumbnailUrl) return undefined;
+  if (status === 'PENDING' || status === 'PROCESSING') return 'processing';
+  if (status === 'FAILED') return 'failed';
+  return undefined;
+}
+
+export function toRecentPlace(dto: RecentPlaceResponse): RecentPlace {
   return {
     id: dto.id,
     name: dto.name,
     category: dto.category ?? undefined,
     address: dto.address,
     thumbnail: dto.thumbnailUrl ?? undefined,
+    thumbnailState: toThumbnailState(dto.thumbnailUrl, dto.thumbnailParsingStatus),
+    accessType: dto.accessType,
+    // 서버 계약상 SHARED 일 때만 채워지지만, 토큰 없는 SHARED 가 섞여 내려와도
+    // 내 API 로 조회하는 기존 경로로 흘러가게 둔다(공유 상세를 부를 수단이 없다).
+    shareToken: dto.shareToken ?? null,
   };
 }
 

@@ -50,22 +50,22 @@ describe('SavedPostCard', () => {
     expect(container.querySelectorAll('video')).toHaveLength(1);
   });
 
-  it('onMediaClick 을 넘겼을 때만 미디어가 버튼이 되고 누른 위치를 알려준다', () => {
-    const onMediaClick = vi.fn();
+  it('onImageClick 을 넘겼을 때만 미디어가 버튼이 되고 누른 위치를 알려준다', () => {
+    const onImageClick = vi.fn();
     const { rerender } = render(
       <SavedPostCard post={makePost([IMAGE_URL, VIDEO_URL])} archives={[]} />,
     );
     // 아무 일도 하지 않는 버튼은 포커스만 먹고 스크린리더에도 잡힌다.
-    expect(screen.queryByRole('button', { name: /미디어 크게 보기/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /사진 크게 보기/ })).not.toBeInTheDocument();
 
     rerender(
       <SavedPostCard
         post={makePost([IMAGE_URL, VIDEO_URL])}
         archives={[]}
-        onMediaClick={onMediaClick}
+        onImageClick={onImageClick}
       />,
     );
-    screen.getByRole('button', { name: '2번째 미디어 크게 보기' }).click();
-    expect(onMediaClick).toHaveBeenCalledWith(1);
+    screen.getByRole('button', { name: '2번째 사진 크게 보기' }).click();
+    expect(onImageClick).toHaveBeenCalledWith(1);
   });
 });

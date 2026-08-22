@@ -19,4 +19,10 @@ export interface Place {
   keywords?: string[];
   /** 대표 이미지. 없으면 빈 썸네일(시안 `Image_x`)로 렌더된다. */
   thumbnail?: string;
+  /**
+   * 썸네일 파싱 처리 상태 — 저장 직후엔 BE 가 썸네일을 비동기로 채운다.
+   * `thumbnail` 이 비어 있는 동안 처리 중(`processing`)/실패(`failed`) 표시를 카드에 얹는 데 쓴다.
+   * 이미 `thumbnail` 이 있으면 상태와 무관하게 항상 undefined 다(각 feature 매퍼의 방어 로직).
+   */
+  thumbnailState?: 'processing' | 'failed';
 }

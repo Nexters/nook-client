@@ -28,6 +28,7 @@ type Handler = (message: NativeToWeb) => void;
 type SessionResult = Extract<NativeToWeb, { type: 'SESSION_RESULT' }>['payload'];
 type SocialLoginResult = Extract<NativeToWeb, { type: 'SOCIAL_LOGIN_RESULT' }>['payload'];
 type ImagePickResult = Extract<NativeToWeb, { type: 'IMAGE_PICK_RESULT' }>['payload'];
+type PushPermissionResult = Extract<NativeToWeb, { type: 'PUSH_PERMISSION_RESULT' }>['payload'];
 
 // crypto.randomUUID 는 보안 컨텍스트에서만 존재한다. 실기기가 http://<LAN IP> 의
 // dev 서버를 볼 때는 비보안 컨텍스트라 undefined 다. 요청/응답 짝을 맞추는 용도라
@@ -61,6 +62,7 @@ class NativeBridge {
   private pending = new Map<string, (result: SessionResult) => void>();
   private pendingSocial = new Map<string, (result: SocialLoginResult) => void>();
   private pendingImagePick = new Map<string, (result: ImagePickResult) => void>();
+  private pendingPushPermission = new Map<string, (result: PushPermissionResult) => void>();
 
   get isNative(): boolean {
     return !!window.ReactNativeWebView;
@@ -87,25 +89,35 @@ class NativeBridge {
     window.ReactNativeWebView?.postMessage(JSON.stringify(message));
   }
 
-  requestSession(type: 'SESSION_GET' | 'SESSION_CLEAR'): Promise<SessionResult>;
+  requestSession(type: 'SESSION_CLEAR'): Promise<SessionResult>;
+  requestSession(type: 'SESSION_GET', apiBaseUrl: string | null): Promise<SessionResult>;
   requestSession(type: 'SESSION_REFRESH', revision: number): Promise<SessionResult>;
   requestSession(
     type: 'SESSION_ESTABLISH',
     accessToken: string,
     refreshToken: string | null,
+    apiBaseUrl: string | null,
   ): Promise<SessionResult>;
   requestSession(
     type: string,
-    first?: number | string,
+    first?: number | string | null,
     second?: string | null,
+    third?: string | null,
   ): Promise<SessionResult> {
     const requestId = randomRequestId();
     const payload =
       type === 'SESSION_REFRESH'
         ? { requestId, revision: first as number }
         : type === 'SESSION_ESTABLISH'
-          ? { requestId, accessToken: first as string, refreshToken: second ?? null }
-          : { requestId };
+          ? {
+              requestId,
+              accessToken: first as string,
+              refreshToken: second ?? null,
+              apiBaseUrl: third ?? null,
+            }
+          : type === 'SESSION_GET'
+            ? { requestId, apiBaseUrl: (first as string | null) ?? null }
+            : { requestId };
     return new Promise((resolve) => {
       this.pending.set(requestId, resolve);
       this.send({ v: 1, type, payload } as WebToNative);
@@ -127,6 +139,27 @@ class NativeBridge {
     return new Promise((resolve) => {
       this.pendingImagePick.set(requestId, resolve);
       this.send({ v: 1, type: 'IMAGE_PICK', payload: { requestId, source } });
+    });
+  }
+
+  /**
+   * 셸이 알림 권한을 요청하고, 허용되면 FCM/APNs 토큰을 함께 돌려준다. 미결정 상태면
+   * OS 다이얼로그가 뜬다 — 사용자가 맥락을 아는 시점(프라이밍 시트 승인 뒤)에만 부른다.
+   */
+  requestPushPermission(): Promise<PushPermissionResult> {
+    const requestId = randomRequestId();
+    return new Promise((resolve) => {
+      this.pendingPushPermission.set(requestId, resolve);
+      this.send({ v: 1, type: 'REQUEST_PUSH_PERMISSION', payload: { requestId } });
+    });
+  }
+
+  /** 다이얼로그 없이 현재 권한 상태만 조회한다(허용이면 토큰 포함). */
+  requestPushStatus(): Promise<PushPermissionResult> {
+    const requestId = randomRequestId();
+    return new Promise((resolve) => {
+      this.pendingPushPermission.set(requestId, resolve);
+      this.send({ v: 1, type: 'GET_PUSH_STATUS', payload: { requestId } });
     });
   }
 
@@ -153,6 +186,13 @@ class NativeBridge {
       const resolve = this.pending.get(message.payload.requestId);
       if (resolve) {
         this.pending.delete(message.payload.requestId);
+        resolve(message.payload);
+      }
+    }
+    if (message.type === 'PUSH_PERMISSION_RESULT') {
+      const resolve = this.pendingPushPermission.get(message.payload.requestId);
+      if (resolve) {
+        this.pendingPushPermission.delete(message.payload.requestId);
         resolve(message.payload);
       }
     }

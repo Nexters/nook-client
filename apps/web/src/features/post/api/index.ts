@@ -101,6 +101,8 @@ export function toPostDetail(dto: SavedPostDetailResponse): PostDetail {
     memo: dto.memo ?? undefined,
     // `SavedPostPlaceResponse` 는 `PlaceResponse` + sequence 라 같은 변환을 쓴다.
     places: dto.places.map(toParsedPlace),
+    placeParsingStatus: dto.placeParsingStatus,
+    placeParsingFailureReason: dto.placeParsingFailureReason ?? null,
     post: {
       id: String(dto.postId),
       authorHandle: formatAuthorHandle(dto.authorIdentifier, dto.canonicalUrl),
