@@ -69,6 +69,13 @@ export default function App() {
           // "헤더 좌상단에 뒤로가기 버튼이 있는 풀 페이지인가"라는 판정만 웹이 내려
           // SET_BACK_GESTURE 로 보내준다(제품 규칙). 드로어·바텀시트·메인 탭에서는 false 다.
           allowsBackForwardNavigationGestures={backGestureEnabled}
+          // iOS 전용. 기본값이 NO 라 WKWebView 가 <video playsinline> 을 무시하고, 재생이 시작되는
+          // 순간 네이티브 전체화면 플레이어로 넘긴다 — 게시물 상세의 인라인 영상 프레임이 통째로
+          // 깨진다(react-native-webview 가 이 ivar 만 init 에서 초기화하지 않는다). Android 는 no-op.
+          allowsInlineMediaPlayback
+          // 시안의 기본 상태가 muted 자동재생이다. 기본값(true)이면 사용자 제스처 없이는 시작되지
+          // 않아 정지 프레임에서 멈춘다.
+          mediaPlaybackRequiresUserAction={false}
           // Android 는 스크롤 끝에서 글로우와 함께 화면 전체를 밀어낸다 — 웹은 헤더·바텀이 고정이라
           // 그 영역까지 딸려 움직인다. iOS 는 bounces 를 끄면 안쪽 스크롤의 러버밴드까지 죽어
           // 스크롤이 뻣뻣해지므로, 웹에서 문서를 뷰포트에 붙박는 방식으로 대신 막는다(global.css).
