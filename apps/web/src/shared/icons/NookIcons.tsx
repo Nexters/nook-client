@@ -969,6 +969,27 @@ export function Icon20Picture({ size, width, height, ...props }: NookIconProps) 
   );
 }
 
+export function Icon20PlayMini({ size, width, height, ...props }: NookIconProps) {
+  const renderedWidth = width ?? size ?? 20;
+  const renderedHeight = height ?? (size === undefined ? 20 : size * 1);
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      width={renderedWidth}
+      height={renderedHeight}
+      fill="none"
+      role="presentation"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M6.3 2.8411 C6.0731 2.6981 5.8119 2.6185 5.5438 2.6106 C5.2756 2.6028 5.0103 2.667 4.7754 2.7966 C4.5405 2.9262 4.3446 3.1165 4.2083 3.3475 C4.0719 3.5785 4 3.8419 4 4.1101 V15.8901 C4 16.1584 4.0719 16.4218 4.2083 16.6528 C4.3446 16.8838 4.5405 17.074 4.7754 17.2036 C5.0103 17.3332 5.2756 17.3975 5.5438 17.3896 C5.8119 17.3818 6.0731 17.3022 6.3 17.1591 L15.644 11.2691 C15.8584 11.134 16.0351 10.9467 16.1576 10.7248 C16.28 10.5029 16.3442 10.2536 16.3442 10.0001 C16.3442 9.7467 16.28 9.4974 16.1576 9.2755 C16.0351 9.0535 15.8584 8.8663 15.644 8.7311 L6.3 2.8401 V2.8411 Z"
+        fill="#FFFFFF"
+      />
+    </svg>
+  );
+}
+
 export function Icon24Add({ size, width, height, ...props }: NookIconProps) {
   const renderedWidth = width ?? size ?? 24;
   const renderedHeight = height ?? (size === undefined ? 24 : size * 1);
