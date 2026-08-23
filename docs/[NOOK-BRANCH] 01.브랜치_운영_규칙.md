@@ -1,0 +1,81 @@
+# 브랜치 운영 규칙
+
+| 작성자 | 작성일 | 수정일 |
+| --- | --- | --- |
+| coldbrow | 2026-08-23 | 2026-08-23 |
+
+> `develop` 도입 이후의 브랜치·머지·보호 규칙. MVP 시점 기록인 `docs/[NOOK-11] 01.개발_운영.md` 의 브랜치 절을 대체한다.
+
+## 브랜치
+
+| 브랜치 | 역할 |
+| --- | --- |
+| `main` | 프로덕션. Vercel Production Branch. 여기 머지되면 웹은 즉시 배포된다. |
+| `develop` | 기본 브랜치(default). 다음 릴리스에 나갈 작업이 모이는 곳. |
+| 작업 브랜치 | `develop` 에서 따서 `develop` 으로 되돌린다. |
+
+```
+작업 브랜치 ──Squash PR──▶ develop ──Merge commit PR──▶ main ──▶ 태그 vX.Y.Z
+```
+
+- 기본 브랜치가 `develop` 이므로 PR 을 열면 base 가 자동으로 `develop` 이 된다.
+- 브랜치 이름은 강제하지 않는다. 관행은 `<feat|fix|chore>/<짧은-설명>` 이며 티켓을 붙일 때는 `chore/nook-225-preview-profile-followup` 처럼 쓴다.
+
+## 머지 방식
+
+| 구간 | 방식 | 강제 수단 |
+| --- | --- | --- |
+| 작업 브랜치 → `develop` | **Squash** | ruleset 이 Squash 외의 머지 방식을 막는다 |
+| `develop` → `main` | **Merge commit** | ruleset 이 Merge·Squash 만 허용. 선택은 사람이 한다 |
+
+`develop → main` 을 Squash 로 머지하면 두 브랜치 히스토리가 영구히 갈라진다. 릴리스 PR 은 반드시 **Create a merge commit** 을 고른다.
+
+## 릴리스
+
+1. `develop → main` PR 을 연다. 제목은 **`chore(release): vX.Y.Z`** (다른 형식은 CI 가 막는다).
+2. CI 통과 후 **Merge commit** 으로 머지한다.
+3. `main` 에 `vX.Y.Z` 태그를 단다. 태그는 ruleset 으로 이동·삭제가 막혀 있다.
+
+앱 스토어 빌드 번호는 EAS 가 관리한다(`appVersionSource: remote`). 태그는 "이 커밋이 이 릴리스"를 표시하는 용도다.
+
+## hotfix
+
+급한 수정도 원칙적으로 `develop` 을 거친다. 다만 `develop` 에 아직 내보낼 수 없는 작업이 섞여 있으면, 그 작업까지 함께 배포되므로 다음 경로를 쓴다.
+
+1. `main` 에서 `hotfix/<설명>` 브랜치를 딴다.
+2. 같은 브랜치로 PR 을 **두 개** 연다 — base `main`, base `develop`.
+3. 둘 다 Squash 로 머지한다.
+
+`main → develop` back-merge 는 쓰지 않는다. `develop` 은 linear history 를 요구하므로 머지 커밋이 들어갈 수 없다.
+
+## 보호 규칙 (GitHub Rulesets)
+
+bypass 목록은 비어 있다. 관리자도 우회할 수 없다.
+
+| 규칙 | `main` | `develop` | 태그 `v*` |
+| --- | --- | --- | --- |
+| 허용 머지 방식 | Merge, Squash | **Squash** | — |
+| PR 필수 (직접 push 금지) | ✅ | ✅ | — |
+| 필요한 승인 수 | 0 | 0 | — |
+| 대화(코멘트) 해결 필수 | ✅ | ✅ | — |
+| linear history | ❌ (릴리스 머지 허용) | ✅ | — |
+| 필수 status check | `verify`, `Check title format` | `verify`, `Check title format` | — |
+| base 최신화 필수 | ❌ | ❌ | — |
+| 삭제 금지 / force-push 금지 | ✅ / ✅ | ✅ / ✅ | ✅ / ✅ |
+| 태그 이동 금지 | — | — | ✅ |
+
+리포지토리 설정: 머지 버튼은 Merge commit·Squash 만 켜져 있고(rebase 없음), 머지된 head 브랜치는 자동 삭제된다. auto-merge 는 쓰지 않는다.
+
+## CI
+
+| | pre-commit | pre-push | PR | main·develop push |
+| --- | --- | --- | --- | --- |
+| 포맷·린트 | `biome check` (staged) | — | `biome ci` (전체) | 동일 |
+| 타입체크 | `pnpm typecheck` | `pnpm typecheck` | `pnpm typecheck` | 동일 |
+| 테스트 | ❌ | ❌ | `vitest run` | 동일 |
+| 빌드 | ❌ | ❌ | `vite build` | 동일 |
+| 실패하면 | 커밋 차단 | push 차단 | **머지 차단** | 알림만 |
+
+- PR CI 는 "내 브랜치 + base 를 합친 가상 커밋"을, push CI 는 "실제로 브랜치에 얹힌 결과물"을 검사한다. base 최신화를 강제하지 않으므로 후자가 semantic conflict 를 잡는 안전망이다.
+- PR 브랜치에 연달아 푸시하면 이전 CI 실행은 자동 취소된다(`concurrency`). `main`·`develop` push 실행은 취소하지 않는다.
+- 네이티브(android/ios) 빌드는 CI 범위 밖이다. EAS 로 수동 실행한다.

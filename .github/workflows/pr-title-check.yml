@@ -17,7 +17,28 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            const title = context.payload.pull_request.title;
+            const pr = context.payload.pull_request;
+            const title = pr.title;
+
+            // 릴리스 PR (develop -> main) 은 버전을 제목에 박는 별도 규칙을 쓴다.
+            // 이 제목이 main 의 머지 커밋 제목으로 그대로 남는다.
+            if (pr.base.ref === 'main' && pr.head.ref === 'develop') {
+              if (/^chore\(release\): v\d+\.\d+\.\d+$/.test(title)) {
+                core.info(`OK (release): ${title}`);
+                return;
+              }
+
+              core.setFailed(
+                [
+                  `릴리스 PR 제목 형식이 올바르지 않습니다: "${title}"`,
+                  '',
+                  '형식: chore(release): vX.Y.Z',
+                  '예) chore(release): v1.2.0',
+                ].join('\n'),
+              );
+              return;
+            }
+
             // <type>(<scope>): <subject>  — scope/! 는 선택, subject 필수
             const pattern =
               /^(feat|fix|refactor|style|docs|test|chore|perf|ci|build|revert)(\([a-z0-9\-]+\))?!?: .+/;

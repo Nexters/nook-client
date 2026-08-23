@@ -48,6 +48,16 @@ docs/                        # 아키텍처 결정 기록 / 브리지 문서
 - 공용 아이콘은 `packages/icons/src`의 SVG를 기준으로 플랫폼 코드를 생성한다. 상세는 `docs/icons.md`.
 - `@/` 는 web 의 `src/` alias (Vite·tsc·Vitest 공통).
 
+## 브랜치
+
+```
+작업 브랜치 ──Squash PR──▶ develop ──Merge commit PR──▶ main ──▶ 태그 vX.Y.Z
+```
+
+- 기본 브랜치는 `develop`. `main` 은 프로덕션(Vercel Production Branch)이다.
+- `develop` 으로는 Squash 만 들어간다. 릴리스 PR(`develop → main`)은 제목이 `chore(release): vX.Y.Z` 이고 **Merge commit** 으로 머지한다.
+- 상세 규칙(hotfix, 보호 규칙, CI 범위)은 `docs/[NOOK-BRANCH] 01.브랜치_운영_규칙.md` 를 따른다.
+
 ## 실행
 
 ### web
