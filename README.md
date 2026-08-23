@@ -38,15 +38,27 @@ packages/
 ├── bridge-contracts/        # 셸 ↔ 웹 메시지 계약 (SSOT, 타입 전용)
 └── icons/                   # Web·iOS·Android 공용 SVG와 코드 생성기
 
-docs/                        # 아키텍처 결정 기록 / 브리지 문서
+docs/
+├── ops/                     # 현재 유효한 운영 규칙·빌드/배포 가이드
+└── tickets/                 # 티켓별 작업 기록 (당시 시점 기록)
 ```
 
 - pnpm 워크스페이스: `apps/*` + `packages/*` (web·mobile·계약을 한 락으로 관리).
-- 웹↔셸 통신은 `packages/bridge-contracts` 의 `{ v, type, payload }` postMessage 프로토콜. 상세는 `docs/native-bridge.md`.
-- API 계층과 플랫폼별 인증·생성 코드 경계는 `docs/[NOOK-55] 01.API_통신_구조.md`를 따른다.
-- OpenAPI 명세와 Orval 설정은 `packages/api-contracts`에서 관리하고 생성 코드는 Web의 `shared/api/generated`에 둔다. `pnpm api:refresh`로 재생성하며, 상세 규칙은 `docs/[NOOK-56] 01.OpenAPI_스키마_DTO.md`를 따른다.
-- 공용 아이콘은 `packages/icons/src`의 SVG를 기준으로 플랫폼 코드를 생성한다. 상세는 `docs/icons.md`.
+- 웹↔셸 통신은 `packages/bridge-contracts` 의 `{ v, type, payload }` postMessage 프로토콜. 상세는 `docs/tickets/[NOOK-11] 03.네이티브_통신_브리지.md`.
+- API 계층과 플랫폼별 인증·생성 코드 경계는 `docs/tickets/[NOOK-55] 01.API_통신_구조.md`를 따른다.
+- OpenAPI 명세와 Orval 설정은 `packages/api-contracts`에서 관리하고 생성 코드는 Web의 `shared/api/generated`에 둔다. `pnpm api:refresh`로 재생성하며, 상세 규칙은 `docs/tickets/[NOOK-56] 01.OpenAPI_스키마_DTO.md`를 따른다.
+- 공용 아이콘은 `packages/icons/src`의 SVG를 기준으로 플랫폼 코드를 생성한다. 상세는 `docs/tickets/[NOOK-12] 01.아이콘.md`.
 - `@/` 는 web 의 `src/` alias (Vite·tsc·Vitest 공통).
+
+## 브랜치
+
+```
+작업 브랜치 ──Squash PR──▶ develop ──Merge commit PR──▶ main ──▶ 태그 vX.Y.Z
+```
+
+- 기본 브랜치는 `develop`. `main` 은 프로덕션(Vercel Production Branch)이다.
+- `develop` 으로는 Squash 만 들어간다. 릴리스 PR(`develop → main`)은 제목이 `chore(release): vX.Y.Z` 이고 **Merge commit** 으로 머지한다.
+- 상세 규칙(hotfix, 보호 규칙, CI 범위)은 `docs/ops/브랜치_운영_규칙.md` 를 따른다.
 
 ## 실행
 
@@ -79,10 +91,10 @@ pnpm android                # 에뮬레이터/실기기
 
 > 실기기에서는 dev 서버 대신 `vite preview`(빌드본 서빙)로 확인한다 — dev 서버의 재연결 리로드가 웹뷰 상태를 날린다.
 
-iOS EAS production 빌드와 App Store Connect 제출은 [NOOK-115 배포 가이드](<docs/[NOOK-115] 01.iOS_EAS_빌드_및_App_Store_제출.md>)를,
-실기기에 직접 로컬 빌드해 올리는 절차는 [로컬 앱 빌드 가이드](<docs/[NOOK] 로컬_앱_빌드_가이드.md>)를,
+iOS EAS production 빌드와 App Store Connect 제출은 [iOS EAS 빌드 및 App Store 제출](<docs/ops/iOS_EAS_빌드_및_App_Store_제출.md>)를,
+실기기에 직접 로컬 빌드해 올리는 절차는 [로컬 앱 빌드 가이드](<docs/ops/로컬_앱_빌드_가이드.md>)를,
 EAS가 빌드한 dev client를 설치해 쓰는 절차(새 PC·새 기기 세팅 포함)는
-[배포 빌드 설치 가이드](<docs/[NOOK] 배포_빌드_설치_가이드.md>)를 따른다.
+[배포 빌드 설치 가이드](<docs/ops/배포_빌드_설치_가이드.md>)를 따른다.
 
 ## 환경변수 / 앱 variant
 
