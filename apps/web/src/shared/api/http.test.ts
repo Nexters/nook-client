@@ -133,6 +133,41 @@ describe('ApiClient', () => {
     ).rejects.toMatchObject({ kind: 'contract' });
   });
 
+  it('appHeaders 를 주면 모든 요청에 앱 식별 헤더를 싣는다', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }));
+    const client = new ApiClient({
+      baseUrl: 'https://api.example.com/api/v1/',
+      fetcher,
+      appHeaders: {
+        'X-App-Platform': 'IOS',
+        'X-App-Version': '1.1.1',
+        'X-App-Build-Number': '42',
+      },
+    });
+
+    await client.request('/resources');
+
+    const [, init] = fetcher.mock.calls[0] ?? [];
+    const headers = new Headers(init?.headers);
+    expect(headers.get('X-App-Platform')).toBe('IOS');
+    expect(headers.get('X-App-Version')).toBe('1.1.1');
+    expect(headers.get('X-App-Build-Number')).toBe('42');
+  });
+
+  it('앱 식별 헤더는 다른 출처 요청에 싣지 않는다', async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ ok: true }));
+    const client = new ApiClient({
+      baseUrl: 'https://api.example.com/api/v1/',
+      fetcher,
+      appHeaders: { 'X-App-Platform': 'IOS' },
+    });
+
+    await client.request('https://external.example.com/data');
+
+    const [, init] = fetcher.mock.calls[0] ?? [];
+    expect(new Headers(init?.headers).get('X-App-Platform')).toBeNull();
+  });
+
   it('fetch 실패를 네트워크 오류로 변환한다', async () => {
     const fetcher = vi.fn<typeof fetch>().mockRejectedValue(new TypeError('Failed to fetch'));
     const client = new ApiClient({ baseUrl: 'https://api.example.com/api/v1/', fetcher });
