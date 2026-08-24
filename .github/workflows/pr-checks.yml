@@ -1,4 +1,4 @@
-name: PR Title Check
+name: PR Checks
 
 on:
   pull_request:
@@ -8,17 +8,35 @@ permissions:
   pull-requests: read
 
 jobs:
-  check-title:
-    name: Check title format
+  check-pr:
+    name: Check PR rules
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Validate PR title (conventional commits)
+      - name: Validate PR source branch and title
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const pr = context.payload.pull_request;
             const title = pr.title;
+
+            // main 은 릴리스(develop)와 hotfix 로만 들어온다. 작업 브랜치가 main 으로
+            // 바로 머지되면 develop 이 그 커밋을 잃은 채 다음 릴리스에서 되돌린다.
+            if (
+              pr.base.ref === 'main' &&
+              pr.head.ref !== 'develop' &&
+              !pr.head.ref.startsWith('hotfix/')
+            ) {
+              core.setFailed(
+                [
+                  `main 으로는 develop 또는 hotfix/* 만 PR 할 수 있습니다 (현재: ${pr.head.ref})`,
+                  '',
+                  '작업 브랜치는 base 를 develop 으로 바꿔 PR 하세요.',
+                  '릴리스는 develop → main, 급한 수정은 hotfix/<설명> → main 입니다.',
+                ].join('\n'),
+              );
+              return;
+            }
 
             // 릴리스 PR (develop -> main) 은 버전을 제목에 박는 별도 규칙을 쓴다.
             // 이 제목이 main 의 머지 커밋 제목으로 그대로 남는다.
