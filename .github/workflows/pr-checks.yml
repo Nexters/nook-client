@@ -1,0 +1,87 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  check-pr:
+    name: Check PR rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate PR source branch and title
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const title = pr.title.trim();
+
+            // main 은 릴리스(develop)와 hotfix 로만 들어온다. 작업 브랜치가 main 으로
+            // 바로 머지되면 develop 이 그 커밋을 잃은 채 다음 릴리스에서 되돌린다.
+            if (
+              pr.base.ref === 'main' &&
+              pr.head.ref !== 'develop' &&
+              !pr.head.ref.startsWith('hotfix/')
+            ) {
+              core.setFailed(
+                [
+                  `main 으로는 develop 또는 hotfix/* 만 PR 할 수 있습니다 (현재: ${pr.head.ref})`,
+                  '',
+                  '작업 브랜치는 base 를 develop 으로 바꿔 PR 하세요.',
+                  '릴리스는 develop → main, 급한 수정은 hotfix/<설명> → main 입니다.',
+                ].join('\n'),
+              );
+              return;
+            }
+
+            // develop -> main 은 두 가지뿐이다. 이 제목이 main 의 머지 커밋 제목으로
+            // 그대로 남으므로, 릴리스와 단순 동기화가 히스토리에서 구분돼야 한다.
+            if (pr.base.ref === 'main' && pr.head.ref === 'develop') {
+              if (/^chore\(release\): v\d+\.\d+\.\d+$/.test(title)) {
+                core.info(`OK (release): ${title}`);
+                return;
+              }
+
+              if (/^chore\(sync\): develop (→|->) main$/.test(title)) {
+                core.info(`OK (sync): ${title}`);
+                return;
+              }
+
+              core.setFailed(
+                [
+                  `릴리스 PR 제목 형식이 올바르지 않습니다: "${title}"`,
+                  '',
+                  '앱·웹을 내보내는 릴리스: chore(release): vX.Y.Z',
+                  '  예) chore(release): v1.2.0',
+                  '',
+                  '내보낼 변경이 없는 동기화: chore(sync): develop → main',
+                  '  CI·문서처럼 사용자에게 드러나지 않는 변경만 있을 때 쓴다.',
+                ].join('\n'),
+              );
+              return;
+            }
+
+            // <type>(<scope>): <subject>  — scope/! 는 선택, subject 필수
+            const pattern =
+              /^(feat|fix|refactor|style|docs|test|chore|perf|ci|build|revert)(\([a-z0-9\-]+\))?!?: .+/;
+
+            if (pattern.test(title)) {
+              core.info(`OK: ${title}`);
+              return;
+            }
+
+            core.setFailed(
+              [
+                `PR 제목 형식이 올바르지 않습니다: "${title}"`,
+                '',
+                '형식: <type>(<scope>): <subject>   (scope 는 생략 가능)',
+                '예) feat(share-target): 공유 시트 UI 개편',
+                '    fix: 로그인 리다이렉트 오류 수정',
+                '',
+                'type: feat | fix | refactor | style | docs | test | chore | perf | ci | build | revert',
+              ].join('\n'),
+            );
