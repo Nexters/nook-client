@@ -7,8 +7,8 @@
 > nook iOS 앱을 EAS로 빌드하고 App Store Connect에 제출하는 전체 구조와 절차.
 > 무엇이 EAS 서버에 있고 무엇이 각자 PC에 있어야 하는지를 기준으로 읽으면 된다.
 >
-> 실기기 sideload 설치는 [배포 빌드 설치 가이드](<[NOOK-NATIVE] 배포_빌드_설치_가이드.md>),
-> 내 맥에서 Xcode로 직접 컴파일은 [로컬 앱 빌드 가이드](<[NOOK-NATIVE] 로컬_앱_빌드_가이드.md>) 참고.
+> 실기기 sideload 설치는 [배포 빌드 설치 가이드](<배포_빌드_설치_가이드.md>),
+> 내 맥에서 Xcode로 직접 컴파일은 [로컬 앱 빌드 가이드](<로컬_앱_빌드_가이드.md>) 참고.
 
 ## 1. 전체 구조: 무엇이 어디에 있나
 
@@ -46,7 +46,7 @@ EAS 빌드 프로필은 **variant(dev/prod) × 채널(metro/store)** 조합 4개
 | `prod-store` | production | store | 내장 | TestFlight/App Store | 실제 출시 |
 
 metro 채널은 dev client 빌드라 실행하려면 Mac의 Metro 서버가 필요하고, ad-hoc 서명이라
-기기 UDID가 미리 등록돼 있어야 한다 — [배포 빌드 설치 가이드](<[NOOK-NATIVE] 배포_빌드_설치_가이드.md>)의
+기기 UDID가 미리 등록돼 있어야 한다 — [배포 빌드 설치 가이드](<배포_빌드_설치_가이드.md>)의
 "새 테스트 기기 추가" 절 참고. **폰 단독으로 실행되는 앱을 설치하려면 TestFlight(store 채널)를
 쓴다** — 테스터의 Apple ID(이메일)를 App Store Connect에서 초대하면 된다.
 

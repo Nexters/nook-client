@@ -5,6 +5,12 @@ on:
     branches: [main, develop]
   pull_request:
 
+# PR 브랜치에 연달아 푸시하면 낡은 커밋의 실행은 취소한다.
+# main·develop 의 push 실행은 머지 결과물에 대한 최종 검증이므로 취소하지 않는다.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   verify:
     runs-on: ubuntu-latest
