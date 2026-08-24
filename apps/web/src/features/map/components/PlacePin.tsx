@@ -16,6 +16,7 @@ export function PlacePin({
   lng,
   name,
   color,
+  category,
   thumbnail,
   selected = false,
   onClick,
@@ -25,6 +26,8 @@ export function PlacePin({
   name: string;
   /** 장소를 저장한 대표 아카이브의 색상(`GET /places/map` 의 `color`). */
   color: ArchiveColor;
+  /** 장소 카테고리(`GET /places/map` 의 `category`). 선택된 핀의 글리프를 정한다. */
+  category?: string;
   /** 장소 대표 썸네일(`GET /places/map` 의 `thumbnailUrl`). 없으면 빈 썸네일 고스트를 그린다. */
   thumbnail?: string;
   selected?: boolean;
@@ -46,7 +49,7 @@ export function PlacePin({
           className={`-translate-x-1/2 absolute bottom-0 left-1/2 block ${selected ? 'z-10' : ''}`}
         >
           {selected ? (
-            <SelectedPinMarker color={color} />
+            <SelectedPinMarker color={color} category={category} />
           ) : (
             /*
               `max-w-none` 이 없으면 사진 너비가 0 으로 붕괴한다 — Tailwind preflight 의

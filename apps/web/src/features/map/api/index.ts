@@ -50,6 +50,7 @@ function toMapPin(dto: MapPlaceResponse): MapPin {
     lng: dto.longitude,
     name: dto.name,
     color: SERVER_TO_UI_COLOR[dto.color as CreateGroupRequestColor] ?? 'cement',
+    category: dto.category ?? undefined,
     thumbnail: dto.thumbnailUrl ?? undefined,
   };
 }
