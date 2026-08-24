@@ -54,10 +54,14 @@ docs/
 
 ```
 작업 브랜치 ──Squash PR──▶ develop ──Merge commit PR──▶ main ──▶ 태그 vX.Y.Z
+                             ▲                           │
+                             └───── Merge commit PR ──────┘
+                                     (hotfix back-merge)
 ```
 
 - 기본 브랜치는 `develop`. `main` 은 프로덕션(Vercel Production Branch)이다.
-- `develop` 으로는 Squash 만 들어간다. 릴리스 PR(`develop → main`)은 제목이 `chore(release): vX.Y.Z` 이고 **Merge commit** 으로 머지한다.
+- 작업 브랜치는 `develop` 으로 Squash 머지한다. 릴리스 PR(`develop → main`)은 제목이 `chore(release): vX.Y.Z` 이고 **Merge commit** 으로 머지한다.
+- 핫픽스는 `main` 으로 먼저 내보내고, 곧바로 `main → develop` back-merge PR(`chore(sync): main → develop`)을 **Merge commit** 으로 머지한다.
 - 상세 규칙(hotfix, 보호 규칙, CI 범위)은 `docs/ops/브랜치_운영_규칙.md` 를 따른다.
 
 ## 실행
