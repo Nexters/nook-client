@@ -1,4 +1,6 @@
+import { nativeBridge } from '@/native-bridge';
 import { env } from '@/shared/config/env';
+import { buildAppHeaders } from './appHeaders';
 import { ApiClientError, createHttpError } from './error';
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -22,6 +24,8 @@ interface ApiClientOptions {
   fetcher?: typeof fetch;
   getAccessToken?: AccessTokenProvider;
   defaultTimeoutMs?: number;
+  /** 서버 최소 지원 버전 정책용 앱 식별 헤더(X-App-*). 셸 밖(브라우저)에서는 null. */
+  appHeaders?: Record<string, string> | null;
 }
 
 function parseBaseUrl(value: string): URL {
@@ -64,6 +68,7 @@ export class ApiClient implements ApiRequester {
   private readonly baseUrl?: URL;
   private readonly fetcher: typeof fetch;
   private readonly defaultTimeoutMs: number;
+  private readonly appHeaders: Record<string, string> | null;
   private getAccessToken?: AccessTokenProvider;
   private refreshSession?: SessionRefresher;
 
@@ -75,6 +80,7 @@ export class ApiClient implements ApiRequester {
     this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
     this.getAccessToken = options.getAccessToken;
     this.defaultTimeoutMs = options.defaultTimeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.appHeaders = options.appHeaders ?? null;
   }
 
   setAccessTokenProvider(provider?: AccessTokenProvider): void {
@@ -111,6 +117,13 @@ export class ApiClient implements ApiRequester {
     if (requestInit.body !== undefined && !headers.has('Content-Type')) {
       const isFormData = typeof FormData !== 'undefined' && requestInit.body instanceof FormData;
       if (!isFormData) headers.set('Content-Type', 'application/json');
+    }
+
+    // 앱 식별 헤더는 인증 토큰과 같은 이유로 우리 API 출처에만 싣는다.
+    if (this.appHeaders && url.origin === this.baseUrl.origin) {
+      for (const [name, value] of Object.entries(this.appHeaders)) {
+        if (!headers.has(name)) headers.set(name, value);
+      }
     }
 
     if (auth !== 'none' && !headers.has('Authorization')) {
@@ -192,7 +205,11 @@ export class ApiClient implements ApiRequester {
   }
 }
 
-export const apiClient = new ApiClient({ baseUrl: env.apiBaseUrl });
+// 셸 주입 값은 페이지 로드 전에 확정되므로 모듈 초기화 시점에 한 번만 만든다.
+export const apiClient = new ApiClient({
+  baseUrl: env.apiBaseUrl,
+  appHeaders: buildAppHeaders(nativeBridge),
+});
 
 /** 생성 클라이언트의 custom fetch/mutator가 사용할 기본 진입점. */
 export function apiFetch<T>(path: string, init?: ApiRequestInit): Promise<T> {
