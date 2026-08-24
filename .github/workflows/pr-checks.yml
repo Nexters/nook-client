@@ -18,7 +18,7 @@ jobs:
         with:
           script: |
             const pr = context.payload.pull_request;
-            const title = pr.title;
+            const title = pr.title.trim();
 
             // main 은 릴리스(develop)와 hotfix 로만 들어온다. 작업 브랜치가 main 으로
             // 바로 머지되면 develop 이 그 커밋을 잃은 채 다음 릴리스에서 되돌린다.
@@ -38,11 +38,16 @@ jobs:
               return;
             }
 
-            // 릴리스 PR (develop -> main) 은 버전을 제목에 박는 별도 규칙을 쓴다.
-            // 이 제목이 main 의 머지 커밋 제목으로 그대로 남는다.
+            // develop -> main 은 두 가지뿐이다. 이 제목이 main 의 머지 커밋 제목으로
+            // 그대로 남으므로, 릴리스와 단순 동기화가 히스토리에서 구분돼야 한다.
             if (pr.base.ref === 'main' && pr.head.ref === 'develop') {
               if (/^chore\(release\): v\d+\.\d+\.\d+$/.test(title)) {
                 core.info(`OK (release): ${title}`);
+                return;
+              }
+
+              if (/^chore\(sync\): develop (→|->) main$/.test(title)) {
+                core.info(`OK (sync): ${title}`);
                 return;
               }
 
@@ -50,8 +55,11 @@ jobs:
                 [
                   `릴리스 PR 제목 형식이 올바르지 않습니다: "${title}"`,
                   '',
-                  '형식: chore(release): vX.Y.Z',
-                  '예) chore(release): v1.2.0',
+                  '앱·웹을 내보내는 릴리스: chore(release): vX.Y.Z',
+                  '  예) chore(release): v1.2.0',
+                  '',
+                  '내보낼 변경이 없는 동기화: chore(sync): develop → main',
+                  '  CI·문서처럼 사용자에게 드러나지 않는 변경만 있을 때 쓴다.',
                 ].join('\n'),
               );
               return;
