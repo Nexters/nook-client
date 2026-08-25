@@ -1,5 +1,9 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { OnboardingCarousel } from '@/features/auth/components/OnboardingCarousel';
+import {
+  ONBOARDING_SLIDE_COUNT,
+  OnboardingCarousel,
+} from '@/features/auth/components/OnboardingCarousel';
 import {
   AppleIcon,
   KakaoIcon,
@@ -7,6 +11,8 @@ import {
 } from '@/features/auth/components/SocialLoginButton';
 import { useSocialLogin } from '@/features/auth/useSocialLogin';
 import { nativeBridge } from '@/native-bridge';
+import { cn } from '@/shared/lib/utils';
+import { Button } from '@/shared/ui';
 
 const policyLinkClass =
   'rounded-sm underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100';
@@ -15,6 +21,8 @@ export function LoginPage() {
   const { signIn, pendingProvider, error } = useSocialLogin();
   // Apple 로그인은 iOS 셸에서만 동작한다 (expo-apple-authentication 이 iOS 전용).
   const showAppleLogin = nativeBridge.platform === 'ios';
+  const [slideIndex, setSlideIndex] = useState(0);
+  const isLastSlide = slideIndex === ONBOARDING_SLIDE_COUNT - 1;
 
   return (
     <main
@@ -39,30 +47,54 @@ export function LoginPage() {
         </Link>
       </div>
 
-      <OnboardingCarousel />
+      <OnboardingCarousel activeIndex={slideIndex} onActiveIndexChange={setSlideIndex} />
 
-      <div className="flex flex-col gap-2 px-4 pt-8">
-        <SocialLoginButton
-          provider="kakao"
-          icon={<KakaoIcon />}
-          label="카카오로 로그인"
-          disabled={pendingProvider !== null}
-          onClick={() => void signIn('kakao')}
-        />
-        {showAppleLogin ? (
+      {/* 마지막 장에서만 로그인 버튼을 연다 — 앞 장에서는 `다음` 뿐이라 온보딩을 지나칠 수 없다.
+          두 블록을 같은 그리드 칸에 겹쳐 두는 이유는 높이다. 로그인 묶음이 `다음` 하나보다
+          높아서, 따로 두면 마지막 장에서 캐러셀이 줄며 일러스트와 문구가 위로 튄다.
+          겹쳐 두면 칸 높이가 늘 로그인 묶음 높이(둘 중 큰 쪽)라, 이 화면이 세로로 요구하는
+          공간은 온보딩 도입 전과 같다 — 짧은 기기에서 새로 넘칠 여지가 없다. */}
+      <div className="grid px-4 pt-8">
+        <div
+          className={cn('col-start-1 row-start-1 flex flex-col gap-2', !isLastSlide && 'invisible')}
+          // inert 가 브라우저에서는 포커스와 접근성 트리를 함께 막지만, jsdom 은 이를
+          // 반영하지 않아 테스트에서 숨긴 버튼이 그대로 잡힌다 — aria-hidden 을 같이 건다.
+          inert={!isLastSlide || undefined}
+          aria-hidden={!isLastSlide || undefined}
+        >
           <SocialLoginButton
-            provider="apple"
-            icon={<AppleIcon />}
-            label="Apple로 로그인"
+            provider="kakao"
+            icon={<KakaoIcon />}
+            label="카카오로 로그인"
             disabled={pendingProvider !== null}
-            onClick={() => void signIn('apple')}
+            onClick={() => void signIn('kakao')}
           />
-        ) : null}
-        {error ? (
-          <p role="alert" className="mt-1 text-center text-b3 text-error">
-            {error}
-          </p>
-        ) : null}
+          {showAppleLogin ? (
+            <SocialLoginButton
+              provider="apple"
+              icon={<AppleIcon />}
+              label="Apple로 로그인"
+              disabled={pendingProvider !== null}
+              onClick={() => void signIn('apple')}
+            />
+          ) : null}
+          {error ? (
+            <p role="alert" className="mt-1 text-center text-b3 text-error">
+              {error}
+            </p>
+          ) : null}
+        </div>
+
+        {isLastSlide ? null : (
+          <Button
+            size="lg"
+            fullWidth
+            className="col-start-1 row-start-1 self-start"
+            onClick={() => setSlideIndex(slideIndex + 1)}
+          >
+            다음
+          </Button>
+        )}
       </div>
 
       {/* 로그인 자체가 약관 동의라, 동의 사실과 문서 링크를 버튼 바로 아래에서 함께 알린다.
