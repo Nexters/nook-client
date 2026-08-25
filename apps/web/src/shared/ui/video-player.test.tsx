@@ -35,14 +35,17 @@ beforeEach(() => {
 });
 
 describe('VideoPlayer', () => {
-  it('자동재생을 위해 muted 로 시작하고 네이티브 컨트롤을 쓰지 않는다', () => {
+  it('인라인 속성과 muted를 먼저 적용한 뒤 코드에서 자동재생하고 네이티브 컨트롤을 쓰지 않는다', () => {
     const { container } = render(<VideoPlayer src={VIDEO_URL} />);
 
     const video = container.querySelector('video');
     expect(video).toHaveAttribute('src', VIDEO_URL);
-    expect(video).toHaveAttribute('autoplay');
+    expect(video).not.toHaveAttribute('autoplay');
+    expect(video).toHaveAttribute('playsinline');
+    expect(video).toHaveAttribute('webkit-playsinline');
     expect(video).toHaveProperty('muted', true);
     expect(video).not.toHaveAttribute('controls');
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalled();
   });
 
   it('unmuted 를 넘기면 소리를 켠다', () => {

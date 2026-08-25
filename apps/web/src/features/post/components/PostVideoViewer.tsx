@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon24Pause, Icon24Play } from '@/shared/icons/NookIcons';
+import { playInlineVideo } from '@/shared/lib/inlineVideo';
 import { useSwipeDownToDismiss } from '@/shared/lib/useSwipeDownToDismiss';
-import { BackButton, Header } from '@/shared/ui';
+import { BackButton } from '@/shared/ui';
 
 /**
  * Figma `8월 21일 작업 > 영상 확대뷰`(177:23620).
@@ -22,7 +23,7 @@ export interface PostVideoViewerProps {
 
 function PostVideoViewer({ src, onClose }: PostVideoViewerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false);
   // 진행바가 채워진 비율(0~1). `timeupdate` 는 초당 4회쯤 와서 따로 rAF 를 돌리지 않는다.
   const [progress, setProgress] = useState(0);
   // 헤더 버튼 말고 아래로 쓸어내려서도 닫는다 — 전체화면이라 버튼까지 손이 가기 멀다.
@@ -31,13 +32,17 @@ function PostVideoViewer({ src, onClose }: PostVideoViewerProps) {
   // 확대뷰로 들어온 순간부터 소리가 나야 한다. muted 로 시작하지 않으므로 자동재생이
   // 막힐 수 있는데, 그때는 멈춘 상태로 재생 버튼을 보여주면 된다(아래 onPause 가 받는다).
   useEffect(() => {
-    void videoRef.current?.play();
+    const video = videoRef.current;
+    if (!video) return;
+    void playInlineVideo(video, false).then((started) => {
+      if (!started) setPlaying(false);
+    });
   }, []);
 
   const toggle = () => {
     const video = videoRef.current;
     if (!video) return;
-    if (video.paused) void video.play();
+    if (video.paused) void playInlineVideo(video, false);
     else video.pause();
   };
 
@@ -55,24 +60,6 @@ function PostVideoViewer({ src, onClose }: PostVideoViewerProps) {
       {/* body 포탈로 뜨면 fixed 기준이 뷰포트 전체 폭이라, 데스크톱에서도 셸 폭
           (max-w-[450px], providers.tsx)을 넘지 않게 안쪽에서 다시 묶는다. */}
       <div className="relative mx-auto h-full w-full max-w-[450px]">
-        {/* 헤더는 영상 위에 얹는다 — 자리를 차지하면 그만큼 영상이 아래로 밀린다. */}
-        <div
-          className="absolute inset-x-0 top-0 z-10"
-          style={{ paddingTop: 'env(safe-area-inset-top)' }}
-        >
-          <Header
-            variant="transparent"
-            left={
-              // 이 버튼은 영상 위에 바로 얹힌다 — 기본 회색 쉐브론은 밝은 장면에서 묻힌다.
-              // 아이콘이 stroke 색을 SVG 에 박고 있어(`Icon24Back`) 자손 path 를 직접 덮는다.
-              // 그림자는 어두운 장면에서도 획이 뜨게 하는 시안 값이다.
-              <BackButton
-                onClick={onClose}
-                className="drop-shadow-[0_0_5px_rgba(0,0,0,0.5)] [&_path]:stroke-gray-0"
-              />
-            }
-          />
-        </div>
         {/* 영상은 헤더 아래 남은 공간이 아니라 화면 전체를 기준으로 세로 가운데에 온다.
             `PostImageViewer` 와 같은 이유로 가운데 보정(-50%)과 끌어내린 거리를 한 값에 합친다. */}
         <div
@@ -83,12 +70,18 @@ function PostVideoViewer({ src, onClose }: PostVideoViewerProps) {
           }}
         >
           <div className="relative w-full">
+            {/* 화면이 아니라 영상 프레임을 기준으로 좌·상단에서 각각 20px 떨어뜨린다. */}
+            <BackButton
+              onClick={onClose}
+              className="absolute top-5 left-5 z-10 drop-shadow-[0_0_5px_rgba(0,0,0,0.5)] [&_path]:stroke-gray-0"
+            />
             {/* biome-ignore lint/a11y/useMediaCaption: 외부 게시물 영상이라 자막 트랙이 없다 */}
             <video
               ref={videoRef}
               src={src}
               loop
               playsInline
+              webkit-playsinline=""
               preload="metadata"
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
@@ -109,10 +102,10 @@ function PostVideoViewer({ src, onClose }: PostVideoViewerProps) {
             >
               {playing ? <Icon24Pause /> : <Icon24Play />}
             </button>
-            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gray-100/30">
+            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gray-0">
               <div
                 data-slot="video-progress"
-                className="h-full bg-gray-0"
+                className="h-full bg-gray-100"
                 style={{ width: `${progress * 100}%` }}
               />
             </div>

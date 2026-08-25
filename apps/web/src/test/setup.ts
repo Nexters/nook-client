@@ -74,3 +74,27 @@ if (typeof HTMLCanvasElement !== 'undefined') {
 if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
   Element.prototype.scrollTo = () => {};
 }
+
+// jsdom은 미디어 재생을 구현하지 않아 play()/pause()를 호출하면 콘솔 오류만 내고 이벤트도
+// 보내지 않는다. 플레이어 컴포넌트가 실제 이벤트로 상태를 따라가므로 최소 동작만 흉내낸다.
+if (typeof HTMLMediaElement !== 'undefined') {
+  Object.defineProperty(HTMLMediaElement.prototype, 'paused', {
+    configurable: true,
+    get(this: HTMLMediaElement & { _paused?: boolean }) {
+      return this._paused ?? true;
+    },
+  });
+  HTMLMediaElement.prototype.play = vi.fn(function play(
+    this: HTMLMediaElement & { _paused?: boolean },
+  ) {
+    this._paused = false;
+    this.dispatchEvent(new Event('play'));
+    return Promise.resolve();
+  });
+  HTMLMediaElement.prototype.pause = vi.fn(function pause(
+    this: HTMLMediaElement & { _paused?: boolean },
+  ) {
+    this._paused = true;
+    this.dispatchEvent(new Event('pause'));
+  });
+}
