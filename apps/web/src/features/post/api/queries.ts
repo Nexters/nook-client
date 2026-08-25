@@ -50,6 +50,9 @@ export function usePostDetail(postId: number | undefined): PostDetailState {
     queryKey: postQueryKeys.detail(postId ?? -1),
     queryFn: () => fetchPostDetail(postId as number),
     enabled: isAuthenticated && postId !== undefined,
+    // 상세의 places/placeParsingStatus 는 크롤링 완료 시점 스냅샷이라 캐시가 실제보다
+    // 뒤처져 있을 수 있다 — 전역 staleTime(30초) 안에 재진입해도 한 번은 다시 읽는다.
+    refetchOnMount: 'always',
     refetchInterval: (current) => {
       const status = current.state.data?.processingStatus;
       return status === 'PENDING' || status === 'PROCESSING' ? POLL_INTERVAL_MS : false;
@@ -103,6 +106,8 @@ export function useRelatedPlaces(postId: number | undefined): RelatedPlacesState
     queryKey: postQueryKeys.placeParsing(postId ?? -1),
     queryFn: () => fetchPlaceParsing(postId as number),
     enabled: isAuthenticated && postId !== undefined,
+    // 파싱은 화면을 떠나 있는 동안에도 끝난다 — 진입할 때마다 최신 결과를 한 번 읽는다.
+    refetchOnMount: 'always',
     refetchInterval: (current) => {
       const result = current.state.data;
       if (!result) return false;
