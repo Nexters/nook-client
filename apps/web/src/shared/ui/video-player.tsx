@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Icon16Expand, Icon24Pause, Icon24Play } from '@/shared/icons/NookIcons';
+import { playInlineVideo } from '@/shared/lib/inlineVideo';
 import { cn } from '@/shared/lib/utils';
 
 /**
@@ -29,9 +30,19 @@ export interface VideoPlayerProps {
 
 function VideoPlayer({ src, onExpand, unmuted = false, className }: VideoPlayerProps) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
-  // 자동재생이 막히는 환경(저전력 모드 등)도 있어 `autoPlay` 를 신뢰하지 않고 이벤트로 따라간다.
-  const [playing, setPlaying] = React.useState(true);
+  // 실제 play 이벤트가 오기 전에는 재생 중으로 간주하지 않는다.
+  const [playing, setPlaying] = React.useState(false);
   const [controlsVisible, setControlsVisible] = React.useState(true);
+
+  // 선언형 autoPlay 대신 인라인 속성과 muted를 먼저 확정한 뒤 재생한다. iOS가 인라인 재생을
+  // 지원하지 않으면 play()를 호출하지 않아 네이티브 전체화면 플레이어로 넘어가지 않는다.
+  React.useEffect(() => {
+    const video = videoRef.current;
+    if (!video || video.getAttribute('src') !== src) return;
+    void playInlineVideo(video, !unmuted).then((started) => {
+      if (!started) setPlaying(false);
+    });
+  }, [src, unmuted]);
 
   // 재생 중일 때만 컨트롤을 숨긴다 — 멈춰 있는데 재생 버튼까지 사라지면 되돌릴 방법이 없다.
   React.useEffect(() => {
@@ -44,7 +55,7 @@ function VideoPlayer({ src, onExpand, unmuted = false, className }: VideoPlayerP
     const video = videoRef.current;
     if (!video) return;
     setControlsVisible(true);
-    if (video.paused) void video.play();
+    if (video.paused) void playInlineVideo(video, !unmuted);
     else video.pause();
   };
 
@@ -65,9 +76,9 @@ function VideoPlayer({ src, onExpand, unmuted = false, className }: VideoPlayerP
       <video
         ref={videoRef}
         src={src}
-        autoPlay
         loop
         playsInline
+        webkit-playsinline=""
         muted={!unmuted}
         preload="metadata"
         onPlay={() => setPlaying(true)}
