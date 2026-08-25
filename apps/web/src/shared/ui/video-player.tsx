@@ -34,8 +34,8 @@ function VideoPlayer({ src, onExpand, unmuted = false, className }: VideoPlayerP
   const [playing, setPlaying] = React.useState(false);
   const [controlsVisible, setControlsVisible] = React.useState(true);
 
-  // 선언형 autoPlay 대신 인라인 속성과 muted를 먼저 확정한 뒤 재생한다. iOS가 인라인 재생을
-  // 지원하지 않으면 play()를 호출하지 않아 네이티브 전체화면 플레이어로 넘어가지 않는다.
+  // 선언형 autoPlay 대신 인라인 속성과 muted를 먼저 확정한 뒤 재생한다. WebKit 미디어 쿼리는
+  // WKWebView에서도 false를 반환할 수 있어 별도 지원 판정 없이 실제 play() 결과를 따른다.
   React.useEffect(() => {
     const video = videoRef.current;
     if (!video || video.getAttribute('src') !== src) return;

@@ -12,6 +12,7 @@ coverage/
 # OMC 로컬 상태
 .omc/
 
+AGENTS.md
 CLAUDE.md
 .claude/*
 !.claude/commands/
