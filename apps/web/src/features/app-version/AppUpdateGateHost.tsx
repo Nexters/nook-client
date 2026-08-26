@@ -49,7 +49,13 @@ export function AppUpdateGateHost() {
         dismissible={false}
         onClose={() => undefined}
         title="업데이트가 필요해요"
-        description="현재 버전은 더 이상 지원되지 않아요. 업데이트 후 이용할 수 있어요."
+        description={
+          <>
+            현재 버전은 더 이상 지원되지 않아요.
+            <br />
+            업데이트 후 이용할 수 있어요.
+          </>
+        }
         cancelLabel={null}
         confirmLabel="업데이트하기"
         onConfirm={() => openStore(policy)}
@@ -67,7 +73,13 @@ export function AppUpdateGateHost() {
         setDismissed(true);
       }}
       title="새로운 버전이 나왔어요"
-      description="더 편리해진 눅을 만나보세요. 지금 업데이트할까요?"
+      description={
+        <>
+          더 편리해진 Nook를 만나보세요.
+          <br />
+          지금 업데이트할까요?
+        </>
+      }
       cancelLabel="나중에"
       confirmLabel="업데이트하기"
       onConfirm={() => openStore(policy)}

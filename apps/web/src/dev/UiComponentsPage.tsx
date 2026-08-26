@@ -246,6 +246,8 @@ export function UiComponentsPage() {
   const [checked, setChecked] = useState(true);
   const [popupOpen, setPopupOpen] = useState(false);
   const [warningPopupOpen, setWarningPopupOpen] = useState(false);
+  const [forceUpdateOpen, setForceUpdateOpen] = useState(false);
+  const [recommendUpdateOpen, setRecommendUpdateOpen] = useState(false);
   const [lastAction, setLastAction] = useState<string>('—');
   const [fabCount, setFabCount] = useState(0);
   const [archiveName, setArchiveName] = useState('초록뷰 카');
@@ -455,6 +457,55 @@ export function UiComponentsPage() {
           description="저장한 장소와 기록이 모두 삭제되고 복구할 수 없어요."
           cancelLabel="취소"
           confirmLabel="탈퇴하기"
+        />
+        <Row label="앱 업데이트 안내 (AppUpdateGateHost 와 같은 문구)">
+          <Button size="md" onClick={() => setRecommendUpdateOpen(true)}>
+            권장 업데이트
+          </Button>
+          <Button variant="secondary" size="md" onClick={() => setForceUpdateOpen(true)}>
+            강제 업데이트
+          </Button>
+        </Row>
+        <p className="text-b3 text-gray-50">
+          강제 업데이트는 dismissible=false · cancelLabel=null 이라 ESC·확인으로도 닫히지 않습니다.
+          여기서는 확인을 누르면 시연용으로만 닫아 둡니다.
+        </p>
+        <Popup
+          open={recommendUpdateOpen}
+          onClose={() => {
+            setRecommendUpdateOpen(false);
+            setLastAction('권장 업데이트 · 나중에');
+          }}
+          onConfirm={() => setLastAction('권장 업데이트 · 스토어 열기')}
+          title="새로운 버전이 나왔어요"
+          description={
+            <>
+              더 편리해진 Nook를 만나보세요.
+              <br />
+              지금 업데이트할까요?
+            </>
+          }
+          cancelLabel="나중에"
+          confirmLabel="업데이트하기"
+        />
+        <Popup
+          open={forceUpdateOpen}
+          dismissible={false}
+          onClose={() => undefined}
+          onConfirm={() => {
+            setLastAction('강제 업데이트 · 스토어 열기');
+            setForceUpdateOpen(false);
+          }}
+          title="업데이트가 필요해요"
+          description={
+            <>
+              현재 버전은 더 이상 지원되지 않아요.
+              <br />
+              업데이트 후 이용할 수 있어요.
+            </>
+          }
+          cancelLabel={null}
+          confirmLabel="업데이트하기"
         />
       </Section>
 
