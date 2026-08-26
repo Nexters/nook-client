@@ -4,6 +4,7 @@ import { NativeBackHost } from '@/app/native-back';
 import { NativePushHost } from '@/app/native-push';
 import { PushTokenSyncHost } from '@/app/push-token-sync';
 import { RootScrollReset } from '@/app/scroll-reset';
+import { AppUpdateGateHost } from '@/features/app-version/AppUpdateGateHost';
 import { ArchiveDetailPage } from '@/features/archive/ArchiveDetailPage';
 import { ArchiveFormPage } from '@/features/archive/ArchiveFormPage';
 import { ArchivePage } from '@/features/archive/ArchivePage';
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
         <NativeBackHost />
         <PushTokenSyncHost />
         <NativePushHost />
+        <AppUpdateGateHost />
       </>
     ),
     children: [
