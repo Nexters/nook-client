@@ -16,3 +16,7 @@ AGENTS.md
 CLAUDE.md
 .claude/*
 !.claude/commands/
+
+apps/web/certs/*
+!apps/web/certs/.gitkeep
+!apps/web/certs/README.md
