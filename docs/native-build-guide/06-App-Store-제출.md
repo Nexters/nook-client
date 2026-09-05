@@ -40,9 +40,7 @@ EAS 빌드 프로필은 **variant(dev/prod) × 채널(metro/store)** 조합 4개
 
 | 프로필 | variant | 채널 | JS 번들 | 설치·실행 | 용도 |
 | --- | --- | --- | --- | --- | --- |
-| `dev-metro` | development | metro | 미내장 — Mac의 Metro에서 로드 | UDID 등록된 기기에 직접 설치 | 평소 개발 (Fast Refresh) |
 | `prod-metro` | production | metro | 미내장 — Mac의 Metro에서 로드 | UDID 등록된 기기에 직접 설치 | production 변형 실기기 디버깅 |
-| `dev-store` | development | store | 내장 | TestFlight | dev 앱 테스터 배포 |
 | `prod-store` | production | store | 내장 | TestFlight/App Store | 실제 출시 |
 
 metro 채널은 dev client 빌드라 실행하려면 Mac의 Metro 서버가 필요하고, ad-hoc 서명이라
@@ -51,7 +49,7 @@ metro 채널은 dev client 빌드라 실행하려면 Mac의 Metro 서버가 필�
 쓴다** — 테스터의 Apple ID(이메일)를 App Store Connect에서 초대하면 된다.
 
 `package.json` 스크립트는 프로필 이름과 1:1이다: `build:<프로필>`, `build:<프로필>:local`,
-`submit:dev-store`, `submit:prod-store`.
+`submit:prod-store`.
 
 | 기타 고정값 | |
 | --- | --- |
@@ -113,7 +111,7 @@ pnpm exec expo config --json
 
 ```bash
 cd apps/mobile
-pnpm build:prod-store     # 실서비스. dev 앱은 build:dev-store
+pnpm build:prod-store
 ```
 
 `*-store` 프로필은 build number를 자동 증가시킨다(`autoIncrement`). 빌드가 완료되면 EAS Build
@@ -134,7 +132,7 @@ IPA는 `apps/mobile/build/` 밑에 생성되며, `eas submit --path <ipa>`로 �
 
 ```bash
 cd apps/mobile
-pnpm submit:prod-store    # dev 앱은 submit:dev-store
+pnpm submit:prod-store
 ```
 
 Apple 업로드 인증은 EAS에 저장된 ASC API 키로 자동 처리된다. 여러 명이 동시에 빌드하는

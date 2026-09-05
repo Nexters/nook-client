@@ -85,12 +85,11 @@ pnpm test                  # vitest run
 ### mobile (Expo 셸)
 
 ```bash
-cd apps/mobile
-cp .env.example .env.local  # EXPO_PUBLIC_WEB_URL: 웹뷰가 로드할 원격 웹 URL
+pnpm setup                  # 처음 한 번 — 웹 env 생성 + EAS 에서 앱 env 내려받기
+pnpm --filter mobile ios    # 시뮬레이터에 앱 설치 (첫 번, 네이티브 바뀔 때)
 
-pnpm start                  # Expo dev
-pnpm ios                    # 시뮬레이터/실기기
-pnpm android                # 에뮬레이터/실기기
+pnpm dev                    # 웹 + 앱 서버 동시 기동. 앱이 이 맥의 웹을 본다
+pnpm dev:remote             # 운영 웹을 보면서 앱 셸만 개발
 ```
 
 > 실기기에서는 dev 서버 대신 `vite preview`(빌드본 서빙)로 확인한다 — dev 서버의 재연결 리로드가 웹뷰 상태를 날린다.
@@ -106,15 +105,9 @@ env 파일은 **앱별로** 둔다. 루트에는 두지 않는다(Vite·Expo 모
 | --- | --- |
 | `apps/{web,mobile}/.env.example` | 예시값, 커밋 |
 | `apps/{web,mobile}/.env.local` | 로컬 전용, gitignore |
-| EAS environment | mobile 배포 환경(development/production) 값 |
+| EAS environment | mobile 배포 값. `pnpm setup` 이 production 환경 값을 `.env.local` 로 받는다 |
 | 배포 플랫폼 환경변수 | web 배포 값 |
 
 - `VITE_*` 는 번들에 인라인, `EXPO_PUBLIC_*` 는 앱 번들에 포함된다. **둘 다 공개값만** 넣는다.
-- 앱 식별자는 `APP_VARIANT` 로 갈린다 (`apps/mobile/app.config.ts`). 미설정·오타는 production 으로 떨어진다.
-
-| APP_VARIANT | App ID (iOS·Android 공통) | App Group |
-| --- | --- | --- |
-| `production`(기본) | `kr.co.everynook.app` | `group.kr.co.everynook.app` |
-| `development` | `kr.co.everynook.app.dev` | `group.kr.co.everynook.app.dev` |
-
-별도 개발 서버를 운영하지 않아 현재는 `production` 만 사용한다. Share Extension 은 본앱 식별자 뒤에 `.ShareExtension` 이 붙는다. EAS 빌드 프로필은 `apps/mobile/eas.json` 참고.
+- 앱 식별자는 `kr.co.everynook.app`, App Group 은 `group.kr.co.everynook.app`, Share Extension 은 뒤에 `.ShareExtension` 이 붙는다. EAS 빌드 프로필은 `apps/mobile/eas.json` 참고 (`prod-metro` 실기기 개발용, `prod-store` 스토어용).
+- `app.config.ts` 에는 `APP_VARIANT=development` 분기(`.dev` 식별자, 별도 Firebase 프로젝트)가 남아 있지만 빌드 프로필·스크립트에서는 걷어냈다. 개발 서버를 따로 운영하게 되면 되살린다 — `docs/native-build-guide/04-단순화-결정안.md`.

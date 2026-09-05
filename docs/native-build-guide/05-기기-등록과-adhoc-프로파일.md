@@ -20,9 +20,7 @@
 | JS 번들 | 앱에 미내장. 실행 시 Mac의 Metro 서버에서 로드 |
 
 > `prod-metro`는 TestFlight/App Store의 production 앱과 번들 ID가 같아 한 기기에 둘 중
-> 하나만 설치된다. dev variant(`kr.co.everynook.app.dev`)로 빌드하는 `dev-metro`는 번들
-> ID가 달라 공존할 수 있다. (한때 dev ShareExtension의 App Group 미배정으로 dev 빌드가
-> 실패했으나 2026-08-19 배정 완료로 해소됐다.)
+> 하나만 설치된다. `.dev` 식별자로 공존시키던 `dev-metro` 프로필은 NOOK-332 에서 걷어냈다.
 
 ad-hoc 서명 자격 증명(배포 인증서 + ad-hoc 프로비저닝 프로파일)은 EAS 서버에 저장돼 있어
 (Ad Hoc Configuration — App Store Configuration과 별도로 공존), 빌드하는 PC에는 아무
