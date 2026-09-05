@@ -111,4 +111,4 @@ curl -X POST "https://api.appstoreconnect.apple.com/v1/profiles" \
 4. 같은 메뉴에서 **Upload** → 배포 타입 **Adhoc** 선택
 5. 업로드 확인 후 로컬 `credentials.json`과 `credentials/` 디렉터리는 삭제한다
 
-이후 `pnpm --filter mobile build:prod-metro`로 새 빌드를 만들면 새 기기에서도 설치된다.
+이후 `pnpm --filter mobile build:ios:prod-metro`로 새 빌드를 만들면 새 기기에서도 설치된다.

@@ -36,11 +36,11 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "build:prod-metro": "eas build --platform ios --profile prod-metro",
-    "build:prod-store": "eas build --platform ios --profile prod-store",
-    "build:prod-metro:local": "eas build --platform ios --profile prod-metro --local --output build/prod-metro.ipa",
-    "build:prod-store:local": "eas build --platform ios --profile prod-store --local --output build/prod-store.ipa",
-    "submit:prod-store": "eas submit --platform ios --profile prod-store --latest"
+    "build:ios:prod-metro": "eas build --platform ios --profile prod-metro",
+    "build:ios:prod-store": "eas build --platform ios --profile prod-store",
+    "build:ios:prod-metro:local": "eas build --platform ios --profile prod-metro --local --output build/prod-metro.ipa",
+    "build:ios:prod-store:local": "eas build --platform ios --profile prod-store --local --output build/prod-store.ipa",
+    "submit:ios:prod-store": "eas submit --platform ios --profile prod-store --latest"
   },
   "private": true
 }

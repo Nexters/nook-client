@@ -15,4 +15,4 @@ pnpm exec eas env:pull --environment production
 echo
 echo "끝. 다음은 레포 루트에서:"
 echo "  pnpm dev          # 웹 + 앱 서버를 같이 띄운다"
-echo "  pnpm --filter mobile ios   # 시뮬레이터에 앱 설치 (첫 번만)"
+echo "  pnpm ios          # 시뮬레이터에 앱 설치 (첫 번만)"

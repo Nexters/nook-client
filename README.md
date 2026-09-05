@@ -86,7 +86,7 @@ pnpm test                  # vitest run
 
 ```bash
 pnpm setup                  # 처음 한 번 — 웹 env 생성 + EAS 에서 앱 env 내려받기
-pnpm --filter mobile ios    # 시뮬레이터에 앱 설치 (첫 번, 네이티브 바뀔 때)
+pnpm ios                    # 시뮬레이터에 앱 설치 (첫 번, 네이티브 바뀔 때). android 도 같음
 
 pnpm dev                    # 웹 + 앱 서버 동시 기동. 앱이 이 맥의 웹을 본다
 pnpm dev:remote             # 운영 웹을 보면서 앱 셸만 개발
@@ -109,5 +109,5 @@ env 파일은 **앱별로** 둔다. 루트에는 두지 않는다(Vite·Expo 모
 | 배포 플랫폼 환경변수 | web 배포 값 |
 
 - `VITE_*` 는 번들에 인라인, `EXPO_PUBLIC_*` 는 앱 번들에 포함된다. **둘 다 공개값만** 넣는다.
-- 앱 식별자는 `kr.co.everynook.app`, App Group 은 `group.kr.co.everynook.app`, Share Extension 은 뒤에 `.ShareExtension` 이 붙는다. EAS 빌드 프로필은 `apps/mobile/eas.json` 참고 (`prod-metro` 실기기 개발용, `prod-store` 스토어용).
+- 앱 식별자는 `kr.co.everynook.app`, App Group 은 `group.kr.co.everynook.app`, Share Extension 은 뒤에 `.ShareExtension` 이 붙는다. EAS 빌드 프로필은 `apps/mobile/eas.json` 참고 (`prod-metro` 실기기 개발용, `prod-store` 스토어용). 빌드·제출 스크립트는 `build:<플랫폼>:<프로필>` / `submit:<플랫폼>:<프로필>` 이름을 따른다.
 - `app.config.ts` 에는 `APP_VARIANT=development` 분기(`.dev` 식별자, 별도 Firebase 프로젝트)가 남아 있지만 빌드 프로필·스크립트에서는 걷어냈다. 개발 서버를 따로 운영하게 되면 되살린다 — `docs/native-build-guide/04-단순화-결정안.md`.
