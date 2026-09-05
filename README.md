@@ -95,10 +95,8 @@ pnpm android                # 에뮬레이터/실기기
 
 > 실기기에서는 dev 서버 대신 `vite preview`(빌드본 서빙)로 확인한다 — dev 서버의 재연결 리로드가 웹뷰 상태를 날린다.
 
-iOS EAS production 빌드와 App Store Connect 제출은 [iOS EAS 빌드 및 App Store 제출](<docs/ops/iOS_EAS_빌드_및_App_Store_제출.md>)를,
-실기기에 직접 로컬 빌드해 올리는 절차는 [로컬 앱 빌드 가이드](<docs/ops/로컬_앱_빌드_가이드.md>)를,
-EAS가 빌드한 dev client를 설치해 쓰는 절차(새 PC·새 기기 세팅 포함)는
-[배포 빌드 설치 가이드](<docs/ops/배포_빌드_설치_가이드.md>)를 따른다.
+처음 세팅부터 실기기 개발·네이티브 개발·스토어 업로드까지는 [팀원 지침서](<docs/native-build-guide/01-팀원-지침서.md>)를 따른다.
+기기 등록·자격증명·스토어 제출 같은 관리자 작업은 같은 폴더의 [02](<docs/native-build-guide/02-관리자-작업.md>)·[05](<docs/native-build-guide/05-기기-등록과-adhoc-프로파일.md>)·[06](<docs/native-build-guide/06-App-Store-제출.md>).
 
 ## 환경변수 / 앱 variant
 

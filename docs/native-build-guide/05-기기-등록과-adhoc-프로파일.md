@@ -1,20 +1,17 @@
-# 배포 빌드 설치 가이드
+# 05. 기기 등록과 ad-hoc 프로파일 재발급
 
 | 작성자 | 작성일 | 수정일 | 관련 작업 |
 | --- | --- | --- | --- |
-| coldbrow | 2026-08-19 | 2026-08-19 | NOOK-115 |
+| coldbrow | 2026-08-19 | 2026-09-02 | NOOK-115, NOOK-332 |
 
-> EAS 클라우드가 이미 빌드해 둔 개발용(dev client) 앱을 실물 iPhone에 **설치해서 쓰는** 절차 —
-> 내 맥이 아니라 EAS가 빌드하고, 나는 결과물만 받아 설치한다. 새 PC 세팅과 새 테스트 기기 추가
-> 방법을 다룬다.
->
-> 내 맥에서 직접 Xcode/Gradle로 컴파일하는 방식은 [로컬 앱 빌드 가이드](<로컬_앱_빌드_가이드.md>)를,
-> production 빌드·App Store 제출은 [EAS 개요 문서](<iOS_EAS_빌드_및_App_Store_제출.md>) 참고.
+> 실기기에 개발용 앱(`prod-metro`)을 깔려면 그 폰의 UDID 가 ad-hoc 프로파일에 들어 있어야 한다.
+> 새 기기 등록 → 프로파일 재생성 → EAS 재업로드 절차를 다룬다. **App Store Connect API 키를 가진
+> 관리자만** 할 수 있다. 팀원이 할 일(UDID 확인, QR 설치, Metro 연결)은 [01. 팀원 지침서](01-팀원-지침서.md) 2절.
 
 ## 구성 요약
 
 실기기 디버깅은 `eas.json`의 **`prod-metro` 프로필**을 사용한다. Metro 없이 단독 실행되는
-앱이 필요하면 TestFlight(store 채널)로 배포한다(EAS 개요 문서 1절 참고).
+앱이 필요하면 TestFlight(store 채널)로 배포한다([06](06-App-Store-제출.md) 1절 참고).
 
 | 항목 | 값 |
 | --- | --- |
@@ -29,77 +26,8 @@
 
 ad-hoc 서명 자격 증명(배포 인증서 + ad-hoc 프로비저닝 프로파일)은 EAS 서버에 저장돼 있어
 (Ad Hoc Configuration — App Store Configuration과 별도로 공존), 빌드하는 PC에는 아무
-서명 파일도 필요 없다 — [로컬 앱 빌드 가이드](<로컬_앱_빌드_가이드.md>)와 달리 Xcode
+서명 파일도 필요 없다 — Xcode 로컬 빌드와 달리 Xcode
 서명 설정을 신경 쓸 필요가 없다는 뜻이다.
-
-## 1. 새 PC 세팅
-
-[EAS 개요 문서의 2절](<iOS_EAS_빌드_및_App_Store_제출.md>)과 동일하다:
-저장소 clone → `nvm install` → `corepack prepare pnpm@9.15.9 --activate` →
-`pnpm install --frozen-lockfile` → `apps/mobile`에서 `pnpm exec eas login`.
-
-추가로 Metro 실행에 `.env.local`이 필요하다. `apps/mobile/.env.example`을 복사해
-값을 채운다 (전부 공개값이라 기존 PC의 파일을 그대로 복사해도 된다).
-
-제출용 App Store Connect API 키는 EAS 서버에 있어 별도 세팅이 없다(EAS 개요 문서 1절).
-
-## 2. 개발 워크플로
-
-### 매일: Metro 실행
-
-```bash
-pnpm mobile:start:dev     # dev 앱용 — 8082, api-dev 서버 (= apps/mobile 의 start:dev)
-pnpm mobile:start:prod    # prod 앱용 — 8081, 운영 api 서버 (= apps/mobile 의 start:prod)
-```
-
-루트에서 실행한다. 두 스크립트는 `native-public-config.json`의 variant 값을 강제 주입하므로
-로컬 `.env`의 `EXPO_PUBLIC_*` 오버라이드와 무관하게 항상 해당 variant 서버를 본다. 둘을
-동시에 띄워 dev/prod 앱을 각자 다른 포트에 연결할 수 있다. 특수한 오버라이드가 필요할 때만
-`pnpm mobile:start`(기존 `.env` 기반)를 쓴다.
-
-폰과 Mac이 같은 Wi-Fi에 있으면 폰의 nook 앱 첫 화면(Development Servers)에 서버가 자동으로
-잡힌다 — dev 앱은 8082, prod 앱은 8081 서버를 선택한다. 한 번 띄워두면 코드 저장 시마다 폰에
-즉시 반영된다(Fast Refresh). 폰을 흔들면 개발자 메뉴가 나온다.
-
-### 로컬 웹을 앱에 띄울 때
-
-앱 셸은 `EXPO_PUBLIC_WEB_URL`(`apps/mobile/.env.local`) 오리진만 신뢰하므로
-(`src/webview/navigationPolicy.ts`), 로컬 웹을 보려면 그 값이 실제 접속 주소와 같아야 한다.
-LAN IP 대신 **`http://localhost:5173`을 쓰고 포트를 기기로 넘긴다** — 네이버 지도 클라이언트
-ID가 콘솔에 등록된 웹 서비스 URL(`http://localhost:5173`)에서만 동작해서, LAN IP로 띄우면
-지도 SDK가 안 붙어 `/map`이 크래시한다.
-
-```bash
-pnpm web:dev                      # 5173
-adb reverse tcp:5173 tcp:5173     # Android 실기기. 기기 재연결·재부팅 시 다시 걸어야 한다
-```
-
-iOS 시뮬레이터는 `localhost`가 그대로 Mac을 가리켜 추가 설정이 없다. iOS 실기기는 이런 터널이
-없어 LAN IP를 써야 하고, 그러면 그 주소를 네이버 클라우드 콘솔의 웹 서비스 URL에 등록해야 한다.
-
-웹의 `VITE_API_BASE_URL`(`apps/web/.env.local`)은 절대주소가 아니라 **`/api/v1`** 로 둔다.
-BE 가 CORS 를 열기 전까지는 vite 프록시를 거쳐야 하고, 직접 호출하면 preflight(OPTIONS)가
-401 로 막힌다.
-
-Metro 는 기동 시점에 `.env.local` 을 읽어 manifest 의 `extra.webUrl` 을 만든다 — 값을 바꿨으면
-Metro 를 재기동해야 앱에 반영된다(앱 리로드만으로는 옛 주소가 그대로다).
-
-### 네이티브가 바뀔 때만: 앱 재빌드
-
-라이브러리 추가·삭제, `app.config.ts`·`app.json` 변경, 권한·엔타이틀먼트 변경 시에만
-필요하다. JS/TS 수정에는 재빌드가 필요 없다.
-
-```bash
-pnpm --filter mobile build:prod-metro
-```
-
-EAS 클라우드에서 빌드된다(10~15분). 완료되면 빌드 페이지의 **QR 코드를 폰 카메라로
-찍어 설치**한다. Mac에 케이블로 연결돼 있다면 다음으로도 설치할 수 있다:
-
-```bash
-xcrun devicectl list devices                                    # 기기 ID 확인
-xcrun devicectl device install app --device <기기ID> <ipa경로>
-```
 
 ## 3. 새 테스트 기기(iPhone) 추가
 
@@ -114,7 +42,7 @@ ad-hoc 프로파일에는 설치 허용 기기의 UDID 목록이 박혀 있어, 
 **키 보유자**: Individual 멤버십이라 `eas device:create`가 요구하는 Apple ID 로그인을
 Account Holder 외에는 할 수 없으므로, App Store Connect API 키로 직접 처리한다. `.p8` 경로·
 Key ID·Issuer ID를 아래 스크립트의 환경변수(`EXPO_ASC_*`)로 설정해 쓴다
-([EAS 개요 문서 7절](<iOS_EAS_빌드_및_App_Store_제출.md>) 참고).
+([06. App Store 제출](06-App-Store-제출.md) 7절 참고).
 모든 요청은 `Authorization: Bearer <JWT>` 헤더를 쓴다.
 
 ### 3-1. JWT 발급
