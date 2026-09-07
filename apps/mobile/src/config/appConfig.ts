@@ -1,3 +1,4 @@
+import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 
 /**
@@ -26,3 +27,10 @@ export const WEB_URL = required(extra.webUrl, 'webUrl');
  * URL 들과 달리 없다고 앱이 못 도는 값은 아니라서, 비면 웹이 버전 표기를 숨기게 둔다.
  */
 export const APP_VERSION = Constants.expoConfig?.version ?? '';
+
+/**
+ * 바이너리에 찍힌 네이티브 빌드 번호(iOS CFBundleVersion / Android versionCode).
+ * EAS 가 autoIncrement 로 올리는 값이라 config 가 아닌 바이너리에서 읽는다.
+ * 서버의 최소 지원 버전 정책(X-App-Build-Number)이 이 값을 쓴다.
+ */
+export const APP_BUILD_NUMBER = Application.nativeBuildVersion ?? '';

@@ -60,6 +60,9 @@ vi.mock('@/native-bridge', () => ({
     get isNative() {
       return mocks.isNative;
     },
+    platform: 'ios',
+    appVersion: null,
+    appBuildNumber: null,
     requestImagePick: mocks.requestImagePick,
   },
 }));

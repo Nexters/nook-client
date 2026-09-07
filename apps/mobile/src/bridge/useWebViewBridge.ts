@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, Linking, Platform } from 'react-native';
 import type { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { runSocialLogin } from '../auth/socialLogin';
-import { APP_VERSION, WEB_URL } from '../config/appConfig';
+import { APP_BUILD_NUMBER, APP_VERSION, WEB_URL } from '../config/appConfig';
 import { runImagePick } from '../media/imagePicker';
 import {
   addNotificationOpenedListener,
@@ -20,6 +20,7 @@ import {
   restoreSession,
 } from '../session/sessionCoordinator';
 import { resolveAppLinkWebUrl } from '../webview/appLink';
+import { buildInjectedGlobalsScript } from '../webview/injectedGlobals';
 import {
   decideNavigation,
   isOpenableExternalUrl,
@@ -29,11 +30,11 @@ import {
 
 const WEB_ORIGIN = resolveHttpOrigin(WEB_URL);
 // 값이 바뀌지 않는 셸 정보라 메시지 왕복 없이 로드 전에 심어둔다(플랫폼과 같은 취급).
-const INJECT_BEFORE = [
-  `window.__nookPlatform = ${JSON.stringify(Platform.OS)};`,
-  `window.__nookAppVersion = ${JSON.stringify(APP_VERSION)};`,
-  'true;',
-].join(' ');
+const INJECT_BEFORE = buildInjectedGlobalsScript({
+  platform: Platform.OS,
+  appVersion: APP_VERSION,
+  buildNumber: APP_BUILD_NUMBER,
+});
 
 interface NavigationRequest {
   url: string;
