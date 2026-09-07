@@ -482,7 +482,7 @@ export function UiComponentsPage() {
             <>
               더 편리해진 Nook를 만나보세요.
               <br />
-              지금 업데이트할까요?
+              최신 버전으로 업데이트해주세요
             </>
           }
           cancelLabel="나중에"
