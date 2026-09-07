@@ -1,5 +1,5 @@
 import type { Ref } from 'react';
-import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Container as MapDiv, NaverMap, useNavermaps } from 'react-naver-maps';
 import { ClusterBubble } from '@/features/map/components/ClusterBubble';
 import { CurrentLocationDot } from '@/features/map/components/CurrentLocationDot';
@@ -61,6 +61,17 @@ export function MapView({
   ref?: Ref<MapViewHandle>;
 }) {
   const navermaps = useNavermaps();
+  // 네이버 기본 타일에서 한국어 라벨(lko)·버스 정류장(bs)을 빼고 배경(bg)·도로/시설(ol)·
+  // 지하철 노선(sw)만 요청한다. 상호·건물명 라벨이 우리 핀과 겹쳐 보이지 않게 하려는 실험.
+  // 라벨은 언어 단위로만 켜고 끌 수 있어 역 이름도 함께 사라진다 — 세밀한 조절은 GL 벡터맵
+  // + Style Editor(customStyleId) 쪽에서 한다.
+  const mapTypes = useMemo(
+    () =>
+      new navermaps.MapTypeRegistry({
+        normal: navermaps.NaverStyleMapTypeOptions.getNormalMap({ overlayType: 'bg.ol.sw' }),
+      }),
+    [navermaps],
+  );
   const center = initialCenter ?? FALLBACK_CENTER;
   // 인스턴스를 ref(이벤트 핸들러의 동기 접근용)와 state(effect 트리거용) 양쪽에 든다.
   // ref 만 쓰면 인스턴스가 "생긴 순간"을 React 가 알 수 없어, 그 전에 도착해 있던
@@ -135,6 +146,7 @@ export function MapView({
         ref={attachMap}
         defaultCenter={new navermaps.LatLng(center.lat, center.lng)}
         defaultZoom={DEFAULT_ZOOM}
+        mapTypes={mapTypes}
         onIdle={() => {
           const currentMap = mapRef.current;
           if (!currentMap) return;
