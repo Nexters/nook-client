@@ -11,6 +11,7 @@ import {
   RECENTER_ZOOM,
   SELECTED_PLACE_VERTICAL_RATIO,
 } from '@/features/map/constants';
+import { buildNaverMapStyleProps, resolveMapStyle } from '@/features/map/map-style';
 import { clusterPins } from '@/features/map/pin-cluster';
 import type { MapBounds, MapPin } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
@@ -61,15 +62,10 @@ export function MapView({
   ref?: Ref<MapViewHandle>;
 }) {
   const navermaps = useNavermaps();
-  // 네이버 기본 타일에서 한국어 라벨(lko)·버스 정류장(bs)을 빼고 배경(bg)·도로/시설(ol)·
-  // 지하철 노선(sw)만 요청한다. 상호·건물명 라벨이 우리 핀과 겹쳐 보이지 않게 하려는 실험.
-  // 라벨은 언어 단위로만 켜고 끌 수 있어 역 이름도 함께 사라진다 — 세밀한 조절은 GL 벡터맵
-  // + Style Editor(customStyleId) 쪽에서 한다.
-  const mapTypes = useMemo(
-    () =>
-      new navermaps.MapTypeRegistry({
-        normal: navermaps.NaverStyleMapTypeOptions.getNormalMap({ overlayType: 'bg.ol.sw' }),
-      }),
+  // 지도 스타일(GL+커스텀 스타일 또는 라벨 뺀 래스터)은 map-style 에서 한 번 정한다. raster 모드의
+  // MapTypeRegistry 는 매 렌더 새로 만들면 지도 유형이 계속 재설정되므로 memo 로 고정한다.
+  const styleProps = useMemo(
+    () => buildNaverMapStyleProps(navermaps, resolveMapStyle()),
     [navermaps],
   );
   const center = initialCenter ?? FALLBACK_CENTER;
@@ -146,7 +142,7 @@ export function MapView({
         ref={attachMap}
         defaultCenter={new navermaps.LatLng(center.lat, center.lng)}
         defaultZoom={DEFAULT_ZOOM}
-        mapTypes={mapTypes}
+        {...styleProps}
         onIdle={() => {
           const currentMap = mapRef.current;
           if (!currentMap) return;
