@@ -20,6 +20,7 @@ declare global {
     ReactNativeWebView?: ReactNativeWebView;
     __nookPlatform?: string;
     __nookAppVersion?: string;
+    __nookBuildNumber?: string;
     __nookReceive?: (json: string) => void;
   }
 }
@@ -52,10 +53,17 @@ function detectAppVersion(): string | null {
   return window.__nookAppVersion || null;
 }
 
+/** 셸이 심어준 네이티브 빌드 번호. 브라우저로 열었거나 구버전 셸이면 알 수 없다. */
+function detectAppBuildNumber(): string | null {
+  return window.__nookBuildNumber || null;
+}
+
 class NativeBridge {
   readonly platform: Platform = detectPlatform();
   /** app.json 의 version (예: "1.0.0"). 셸 밖에서는 null. */
   readonly appVersion: string | null = detectAppVersion();
+  /** 바이너리에 찍힌 빌드 번호 (예: "42"). EAS autoIncrement 값이라 셸만 안다. */
+  readonly appBuildNumber: string | null = detectAppBuildNumber();
   private handlers = new Set<Handler>();
   private buffer: NativeToWeb[] = [];
   private started = false;
