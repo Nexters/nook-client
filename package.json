@@ -6,7 +6,7 @@
     "node": ">=22.18.0"
   },
   "scripts": {
-    "setup": "./scripts/setup.sh",
+    "onboard": "./scripts/onboard.sh",
     "dev": "./scripts/dev.sh",
     "dev:remote": "pnpm --filter mobile start:prod",
     "ios": "pnpm --filter mobile ios",
