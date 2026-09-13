@@ -16,4 +16,8 @@ if ! signed; then
   fi
 fi
 
-exec npx expo run:ios --device "$@"
+# --device 없이 부르면 연결된 기기 목록에서 고른다. 기기를 이미 지정했으면 그대로 넘긴다.
+case " $* " in
+  *" --device "*|*" -d "*) exec npx expo run:ios "$@" ;;
+  *) exec npx expo run:ios --device "$@" ;;
+esac
