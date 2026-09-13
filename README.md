@@ -97,8 +97,7 @@ pnpm dev:remote             # 개발 웹(app-dev)을 보면서 앱 셸만 개발
 
 > 실기기에서는 dev 서버 대신 `vite preview`(빌드본 서빙)로 확인한다 — dev 서버의 재연결 리로드가 웹뷰 상태를 날린다.
 
-처음 세팅부터 실기기 개발·네이티브 개발·스토어 업로드까지는 [팀원 지침서](<docs/native-build-guide/01-팀원-지침서.md>)를 따른다.
-기기 등록·자격증명·스토어 제출 같은 관리자 작업은 같은 폴더의 [02](<docs/native-build-guide/02-관리자-작업.md>)·[05](<docs/native-build-guide/05-기기-등록과-adhoc-프로파일.md>)·[06](<docs/native-build-guide/06-App-Store-제출.md>).
+처음 세팅부터 실기기 개발·네이티브 개발·App Store 배포까지는 [iOS 개발·배포 가이드](docs/native-build-guide/README.md)를 따른다.
 
 ## 환경변수 / 앱 variant
 
