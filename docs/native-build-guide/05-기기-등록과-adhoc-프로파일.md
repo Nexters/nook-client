@@ -2,11 +2,12 @@
 
 | 작성자 | 작성일 | 수정일 | 관련 작업 |
 | --- | --- | --- | --- |
-| coldbrow | 2026-08-19 | 2026-09-02 | NOOK-115, NOOK-332 |
+| coldbrow | 2026-08-19 | 2026-09-13 | NOOK-115, NOOK-332 |
 
-> 실기기에 개발용 앱(`prod-metro`)을 깔려면 그 폰의 UDID 가 ad-hoc 프로파일에 들어 있어야 한다.
-> 새 기기 등록 → 프로파일 재생성 → EAS 재업로드 절차를 다룬다. **App Store Connect API 키를 가진
+> EAS 로 빌드한 개발용 앱(`prod-metro`)을 실기기에 깔려면 그 폰의 UDID 가 ad-hoc 프로파일에 들어 있어야 한다.
+> 새 기기 등록 → ad-hoc 프로파일 재생성 → EAS 재업로드 절차를 다룬다. **App Store Connect API 키를 가진
 > 관리자만** 할 수 있다. 팀원이 할 일(UDID 확인, QR 설치, Metro 연결)은 [01. 팀원 지침서](01-팀원-지침서.md) 2절.
+> 팀원 맥에서 직접 빌드하는 개발 프로파일은 `pnpm ios:signing` 이 만든다 — [02](02-관리자-작업.md).
 
 ## 구성 요약
 
@@ -63,10 +64,10 @@ UDID는 기기를 Mac에 연결하고 `xcrun devicectl list devices`로 확인�
 기기를 클릭해 확인한다.
 
 ```bash
-curl -X POST "https://api.appstoreconnect.apple.com/v1/devices" \
-  -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" \
-  -d '{"data":{"type":"devices","attributes":{"name":"<기기이름>","platform":"IOS","udid":"<UDID>"}}}'
+pnpm ios:signing device "<기기이름>" <UDID>
 ```
+
+등록과 함께 개발 프로파일 2개도 새 기기 포함으로 다시 만들어진다. ad-hoc 프로파일은 아래 3-3 으로 따로 만든다.
 
 ### 3-3. ad-hoc 프로파일 재생성
 
