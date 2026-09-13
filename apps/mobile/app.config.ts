@@ -1,5 +1,8 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import { type ConfigPlugin, IOSConfig, withFinalizedMod } from 'expo/config-plugins';
 import nativePublicConfig from './native-public-config.json';
 
 type AppVariant = keyof typeof nativePublicConfig.appIds;
@@ -19,6 +22,83 @@ function googleServicesFile(variant: AppVariant, platform: 'ios' | 'android'): s
   return envOverride ?? `./firebase/${variant}/${fileName}`;
 }
 
+// 관리자가 발급한 팀 개발 프로파일이 이 맥에 설치돼 있으면 본앱·ShareExtension 을 그걸로 수동 서명한다.
+// Individual 계정이라 팀원 Xcode 는 자동 서명으로 프로파일을 못 받아오고, prebuild 는 매번 서명 설정을
+// 새로 쓰기 때문에 여기서 박아야 유지된다. 프로파일이 없으면(EAS·설치 전) 아무것도 하지 않는다.
+// apple-targets 가 ShareExtension 타깃을 자기 mod 에서 따로 쓰므로, 모든 mod 뒤에 도는 finalized 에서 고친다.
+const PROVISIONING_PROFILE_DIRS = [
+  'Library/Developer/Xcode/UserData/Provisioning Profiles',
+  'Library/MobileDevice/Provisioning Profiles',
+];
+
+function installedProvisioningProfileNames(): Set<string> {
+  const names = new Set<string>();
+  for (const dir of PROVISIONING_PROFILE_DIRS) {
+    const abs = join(homedir(), dir);
+    if (!existsSync(abs)) continue;
+    for (const file of readdirSync(abs)) {
+      if (!file.endsWith('.mobileprovision')) continue;
+      // CMS 서명 안의 plist 는 평문이라 파싱 없이 이름만 뽑는다.
+      const match = readFileSync(join(abs, file), 'latin1').match(
+        /<key>Name<\/key>\s*<string>([^<]+)<\/string>/,
+      );
+      if (match) names.add(match[1]);
+    }
+  }
+  return names;
+}
+
+const withIosDevSigning: ConfigPlugin = (config) => {
+  const { appleTeamId, devProfiles } = nativePublicConfig.ios;
+  const installed = installedProvisioningProfileNames();
+  if (!Object.values(devProfiles).every((name) => installed.has(name))) return config;
+
+  return withFinalizedMod(config, [
+    'ios',
+    (config) => {
+      const project = IOSConfig.XcodeUtils.getPbxproj(config.modRequest.projectRoot);
+      const targets = IOSConfig.Target.findSignableTargets(project).map(([targetId, target]) => {
+        const configurations = IOSConfig.XcodeUtils.getBuildConfigurationsForListId(
+          project,
+          target.buildConfigurationList,
+        )
+          .map(([, item]) => item.buildSettings)
+          .filter((settings) => settings.PRODUCT_NAME);
+        const bundleId = String(configurations[0]?.PRODUCT_BUNDLE_IDENTIFIER).replace(/"/g, '');
+        return {
+          targetId,
+          configurations,
+          profile: devProfiles[bundleId as keyof typeof devProfiles],
+        };
+      });
+      // development variant 처럼 프로파일이 없는 식별자면 손대지 않는다 — 한쪽만 수동이면 빌드가 깨진다.
+      if (!targets.every((target) => target.profile)) return config;
+
+      const projectSection = Object.entries(IOSConfig.XcodeUtils.getProjectSection(project)).filter(
+        IOSConfig.XcodeUtils.isNotComment,
+      );
+      for (const { targetId, configurations, profile } of targets) {
+        for (const settings of configurations) {
+          settings.CODE_SIGN_STYLE = 'Manual';
+          settings.CODE_SIGN_IDENTITY = '"Apple Development"';
+          settings.DEVELOPMENT_TEAM = appleTeamId;
+          settings.PROVISIONING_PROFILE_SPECIFIER = `"${profile}"`;
+        }
+        for (const [, item] of projectSection) {
+          item.attributes.TargetAttributes ??= {};
+          item.attributes.TargetAttributes[targetId] = {
+            ...item.attributes.TargetAttributes[targetId],
+            DevelopmentTeam: appleTeamId,
+            ProvisioningStyle: 'Manual',
+          };
+        }
+      }
+      writeFileSync(project.filepath, project.writeSync());
+      return config;
+    },
+  ]);
+};
+
 // 웹의 gray-10. 네이티브 스플래시와 웹 첫 화면 배경을 같은 색으로 맞춰 전환 시 색 점프를 없앤다.
 const SPLASH_BACKGROUND_COLOR = '#f4f5f7';
 
@@ -28,7 +108,9 @@ function resolveVariant(): AppVariant {
   return process.env.APP_VARIANT === 'development' ? 'development' : 'production';
 }
 
-export default ({ config }: ConfigContext): ExpoConfig => {
+export default ({ config }: ConfigContext): ExpoConfig => withIosDevSigning(baseConfig(config));
+
+function baseConfig(config: ConfigContext['config']): ExpoConfig {
   const variant = resolveVariant();
   const appId = nativePublicConfig.appIds[variant];
   const sessionAccessGroup = `$(AppIdentifierPrefix)group.${appId}`;
@@ -190,4 +272,4 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       blockedPermissions: ['android.permission.RECORD_AUDIO'],
     },
   };
-};
+}

@@ -6,11 +6,15 @@
     "node": ">=22.18.0"
   },
   "scripts": {
+    "onboard": "./scripts/onboard.sh",
+    "dev": "./scripts/dev.sh",
+    "dev:remote": "pnpm --filter mobile start:dev",
+    "ios": "pnpm --filter mobile ios",
+    "ios:device": "pnpm --filter mobile ios:device",
+    "ios:signing": "pnpm --filter mobile ios:signing",
+    "android": "pnpm --filter mobile android",
     "web:dev": "pnpm --filter web dev",
     "web:build": "pnpm --filter web build",
-    "mobile:start": "pnpm --filter mobile start",
-    "mobile:start:dev": "pnpm --filter mobile start:dev",
-    "mobile:start:prod": "pnpm --filter mobile start:prod",
     "api:fetch": "pnpm --filter @nook/api-contracts openapi:fetch",
     "api:generate": "pnpm --filter @nook/api-contracts generate",
     "api:refresh": "pnpm --filter @nook/api-contracts refresh",

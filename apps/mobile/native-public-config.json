@@ -7,6 +7,13 @@
     "development": "https://app-dev.everynook.co.kr",
     "production": "https://everynook.co.kr"
   },
+  "ios": {
+    "appleTeamId": "TDTGJZTB57",
+    "devProfiles": {
+      "kr.co.everynook.app.dev": "Nook Development",
+      "kr.co.everynook.app.dev.ShareExtension": "Nook ShareExtension Development"
+    }
+  },
   "android": {
     "kotlinVersion": "2.1.20"
   }
