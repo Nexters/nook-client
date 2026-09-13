@@ -36,6 +36,8 @@
     "start:prod": "./scripts/metro.sh production 8081",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "ios:device": "./scripts/run-ios-device.sh",
+    "ios:signing": "node scripts/ios-signing.mjs",
     "web": "expo start --web",
     "build:ios:prod-metro": "eas build --platform ios --profile prod-metro",
     "build:ios:prod-store": "eas build --platform ios --profile prod-store",
