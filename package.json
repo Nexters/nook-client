@@ -8,7 +8,7 @@
   "scripts": {
     "onboard": "./scripts/onboard.sh",
     "dev": "./scripts/dev.sh",
-    "dev:remote": "pnpm --filter mobile start:prod",
+    "dev:remote": "pnpm --filter mobile start:dev",
     "ios": "pnpm --filter mobile ios",
     "ios:device": "pnpm --filter mobile ios:device",
     "ios:signing": "pnpm --filter mobile ios:signing",

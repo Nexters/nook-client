@@ -1,5 +1,5 @@
 #!/bin/sh
-# 처음 한 번: 웹 env 파일 생성 + EAS 에서 앱 env(카카오 키·Firebase 설정 파일) 내려받기.
+# 처음 한 번: 웹 env 파일 생성 + EAS 에서 개발 앱 env(카카오 키·Firebase dev 설정 파일) 내려받기.
 set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
@@ -10,7 +10,7 @@ fi
 
 cd "$ROOT/apps/mobile"
 pnpm exec eas whoami >/dev/null 2>&1 || pnpm exec eas login
-pnpm exec eas env:pull --environment production
+pnpm exec eas env:pull --environment development
 
 echo
 echo "끝. 다음은 레포 루트에서:"

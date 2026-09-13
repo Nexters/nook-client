@@ -10,8 +10,8 @@
   "ios": {
     "appleTeamId": "TDTGJZTB57",
     "devProfiles": {
-      "kr.co.everynook.app": "Nook Development",
-      "kr.co.everynook.app.ShareExtension": "Nook ShareExtension Development"
+      "kr.co.everynook.app.dev": "Nook Development",
+      "kr.co.everynook.app.dev.ShareExtension": "Nook ShareExtension Development"
     }
   },
   "android": {

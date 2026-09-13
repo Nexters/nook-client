@@ -34,14 +34,14 @@
 | variant | Bundle ID | ASC 앱 ID | 용도 |
 | --- | --- | --- | --- |
 | production | `kr.co.everynook.app` | `6798223287` | 실서비스 (TestFlight/App Store) |
-| development | `kr.co.everynook.app.dev` | `6803065807` | dev 서버 대상 TestFlight 배포 |
+| development | `kr.co.everynook.app.dev` | `6803065807` | 개발 앱. 로컬·`dev-metro` 가 쓴다. ASC 앱은 있지만 TestFlight 배포 프로필은 없다 |
 
-EAS 빌드 프로필은 **variant(dev/prod) × 채널(metro/store)** 조합 4개다.
+EAS 빌드 프로필은 2개다.
 
 | 프로필 | variant | 채널 | JS 번들 | 설치·실행 | 용도 |
 | --- | --- | --- | --- | --- | --- |
-| `prod-metro` | production | metro | 미내장 — Mac의 Metro에서 로드 | UDID 등록된 기기에 직접 설치 | production 변형 실기기 디버깅 |
-| `prod-store` | production | store | 내장 | TestFlight/App Store | 실제 출시 |
+| `dev-metro` | development | metro | 미내장 — Mac의 Metro에서 로드 | UDID 등록된 기기에 직접 설치 | 로컬 서명 없이 실기기 확인 |
+| `prod-store` | production | store | 내장 | TestFlight/App Store | 심사 전 확인, 실제 출시 |
 
 metro 채널은 dev client 빌드라 실행하려면 Mac의 Metro 서버가 필요하고, ad-hoc 서명이라
 기기 UDID가 미리 등록돼 있어야 한다 — [05. 기기 등록과 ad-hoc 프로파일](05-기기-등록과-adhoc-프로파일.md)의

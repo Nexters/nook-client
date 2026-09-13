@@ -4,24 +4,21 @@
 | --- | --- | --- | --- |
 | coldbrow | 2026-08-19 | 2026-09-13 | NOOK-115, NOOK-332 |
 
-> EAS 로 빌드한 개발용 앱(`prod-metro`)을 실기기에 깔려면 그 폰의 UDID 가 ad-hoc 프로파일에 들어 있어야 한다.
+> EAS 로 빌드한 개발 앱(`dev-metro`)을 실기기에 깔려면 그 폰의 UDID 가 ad-hoc 프로파일에 들어 있어야 한다.
 > 새 기기 등록 → ad-hoc 프로파일 재생성 → EAS 재업로드 절차를 다룬다. **App Store Connect API 키를 가진
 > 관리자만** 할 수 있다. 팀원이 할 일(UDID 확인, QR 설치, Metro 연결)은 [01. 팀원 지침서](01-팀원-지침서.md) 2절.
 > 팀원 맥에서 직접 빌드하는 개발 프로파일은 `pnpm ios:signing` 이 만든다 — [02](02-관리자-작업.md).
 
 ## 구성 요약
 
-실기기 디버깅은 `eas.json`의 **`prod-metro` 프로필**을 사용한다. Metro 없이 단독 실행되는
+EAS 실기기 빌드는 `eas.json`의 **`dev-metro` 프로필**을 사용한다. Metro 없이 단독 실행되는
 앱이 필요하면 TestFlight(store 채널)로 배포한다([06](06-App-Store-제출.md) 1절 참고).
 
 | 항목 | 값 |
 | --- | --- |
-| 번들 ID | `kr.co.everynook.app` (production과 동일) |
+| 번들 ID | `kr.co.everynook.app.dev` — 스토어 앱과 한 폰에 공존 |
 | 배포 방식 | ad-hoc 내부 배포 — 등록된 기기 UDID에만 설치 가능 |
 | JS 번들 | 앱에 미내장. 실행 시 Mac의 Metro 서버에서 로드 |
-
-> `prod-metro`는 TestFlight/App Store의 production 앱과 번들 ID가 같아 한 기기에 둘 중
-> 하나만 설치된다. `.dev` 식별자로 공존시키던 `dev-metro` 프로필은 NOOK-332 에서 걷어냈다.
 
 ad-hoc 서명 자격 증명(배포 인증서 + ad-hoc 프로비저닝 프로파일)은 EAS 서버에 저장돼 있어
 (Ad Hoc Configuration — App Store Configuration과 별도로 공존), 빌드하는 PC에는 아무
@@ -74,8 +71,8 @@ pnpm ios:signing device "<기기이름>" <UDID>
 프로파일은 본앱·ShareExtension 두 개가 필요하다. 생성에 쓸 리소스 ID를 조회한다:
 
 ```bash
-# 번들 ID 리소스 (kr.co.everynook.app, kr.co.everynook.app.ShareExtension 두 건의 id)
-curl -H "Authorization: Bearer $JWT" "https://api.appstoreconnect.apple.com/v1/bundleIds?filter\[identifier\]=kr.co.everynook.app"
+# 번들 ID 리소스 (kr.co.everynook.app.dev, kr.co.everynook.app.dev.ShareExtension 두 건의 id)
+curl -H "Authorization: Bearer $JWT" "https://api.appstoreconnect.apple.com/v1/bundleIds?filter\[identifier\]=kr.co.everynook.app.dev"
 
 # 배포 인증서 id 목록
 curl -H "Authorization: Bearer $JWT" "https://api.appstoreconnect.apple.com/v1/certificates"
@@ -104,7 +101,7 @@ curl -X POST "https://api.appstoreconnect.apple.com/v1/profiles" \
 
 `apps/mobile`에서 `pnpm exec eas credentials --platform ios` 실행 후:
 
-1. 프로필 `prod-metro` 선택(internal 배포 프로필이면 어느 것이든 무방), Apple 로그인은 **No**
+1. 프로필 `dev-metro` 선택, Apple 로그인은 **No**
 2. `credentials.json: Upload/Download credentials` → **Download** — 인증서 p12가
    `credentials/ios/`에 내려온다 (`.gitignore` 처리돼 있음)
 3. 내려온 `credentials.json`에서 두 타깃(`nook`, `ShareExtension`)의
@@ -112,4 +109,4 @@ curl -X POST "https://api.appstoreconnect.apple.com/v1/profiles" \
 4. 같은 메뉴에서 **Upload** → 배포 타입 **Adhoc** 선택
 5. 업로드 확인 후 로컬 `credentials.json`과 `credentials/` 디렉터리는 삭제한다
 
-이후 `pnpm --filter mobile build:ios:prod-metro`로 새 빌드를 만들면 새 기기에서도 설치된다.
+이후 `pnpm --filter mobile build:ios:dev-metro`로 새 빌드를 만들면 새 기기에서도 설치된다.

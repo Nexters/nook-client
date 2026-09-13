@@ -1,11 +1,12 @@
 #!/bin/sh
-# 실기기에 빌드·설치한다. 서명은 app.config.ts 가 맥에 설치된 팀 개발 프로파일로 잡는데, prebuild 는 ios/ 가
-# 없을 때만 돌기 때문에 프로파일 설치 전에 만들어진 ios/ 는 여기서 한 번 다시 만든다.
+# 개발 앱을 실기기에 빌드·설치한다. 서명은 app.config.ts 가 맥에 설치된 팀 개발 프로파일로 잡는데, prebuild 는
+# ios/ 가 없을 때만 돌기 때문에 프로파일 설치 전에 만들어진 ios/ 는 여기서 한 번 다시 만든다.
 set -eu
 cd "$(dirname "$0")/.."
+export APP_VARIANT=development
 
-PROFILE="$(node -p "require('./native-public-config.json').ios.devProfiles['kr.co.everynook.app']")"
-signed() { grep -q "PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE\"" ios/Nook.xcodeproj/project.pbxproj 2>/dev/null; }
+PROFILE="$(node -p "require('./native-public-config.json').ios.devProfiles['kr.co.everynook.app.dev']")"
+signed() { grep -q "PROVISIONING_PROFILE_SPECIFIER = \"$PROFILE\"" ios/*.xcodeproj/project.pbxproj 2>/dev/null; }
 
 if ! signed; then
   npx expo prebuild --platform ios --clean

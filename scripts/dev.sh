@@ -17,4 +17,4 @@ echo "web=$EXPO_PUBLIC_WEB_URL"
 pnpm --filter web dev &
 WEB=$!
 trap 'kill "$WEB" 2>/dev/null' EXIT INT TERM
-"$ROOT/apps/mobile/scripts/metro.sh" production 8081
+"$ROOT/apps/mobile/scripts/metro.sh" development 8081

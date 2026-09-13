@@ -85,13 +85,15 @@ pnpm test                  # vitest run
 ### mobile (Expo 셸)
 
 ```bash
-pnpm onboard                  # 처음 한 번 — 웹 env 생성 + EAS 에서 앱 env 내려받기
-pnpm ios                    # 시뮬레이터에 앱 설치 (첫 번, 네이티브 바뀔 때). android 도 같음
+pnpm onboard                # 처음 한 번 — 웹 env 생성 + EAS 에서 개발 앱 env 내려받기
+pnpm ios                    # 시뮬레이터에 개발 앱 설치 (첫 번, 네이티브 바뀔 때). android 도 같음
 pnpm ios:device             # 케이블로 연결한 아이폰에 설치 (관리자에게 서명 파일을 받은 뒤)
 
 pnpm dev                    # 웹 + 앱 서버 동시 기동. 앱이 이 맥의 웹을 본다
-pnpm dev:remote             # 운영 웹을 보면서 앱 셸만 개발
+pnpm dev:remote             # 개발 웹(app-dev)을 보면서 앱 셸만 개발
 ```
+
+로컬에서 만드는 앱은 전부 **개발 앱**(`kr.co.everynook.app.dev`, 개발 웹·API·Firebase)이다. 운영 앱은 TestFlight/스토어로만 본다.
 
 > 실기기에서는 dev 서버 대신 `vite preview`(빌드본 서빙)로 확인한다 — dev 서버의 재연결 리로드가 웹뷰 상태를 날린다.
 
@@ -106,10 +108,16 @@ env 파일은 **앱별로** 둔다. 루트에는 두지 않는다(Vite·Expo 모
 | --- | --- |
 | `apps/{web,mobile}/.env.example` | 예시값, 커밋 |
 | `apps/{web,mobile}/.env.local` | 로컬 전용, gitignore |
-| EAS environment | mobile 배포 값. `pnpm onboard` 이 production 환경 값을 `.env.local` 로 받는다 |
+| EAS environment | mobile 배포 값. `pnpm onboard` 가 development 환경 값을 `.env.local` 로 받는다 |
 | 배포 플랫폼 환경변수 | web 배포 값 |
 
 - `VITE_*` 는 번들에 인라인, `EXPO_PUBLIC_*` 는 앱 번들에 포함된다. **둘 다 공개값만** 넣는다.
-- 앱 식별자는 `kr.co.everynook.app`, App Group 은 `group.kr.co.everynook.app`, Share Extension 은 뒤에 `.ShareExtension` 이 붙는다. EAS 빌드 프로필은 `apps/mobile/eas.json` 참고 (`prod-metro` 실기기 개발용, `prod-store` 스토어용). 빌드·제출 스크립트는 `build:<플랫폼>:<프로필>` / `submit:<플랫폼>:<프로필>` 이름을 따른다.
-- `app.config.ts` 에는 `APP_VARIANT=development` 분기(`.dev` 식별자, 별도 Firebase 프로젝트)가 남아 있지만 빌드 프로필·스크립트에서는 걷어냈다. 개발 서버를 따로 운영하게 되면 되살린다.
+- 앱은 `APP_VARIANT` 로 갈린다 (`apps/mobile/app.config.ts`). 로컬 명령(`pnpm ios`·`dev`·`ios:device`)은 전부 `development`, EAS 스토어 빌드는 `production`. 미설정·오타는 production 으로 떨어진다.
+
+| APP_VARIANT | App ID (iOS·Android 공통) | 웹 | Firebase |
+| --- | --- | --- | --- |
+| `development` | `kr.co.everynook.app.dev` | `app-dev.everynook.co.kr` | dev 프로젝트 |
+| `production` | `kr.co.everynook.app` | `everynook.co.kr` | 운영 프로젝트 |
+
+- App Group 은 `group.<App ID>`, Share Extension 은 App ID 뒤에 `.ShareExtension`. EAS 빌드 프로필은 `apps/mobile/eas.json` 참고 (`dev-metro` EAS 실기기 개발용, `prod-store` 스토어용). 빌드·제출 스크립트는 `build:<플랫폼>:<프로필>` / `submit:<플랫폼>:<프로필>` 이름을 따른다.
 - 실기기 직접 빌드는 `pnpm ios:device`. 맥에 관리자가 발급한 팀 개발 프로파일이 있으면 `app.config.ts` 가 그걸로 수동 서명한다 (`native-public-config.json` 의 `ios.devProfiles`).
