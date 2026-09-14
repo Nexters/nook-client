@@ -20,6 +20,23 @@ describe('MainTabPageLayout', () => {
     expect(screen.getByText('탭 콘텐츠')).toBeInTheDocument();
   });
 
+  it('로고는 드래그·길게 누르기 미리보기·선택이 되지 않는다', () => {
+    render(
+      <MemoryRouter>
+        <MainTabPageLayout variant="transparent">
+          <p>지도 콘텐츠</p>
+        </MainTabPageLayout>
+      </MemoryRouter>,
+    );
+
+    const logo = screen.getByRole('img', { name: 'nook' });
+    // 핀치·더블 탭 중 로고에 손이 걸리면 이미지가 드래그 고스트로 떠오르는 것을 막는다.
+    expect(logo).toHaveAttribute('draggable', 'false');
+    expect(logo).toHaveClass('[-webkit-user-drag:none]');
+    // iOS 에서 길게 누르면 이미지 미리보기(확대)가 뜨는 것을 막는다.
+    expect(logo).toHaveClass('[-webkit-touch-callout:none]', 'select-none');
+  });
+
   it('map용 투명 헤더를 콘텐츠 위에 배치한다', () => {
     render(
       <MemoryRouter>
