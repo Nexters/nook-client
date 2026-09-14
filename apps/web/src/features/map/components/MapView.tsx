@@ -1,5 +1,5 @@
 import type { Ref } from 'react';
-import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Container as MapDiv, NaverMap, useNavermaps } from 'react-naver-maps';
 import { ClusterBubble } from '@/features/map/components/ClusterBubble';
 import { CurrentLocationDot } from '@/features/map/components/CurrentLocationDot';
@@ -11,6 +11,7 @@ import {
   RECENTER_ZOOM,
   SELECTED_PLACE_VERTICAL_RATIO,
 } from '@/features/map/constants';
+import { buildNaverMapStyleProps, resolveMapStyle } from '@/features/map/map-style';
 import { clusterPins } from '@/features/map/pin-cluster';
 import type { MapBounds, MapPin } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
@@ -61,6 +62,12 @@ export function MapView({
   ref?: Ref<MapViewHandle>;
 }) {
   const navermaps = useNavermaps();
+  // 지도 스타일(GL+커스텀 스타일 또는 라벨 뺀 래스터)은 map-style 에서 한 번 정한다. raster 모드의
+  // MapTypeRegistry 는 매 렌더 새로 만들면 지도 유형이 계속 재설정되므로 memo 로 고정한다.
+  const styleProps = useMemo(
+    () => buildNaverMapStyleProps(navermaps, resolveMapStyle()),
+    [navermaps],
+  );
   const center = initialCenter ?? FALLBACK_CENTER;
   // 인스턴스를 ref(이벤트 핸들러의 동기 접근용)와 state(effect 트리거용) 양쪽에 든다.
   // ref 만 쓰면 인스턴스가 "생긴 순간"을 React 가 알 수 없어, 그 전에 도착해 있던
@@ -135,6 +142,7 @@ export function MapView({
         ref={attachMap}
         defaultCenter={new navermaps.LatLng(center.lat, center.lng)}
         defaultZoom={DEFAULT_ZOOM}
+        {...styleProps}
         onIdle={() => {
           const currentMap = mapRef.current;
           if (!currentMap) return;

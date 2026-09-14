@@ -25,6 +25,11 @@ function readNaverMapClientId(): string {
 export const env = {
   apiBaseUrl: readApiBaseUrl(),
   naverMapClientId: readNaverMapClientId(),
+  /**
+   * 네이버 지도 Style Editor 에서 발행한 커스텀 스타일 ID. 값이 있으면 GL 벡터맵으로 그리고
+   * 이 스타일을 입힌다(POI 라벨 카테고리별 숨김 등). 없으면 래스터 타일 폴백(features/map/map-style).
+   */
+  naverMapStyleId: import.meta.env.VITE_NAVER_MAP_STYLE_ID ?? '',
   posthogKey: import.meta.env.VITE_PUBLIC_POSTHOG_KEY ?? '',
   posthogHost: import.meta.env.VITE_PUBLIC_POSTHOG_HOST ?? '',
   isDev: import.meta.env.DEV,
