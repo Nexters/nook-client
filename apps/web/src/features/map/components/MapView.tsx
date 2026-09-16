@@ -13,6 +13,7 @@ import {
 } from '@/features/map/constants';
 import { buildNaverMapStyleProps, resolveMapStyle } from '@/features/map/map-style';
 import { clusterPins } from '@/features/map/pin-cluster';
+import { attachPinchPan } from '@/features/map/pinch-pan';
 import type { MapBounds, MapPin } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
 
@@ -116,6 +117,13 @@ export function MapView({
     const shiftedOffset = new navermaps.Point(targetOffset.x, targetOffset.y + verticalShiftPx);
     map.panTo(projection.fromOffsetToCoord(shiftedOffset));
   }, [map, navermaps, panTargetLat, panTargetLng]);
+
+  // 핀치하면서 손가락을 옮기면 지도도 따라 움직이게 한다 — SDK 는 핀치 시작점을 줌 원점으로
+  // 고정하고 이후 중심 이동을 버린다(pinch-pan.ts 참고). 지도 인스턴스가 생길 때 붙이고 바뀌면 뗀다.
+  useEffect(() => {
+    if (!map) return;
+    return attachPinchPan(map, navermaps);
+  }, [map, navermaps]);
 
   // 버블을 누르면 그 덩어리 쪽으로 이동하면서 한 단계 확대한다. 최대 줌 초과는 네이버가
   // 알아서 클램프하므로 여기서 상한을 따로 두지 않는다.

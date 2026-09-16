@@ -69,7 +69,17 @@ export function MainTabPageLayout({ children, variant = 'gray' }: MainTabPageLay
     }, 2_000);
   };
 
-  const logo = <img src={nookLogo} alt="nook" className="h-[32px] w-[84px]" />;
+  // 지도 위에서 핀치·더블 탭을 하다 로고에 손이 걸리면 이미지가 드래그 고스트로 떠오르고,
+  // iOS 는 길게 누르면 이미지 미리보기(확대)를 띄운다. 브랜드 로고는 그런 상호작용이 전혀
+  // 필요 없어 드래그·터치 콜아웃·선택을 모두 끈다.
+  const logo = (
+    <img
+      src={nookLogo}
+      alt="nook"
+      draggable={false}
+      className="h-[32px] w-[84px] select-none [-webkit-touch-callout:none] [-webkit-user-drag:none]"
+    />
+  );
 
   const header = (
     <Header
