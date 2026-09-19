@@ -30,6 +30,7 @@ type SessionResult = Extract<NativeToWeb, { type: 'SESSION_RESULT' }>['payload']
 type SocialLoginResult = Extract<NativeToWeb, { type: 'SOCIAL_LOGIN_RESULT' }>['payload'];
 type ImagePickResult = Extract<NativeToWeb, { type: 'IMAGE_PICK_RESULT' }>['payload'];
 type PushPermissionResult = Extract<NativeToWeb, { type: 'PUSH_PERMISSION_RESULT' }>['payload'];
+type ShareResult = Extract<NativeToWeb, { type: 'SHARE_RESULT' }>['payload'];
 
 // crypto.randomUUID 는 보안 컨텍스트에서만 존재한다. 실기기가 http://<LAN IP> 의
 // dev 서버를 볼 때는 비보안 컨텍스트라 undefined 다. 요청/응답 짝을 맞추는 용도라
@@ -71,6 +72,7 @@ class NativeBridge {
   private pendingSocial = new Map<string, (result: SocialLoginResult) => void>();
   private pendingImagePick = new Map<string, (result: ImagePickResult) => void>();
   private pendingPushPermission = new Map<string, (result: PushPermissionResult) => void>();
+  private pendingShare = new Map<string, (result: ShareResult) => void>();
 
   get isNative(): boolean {
     return !!window.ReactNativeWebView;
@@ -171,6 +173,31 @@ class NativeBridge {
     });
   }
 
+  /**
+   * 셸이 OS 공유 시트를 연다(RN Share). 시트가 닫혀야 끝나므로 오래 걸릴 수 있다.
+   *
+   * 셸 밖(브라우저)에서는 열 곳이 없어 곧바로 false 다. 구버전 셸은 이 메시지를 모르고
+   * 무시하므로 응답이 오지 않는다 — 호출부가 그동안 화면을 붙잡지 않도록 주의한다.
+   */
+  requestShare(data: { title: string; url: string }): Promise<boolean> {
+    if (!this.isNative) return Promise.resolve(false);
+    const requestId = randomRequestId();
+    return new Promise((resolve) => {
+      this.pendingShare.set(requestId, (result) => resolve(result.status === 'shared'));
+      this.send({ v: 1, type: 'SHARE', payload: { requestId, ...data } });
+    });
+  }
+
+  /**
+   * 외부 링크를 셸이 OS 기본 동작(Linking.openURL)으로 연다. 앱 링크(유니버설 링크·App Links)로
+   * 등록된 주소면 그 앱이 깔려 있을 때 앱으로, 아니면 브라우저로 열린다 — 앱 설치 여부를 웹이
+   * 따로 확인할 필요가 없다. 셸 밖(브라우저)에서는 새 탭으로 연다.
+   */
+  openExternalUrl(url: string): void {
+    if (this.isNative) this.send({ v: 1, type: 'OPEN_EXTERNAL_URL', payload: { url } });
+    else window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
   private receive(json: string): void {
     const message = parseNativeToWeb(json);
     if (!message) {
@@ -201,6 +228,13 @@ class NativeBridge {
       const resolve = this.pendingPushPermission.get(message.payload.requestId);
       if (resolve) {
         this.pendingPushPermission.delete(message.payload.requestId);
+        resolve(message.payload);
+      }
+    }
+    if (message.type === 'SHARE_RESULT') {
+      const resolve = this.pendingShare.get(message.payload.requestId);
+      if (resolve) {
+        this.pendingShare.delete(message.payload.requestId);
         resolve(message.payload);
       }
     }

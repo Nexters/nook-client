@@ -32,4 +32,8 @@ export type WebToNative =
         apiBaseUrl: string | null;
       }
     >
-  | BridgeMessage<'SESSION_CLEAR', { requestId: string }>;
+  | BridgeMessage<'SESSION_CLEAR', { requestId: string }>
+  // OS 공유 시트를 셸이 대신 연다(RN Share). 웹의 navigator.share 가 없거나 거절될 때만 쓴다 —
+  // Android WebView 는 이 API 를 아예 안 주거나, 주고도 NotAllowedError 를 던진다.
+  // 구버전 셸은 파서의 default 분기에서 조용히 무시한다(응답이 없으면 호출부가 그대로 멈춘다).
+  | BridgeMessage<'SHARE', { requestId: string; title: string; url: string }>;

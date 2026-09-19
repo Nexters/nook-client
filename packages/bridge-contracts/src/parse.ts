@@ -5,6 +5,7 @@ import type {
   PickedImage,
   PushPermissionStatus,
   PushToken,
+  ShareStatus,
   SocialCredential,
   SocialLoginStatus,
 } from './native-to-web';
@@ -51,6 +52,10 @@ function isImagePickStatus(value: unknown): value is ImagePickStatus {
 
 function isPushPermissionStatus(value: unknown): value is PushPermissionStatus {
   return value === 'granted' || value === 'denied' || value === 'undetermined';
+}
+
+function isShareStatus(value: unknown): value is ShareStatus {
+  return value === 'shared' || value === 'dismissed';
 }
 
 function isPushTokenPlatform(value: unknown): value is PushToken['platform'] {
@@ -157,6 +162,14 @@ export function parseWebToNative(json: string): WebToNative | null {
     case 'GET_PUSH_STATUS': {
       const id = requestId(value.payload);
       return id ? { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id } } : null;
+    }
+    case 'SHARE': {
+      const id = requestId(value.payload);
+      const title = value.payload.title;
+      const url = token(value.payload.url);
+      return id && typeof title === 'string' && url
+        ? { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id, title, url } }
+        : null;
     }
     case 'SESSION_GET': {
       const id = requestId(value.payload);
@@ -296,6 +309,13 @@ export function parseNativeToWeb(json: string): NativeToWeb | null {
         ...(typeof body === 'string' ? { body } : {}),
       },
     };
+  }
+  if (value.type === 'SHARE_RESULT') {
+    const id = requestId(value.payload);
+    const { status } = value.payload;
+    return id && isShareStatus(status)
+      ? { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id, status } }
+      : null;
   }
   if (value.type === 'PUSH_TOKEN_REFRESHED') {
     const pushToken = parsePushToken(value.payload.token);
