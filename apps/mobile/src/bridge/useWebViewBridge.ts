@@ -1,6 +1,6 @@
 import { parseWebToNative } from '@nook/bridge-contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Linking, Platform } from 'react-native';
+import { BackHandler, Linking, Platform, Share } from 'react-native';
 import type { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { runSocialLogin } from '../auth/socialLogin';
 import { APP_BUILD_NUMBER, APP_VERSION, WEB_URL } from '../config/appConfig';
@@ -229,6 +229,19 @@ export function useWebViewBridge() {
               payload: { requestId, source, ...outcome },
             });
           });
+          break;
+        }
+        // 웹의 navigator.share 가 없거나 거절된 경우에만 온다(Android WebView).
+        // 시트가 닫혀야 promise 가 끝나므로 결과는 그때 한 번 보낸다.
+        case 'SHARE': {
+          const { requestId, title, url } = message.payload;
+          // iOS 는 url 을 따로 받아 링크로 다루고, Android 는 message 만 공유한다.
+          void Share.share(Platform.OS === 'ios' ? { title, url } : { title, message: url })
+            .then((result) => (result.action === Share.sharedAction ? 'shared' : 'dismissed'))
+            .catch(() => 'dismissed' as const)
+            .then((status) => {
+              send({ v: 1, type: 'SHARE_RESULT', payload: { requestId, status } });
+            });
           break;
         }
         case 'BACK_EXHAUSTED':
