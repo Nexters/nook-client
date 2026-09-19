@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { markOnboardingSeen } from '@/features/onboarding/onboardingSeen';
 import { shareViaSystem } from '@/features/share/lib/shareUrl';
@@ -112,6 +112,40 @@ function LottieMotion({
   ) : null;
 }
 
+/**
+ * 시트가 떠 있는 동안 그림을 올려 줄이는 transform. 시트를 열 때 한 번만 잰다.
+ *
+ * 그릇 크기를 바꿔 줄이면 iframe 이 매 프레임 리사이즈되고, 모션 파일의 `fitStage` 가 무거운
+ * 문서 전체를 다시 그려 버벅인다. 그래서 그릇은 그대로 두고 transform 만 건다 — 합성만 한다.
+ *
+ * 목표는 예전 레이아웃 방식의 최종 모습 그대로다: 그림 윗변이 문구 자리 윗변(닫기 버튼 바로 아래)에
+ * 붙고, 높이는 화면의 34%(iOS 공유 시트가 60% 안팎을 덮는다)에서 모션 파일이 위아래로 남기는
+ * 24px 씩을 뺀 만큼. iframe 은 같은 출처라 안의 실제 그림(`.viewport`)을 잴 수 있다 —
+ * 그릇째 재면 레터박스 여백까지 줄어 그림이 더 작아진다. 못 재면 그릇을 그림으로 본다.
+ */
+function sheetMotionStyle(box: HTMLElement): CSSProperties | undefined {
+  const boxRect = box.getBoundingClientRect();
+  const frame = box.querySelector('iframe');
+  const frameRect = frame?.getBoundingClientRect();
+  const stageRect = frame?.contentDocument?.querySelector('.viewport')?.getBoundingClientRect();
+  const art =
+    frameRect && stageRect
+      ? {
+          top: frameRect.top + stageRect.top,
+          height: stageRect.height,
+          centerX: frameRect.left + stageRect.left + stageRect.width / 2,
+        }
+      : { top: boxRect.top, height: boxRect.height, centerX: boxRect.left + boxRect.width / 2 };
+  const anchorTop = box.parentElement?.getBoundingClientRect().top ?? art.top;
+  const scale = Math.min(1, (window.innerHeight * 0.34 - 48) / art.height);
+  // jsdom 처럼 크기가 0 이면 옮기지 않는다.
+  if (!(scale > 0 && Number.isFinite(scale))) return undefined;
+  return {
+    transformOrigin: `${art.centerX - boxRect.left}px ${art.top - boxRect.top}px`,
+    transform: `translateY(${anchorTop - art.top}px) scale(${scale})`,
+  };
+}
+
 /** 시안의 말풍선 — CTA 바로 위. 꼬리는 같은 색 정사각형을 45° 돌려 만든다. */
 function CtaTooltip({ children }: { children: string }) {
   return (
@@ -130,6 +164,8 @@ export function OnboardingPage() {
   // OS 공유 시트가 화면 아래쪽을 덮고 있는 동안. 시트는 네이티브 레이어라 높이를 알 수 없어,
   // 덮일 만한 것을 다 걷고 모션만 위에 남긴다 — 사용자가 시트를 조작하며 따라 볼 그림이다.
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetMotion, setSheetMotion] = useState<CSSProperties>();
+  const motionBoxes = useRef<(HTMLDivElement | null)[]>([]);
   const slide = SLIDES[slideIndex] ?? SLIDES[0];
 
   // 온보딩을 떠나는 길은 모두 "봤음" 으로 기록한다 — 끝까지 봤든, 닫기(X)로 그만뒀든 다시 띄우지 않는다.
@@ -156,9 +192,12 @@ export function OnboardingPage() {
    * 환경(브라우저)에서도 버튼이 죽으면 안 되기 때문이다.
    */
   const openShareSheet = async () => {
+    const box = motionBoxes.current[slideIndex];
+    setSheetMotion(box ? sheetMotionStyle(box) : undefined);
     setSheetOpen(true);
     await shareViaSystem(SHARE_TARGET);
     setSheetOpen(false);
+    setSheetMotion(undefined);
     showNext();
   };
 
@@ -219,41 +258,29 @@ export function OnboardingPage() {
                 inert={!active || undefined}
                 aria-hidden={!active || undefined}
               >
-                {/* 시트가 열릴 때 문구는 없애지 않고 자리를 접는다 — 언마운트하면 그림이 위로
-                    순간이동한다. 0fr/1fr 은 내용 높이를 모르고도 접을 수 있는 방법이다. */}
+                {/* 시트가 열릴 때 문구는 자리를 그대로 두고 흐려지기만 한다 — 자리를 접으면 아래
+                    그릇(flex-1)이 커지며 iframe 이 매 프레임 리사이즈된다. 그림이 transform 으로 그 위를 덮는다. */}
                 <div
                   className={cn(
-                    'grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none',
-                    collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
+                    'transition-opacity duration-200 ease-out motion-reduce:transition-none',
+                    collapsed && 'opacity-0',
                   )}
                   aria-hidden={collapsed || undefined}
                 >
-                  <div
-                    className={cn(
-                      'overflow-hidden transition-opacity duration-200 ease-out motion-reduce:transition-none',
-                      collapsed && 'opacity-0',
-                    )}
-                  >
-                    <h1 className="whitespace-pre-line px-4 pt-6 text-center text-h1 font-extrabold text-gray-100">
-                      {item.title}
-                    </h1>
-                    <p className="px-4 pt-3 text-center text-b2 text-gray-50">{item.description}</p>
-                  </div>
+                  <h1 className="whitespace-pre-line px-4 pt-6 text-center text-h1 font-extrabold text-gray-100">
+                    {item.title}
+                  </h1>
+                  <p className="px-4 pt-3 text-center text-b2 text-gray-50">{item.description}</p>
                 </div>
 
                 {/* 평소엔 줄어드는 쪽이 그림이다 — 세로가 짧은 기기에서 문구와 버튼이 밀리지 않게 한다.
-                    시트가 떠 있을 때는 시트 위에 남는 만큼만 차지한다. iOS 공유 시트가 화면의 60% 안팎을
-                    덮으므로, 상단 34% 면 안전 영역과 닫기 버튼을 빼고도 가려지지 않는다.
-                    높이를 바꾸는 대신 상한(max-height)만 줄여 전환한다 — flex-1 이 준 높이는 애니메이션할 수
-                    없지만 상한은 된다. 모션 파일이 제 그릇 크기를 보고 스스로 다시 맞추므로(fitStage 의 resize)
-                    그림도 같이 줄며 따라 올라온다.
-                    -mt-6 은 그 파일이 남기는 위쪽 여백(-48 을 위아래로 나눈 24px)을 되돌려, 그림 윗변이
-                    닫기 버튼 바로 아래에 붙게 한다. */}
+                    시트가 떠 있을 때는 `sheetMotionStyle` 의 transform 으로 올라가며 줄어든다. */}
                 <div
-                  className={cn(
-                    'min-h-0 flex-1 transition-[max-height,margin-top] duration-300 ease-out motion-reduce:transition-none',
-                    collapsed ? '-mt-6 max-h-[34dvh]' : 'mt-6 max-h-[100dvh]',
-                  )}
+                  ref={(node) => {
+                    motionBoxes.current[index] = node;
+                  }}
+                  className="mt-6 min-h-0 flex-1 transition-transform duration-300 ease-out motion-reduce:transition-none"
+                  style={collapsed ? sheetMotion : undefined}
                 >
                   {mountMotion ? (
                     'html' in item.motion ? (
