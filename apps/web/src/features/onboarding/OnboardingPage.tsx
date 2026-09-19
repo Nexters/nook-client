@@ -153,10 +153,10 @@ const MOTION_RETURN_MS = 300;
 function CtaTooltip({ children }: { children: string }) {
   return (
     <div className="flex flex-col items-center pb-2">
-      <p className="rounded-lg bg-gray-70 px-4 py-2 text-b2 font-semibold text-gray-0">
+      <p className="rounded-[20px] bg-gray-80 px-4 py-2 text-b2 font-semibold text-gray-0">
         {children}
       </p>
-      <span aria-hidden="true" className="-mt-1 size-2 rotate-45 bg-gray-70" />
+      <span aria-hidden="true" className="-mt-1 size-2 rotate-45 bg-gray-80" />
     </div>
   );
 }
@@ -275,10 +275,12 @@ export function OnboardingPage() {
                   )}
                   aria-hidden={collapsed || undefined}
                 >
-                  <h1 className="whitespace-pre-line px-4 pt-6 text-center text-h1 font-extrabold text-gray-100">
+                  <h1 className="whitespace-pre-line px-4 pt-6 text-center text-h1 font-extrabold text-gray-90">
                     {item.title}
                   </h1>
-                  <p className="px-4 pt-3 text-center text-b2 text-gray-50">{item.description}</p>
+                  <p className="px-4 pt-3 text-center text-b2 font-medium text-gray-70">
+                    {item.description}
+                  </p>
                 </div>
 
                 {/* 평소엔 줄어드는 쪽이 그림이다 — 세로가 짧은 기기에서 문구와 버튼이 밀리지 않게 한다.
