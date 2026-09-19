@@ -43,6 +43,8 @@ function openShareSheet() {
   fireEvent.click(screen.getByRole('button', { name: '설정하기' }));
   return async () => {
     await act(async () => close());
+    // 그림이 제자리로 돌아온 뒤(300ms)에 다음 장으로 넘어간다.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
   };
 }
 

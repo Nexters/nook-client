@@ -146,6 +146,9 @@ function sheetMotionStyle(box: HTMLElement): CSSProperties | undefined {
   };
 }
 
+/** 그림이 제자리로 돌아오는 시간 — 그림 그릇의 `duration-300` 과 맞춘다. */
+const MOTION_RETURN_MS = 300;
+
 /** 시안의 말풍선 — CTA 바로 위. 꼬리는 같은 색 정사각형을 45° 돌려 만든다. */
 function CtaTooltip({ children }: { children: string }) {
   return (
@@ -164,7 +167,9 @@ export function OnboardingPage() {
   // OS 공유 시트가 화면 아래쪽을 덮고 있는 동안. 시트는 네이티브 레이어라 높이를 알 수 없어,
   // 덮일 만한 것을 다 걷고 모션만 위에 남긴다 — 사용자가 시트를 조작하며 따라 볼 그림이다.
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [sheetMotion, setSheetMotion] = useState<CSSProperties>();
+  // 그림이 시트 위로 올라가 있는 동안의 transform(못 쟀으면 `{}`). null 이면 제자리다.
+  // 시트와 따로 두는 이유: 시트가 닫히면 그림이 먼저 돌아오고, 그다음에 다음 장으로 넘어간다.
+  const [sheetMotion, setSheetMotion] = useState<CSSProperties | null>(null);
   const motionBoxes = useRef<(HTMLDivElement | null)[]>([]);
   const slide = SLIDES[slideIndex] ?? SLIDES[0];
 
@@ -186,18 +191,21 @@ export function OnboardingPage() {
   };
 
   /**
-   * 진짜 공유 시트를 띄우고, 닫히면 다음 장으로 넘어간다.
+   * 진짜 공유 시트를 띄우고, 닫히면 그림을 제자리로 돌려 놓은 뒤 다음 장으로 넘어간다.
+   * 동시에 넘기면 돌아오는 그림이 밀려 나가는 장에 묻혀 보이지 않는다.
    *
    * 공유했는지 그냥 닫았는지는 보지 않는다 — 즐겨찾기 설정은 시트 안에서 끝나고, 시트를 못 여는
    * 환경(브라우저)에서도 버튼이 죽으면 안 되기 때문이다.
    */
   const openShareSheet = async () => {
     const box = motionBoxes.current[slideIndex];
-    setSheetMotion(box ? sheetMotionStyle(box) : undefined);
+    setSheetMotion((box && sheetMotionStyle(box)) ?? {});
     setSheetOpen(true);
     await shareViaSystem(SHARE_TARGET);
+    setSheetMotion(null);
+    // 돌아오는 동안 CTA·딤은 그대로 둔다 — 먼저 걷으면 '설정하기' 가 잠깐 다시 보인다.
+    await new Promise((resolve) => setTimeout(resolve, MOTION_RETURN_MS));
     setSheetOpen(false);
-    setSheetMotion(undefined);
     showNext();
   };
 
@@ -249,7 +257,7 @@ export function OnboardingPage() {
             // 그림은 무겁다(iframe 4~5MB, Lottie 1MB). 들어올 다음 장과 막 나간 이전 장만 그려 두고
             // 나머지는 비운다 — 밀려 들어오는 순간에 이미 떠 있어야 빈 칸이 스치지 않는다.
             const mountMotion = Math.abs(index - slideIndex) <= 1;
-            const collapsed = active && sheetOpen;
+            const collapsed = active && sheetMotion !== null;
             return (
               <section
                 key={item.title}
@@ -280,7 +288,7 @@ export function OnboardingPage() {
                     motionBoxes.current[index] = node;
                   }}
                   className="mt-6 min-h-0 flex-1 transition-transform duration-300 ease-out motion-reduce:transition-none"
-                  style={collapsed ? sheetMotion : undefined}
+                  style={(collapsed && sheetMotion) || undefined}
                 >
                   {mountMotion ? (
                     'html' in item.motion ? (
