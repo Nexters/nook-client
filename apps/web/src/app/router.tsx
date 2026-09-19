@@ -13,6 +13,7 @@ import {
   AuthEntryRedirect,
   AwaitSession,
   RedirectAuthenticated,
+  RequireOnboarding,
 } from '@/features/auth/session/AuthRouteGuards';
 import { MapPage } from '@/features/map/MapPage';
 import { PlacePostsPage } from '@/features/map/PlacePostsPage';
@@ -20,6 +21,7 @@ import { ContactPage } from '@/features/my/ContactPage';
 import { MyPage } from '@/features/my/MyPage';
 import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
+import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 import { PostDetailPage } from '@/features/post/PostDetailPage';
 import { SharedArchivePage } from '@/features/share/SharedArchivePage';
 import { SharedPostDetailPage } from '@/features/share/SharedPostDetailPage';
@@ -72,6 +74,15 @@ export const router = createBrowserRouter([
           <RedirectAuthenticated>
             <LoginPage />
           </RedirectAuthenticated>
+        ),
+      },
+      // 가입 직후 1회 온보딩. 하단 탭 없이 전체 화면이라 ProtectedAppLayout 밖에 둔다.
+      {
+        path: 'onboarding',
+        element: (
+          <RequireOnboarding>
+            <OnboardingPage />
+          </RequireOnboarding>
         ),
       },
       {
