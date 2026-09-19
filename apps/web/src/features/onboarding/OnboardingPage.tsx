@@ -24,7 +24,17 @@ const INSTAGRAM_URL = 'https://www.instagram.com/nook.archiving?stkn=NTl6bTd6MW9
  * JSON 쪽이 가볍다 — 3장의 HTML 은 lottie-web 런타임에 같은 JSON 을 박아 넣은 미리보기일 뿐인데,
  * 런타임은 이미 번들에 있다(`@/shared/ui/lottie`).
  */
-type OnboardingMotion = { html: string } | { lottie: () => Promise<{ default: unknown }> };
+type OnboardingMotion =
+  | {
+      html: string;
+      /**
+       * iframe 폭. 그림은 파일의 `fitStage` 가 그릇(좌우·위아래 24px 씩 빼고)에 원본 비율로
+       * 맞추므로, 폭만 줄이면 비율을 지킨 채 작아진다. 세로가 모자란 기기에서는 높이 쪽에 맞춰
+       * 더 작아진다. 없으면 장 전체 폭이다.
+       */
+      frameClassName?: string;
+    }
+  | { lottie: () => Promise<{ default: unknown }> };
 
 interface OnboardingSlide {
   title: string;
@@ -54,7 +64,9 @@ const SLIDES: [OnboardingSlide, ...OnboardingSlide[]] = [
   {
     title: '누크를 즐겨찾기하고\n바로 저장해요',
     description: '이렇게 하면 저장이 2배 더 빨라져요!',
-    motion: { html: '/onboarding/tutorial-2.html' },
+    // 시안: 375 폭 화면에서 270×279(원본 215×222 와 같은 비율). 화면 폭의 72%(270/375)에
+    // 파일이 남기는 좌우 여백 48px(3rem)을 더한 폭을 준다.
+    motion: { html: '/onboarding/tutorial-2.html', frameClassName: 'w-[calc(72%+3rem)]' },
     cta: { label: '설정하기', tooltip: '이 화면에서 바로 설정할 수 있어요!', action: 'share' },
   },
   {
@@ -93,14 +105,22 @@ function sharpenStage(frame: HTMLIFrameElement) {
  * 타임라인을 갖고 있어 우리 스타일과 섞이면 안 된다. 크기는 파일 안 `fitStage` 가 그릇에
  * 맞춰 스스로 조정한다. 같은 출처라 로드 뒤 안을 만질 수 있다(`sharpenStage`).
  */
-function MotionFrame({ src, title }: { src: string; title: string }) {
+function MotionFrame({
+  src,
+  title,
+  className,
+}: {
+  src: string;
+  title: string;
+  className?: string;
+}) {
   return (
     <iframe
       src={src}
       title={title}
       onLoad={(event) => sharpenStage(event.currentTarget)}
       // 프레임이 포인터를 먹으면 그 위에서 스와이프·탭이 죽는다. 보여주기만 하는 그림이다.
-      className="pointer-events-none h-full w-full border-0"
+      className={cn('pointer-events-none mx-auto block h-full w-full border-0', className)}
       scrolling="no"
     />
   );
@@ -381,7 +401,11 @@ export function OnboardingPage() {
                 >
                   {mountMotion ? (
                     'html' in item.motion ? (
-                      <MotionFrame src={item.motion.html} title={item.description} />
+                      <MotionFrame
+                        src={item.motion.html}
+                        title={item.description}
+                        className={item.motion.frameClassName}
+                      />
                     ) : (
                       <LottieMotion load={item.motion.lottie} title={item.description} />
                     )
