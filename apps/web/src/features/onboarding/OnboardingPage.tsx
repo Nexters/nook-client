@@ -237,6 +237,8 @@ export function OnboardingPage() {
   // 그림이 시트 위로 올라가 있는 동안(`liftMotion`). 시트와 따로 두는 이유: 시트가 닫히면
   // 그림이 먼저 돌아오고, 그다음에 다음 장으로 넘어간다.
   const [lifted, setLifted] = useState(false);
+  // 2장에서 시트를 한 번 닫았다. 그 뒤로 2장 CTA 는 `다음` 이 되고, 위에 `다시 설정하기` 가 붙는다.
+  const [shareDone, setShareDone] = useState(false);
   const motionBoxes = useRef<(HTMLDivElement | null)[]>([]);
   const slide = SLIDES[slideIndex] ?? SLIDES[0];
 
@@ -258,8 +260,9 @@ export function OnboardingPage() {
   };
 
   /**
-   * 진짜 공유 시트를 띄우고, 닫히면 그림을 제자리로 돌려 놓은 뒤 다음 장으로 넘어간다.
-   * 동시에 넘기면 돌아오는 그림이 밀려 나가는 장에 묻혀 보이지 않는다.
+   * 진짜 공유 시트를 띄우고, 닫히면 그림을 제자리로 돌려 놓는다. 다음 장으로는 넘기지 않고
+   * CTA 를 `다음` 으로 바꾼다 — 넘어갈지, `다시 설정하기` 로 한 번 더 열지는 사용자가 고른다.
+   * `설정하기` 와 `다시 설정하기` 가 같이 쓴다.
    *
    * 공유했는지 그냥 닫았는지는 보지 않는다 — 즐겨찾기 설정은 시트 안에서 끝나고, 시트를 못 여는
    * 환경(브라우저)에서도 버튼이 죽으면 안 되기 때문이다.
@@ -283,12 +286,16 @@ export function OnboardingPage() {
     if (didLift) {
       lower?.();
       setLifted(false);
-      // 돌아오는 동안 CTA·딤은 그대로 둔다 — 먼저 걷으면 '설정하기' 가 잠깐 다시 보인다.
+      // 돌아오는 동안 CTA·딤은 그대로 둔다 — 그림이 자리를 잡은 뒤에 `다음` 이 드러난다.
       await new Promise((resolve) => setTimeout(resolve, MOTION_MS));
     }
     setSheetOpen(false);
-    showNext();
+    setShareDone(true);
   };
+
+  // 설정을 마친 2장은 CTA 가 없는 장처럼 `다음` 으로 넘긴다(말풍선도 걷는다).
+  const retryShare = slide.cta?.action === 'share' && shareDone;
+  const cta = retryShare ? undefined : slide.cta;
 
   return (
     <main
@@ -400,28 +407,43 @@ export function OnboardingPage() {
 
         <div className="px-4 pt-6">
           {/* 말풍선 자리는 모든 장에서 비워 둔다 — 말풍선이 없는 1장만 이 높이만큼 아래 블록이 낮아져
-              점이 장마다 다른 높이에 찍혔다. 없는 장에서는 투명하게 두고 낭독에서 뺀다. */}
-          <div
-            className={cn(
-              'transition-opacity duration-500 ease-out motion-reduce:transition-none',
-              !slide.cta && 'opacity-0',
-            )}
-            aria-hidden={!slide.cta || undefined}
-          >
-            <CtaTooltip>{slide.cta?.tooltip ?? '\u00a0'}</CtaTooltip>
+              점이 장마다 다른 높이에 찍혔다. 없는 장에서는 투명하게 두고 낭독에서 뺀다.
+              `다시 설정하기` 도 같은 칸에 겹쳐 둔다 — 말풍선과 번갈아 나타나도 점이 움직이지 않는다. */}
+          <div className="grid">
+            <div
+              className={cn(
+                // 누를 일 없는 장식이다. 투명도가 1 미만이면 위층에 그려져서, 탭을 통과시키지 않으면
+                // 같은 칸에 겹친 `다시 설정하기` 가 안 눌린다.
+                'pointer-events-none [grid-area:1/1] transition-opacity duration-500 ease-out motion-reduce:transition-none',
+                !cta && 'opacity-0',
+              )}
+              aria-hidden={!cta || undefined}
+            >
+              <CtaTooltip>{cta?.tooltip ?? '\u00a0'}</CtaTooltip>
+            </div>
+            {retryShare ? (
+              // 시안: 버튼 위 17px. 간격 토큰(4px 배수)에 맞춰 16px 로 둔다.
+              <button
+                type="button"
+                onClick={() => void openShareSheet()}
+                className="[grid-area:1/1] self-end justify-self-center pb-4 text-b2 font-medium text-gray-90 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+              >
+                다시 설정하기
+              </button>
+            ) : null}
           </div>
           <Button
             size="lg"
             fullWidth
             onClick={
-              slide.cta?.action === 'share'
+              cta?.action === 'share'
                 ? () => void openShareSheet()
-                : slide.cta?.action === 'instagram'
+                : cta?.action === 'instagram'
                   ? goToInstagram
                   : showNext
             }
           >
-            {slide.cta?.label ?? '다음'}
+            {cta?.label ?? '다음'}
           </Button>
         </div>
       </div>

@@ -32,7 +32,7 @@ function renderPage() {
 }
 
 /** 시트가 떠 있는 상태를 붙잡아 두고, 닫는 시점은 테스트가 정한다. */
-function openShareSheet() {
+function openShareSheet(buttonName = '설정하기') {
   let close: () => void = () => undefined;
   shareViaSystem.mockImplementation(
     () =>
@@ -40,19 +40,20 @@ function openShareSheet() {
         close = () => resolve(true);
       }),
   );
-  fireEvent.click(screen.getByRole('button', { name: '설정하기' }));
+  fireEvent.click(screen.getByRole('button', { name: buttonName }));
   return async () => {
     await act(async () => close());
-    // 그림이 제자리로 돌아온 뒤(300ms)에 다음 장으로 넘어간다.
+    // 그림이 제자리로 돌아온 뒤(300ms)에 CTA 가 드러난다.
     await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
   };
 }
 
-/** 1장 → 2장 → 공유 시트를 열었다 닫아 3장까지 간다. */
+/** 1장 → 2장 → 공유 시트를 열었다 닫고 → 다음 으로 3장까지 간다. */
 async function goToLastSlide() {
   fireEvent.click(screen.getByRole('button', { name: '다음' }));
   const closeSheet = openShareSheet();
   await closeSheet();
+  fireEvent.click(screen.getByRole('button', { name: '다음' }));
 }
 
 // 온보딩은 앱(WebView)에서만 뜬다 — 기록 여부 판정에 셸 여부가 함께 걸린다.
@@ -113,7 +114,23 @@ describe('온보딩 화면', () => {
     expect(screen.getByTitle('이렇게 하면 저장이 2배 더 빨라져요!')).toBeInTheDocument();
   });
 
-  it('시트를 닫으면 3장 — Lottie 모션과 저장하러 가기 CTA 가 뜨고, 아직 기록하지 않는다', async () => {
+  it('시트를 닫으면 2장에 남아 다음·다시 설정하기가 뜨고, 다시 설정하기는 시트를 또 연다', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    await act(async () => {});
+    await openShareSheet()();
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('누크를 즐겨찾기하고');
+    expect(screen.queryByRole('button', { name: '설정하기' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '다음' })).toBeInTheDocument();
+
+    const closeAgain = openShareSheet('다시 설정하기');
+    expect(shareViaSystem).toHaveBeenCalledTimes(2);
+    await closeAgain();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('누크를 즐겨찾기하고');
+  });
+
+  it('설정 후 다음을 누르면 3장 — Lottie 모션과 저장하러 가기 CTA 가 뜨고, 아직 기록하지 않는다', async () => {
     renderPage();
 
     await goToLastSlide();
