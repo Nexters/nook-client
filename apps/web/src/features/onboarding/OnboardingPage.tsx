@@ -133,8 +133,14 @@ function LottieMotion({
   ) : null;
 }
 
-/** 그림이 올라가고 돌아오는 시간 — 그림 그릇의 `duration-300` 과 맞춘다. */
+/** 그림이 공유 시트 위로 올라가는 시간 — 그림 그릇의 `duration-300` 과 맞춘다. */
 const MOTION_MS = 300;
+
+/**
+ * iOS 공유 시트는 호출 뒤 첫 상승 프레임까지 약 300ms가 걸린다(실기기 녹화 기준).
+ * 그림도 그때 줄기 시작해야 두 움직임이 한 동작처럼 보인다.
+ */
+const SHARE_SHEET_PRESENTATION_DELAY_MS = 300;
 
 /** transition 없이 transform 을 바꿔 끼운다. 같은 모습끼리 바꾸는 것이라 움직이면 안 된다. */
 function swapTransform(box: HTMLElement, transform: string) {
@@ -259,15 +265,27 @@ export function OnboardingPage() {
    * 환경(브라우저)에서도 버튼이 죽으면 안 되기 때문이다.
    */
   const openShareSheet = async () => {
-    const box = motionBoxes.current[slideIndex];
-    const lower = box ? liftMotion(box) : undefined;
-    setLifted(true);
     setSheetOpen(true);
-    await shareViaSystem(SHARE_TARGET);
-    lower?.();
-    setLifted(false);
-    // 돌아오는 동안 CTA·딤은 그대로 둔다 — 먼저 걷으면 '설정하기' 가 잠깐 다시 보인다.
-    await new Promise((resolve) => setTimeout(resolve, MOTION_MS));
+    // 네이티브 호출을 먼저 보낸다. 실기기에서는 호출 후 시트가 화면에 나타나기까지 약 300ms가
+    // 걸리므로, 그림도 그 시점부터 줄여 두 움직임을 겹친다.
+    let lower: (() => void) | undefined;
+    let didLift = false;
+    const sharing = shareViaSystem(SHARE_TARGET);
+    const liftTimer = window.setTimeout(() => {
+      const box = motionBoxes.current[slideIndex];
+      lower = box ? liftMotion(box) : undefined;
+      didLift = true;
+      setLifted(true);
+    }, SHARE_SHEET_PRESENTATION_DELAY_MS);
+
+    await sharing;
+    window.clearTimeout(liftTimer);
+    if (didLift) {
+      lower?.();
+      setLifted(false);
+      // 돌아오는 동안 CTA·딤은 그대로 둔다 — 먼저 걷으면 '설정하기' 가 잠깐 다시 보인다.
+      await new Promise((resolve) => setTimeout(resolve, MOTION_MS));
+    }
     setSheetOpen(false);
     showNext();
   };

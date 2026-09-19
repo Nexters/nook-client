@@ -96,7 +96,7 @@ describe('온보딩 화면', () => {
     expect(screen.queryByRole('button', { name: '다음' })).not.toBeInTheDocument();
   });
 
-  it('설정하기는 OS 공유 시트를 열고, 그동안 모션만 남긴다', async () => {
+  it('설정하기는 OS 공유 시트를 먼저 열고, 시트가 올라올 때 모션을 함께 줄인다', async () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
     await act(async () => {});
@@ -104,6 +104,9 @@ describe('온보딩 화면', () => {
     openShareSheet();
 
     expect(shareViaSystem).toHaveBeenCalledWith({ title: 'nook', url: expect.any(String) });
+    // 실기기에서 네이티브 공유 시트의 첫 상승 프레임까지 걸리는 시간 동안은 원래 크기를 유지한다.
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+    await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
     // 시트가 화면 아래를 덮으므로 문구·버튼은 걷고, 따라 볼 모션만 남긴다.
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '설정하기' })).not.toBeInTheDocument();
