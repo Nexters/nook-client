@@ -97,7 +97,7 @@ pnpm dev:remote             # 개발 웹(app-dev)을 보면서 앱 셸만 개발
 
 > 실기기에서는 dev 서버 대신 `vite preview`(빌드본 서빙)로 확인한다 — dev 서버의 재연결 리로드가 웹뷰 상태를 날린다.
 
-처음 세팅부터 실기기 개발·네이티브 개발·App Store 배포까지는 [iOS 개발·배포 가이드](docs/native-build-guide/README.md)를 따른다.
+처음 세팅부터 실기기 개발·네이티브 개발·App Store/Google Play 배포까지는 [앱 개발·배포 가이드](docs/native-build-guide/README.md)를 따른다.
 
 ## 환경변수 / 앱 variant
 
