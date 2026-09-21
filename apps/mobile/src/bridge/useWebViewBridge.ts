@@ -8,6 +8,7 @@ import { runImagePick } from '../media/imagePicker';
 import {
   addNotificationOpenedListener,
   addPushTokenRefreshListener,
+  ensureAndroidNotificationChannel,
   getInitialNotificationOpened,
   getPushStatusAndToken,
   type PushNotificationOpened,
@@ -81,6 +82,8 @@ export function useWebViewBridge() {
       Linking.getInitialURL().catch(() => null),
       restoreSession().catch(() => null),
       getInitialNotificationOpened().catch(() => null),
+      // 첫 알림이 오기 전에 채널이 있어야 한다. 실패해도 앱 시작을 막지 않는다.
+      ensureAndroidNotificationChannel().catch(() => undefined),
     ]).then(([initialUrl, , initialNotificationOpened]) => {
       if (!active) return;
       if (!receivedRuntimeLink && initialUrl) applyAppLink(initialUrl);

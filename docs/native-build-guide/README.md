@@ -1,9 +1,9 @@
-# iOS 개발·배포 가이드
+# 앱 개발·배포 가이드
 
 Nook 앱은 웹을 보여주는 Expo 앱이다. 화면 대부분은 `apps/web`에 있고 카메라·푸시·공유처럼 웹에서 처리하기 어려운 기능만 네이티브 코드에 있다.
 
 ```text
-iPhone
+iPhone · Android
 └─ Nook 앱 (Expo)
    └─ WebView
       └─ apps/web
@@ -17,6 +17,7 @@ iPhone
 | 기기 등록, 인증서 발급, 환경변수 관리 | [관리자 서명 가이드](02-관리자-서명.md) |
 | EAS 개발 앱을 새 iPhone에 설치하기 | [EAS 실기기 가이드](03-EAS-실기기.md) |
 | TestFlight 또는 App Store에 배포하기 | [App Store 배포 가이드](04-App-Store-배포.md) |
+| Google Play 비공개 테스트에 배포하기 | [Google Play 배포 가이드](05-Play-배포.md) |
 
 ## 자주 쓰는 명령
 
@@ -28,6 +29,7 @@ iPhone
 | 개발 웹에 연결 | `pnpm dev:remote` |
 | iOS 시뮬레이터 빌드 | `pnpm ios` |
 | 연결된 iPhone 빌드 | `pnpm ios:device` |
+| Android 에뮬레이터·실기기 빌드 | `pnpm android` |
 
 ## 변경 위치별 빌드 여부
 
@@ -35,7 +37,7 @@ iPhone
 | --- | --- | --- |
 | `apps/web/` | 필요 없음 | `pnpm dev` 실행 중 저장 |
 | `apps/mobile/src/` | 필요 없음 | `pnpm dev` 실행 중 저장 |
-| `apps/mobile/modules/`, `targets/`, `app.config.ts` | 필요 | `pnpm ios` 또는 `pnpm ios:device` |
+| `apps/mobile/modules/`, `targets/`, `app.config.ts` | 필요 | `pnpm ios`, `pnpm ios:device` 또는 `pnpm android` |
 
 `apps/mobile/ios`와 `apps/mobile/android`는 prebuild가 만드는 생성물이다. 직접 수정하지 않는다.
 

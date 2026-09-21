@@ -8,6 +8,7 @@ import Constants from 'expo-constants';
  */
 interface NookExtra {
   webUrl?: string;
+  androidNotificationChannelId?: string;
 }
 
 const extra = (Constants.expoConfig?.extra ?? {}) as NookExtra;
@@ -21,6 +22,15 @@ function required(value: string | undefined, key: keyof NookExtra): string {
 }
 
 export const WEB_URL = required(extra.webUrl, 'webUrl');
+
+/**
+ * 안드로이드 알림 채널 id. 매니페스트에 박히는 defaultChannel(app.config.ts)과 같은 값이어야
+ * 앱이 죽어 있을 때 FCM 이 띄우는 알림이 이 채널로 잡힌다 — 그래서 양쪽 다 SSOT 에서 읽는다.
+ */
+export const ANDROID_NOTIFICATION_CHANNEL_ID = required(
+  extra.androidNotificationChannelId,
+  'androidNotificationChannelId',
+);
 
 /**
  * app.json 의 `version` — 스토어에 노출되는 마케팅 버전이다.

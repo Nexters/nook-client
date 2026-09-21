@@ -12,7 +12,6 @@ const KAKAO_MAVEN_REPOSITORY = 'https://devrepo.kakao.com/nexus/content/groups/p
 // Firebase 콘솔에서 플랫폼·variant(번들 ID)별로 앱을 등록해야 받을 수 있는 파일이다.
 // 커밋하지 않고(gitignore) 로컬 또는 EAS file environment variable 로 공급한다.
 // variant 마다 번들 ID 가 달라 Firebase 앱·설정 파일도 1:1 이어야 해서 경로를 나눈다.
-// 현재 등록 상태: iOS production·development 등록됨. Android 는 Firebase 미등록.
 function googleServicesFile(variant: AppVariant, platform: 'ios' | 'android'): string {
   const envOverride =
     platform === 'ios'
@@ -102,6 +101,9 @@ const withIosDevSigning: ConfigPlugin = (config) => {
 // 웹의 gray-10. 네이티브 스플래시와 웹 첫 화면 배경을 같은 색으로 맞춰 전환 시 색 점프를 없앤다.
 const SPLASH_BACKGROUND_COLOR = '#f4f5f7';
 
+// 알림 아이콘 틴트. 웹의 gray-100 이자 적응형 아이콘 배경색과 같은 값이다.
+const NOTIFICATION_ICON_COLOR = '#1f1f1f';
+
 // APP_VARIANT 미설정 시 production. 오타·누락으로 엉뚱한 식별자가 만들어지지 않게
 // 알 수 없는 값도 production 으로 떨어뜨린다.
 function resolveVariant(): AppVariant {
@@ -132,13 +134,24 @@ function baseConfig(config: ConfigContext['config']): ExpoConfig {
   const androidGoogleServices = googleServicesFile(variant, 'android');
 
   // 파일이 없으면 Firebase 없이 빌드된다(런타임 가드가 푸시만 조용히 끈다). 로컬 Metro 까지
-  // 막지 않도록 평소엔 경고만 하고, EAS 빌드에서는 variant 와 무관하게 끊는다 — 여기서 안 끊으면
-  // 설정 실수(file env 누락)로 푸시가 통째로 죽은 스토어 빌드가 정상처럼 만들어진다.
-  if (!existsSync(iosGoogleServices)) {
+  // 막지 않도록 평소엔 경고만 하고, EAS 빌드에서는 지금 빌드 중인 플랫폼의 파일이 없으면 끊는다 —
+  // 여기서 안 끊으면 설정 실수(file env 누락)로 푸시가 통째로 죽은 스토어 빌드가 정상처럼 만들어진다.
+  // 플랫폼을 가려서 보는 이유는 file env 가 플랫폼이 아니라 environment 단위라, 반대편 플랫폼
+  // 파일의 유무로 판정하면 엉뚱한 빌드가 통과해서다.
+  const isEasBuild = process.env.EAS_BUILD === 'true';
+  const easBuildPlatform = process.env.EAS_BUILD_PLATFORM;
+  for (const [platform, filePath, fileName, envVar] of [
+    ['ios', iosGoogleServices, 'GoogleService-Info.plist', 'GOOGLE_SERVICES_FILE_IOS'],
+    ['android', androidGoogleServices, 'google-services.json', 'GOOGLE_SERVICES_FILE_ANDROID'],
+  ] as const) {
+    if (existsSync(filePath)) continue;
     const message =
-      `[firebase] iOS GoogleService-Info.plist 가 없다: ${iosGoogleServices} — ` +
-      'Firebase 콘솔에서 받아 그 경로에 두거나 GOOGLE_SERVICES_FILE_IOS(EAS file env)로 공급해라.';
-    if (process.env.EAS_BUILD === 'true') throw new Error(message);
+      `[firebase] ${platform} ${fileName} 가 없다: ${filePath} — ` +
+      `Firebase 콘솔에서 받아 그 경로에 두거나 ${envVar}(EAS file env)로 공급해라.`;
+    // 플랫폼을 못 읽으면(값이 비면) 양쪽 다 요구해 안전한 쪽으로 떨어뜨린다.
+    if (isEasBuild && (!easBuildPlatform || easBuildPlatform === platform)) {
+      throw new Error(message);
+    }
     console.warn(message);
   }
 
@@ -148,6 +161,7 @@ function baseConfig(config: ConfigContext['config']): ExpoConfig {
     extra: {
       ...config.extra,
       webUrl,
+      androidNotificationChannelId: nativePublicConfig.android.notificationChannelId,
     },
     name: variant === 'production' ? 'Nook' : `Nook (${variant})`,
     slug: 'nook',
@@ -155,9 +169,25 @@ function baseConfig(config: ConfigContext['config']): ExpoConfig {
     scheme: [appId],
     plugins: [
       ...(config.plugins ?? []),
+      // expo-notifications 와 react-native-firebase 가 같은 FCM meta-data 를 각자 선언해
+      // 매니페스트 병합이 깨지는 걸 푼다. 모드가 역순으로 실행되므로 맨 앞이 곧 마지막 실행이다.
+      './plugins/withFcmNotificationOverride',
       '@bacons/apple-targets',
       'expo-apple-authentication',
-      'expo-notifications',
+      [
+        'expo-notifications',
+        {
+          // 안드로이드는 상태바 아이콘의 알파 채널만 쓰고 색을 버린다. 지정하지 않으면 플러그인이
+          // 관련 매니페스트 항목을 아예 지워서 런처 아이콘으로 폴백하는데, 그건 배경이 불투명한
+          // 정사각형이라 마스킹 결과가 흰 사각형이 된다 — 투명 배경 흰 실루엣을 따로 준다.
+          icon: './assets/notification-icon.png',
+          color: NOTIFICATION_ICON_COLOR,
+          // 앱이 죽어 있을 때 오는 알림은 앱 코드 없이 FCM SDK 가 띄운다. 이 채널을 못 찾으면
+          // 사용자 알림 설정에 "기타" 로 잡히므로, 같은 id 의 채널을 앱 시작 시 만든다
+          // (src/notifications/pushNotifications.ts).
+          defaultChannel: nativePublicConfig.android.notificationChannelId,
+        },
+      ],
       // SPM(기본값)으로 받으면 use_frameworks! 를 dynamic 으로 바꿔야 하는데, 그러면
       // kakao-login 이 링크 단계에서 깨진다(_RCTRegisterModule 심볼을 못 찾음).
       // CocoaPods 로 받게 돌려 기존 static 링크를 그대로 둔다.
