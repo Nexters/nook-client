@@ -1,5 +1,6 @@
 import type { ImagePickSource, PickedImage } from '@nook/bridge-contracts';
 import * as ImagePicker from 'expo-image-picker';
+import { Platform } from 'react-native';
 
 export interface ImagePickOutcome {
   status: 'success' | 'cancelled' | 'error';
@@ -19,6 +20,10 @@ const PICKER_OPTIONS = {
   base64: true,
   exif: false,
 } satisfies ImagePicker.ImagePickerOptions;
+
+// 시스템 Photo Picker 가 없는 Android(12 이하)에서는 기본 픽커가 Google 포토 앱으로 떨어져
+// 기기 갤러리 사진을 고를 수 없다. 그 기기만 시스템 선택창(ACTION_GET_CONTENT)으로 연다.
+const USE_LEGACY_ANDROID_PICKER = Platform.OS === 'android' && Number(Platform.Version) < 33;
 
 function toOutcome(result: ImagePicker.ImagePickerResult): ImagePickOutcome {
   if (result.canceled) return CANCELLED;
@@ -42,7 +47,10 @@ async function pickFromAlbum(): Promise<ImagePickOutcome> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted && !permission.canAskAgain) return FAILED;
 
-  const result = await ImagePicker.launchImageLibraryAsync(PICKER_OPTIONS);
+  const result = await ImagePicker.launchImageLibraryAsync({
+    ...PICKER_OPTIONS,
+    legacy: USE_LEGACY_ANDROID_PICKER,
+  });
   return toOutcome(result);
 }
 
