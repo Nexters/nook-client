@@ -1,5 +1,6 @@
 import { BRIDGE_VERSION, type ImagePickSource, type SocialProvider } from './message';
 import type {
+  GeoCoordinates,
   ImagePickStatus,
   NativeToWeb,
   PickedImage,
@@ -67,6 +68,19 @@ function parsePushToken(value: unknown): PushToken | null {
   const { platform, value: tokenValue } = value;
   return isPushTokenPlatform(platform) && typeof tokenValue === 'string' && tokenValue.length > 0
     ? { platform, value: tokenValue }
+    : null;
+}
+
+function parseGeoCoordinates(value: unknown): GeoCoordinates | null {
+  if (!isRecord(value)) return null;
+  const { lat, lng } = value;
+  return typeof lat === 'number' &&
+    Number.isFinite(lat) &&
+    Math.abs(lat) <= 90 &&
+    typeof lng === 'number' &&
+    Number.isFinite(lng) &&
+    Math.abs(lng) <= 180
+    ? { lat, lng }
     : null;
 }
 
@@ -159,7 +173,8 @@ export function parseWebToNative(json: string): WebToNative | null {
     }
     case 'SESSION_CLEAR':
     case 'REQUEST_PUSH_PERMISSION':
-    case 'GET_PUSH_STATUS': {
+    case 'GET_PUSH_STATUS':
+    case 'GET_CURRENT_POSITION': {
       const id = requestId(value.payload);
       return id ? { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id } } : null;
     }
@@ -321,6 +336,19 @@ export function parseNativeToWeb(json: string): NativeToWeb | null {
     const pushToken = parsePushToken(value.payload.token);
     return pushToken
       ? { v: BRIDGE_VERSION, type: value.type, payload: { token: pushToken } }
+      : null;
+  }
+  if (value.type === 'CURRENT_POSITION_RESULT') {
+    const id = requestId(value.payload);
+    if (!id) return null;
+    // 좌표가 왔는데 형식이 어긋나면 "없음" 이 아니라 메시지 자체를 버린다 — 응답이 없으면
+    // 호출부가 기다리다 만다는 뜻이라, 잘못된 좌표로 지도를 엉뚱한 곳에 두는 것보다 낫다.
+    if (value.payload.coords === null) {
+      return { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id, coords: null } };
+    }
+    const coords = parseGeoCoordinates(value.payload.coords);
+    return coords
+      ? { v: BRIDGE_VERSION, type: value.type, payload: { requestId: id, coords } }
       : null;
   }
   return null;

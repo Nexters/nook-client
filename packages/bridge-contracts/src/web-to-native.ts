@@ -36,4 +36,9 @@ export type WebToNative =
   // OS 공유 시트를 셸이 대신 연다(RN Share). 웹의 navigator.share 가 없거나 거절될 때만 쓴다 —
   // Android WebView 는 이 API 를 아예 안 주거나, 주고도 NotAllowedError 를 던진다.
   // 구버전 셸은 파서의 default 분기에서 조용히 무시한다(응답이 없으면 호출부가 그대로 멈춘다).
-  | BridgeMessage<'SHARE', { requestId: string; title: string; url: string }>;
+  | BridgeMessage<'SHARE', { requestId: string; title: string; url: string }>
+  // 현재 위치를 셸이 OS 위치 API 로 조회한다. WebView 의 navigator.geolocation 은 iOS 에서
+  // 오리진 단위 프롬프트를 앱을 켤 때마다 다시 띄우는데(WKWebView 가 그 허용을 기억하지
+  // 않고, 자동 허용할 공개 API 도 없다), 네이티브 권한은 OS 가 한 번 받으면 기억한다.
+  // 구버전 셸은 무시한다 — 웹은 주입된 bridgeFeatures 로 지원 여부를 먼저 확인한다.
+  | BridgeMessage<'GET_CURRENT_POSITION', { requestId: string }>;

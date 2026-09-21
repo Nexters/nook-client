@@ -1,4 +1,5 @@
 import {
+  type GeoCoordinates,
   type ImagePickSource,
   type NativeToWeb,
   type Platform,
@@ -21,6 +22,7 @@ declare global {
     __nookPlatform?: string;
     __nookAppVersion?: string;
     __nookBuildNumber?: string;
+    __nookBridgeFeatures?: readonly string[];
     __nookReceive?: (json: string) => void;
   }
 }
@@ -31,6 +33,10 @@ type SocialLoginResult = Extract<NativeToWeb, { type: 'SOCIAL_LOGIN_RESULT' }>['
 type ImagePickResult = Extract<NativeToWeb, { type: 'IMAGE_PICK_RESULT' }>['payload'];
 type PushPermissionResult = Extract<NativeToWeb, { type: 'PUSH_PERMISSION_RESULT' }>['payload'];
 type ShareResult = Extract<NativeToWeb, { type: 'SHARE_RESULT' }>['payload'];
+type CurrentPositionResult = Extract<NativeToWeb, { type: 'CURRENT_POSITION_RESULT' }>['payload'];
+
+/** 셸이 응답할 수 있다고 스스로 밝힌 브리지 기능. 응답이 없으면 영영 기다리는 요청의 문지기다. */
+export type BridgeFeature = 'geolocation';
 
 // crypto.randomUUID 는 보안 컨텍스트에서만 존재한다. 실기기가 http://<LAN IP> 의
 // dev 서버를 볼 때는 비보안 컨텍스트라 undefined 다. 요청/응답 짝을 맞추는 용도라
@@ -59,12 +65,19 @@ function detectAppBuildNumber(): string | null {
   return window.__nookBuildNumber || null;
 }
 
+/** 목록을 심지 않는 구버전 셸과 브라우저는 아무 기능도 지원하지 않는 것으로 본다. */
+function detectBridgeFeatures(): ReadonlySet<string> {
+  const features = window.__nookBridgeFeatures;
+  return new Set(Array.isArray(features) ? features : []);
+}
+
 class NativeBridge {
   readonly platform: Platform = detectPlatform();
   /** app.json 의 version (예: "1.0.0"). 셸 밖에서는 null. */
   readonly appVersion: string | null = detectAppVersion();
   /** 바이너리에 찍힌 빌드 번호 (예: "42"). EAS autoIncrement 값이라 셸만 안다. */
   readonly appBuildNumber: string | null = detectAppBuildNumber();
+  private readonly features = detectBridgeFeatures();
   private handlers = new Set<Handler>();
   private buffer: NativeToWeb[] = [];
   private started = false;
@@ -73,9 +86,15 @@ class NativeBridge {
   private pendingImagePick = new Map<string, (result: ImagePickResult) => void>();
   private pendingPushPermission = new Map<string, (result: PushPermissionResult) => void>();
   private pendingShare = new Map<string, (result: ShareResult) => void>();
+  private pendingCurrentPosition = new Map<string, (result: CurrentPositionResult) => void>();
 
   get isNative(): boolean {
     return !!window.ReactNativeWebView;
+  }
+
+  /** 이 셸이 해당 요청에 응답하는지. false 면 보내도 답이 없으니 호출부가 다른 길로 가야 한다. */
+  supports(feature: BridgeFeature): boolean {
+    return this.isNative && this.features.has(feature);
   }
 
   start(): void {
@@ -189,6 +208,19 @@ class NativeBridge {
   }
 
   /**
+   * 셸이 OS 위치 API 로 현재 위치를 조회한다. 미결정 상태면 OS 권한 다이얼로그가 뜨고 그 답을
+   * OS 가 기억하므로, WKWebView 의 navigator.geolocation 처럼 기동마다 다시 묻지 않는다.
+   * 거부·실패는 null. `supports('geolocation')` 이 true 일 때만 부른다 — 아니면 응답이 없다.
+   */
+  requestCurrentPosition(): Promise<GeoCoordinates | null> {
+    const requestId = randomRequestId();
+    return new Promise((resolve) => {
+      this.pendingCurrentPosition.set(requestId, (result) => resolve(result.coords));
+      this.send({ v: 1, type: 'GET_CURRENT_POSITION', payload: { requestId } });
+    });
+  }
+
+  /**
    * 외부 링크를 셸이 OS 기본 동작(Linking.openURL)으로 연다. 앱 링크(유니버설 링크·App Links)로
    * 등록된 주소면 그 앱이 깔려 있을 때 앱으로, 아니면 브라우저로 열린다 — 앱 설치 여부를 웹이
    * 따로 확인할 필요가 없다. 셸 밖(브라우저)에서는 새 탭으로 연다.
@@ -235,6 +267,13 @@ class NativeBridge {
       const resolve = this.pendingShare.get(message.payload.requestId);
       if (resolve) {
         this.pendingShare.delete(message.payload.requestId);
+        resolve(message.payload);
+      }
+    }
+    if (message.type === 'CURRENT_POSITION_RESULT') {
+      const resolve = this.pendingCurrentPosition.get(message.payload.requestId);
+      if (resolve) {
+        this.pendingCurrentPosition.delete(message.payload.requestId);
         resolve(message.payload);
       }
     }

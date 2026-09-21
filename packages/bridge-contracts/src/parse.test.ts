@@ -314,3 +314,44 @@ describe('push notification messages', () => {
     expect(parseNativeToWeb('{"v":1,"type":"PUSH_TOKEN_REFRESHED","payload":{}}')).toBeNull();
   });
 });
+
+describe('current position messages', () => {
+  it('GET_CURRENT_POSITION 요청을 파싱한다', () => {
+    expect(
+      parseWebToNative('{"v":1,"type":"GET_CURRENT_POSITION","payload":{"requestId":"r1"}}'),
+    ).toEqual({ v: 1, type: 'GET_CURRENT_POSITION', payload: { requestId: 'r1' } });
+  });
+
+  it('좌표가 있는 CURRENT_POSITION_RESULT 를 파싱한다', () => {
+    expect(
+      parseNativeToWeb(
+        '{"v":1,"type":"CURRENT_POSITION_RESULT","payload":{"requestId":"r1","coords":{"lat":37.5,"lng":127.0}}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'CURRENT_POSITION_RESULT',
+      payload: { requestId: 'r1', coords: { lat: 37.5, lng: 127 } },
+    });
+  });
+
+  it('좌표가 null 인 CURRENT_POSITION_RESULT 는 거부·실패로 그대로 통과한다', () => {
+    expect(
+      parseNativeToWeb(
+        '{"v":1,"type":"CURRENT_POSITION_RESULT","payload":{"requestId":"r1","coords":null}}',
+      ),
+    ).toEqual({
+      v: 1,
+      type: 'CURRENT_POSITION_RESULT',
+      payload: { requestId: 'r1', coords: null },
+    });
+  });
+
+  it.each([
+    '{"v":1,"type":"CURRENT_POSITION_RESULT","payload":{"coords":null}}',
+    '{"v":1,"type":"CURRENT_POSITION_RESULT","payload":{"requestId":"r1"}}',
+    '{"v":1,"type":"CURRENT_POSITION_RESULT","payload":{"requestId":"r1","coords":{"lat":"37.5","lng":127}}}',
+    '{"v":1,"type":"CURRENT_POSITION_RESULT","payload":{"requestId":"r1","coords":{"lat":91,"lng":127}}}',
+  ])('requestId 가 없거나 좌표 형식이 어긋나면 무시한다: %s', (json) => {
+    expect(parseNativeToWeb(json)).toBeNull();
+  });
+});

@@ -11,6 +11,11 @@ export type PushPermissionStatus = 'granted' | 'denied' | 'undetermined';
 /** RN Share 의 sharedAction / dismissedAction 과 1:1 이다. */
 export type ShareStatus = 'shared' | 'dismissed';
 
+export interface GeoCoordinates {
+  lat: number;
+  lng: number;
+}
+
 /** FCM(Android)·APNs(iOS) 원시 디바이스 토큰. 서버 등록(`PUT /api/v1/me/push-tokens`)은 웹이 한다. */
 export interface PushToken {
   platform: 'ios' | 'android';
@@ -76,4 +81,6 @@ export type NativeToWeb =
   // FCM 토큰이 재발급됐다(재설치·복원 등). 요청 없이 오는 이벤트라 requestId 가 없다.
   | BridgeMessage<'PUSH_TOKEN_REFRESHED', { token: PushToken }>
   // 공유 시트가 닫힌 뒤에 온다 — 시트가 떠 있는 동안은 오지 않는다.
-  | BridgeMessage<'SHARE_RESULT', { requestId: string; status: ShareStatus }>;
+  | BridgeMessage<'SHARE_RESULT', { requestId: string; status: ShareStatus }>
+  // 권한 거부·위치 서비스 꺼짐·조회 실패는 모두 null 이다 — 웹의 Geolocation 어댑터 계약과 같다.
+  | BridgeMessage<'CURRENT_POSITION_RESULT', { requestId: string; coords: GeoCoordinates | null }>;
