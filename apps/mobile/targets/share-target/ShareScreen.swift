@@ -9,6 +9,8 @@ private let dismissDuration: TimeInterval = 0.22
 
 struct ShareScreen: View {
     let groups: [Group]
+    // 방금 만든 아카이브 — 목록을 다시 그릴 때 선택된 채로 보이게 한다
+    var preselectedGroupId: Int64? = nil
     let onSave: (Set<Int64>, String, @escaping (Bool) -> Void) -> Void
     let onCreateGroup: (String, Int, @escaping (Bool) -> Void) -> Void
     let onDismiss: () -> Void
@@ -56,6 +58,7 @@ struct ShareScreen: View {
                 } else {
                     SelectGroupContent(
                         groups: groups,
+                        preselectedGroupId: preselectedGroupId,
                         panelFraction: keyboard.fraction,
                         onSave: onSave,
                         onNewGroup: { showCreate = true }
@@ -80,31 +83,55 @@ struct ShareScreen: View {
 
 private struct SelectGroupContent: View {
     let groups: [Group]
+    let preselectedGroupId: Int64?
     let panelFraction: CGFloat
     let onSave: (Set<Int64>, String, @escaping (Bool) -> Void) -> Void
     let onNewGroup: () -> Void
 
-    @State private var selected: Set<Int64> = []
+    @State private var selected: Set<Int64>
     @State private var memo: String = ""
     @State private var isSaving = false
     @FocusState private var memoFocused: Bool
 
+    init(
+        groups: [Group],
+        preselectedGroupId: Int64?,
+        panelFraction: CGFloat,
+        onSave: @escaping (Set<Int64>, String, @escaping (Bool) -> Void) -> Void,
+        onNewGroup: @escaping () -> Void
+    ) {
+        self.groups = groups
+        self.preselectedGroupId = preselectedGroupId
+        self.panelFraction = panelFraction
+        self.onSave = onSave
+        self.onNewGroup = onNewGroup
+        _selected = State(initialValue: preselectedGroupId.map { [$0] } ?? [])
+    }
+
     var body: some View {
         // 키보드가 열리면 핸들 + 인풋만 남기고, 리스트는 키보드 높이에 맞춰 실시간 접힘
         CollapsibleByKeyboard(fraction: panelFraction) {
-            ScrollView {
-                VStack(spacing: 0) {
-                    CreateGroupRow(onTap: onNewGroup)
-                    ForEach(groups) { group in
-                        GroupRow(group: group, isSelected: selected.contains(group.id)) {
-                            if selected.contains(group.id) { selected.remove(group.id) }
-                            else { selected.insert(group.id) }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        CreateGroupRow(onTap: onNewGroup)
+                        ForEach(groups) { group in
+                            GroupRow(group: group, isSelected: selected.contains(group.id)) {
+                                if selected.contains(group.id) { selected.remove(group.id) }
+                                else { selected.insert(group.id) }
+                            }
+                            .id(group.id)
                         }
                     }
+                    .padding(.horizontal, 16)
                 }
-                .padding(.horizontal, 16)
+                .frame(height: scrollRegion)
+                // 방금 만든 아카이브는 서버 정렬상 목록 아래쪽에 올 수 있다 — 체크된 행이 보이도록 끌어온다
+                .onAppear {
+                    guard let id = preselectedGroupId else { return }
+                    DispatchQueue.main.async { proxy.scrollTo(id, anchor: .bottom) }
+                }
             }
-            .frame(height: scrollRegion)
         }
 
         // 리스트와 메모 사이 8pt 간격 (접힘 영역 밖 → 280 = 56*5 순수 유지)
