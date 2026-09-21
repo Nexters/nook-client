@@ -83,9 +83,10 @@ class ShareViewController: UIViewController {
         }
     }
 
-    private func mountScreen(groups: [Group]) {
+    private func mountScreen(groups: [Group], preselectedGroupId: Int64? = nil) {
         let screen = ShareScreen(
             groups: groups,
+            preselectedGroupId: preselectedGroupId,
             onSave: { [weak self] groups, memo, finishSaving in
                 shareLogger.notice("저장 시작 (groups=\(groups.count, privacy: .public))")
                 guard let self else {
@@ -160,8 +161,10 @@ class ShareViewController: UIViewController {
             guard let self else { return }
             do {
                 let created = try await self.api.createGroup(name: name, colorIndex: colorIndex)
+                // 서버가 정렬한 순서로 다시 받는다. 재조회가 실패해도 생성은 끝난 뒤라 기존 목록에 붙여 계속 간다.
+                let groups = (try? await self.api.groups()) ?? existingGroups + [created]
                 finishCreating?(true)
-                self.replaceScreen(groups: existingGroups + [created])
+                self.replaceScreen(groups: groups, preselectedGroupId: created.id)
             } catch {
                 shareLogger.error("아카이브 생성 실패: \(String(describing: error), privacy: .public)")
                 finishCreating?(false)
@@ -197,8 +200,8 @@ class ShareViewController: UIViewController {
         }
     }
 
-    private func replaceScreen(groups: [Group]) {
-        mountScreen(groups: groups)
+    private func replaceScreen(groups: [Group], preselectedGroupId: Int64?) {
+        mountScreen(groups: groups, preselectedGroupId: preselectedGroupId)
     }
 
     private func claimInitialFocus() {

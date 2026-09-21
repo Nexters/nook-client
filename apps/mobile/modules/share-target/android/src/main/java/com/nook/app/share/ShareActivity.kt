@@ -21,6 +21,8 @@ class ShareActivity : ComponentActivity() {
     private lateinit var api: ShareApiClient
     private var sharedUrl: String? = null
     private var groups by mutableStateOf<List<Group>>(emptyList())
+    // 방금 만든 아카이브 — 목록을 다시 그릴 때 선택된 채로 보이게 한다
+    private var preselectedGroupId by mutableStateOf<Long?>(null)
     private var feedback by mutableStateOf<ShareFeedbackState?>(null)
     private var feedbackAction: () -> Unit = {}
     private var feedbackId = 0L
@@ -49,6 +51,7 @@ class ShareActivity : ComponentActivity() {
         setContent {
             ShareScreen(
                 groups = groups,
+                preselectedGroupId = preselectedGroupId,
                 feedback = feedback,
                 onSave = { selected, memo, onResult ->
                     savePost(selected, memo, onResult)
@@ -105,8 +108,10 @@ class ShareActivity : ComponentActivity() {
     ) {
         lifecycleScope.launch {
             runCatching { api.createGroup(name, colorIndex) }
-                .onSuccess {
-                    groups = groups + it
+                .onSuccess { created ->
+                    // 서버가 정렬한 순서로 다시 받는다. 재조회가 실패해도 생성은 끝난 뒤라 기존 목록에 붙여 계속 간다.
+                    groups = runCatching { api.groups() }.getOrDefault(groups + created)
+                    preselectedGroupId = created.id
                     feedback = null
                     onResult?.invoke(true)
                 }
