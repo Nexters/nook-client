@@ -4,6 +4,7 @@ import { BackHandler, Linking, Platform, Share } from 'react-native';
 import type { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { runSocialLogin } from '../auth/socialLogin';
 import { APP_BUILD_NUMBER, APP_VERSION, WEB_URL } from '../config/appConfig';
+import { getCurrentPosition } from '../location/currentPosition';
 import { runImagePick } from '../media/imagePicker';
 import {
   addNotificationOpenedListener,
@@ -35,6 +36,7 @@ const INJECT_BEFORE = buildInjectedGlobalsScript({
   platform: Platform.OS,
   appVersion: APP_VERSION,
   buildNumber: APP_BUILD_NUMBER,
+  bridgeFeatures: ['geolocation'],
 });
 
 interface NavigationRequest {
@@ -245,6 +247,13 @@ export function useWebViewBridge() {
             .then((status) => {
               send({ v: 1, type: 'SHARE_RESULT', payload: { requestId, status } });
             });
+          break;
+        }
+        case 'GET_CURRENT_POSITION': {
+          const { requestId } = message.payload;
+          void getCurrentPosition().then((coords) => {
+            send({ v: 1, type: 'CURRENT_POSITION_RESULT', payload: { requestId, coords } });
+          });
           break;
         }
         case 'BACK_EXHAUSTED':

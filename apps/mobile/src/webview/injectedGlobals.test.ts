@@ -9,17 +9,19 @@ function runScript(script: string): Record<string, unknown> {
 }
 
 describe('buildInjectedGlobalsScript', () => {
-  it('플랫폼·앱 버전·빌드 번호를 window 전역으로 심는다', () => {
+  it('플랫폼·앱 버전·빌드 번호·브리지 기능을 window 전역으로 심는다', () => {
     const script = buildInjectedGlobalsScript({
       platform: 'ios',
       appVersion: '1.1.1',
       buildNumber: '42',
+      bridgeFeatures: ['geolocation'],
     });
 
     expect(runScript(script)).toEqual({
       __nookPlatform: 'ios',
       __nookAppVersion: '1.1.1',
       __nookBuildNumber: '42',
+      __nookBridgeFeatures: ['geolocation'],
     });
   });
 
@@ -28,12 +30,14 @@ describe('buildInjectedGlobalsScript', () => {
       platform: 'android',
       appVersion: '',
       buildNumber: '',
+      bridgeFeatures: [],
     });
 
     expect(runScript(script)).toEqual({
       __nookPlatform: 'android',
       __nookAppVersion: '',
       __nookBuildNumber: '',
+      __nookBridgeFeatures: [],
     });
   });
 
@@ -42,6 +46,7 @@ describe('buildInjectedGlobalsScript', () => {
       platform: 'ios',
       appVersion: '1.1.1',
       buildNumber: '42',
+      bridgeFeatures: [],
     });
 
     expect(script.trim().endsWith('true;')).toBe(true);

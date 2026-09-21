@@ -1,12 +1,15 @@
+import { nativeBridge } from '@/native-bridge';
+
 export type Coordinates = { lat: number; lng: number };
 
 /**
- * 브라우저 Geolocation API 를 감싼 어댑터.
- * 권한 거부/미지원/오류 시 null 을 반환해 호출부가 조용히(다이얼로그 없이) 처리하게 한다.
+ * 현재 위치 조회 어댑터. 권한 거부/미지원/오류 시 null 을 반환해 호출부가 조용히(다이얼로그
+ * 없이) 처리하게 한다.
  *
- * Expo(RN) 셸에서는 WebView 가 이 API 를 그대로 프록시한다(Android: WebView
- * `geolocationEnabled` prop, iOS: WKWebView 가 Info.plist 권한 설명을 보고 자체
- * 처리) — 네이티브 브리지 메시지 없이 웹 표준 API 만으로 동작한다.
+ * Expo(RN) 셸에서는 브리지로 네이티브가 조회한다. WebView 의 navigator.geolocation 은 iOS
+ * 에서 "everynook.co.kr 가 위치를 사용하려 합니다" 오리진 프롬프트를 앱을 켤 때마다 다시
+ * 띄운다 — WKWebView 가 그 허용을 기억하지 않고 자동 허용할 공개 API 도 없다. 네이티브
+ * 권한은 OS 가 한 번 받으면 기억한다. 브리지를 모르는 구버전 셸과 브라우저는 표준 API 다.
  */
 const EARTH_RADIUS_KM = 6371;
 
@@ -62,6 +65,9 @@ const POSITION_TIMEOUT_MS = 8_000;
 export function getCurrentPosition(
   options: PositionOptions = { maximumAge: MAX_POSITION_AGE_MS, timeout: POSITION_TIMEOUT_MS },
 ): Promise<Coordinates | null> {
+  // 셸은 옵션을 받지 않는다 — 같은 캐시 허용·상한을 셸 쪽 상수로 갖는다(currentPosition.ts).
+  if (nativeBridge.supports('geolocation')) return nativeBridge.requestCurrentPosition();
+
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
       resolve(null);
