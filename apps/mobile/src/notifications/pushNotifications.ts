@@ -4,6 +4,7 @@ import { getMessaging, getToken, onTokenRefresh } from '@react-native-firebase/m
 import { PermissionStatus } from 'expo-modules-core';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { ANDROID_NOTIFICATION_CHANNEL_ID } from '../config/appConfig';
 
 export interface PushPermissionOutcome {
   status: PushPermissionStatus;
@@ -26,6 +27,20 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+/**
+ * 안드로이드 알림 채널을 만든다. 앱이 죽어 있는 동안 오는 알림은 FCM SDK 가 직접 띄우는데,
+ * 매니페스트가 가리키는 채널이 실제로 없으면 "기타" 채널로 떨어져 사용자 알림 설정이 그렇게 보인다.
+ * importance 는 채널을 한 번 만들면 앱이 못 바꾼다 — 사용자만 바꿀 수 있다.
+ */
+export async function ensureAndroidNotificationChannel(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+
+  await Notifications.setNotificationChannelAsync(ANDROID_NOTIFICATION_CHANNEL_ID, {
+    name: '일반 알림',
+    importance: Notifications.AndroidImportance.HIGH,
+  });
+}
 
 function toPermissionStatus(status: PermissionStatus): PushPermissionStatus {
   switch (status) {
@@ -64,7 +79,7 @@ const platform = Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.O
 
 /**
  * Firebase 네이티브 설정(GoogleService-Info.plist / google-services.json)이 빌드에 들어가
- * default app 이 초기화됐는지. 설정이 빠진 빌드(현재 Android)에서 getMessaging() 을 부르면
+ * default app 이 초기화됐는지. 설정이 빠진 로컬 빌드에서 getMessaging() 을 부르면
  * "No Firebase App '[DEFAULT]'" 로 터지므로, 모든 Firebase 접근은 이 확인 뒤에 한다.
  */
 function isFirebaseConfigured(): boolean {
