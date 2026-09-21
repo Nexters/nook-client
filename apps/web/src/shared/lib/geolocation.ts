@@ -45,7 +45,23 @@ export function formatDistance(a: Coordinates, b: Coordinates): string {
   return formatDistanceFromMeters(distanceKm(a, b) * 1000);
 }
 
-export function getCurrentPosition(): Promise<Coordinates | null> {
+/**
+ * 이 나이 이내의 캐시 위치는 새로 재지 않고 그대로 쓴다. 지도 초기 줌은 광역 축척이라
+ * 몇 분 사이의 이동이 보이지 않고, 장소 검색의 거리 표기에도 그 오차는 의미가 없다.
+ */
+const MAX_POSITION_AGE_MS = 5 * 60 * 1000;
+/** 새 위치를 기다리는 상한. 넘기면 null 로 떨어져 호출부가 폴백 위치로 진행한다. */
+const POSITION_TIMEOUT_MS = 8_000;
+
+/**
+ * 옵션 기본값이 중요하다 — 스펙 기본값(maximumAge 0, timeout 무한)으로 부르면 Android
+ * WebView 는 캐시를 버리고 다음 위치 갱신이 올 때까지 기다린다(Chromium 이 LocationManager
+ * 갱신만 받는 구조라 실기기에서 20~30초). iOS 는 CoreLocation 이 캐시를 바로 줘서 차이가
+ * 안 보이지만 같은 옵션이 해가 되지 않는다(NOOK-360).
+ */
+export function getCurrentPosition(
+  options: PositionOptions = { maximumAge: MAX_POSITION_AGE_MS, timeout: POSITION_TIMEOUT_MS },
+): Promise<Coordinates | null> {
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
       resolve(null);
@@ -58,6 +74,7 @@ export function getCurrentPosition(): Promise<Coordinates | null> {
       () => {
         resolve(null);
       },
+      options,
     );
   });
 }
