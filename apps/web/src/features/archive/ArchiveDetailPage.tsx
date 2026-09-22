@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
-import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
+import { PINNED_HEADER_STICKY, PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { PlaceCard } from '@/features/place';
 import { ShareSheet } from '@/features/share/components/ShareSheet';
 import { buildShareUrl } from '@/features/share/lib/shareUrl';
 import { Icon16ArrowUpTray } from '@/shared/icons/NookIcons';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
+import { useHorizontalSwipe } from '@/shared/lib/useHorizontalSwipe';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
@@ -140,6 +141,20 @@ export function ArchiveDetailPage() {
   // 그리드/목록 끝(sentinel)이 화면에 들어오면 활성 탭의 다음 페이지를 당긴다.
   const sentinelRef = useInfiniteScrollSentinel(activeTab === 'posts' ? postsQuery : placesQuery);
 
+  // 탭 버튼과 스와이프가 같은 한 곳으로 모인다 — 장소로 넘어갈 때 선택 모드를 접는
+  // 규칙이 경로마다 따로 놀지 않게 한다.
+  const selectTab = (tab: DetailTab) => {
+    if (tab === 'places') exitSelecting();
+    setActiveTab(tab);
+  };
+
+  // 빈 아카이브는 탭 자체가 없어 넘길 상대도 없다.
+  const swipeHandlers = useHorizontalSwipe({
+    enabled: !isEmpty,
+    onSwipeLeft: () => selectTab('places'),
+    onSwipeRight: () => selectTab('posts'),
+  });
+
   // 메타를 기다리는 동안엔 헤더까지 빈 화면이었다 — 뒤로가기만이라도 즉시 눌리게
   // 헤더는 실물로 두고 이름·탭·카드 자리만 뼈대로 채운다.
   if (isAuthenticated && isPending) return <ArchiveDetailSkeleton />;
@@ -156,130 +171,42 @@ export function ArchiveDetailPage() {
     { key: 'places', label: '장소', count: placesQuery.data?.totalElements },
   ];
 
-  // 헤더에 이어 아카이브 정보(이름·색·소유자)와 게시물/장소 탭까지 함께 고정한다 —
-  // 아카이브 이름 줄수·작성자 표기·탭 유무에 따라 높이가 변하지만, 콘텐츠 시작 위치는
-  // 레이아웃이 실측해 맞춰준다. 하단 탭바(ProtectedAppLayout)와 선택 모드 CTA 바는
-  // fixed 라, 콘텐츠는 하단 패딩으로만 비켜준다.
+  // 화면에 계속 붙어 있는 건 헤더뿐이다. 아카이브 정보(이름·색·소유자)와 액션 칩은
+  // 스크롤에 실려 올라가 사라지고, 게시물/장소 탭만 헤더 밑에 멈춰 선다 — 고정 영역이
+  // 화면을 절반 가까이 먹던 문제를 여기서 푼다.
+  // 하단 탭바(ProtectedAppLayout)와 선택 모드 CTA 바는 fixed 라, 콘텐츠는 하단 패딩으로만 비켜준다.
   return (
     <PinnedHeaderLayout
       header={
-        <>
-          <Header
-            // 선택 모드의 뒤로가기는 페이지 이탈이 아니라 모드 종료다.
-            left={<BackButton onClick={selecting ? exitSelecting : undefined} />}
-            right={
-              // 게스트에게는 더보기 자체를 내린다 — 편집·삭제·선택 삭제가 전부 계정
-              // 동작이라, 열어봐야 누르는 족족 월이 뜨는 메뉴가 된다.
-              isAuthenticated ? (
-                isShared ? (
-                  <ArchiveDetailMenu kind="shared" onRemove={() => setRemovePopupOpen(true)} />
-                ) : (
-                  <ArchiveDetailMenu
-                    kind="owned"
-                    onEdit={() => navigate(`/archive/${archive.id}/edit`)}
-                    onShare={() =>
-                      issueShare.mutate(archive.id, {
-                        onSuccess: (token) => setShareUrl(buildShareUrl(token)),
-                        onError: () =>
-                          showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
-                      })
-                    }
-                    // 선택 삭제는 게시물 전용이다 — 장소 탭에서는 항목 자체를 내리고,
-                    // 탭을 바꿔서 억지로 되돌리지도 않는다(아카이브에서 장소를 빼는 API 가 없다).
-                    onSelectDelete={activeTab === 'posts' ? openSelecting : undefined}
-                    onDelete={() => setDeletePopupOpen(true)}
-                  />
-                )
-              ) : null
-            }
-          />
-
-          <div
-            className={cn(
-              'flex flex-col gap-1 px-4 pt-2 pb-4',
-              // 빈 아카이브는 탭도 액션 칩도 없어(아래 참고) 정보 영역이 헤더의 끝이다 —
-              // 경계선을 직접 긋는다.
-              isEmpty && 'border-gray-20 border-b',
-            )}
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className={`size-3 shrink-0 ${COLOR_BG_CLASS[archive.color]}`}
-                aria-hidden="true"
-              />
-              <h1 className="min-w-0 truncate text-h1 font-semibold text-gray-100">
-                {archive.name}
-              </h1>
-            </div>
-            {postsQuery.data?.ownerNickname ? (
-              <p className="font-mono text-e2 text-gray-60">by {postsQuery.data.ownerNickname}</p>
-            ) : null}
-          </div>
-
-          {/* 편집·공유 칩 — 더보기 메뉴 안에도 같은 액션이 있지만(삭제 등과 함께),
-              자주 쓰는 두 액션은 시안대로 바로 누를 수 있게 앞으로 뺀다. 공유 아카이브는
-              내 소유가 아니라(더보기 메뉴처럼) 노출하지 않는다. 빈 아카이브도 시안대로
-              내린다 — 아직 공유할 것이 없는 상태다. 두 액션 모두 더보기 메뉴에는 남는다. */}
-          {isAuthenticated && !isShared && !isEmpty ? (
-            <div className="flex gap-2 px-4 pb-4">
-              <button
-                type="button"
-                onClick={() => navigate(`/archive/${archive.id}/edit`)}
-                className={ARCHIVE_ACTION_CHIP}
-              >
-                아카이브 편집
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  issueShare.mutate(archive.id, {
-                    onSuccess: (token) => setShareUrl(buildShareUrl(token)),
-                    onError: () =>
-                      showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
-                  })
-                }
-                className={ARCHIVE_ACTION_CHIP}
-              >
-                공유
-                <Icon16ArrowUpTray />
-              </button>
-            </div>
-          ) : null}
-
-          {/* 게시물/장소 탭도 고정 — 카운트는 각 목록 응답의 totalElements 가 채운다. */}
-          {isEmpty ? null : (
-            <div role="tablist" className="flex px-4">
-              {tabs.map((tab) => {
-                const selected = activeTab === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    role="tab"
-                    aria-selected={selected}
-                    onClick={() => {
-                      // 장소 탭에는 선택 개념이 없다 — 전환하면 선택 모드를 접는다.
-                      if (tab.key === 'places') exitSelecting();
-                      setActiveTab(tab.key);
-                    }}
-                    className={cn(
-                      'flex flex-1 items-center justify-center gap-1.5 border-b px-2.5 py-3',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset',
-                      selected ? 'border-gray-100 text-gray-100' : 'border-gray-20 text-gray-50',
-                    )}
-                  >
-                    <span className={cn('text-b2', selected ? 'font-semibold' : 'font-medium')}>
-                      {tab.label}
-                    </span>
-                    {tab.count !== undefined ? (
-                      <span className="font-mono text-e2">{tab.count}</span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </>
+        <Header
+          // 선택 모드의 뒤로가기는 페이지 이탈이 아니라 모드 종료다.
+          left={<BackButton onClick={selecting ? exitSelecting : undefined} />}
+          right={
+            // 게스트에게는 더보기 자체를 내린다 — 편집·삭제·선택 삭제가 전부 계정
+            // 동작이라, 열어봐야 누르는 족족 월이 뜨는 메뉴가 된다.
+            isAuthenticated ? (
+              isShared ? (
+                <ArchiveDetailMenu kind="shared" onRemove={() => setRemovePopupOpen(true)} />
+              ) : (
+                <ArchiveDetailMenu
+                  kind="owned"
+                  onEdit={() => navigate(`/archive/${archive.id}/edit`)}
+                  onShare={() =>
+                    issueShare.mutate(archive.id, {
+                      onSuccess: (token) => setShareUrl(buildShareUrl(token)),
+                      onError: () =>
+                        showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
+                    })
+                  }
+                  // 선택 삭제는 게시물 전용이다 — 장소 탭에서는 항목 자체를 내리고,
+                  // 탭을 바꿔서 억지로 되돌리지도 않는다(아카이브에서 장소를 빼는 API 가 없다).
+                  onSelectDelete={activeTab === 'posts' ? openSelecting : undefined}
+                  onDelete={() => setDeletePopupOpen(true)}
+                />
+              )
+            ) : null
+          }
+        />
       }
       contentStyle={{
         // 선택 모드에선 CTA 바가, 평소엔 하단 탭바가 fixed 로 떠 있어 그만큼 비켜준다.
@@ -288,7 +215,88 @@ export function ArchiveDetailPage() {
           : `calc(1.25rem + ${BOTTOM_MENU_HEIGHT})`,
       }}
     >
-      <main>
+      {/* 고정 영역에서 내려온 아카이브 정보 — 스크롤하면 탭만 남기고 헤더 뒤로 사라진다. */}
+      <div
+        className={cn(
+          'flex flex-col gap-1 px-4 pt-2 pb-4',
+          // 빈 아카이브는 탭도 액션 칩도 없어(아래 참고) 이 블록이 화면 위쪽의 끝이다 —
+          // 경계선을 직접 긋는다.
+          isEmpty && 'border-gray-20 border-b',
+        )}
+      >
+        <div className="flex items-center gap-2">
+          <span className={`size-3 shrink-0 ${COLOR_BG_CLASS[archive.color]}`} aria-hidden="true" />
+          <h1 className="min-w-0 truncate text-h1 font-semibold text-gray-100">{archive.name}</h1>
+        </div>
+        {postsQuery.data?.ownerNickname ? (
+          <p className="font-mono text-e2 text-gray-60">by {postsQuery.data.ownerNickname}</p>
+        ) : null}
+      </div>
+
+      {/* 편집·공유 칩 — 더보기 메뉴 안에도 같은 액션이 있지만(삭제 등과 함께),
+            자주 쓰는 두 액션은 시안대로 바로 누를 수 있게 앞으로 뺀다. 공유 아카이브는
+            내 소유가 아니라(더보기 메뉴처럼) 노출하지 않는다. 빈 아카이브도 시안대로
+            내린다 — 아직 공유할 것이 없는 상태다. 두 액션 모두 더보기 메뉴에는 남는다. */}
+      {isAuthenticated && !isShared && !isEmpty ? (
+        <div className="flex gap-2 px-4 pb-4">
+          <button
+            type="button"
+            onClick={() => navigate(`/archive/${archive.id}/edit`)}
+            className={ARCHIVE_ACTION_CHIP}
+          >
+            아카이브 편집
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              issueShare.mutate(archive.id, {
+                onSuccess: (token) => setShareUrl(buildShareUrl(token)),
+                onError: () =>
+                  showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
+              })
+            }
+            className={ARCHIVE_ACTION_CHIP}
+          >
+            공유
+            <Icon16ArrowUpTray />
+          </button>
+        </div>
+      ) : null}
+
+      {/* 게시물/장소 탭 — 흐름상 아카이브 정보 아래에 있다가, 스크롤이 여기까지 오면
+          헤더 바로 밑에 멈춰 선다. 카운트는 각 목록 응답의 totalElements 가 채운다. */}
+      {isEmpty ? null : (
+        <div role="tablist" className={cn('flex bg-gray-0 px-4', PINNED_HEADER_STICKY)}>
+          {tabs.map((tab) => {
+            const selected = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => selectTab(tab.key)}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 border-b px-2.5 py-3',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset',
+                  selected ? 'border-gray-100 text-gray-100' : 'border-gray-20 text-gray-50',
+                )}
+              >
+                <span className={cn('text-b2', selected ? 'font-semibold' : 'font-medium')}>
+                  {tab.label}
+                </span>
+                {tab.count !== undefined ? (
+                  <span className="font-mono text-e2">{tab.count}</span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 탭 버튼 말고 좌우 스와이프로도 넘긴다 — 상태는 activeTab 하나라 어느 쪽으로
+          바꿔도 같은 결과다. */}
+      <main {...swipeHandlers}>
         {isEmpty ? (
           <ArchiveEmpty message="저장한 게시물이 없어요" />
         ) : activeTab === 'posts' ? (

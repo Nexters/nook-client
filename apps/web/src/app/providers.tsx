@@ -29,7 +29,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
     <AppShellContainerContext.Provider value={shellEl}>
       <div
         ref={setShellEl}
-        className="mx-auto min-h-dvh w-full overflow-hidden bg-gray-0 will-change-transform max-w-[450px]"
+        // overflow-hidden 이 아니라 clip 이다 — hidden 은 스크롤 컨테이너를 만들어서, 그 안의
+        // position:sticky 가 #root 가 아니라 이 셸(스크롤되지 않는다)을 기준으로 삼아 영영 붙지
+        // 않는다(아카이브 상세의 게시물/장소 탭). clip 은 스크롤 컨테이너가 아니면서 같은 만큼
+        // 잘라내, 슬라이드 화면이 셸 밖으로 새지 않게 하는 원래 목적은 그대로 지킨다.
+        className="mx-auto min-h-dvh w-full overflow-clip bg-gray-0 will-change-transform max-w-[450px]"
       >
         <QueryClientProvider client={queryClient}>
           {/* gl: 벡터맵 서브모듈. Style Editor 커스텀 스타일(customStyleId)은 GL 에서만 적용된다. */}
