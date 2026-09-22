@@ -15,10 +15,15 @@ interface UseSlideScreenOptions {
   open?: boolean;
   /** 전환이 끝난 뒤 실제로 화면을 닫는 동작. 보통 `navigate(-1)`. */
   close: () => void;
+  /**
+   * false 면 들어올 때는 전환 없이 제자리에서 시작한다 — 나갈 때만 밀려 나간다.
+   * 장소 사진 뷰어처럼 "뜨는" 오버레이가 갑자기 옆에서 들어오면 어색해서다.
+   */
+  enter?: boolean;
 }
 
 /**
- * 오른쪽에서 열리고 오른쪽으로 닫히는 전체화면 전환.
+ * 오른쪽에서 열리고 오른쪽으로 닫히는 전체화면 전환(`enter: false` 면 나갈 때만).
  *
  * 메뉴 행의 화살표가 "옆에서 화면이 열린다"를 예고하므로 진입·복귀를 같은 축으로 맞춘다.
  * 닫기는 전환이 끝난 다음에 히스토리를 되돌려, 화면이 사라진 뒤 잔상이 남지 않게 한다.
@@ -29,8 +34,8 @@ interface UseSlideScreenOptions {
  *   iOS 엣지 스와이프: WKWebView 가 히스토리를 직접 조작해 웹이 개입할 수 없고,
  *     제스처 자체의 네이티브 전환이 그려진다.
  */
-export function useSlideScreen({ open = true, close }: UseSlideScreenOptions) {
-  const [slidIn, setSlidIn] = useState(false);
+export function useSlideScreen({ open = true, close, enter = true }: UseSlideScreenOptions) {
+  const [slidIn, setSlidIn] = useState(!enter && open);
   const closing = useRef(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -41,9 +46,13 @@ export function useSlideScreen({ open = true, close }: UseSlideScreenOptions) {
       closing.current = false;
       return undefined;
     }
+    if (!enter) {
+      setSlidIn(true);
+      return undefined;
+    }
     const frame = requestAnimationFrame(() => setSlidIn(true));
     return () => cancelAnimationFrame(frame);
-  }, [open]);
+  }, [open, enter]);
 
   useEffect(() => () => clearTimeout(closeTimer.current), []);
 
