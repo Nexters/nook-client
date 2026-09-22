@@ -9,7 +9,6 @@ import { ShareSheet } from '@/features/share/components/ShareSheet';
 import { buildShareUrl } from '@/features/share/lib/shareUrl';
 import { Icon16ArrowUpTray } from '@/shared/icons/NookIcons';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
-import { useHorizontalSwipe } from '@/shared/lib/useHorizontalSwipe';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
@@ -21,6 +20,7 @@ import {
   COLOR_BG_CLASS,
   Header,
   Popup,
+  SwipePager,
 } from '@/shared/ui';
 import {
   useArchivePlaces,
@@ -147,13 +147,6 @@ export function ArchiveDetailPage() {
     if (tab === 'places') exitSelecting();
     setActiveTab(tab);
   };
-
-  // 빈 아카이브는 탭 자체가 없어 넘길 상대도 없다.
-  const swipeHandlers = useHorizontalSwipe({
-    enabled: !isEmpty,
-    onSwipeLeft: () => selectTab('places'),
-    onSwipeRight: () => selectTab('posts'),
-  });
 
   // 메타를 기다리는 동안엔 헤더까지 빈 화면이었다 — 뒤로가기만이라도 즉시 눌리게
   // 헤더는 실물로 두고 이름·탭·카드 자리만 뼈대로 채운다.
@@ -294,64 +287,70 @@ export function ArchiveDetailPage() {
         </div>
       )}
 
-      {/* 탭 버튼 말고 좌우 스와이프로도 넘긴다 — 상태는 activeTab 하나라 어느 쪽으로
-          바꿔도 같은 결과다. */}
-      <main {...swipeHandlers}>
+      <main>
         {isEmpty ? (
           <ArchiveEmpty message="저장한 게시물이 없어요" />
-        ) : activeTab === 'posts' ? (
-          // 첫 페이지가 오기 전엔 카드 자리를 뼈대로 채운다 — 빈 아카이브(ArchiveEmpty)와
-          // 헷갈리지 않게, 아직 오지 않은 것과 없는 것을 다른 화면으로 구분한다.
-          posts === undefined ? (
-            <CollectionGridSkeleton />
-          ) : (
-            <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
-              {posts?.map((post) => (
-                <CollectionCard
-                  key={post.id}
-                  archive={post}
-                  selected={selecting ? selectedPostIds.has(post.id) : undefined}
-                  onClick={
-                    isShared
-                      ? // `/post/{id}`는 소유 데이터 전용이라 공유 게시물에선 404 다 — 공유 상세로 보낸다.
-                        // shareToken 이 없거나(비정상 데이터) 처리 중·실패 게시물(상세에 보여줄
-                        // 데이터가 없다)이면 기존처럼 undefined 로 둔다.
-                        archive.shareToken && !post.processingState
-                        ? () => navigate(`/shared/${archive.shareToken}/post/${post.id}`)
-                        : undefined
-                      : selecting
-                        ? () => togglePostSelected(post.id)
-                        : () => navigate(`/post/${post.id}`)
-                  }
-                />
-              ))}
-            </div>
-          )
-        ) : places === undefined ? (
-          <CollectionGridSkeleton />
-        ) : places.length === 0 ? (
-          <ArchiveEmpty message="저장한 장소가 없어요" />
         ) : (
-          // 게시물 탭과 같은 2열 그리드 — 카드도 최근 저장한 공간 바텀시트와 같은
-          // 세로형 장소 카드(PlaceCard)를 쓴다.
-          <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
-            {places.map((place) => (
-              <PlaceCard
-                key={place.id}
-                place={place}
-                // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
-                // 공유(SHARED) 아카이브의 장소는 내 상세 API 로는 404 라(내 저장 장소
-                // 기준), 공개 API 우회용 공유 토큰을 함께 실어 보낸다.
-                onClick={() =>
-                  navigate(
-                    isShared && archive.shareToken
-                      ? `/map?placeId=${place.id}&shareToken=${archive.shareToken}`
-                      : `/map?placeId=${place.id}`,
-                  )
-                }
-              />
-            ))}
-          </div>
+          // 탭 버튼 말고 좌우 스와이프로도 넘긴다 — 상태는 activeTab 하나라 어느 쪽으로
+          // 바꿔도 같은 결과다.
+          <SwipePager
+            index={activeTab === 'posts' ? 0 : 1}
+            onIndexChange={(index) => selectTab(index === 0 ? 'posts' : 'places')}
+          >
+            {/* 첫 페이지가 오기 전엔 카드 자리를 뼈대로 채운다 — 빈 아카이브(ArchiveEmpty)와
+                헷갈리지 않게, 아직 오지 않은 것과 없는 것을 다른 화면으로 구분한다. */}
+            {posts === undefined ? (
+              <CollectionGridSkeleton />
+            ) : (
+              <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
+                {posts?.map((post) => (
+                  <CollectionCard
+                    key={post.id}
+                    archive={post}
+                    selected={selecting ? selectedPostIds.has(post.id) : undefined}
+                    onClick={
+                      isShared
+                        ? // `/post/{id}`는 소유 데이터 전용이라 공유 게시물에선 404 다 — 공유 상세로 보낸다.
+                          // shareToken 이 없거나(비정상 데이터) 처리 중·실패 게시물(상세에 보여줄
+                          // 데이터가 없다)이면 기존처럼 undefined 로 둔다.
+                          archive.shareToken && !post.processingState
+                          ? () => navigate(`/shared/${archive.shareToken}/post/${post.id}`)
+                          : undefined
+                        : selecting
+                          ? () => togglePostSelected(post.id)
+                          : () => navigate(`/post/${post.id}`)
+                    }
+                  />
+                ))}
+              </div>
+            )}
+            {places === undefined ? (
+              <CollectionGridSkeleton />
+            ) : places.length === 0 ? (
+              <ArchiveEmpty message="저장한 장소가 없어요" />
+            ) : (
+              // 게시물 탭과 같은 2열 그리드 — 카드도 최근 저장한 공간 바텀시트와 같은
+              // 세로형 장소 카드(PlaceCard)를 쓴다.
+              <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
+                {places.map((place) => (
+                  <PlaceCard
+                    key={place.id}
+                    place={place}
+                    // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
+                    // 공유(SHARED) 아카이브의 장소는 내 상세 API 로는 404 라(내 저장 장소
+                    // 기준), 공개 API 우회용 공유 토큰을 함께 실어 보낸다.
+                    onClick={() =>
+                      navigate(
+                        isShared && archive.shareToken
+                          ? `/map?placeId=${place.id}&shareToken=${archive.shareToken}`
+                          : `/map?placeId=${place.id}`,
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </SwipePager>
         )}
         {/* 다음 페이지 트리거. 마지막 페이지면 관찰 대상이 없어 아무 일도 하지 않는다. */}
         <div ref={sentinelRef} aria-hidden="true" className="h-1" />

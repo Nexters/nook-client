@@ -21,6 +21,7 @@ export * from './nav-button';
 export * from './popup';
 export * from './skeleton';
 export * from './snackbar';
+export * from './swipe-pager';
 export * from './thumbnail';
 export * from './toast';
 export * from './video-player';
