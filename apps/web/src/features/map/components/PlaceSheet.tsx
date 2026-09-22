@@ -117,8 +117,13 @@ export function PlaceSheet({
   // 검색 패널의 오른쪽→왼쪽 슬라이드 — 전체화면 전환(slide-screen)과 같은 전환/뒤로가기
   // 계약을 그대로 쓴다(Android 하드웨어 백도 검색 닫기로 수렴). 패널이 탐색 콘텐츠 위를
   // 덮는 오버레이라, 닫힘은 슬라이드가 끝난 뒤(onExitSearch)에 실제로 일어난다.
+  // 검색 패널은 상세가 열려 있는 동안 마운트된 채로 가려만 둔다 — 검색 결과에서 연 상세를
+  // 닫으면 치던 검색어·결과·칩 필터가 그대로 있는 검색 화면으로 돌아와야 한다(MapPage 가
+  // 검색 모드를 끄지 않는 이유). 가려진 동안은 존재하지 않는 것처럼 굴어야 한다 —
+  // 뒤로가기 인터셉터(아래 open)도, 상세 위로 덮는 오버레이도 함께 빠진다.
+  const searchVisible = isSearchMode && !hasSelection;
   const { slidIn: searchSlidIn, slideOut: slideOutSearch } = useSlideScreen({
-    open: isSearchMode,
+    open: searchVisible,
     close: onExitSearch,
   });
   // 스크롤 영역과 검색 오버레이가 같은 높이를 공유해야 해서, 높이만 래퍼로 올린다.
@@ -156,8 +161,8 @@ export function PlaceSheet({
   // 검색을 닫으면 입력도 함께 사라진다 — blur 이벤트는 언마운트 때 오지 않으므로
   // 포커스 플래그를 직접 내려 peek 을 다시 열어준다.
   useEffect(() => {
-    if (!isSearchMode) setSearchInputFocused(false);
-  }, [isSearchMode]);
+    if (!searchVisible) setSearchInputFocused(false);
+  }, [searchVisible]);
 
   // full 진입(스크롤 불가 → 가능)과 보는 장소가 바뀔 때만 맨 위로 되돌린다.
   // biome-ignore lint/correctness/useExhaustiveDependencies: canScroll/selectedPlace.id 는 본문에서 값을 쓰지 않는 트리거 전용 의존성
@@ -280,7 +285,7 @@ export function PlaceSheet({
             // 검색 오버레이가 이 영역을 덮는 동안엔 완전히 죽여둔다 — 안 그러면 오버레이 위의
             // 드래그/탭이 아래 목록 카드의 클릭으로 새는 경우가 있다(빠르게 내리는 제스처가
             // 카드 클릭으로 오인되면 handlePlaceClick 이 검색모드를 강제 종료해 버림, QA).
-            inert={isSearchMode || undefined}
+            inert={searchVisible || undefined}
             className={cn(
               'flex h-full flex-col gap-3 px-4',
               canScroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
@@ -349,6 +354,9 @@ export function PlaceSheet({
                 'absolute inset-0 bg-gray-0',
                 'transition-transform duration-300 ease-out motion-reduce:transition-none',
                 searchSlidIn ? 'translate-x-0' : 'translate-x-full',
+                // 상세가 떠 있는 동안만 숨긴다. 언마운트가 아니라 display:none 이라 검색어와
+                // 결과가 살아 있고, 상세를 닫으면 그대로 다시 슬라이드해 들어온다.
+                !searchVisible && 'hidden',
               )}
             >
               <PlaceSearchPanel
