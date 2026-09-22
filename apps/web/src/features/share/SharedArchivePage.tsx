@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
+import { PINNED_HEADER_STICKY, PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { useArchives } from '@/features/archive/api/queries';
 import { ArchiveEmpty } from '@/features/archive/components/ArchiveEmpty';
 import { CollectionCard } from '@/features/archive/components/CollectionCard';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { PlaceCard } from '@/features/place';
 import { Icon16ArrowUpTray, Icon16Check, Icon16Plus } from '@/shared/icons/NookIcons';
+import { useHorizontalSwipe } from '@/shared/lib/useHorizontalSwipe';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
@@ -74,6 +75,12 @@ export function SharedArchivePage() {
 
   const sentinelRef = useInfiniteScrollSentinel(activeTab === 'posts' ? postsQuery : placesQuery);
 
+  // 아카이브 상세와 같은 계약 — 탭 버튼 말고 좌우 스와이프로도 넘긴다.
+  const swipeHandlers = useHorizontalSwipe({
+    onSwipeLeft: () => setActiveTab('places'),
+    onSwipeRight: () => setActiveTab('posts'),
+  });
+
   if (metaQuery.isPending) return null;
 
   if (metaQuery.isError) {
@@ -131,87 +138,89 @@ export function SharedArchivePage() {
           <>
             <OpenInAppBanner token={token} />
             <Header left={<BackButton onClick={goBack} />} />
-            <div className="flex flex-col gap-1 px-4 pt-2 pb-3">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`size-3 shrink-0 ${COLOR_BG_CLASS[archive.color]}`}
-                  aria-hidden="true"
-                />
-                <h1 className="min-w-0 truncate text-h1 font-semibold text-gray-100">
-                  {archive.name}
-                </h1>
-              </div>
-              {archive.owner ? (
-                <p className="font-mono text-e2 text-gray-60">by {archive.owner.nickname}</p>
-              ) : null}
-            </div>
-
-            {/* Figma `butto/40_save`·`button/40_share`(227:9934) — 40px 칩 버튼.
-                공용 Button 은 전 variant 라벨이 흰색 고정이라(gray-10 바탕 + gray-100 라벨을
-                못 만든다) 여기서 직접 그린다. 저장 완료는 채워진 칩(gray-80)으로 굳는다. */}
-            <div className="flex gap-2 px-4 pb-4">
-              {isOwner ? (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/archive/${archive.id}/edit`)}
-                  className={ACTION_CHIP_DEFAULT}
-                >
-                  아카이브 편집
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled={alreadySaved || subscribe.isPending}
-                  onClick={handleSave}
-                  className={alreadySaved ? ACTION_CHIP_SELECTED : ACTION_CHIP_DEFAULT}
-                >
-                  아카이브에 저장
-                  {alreadySaved ? <Icon16Check /> : <Icon16Plus />}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setShareSheetOpen(true)}
-                className={ACTION_CHIP_DEFAULT}
-              >
-                공유
-                <Icon16ArrowUpTray />
-              </button>
-            </div>
-
-            <div role="tablist" className="flex px-4">
-              {tabs.map((tab) => {
-                const selected = activeTab === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    role="tab"
-                    aria-selected={selected}
-                    onClick={() => setActiveTab(tab.key)}
-                    className={cn(
-                      'flex flex-1 items-center justify-center gap-1.5 border-b px-2.5 py-3',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset',
-                      selected ? 'border-gray-100 text-gray-100' : 'border-gray-20 text-gray-50',
-                    )}
-                  >
-                    <span className={cn('text-b2', selected ? 'font-semibold' : 'font-medium')}>
-                      {tab.label}
-                    </span>
-                    {tab.count !== undefined ? (
-                      <span className="font-mono text-e2">{tab.count}</span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
           </>
         }
         contentStyle={{
           paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))',
         }}
       >
-        <main>
+        {/* 고정에 남는 건 헤더까지 — 아카이브 이름과 액션 칩은 스크롤에 실려 올라간다. */}
+        <div className="flex flex-col gap-1 px-4 pt-2 pb-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={`size-3 shrink-0 ${COLOR_BG_CLASS[archive.color]}`}
+              aria-hidden="true"
+            />
+            <h1 className="min-w-0 truncate text-h1 font-semibold text-gray-100">{archive.name}</h1>
+          </div>
+          {archive.owner ? (
+            <p className="font-mono text-e2 text-gray-60">by {archive.owner.nickname}</p>
+          ) : null}
+        </div>
+
+        {/* Figma `butto/40_save`·`button/40_share`(227:9934) — 40px 칩 버튼.
+              공용 Button 은 전 variant 라벨이 흰색 고정이라(gray-10 바탕 + gray-100 라벨을
+              못 만든다) 여기서 직접 그린다. 저장 완료는 채워진 칩(gray-80)으로 굳는다. */}
+        <div className="flex gap-2 px-4 pb-4">
+          {isOwner ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/archive/${archive.id}/edit`)}
+              className={ACTION_CHIP_DEFAULT}
+            >
+              아카이브 편집
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={alreadySaved || subscribe.isPending}
+              onClick={handleSave}
+              className={alreadySaved ? ACTION_CHIP_SELECTED : ACTION_CHIP_DEFAULT}
+            >
+              아카이브에 저장
+              {alreadySaved ? <Icon16Check /> : <Icon16Plus />}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setShareSheetOpen(true)}
+            className={ACTION_CHIP_DEFAULT}
+          >
+            공유
+            <Icon16ArrowUpTray />
+          </button>
+        </div>
+
+        {/* 게시물/장소 탭 — 흐름상 아카이브 정보 아래에 있다가, 스크롤이 여기까지 오면
+            헤더 바로 밑에 멈춰 선다(아카이브 상세와 같은 계약). */}
+        <div role="tablist" className={cn('flex bg-gray-0 px-4', PINNED_HEADER_STICKY)}>
+          {tabs.map((tab) => {
+            const selected = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 border-b px-2.5 py-3',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-inset',
+                  selected ? 'border-gray-100 text-gray-100' : 'border-gray-20 text-gray-50',
+                )}
+              >
+                <span className={cn('text-b2', selected ? 'font-semibold' : 'font-medium')}>
+                  {tab.label}
+                </span>
+                {tab.count !== undefined ? (
+                  <span className="font-mono text-e2">{tab.count}</span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+
+        <main {...swipeHandlers}>
           {activeTab === 'posts' ? (
             posts?.length === 0 ? (
               <ArchiveEmpty message="저장한 게시물이 없어요" />
