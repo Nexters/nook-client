@@ -302,3 +302,68 @@ describe('PlaceSheet 최근 저장한 공간 카드', () => {
     expect(onSelectPlace).toHaveBeenCalledWith(11, null);
   });
 });
+
+describe('PlaceSheet 검색 패널 — 상세가 열려도 살아남는다', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mapApi.fetchRecentPlaces.mockResolvedValue([]);
+    mapApi.fetchSavedPlaceSearch.mockResolvedValue({ items: [], groups: [], totalCount: 0 });
+  });
+
+  /** 검색 모드로 띄운 시트 — 선택 장소만 갈아끼워 상세를 열고 닫는다. */
+  function renderSearchingSheet() {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const tree = (place: PlaceDetailModel | null) => (
+      <QueryClientProvider client={client}>
+        <ToastProvider>
+          <BottomMenuVisibilityProvider value={{ hidden: true, setHidden: () => {} }}>
+            <MemoryRouter initialEntries={['/map']}>
+              <PlaceSheet
+                recentPlaces={[]}
+                selectedPlace={place}
+                isPlaceDetailPending={false}
+                isPlaceDetailError={false}
+                snap={place ? DETAIL_PAGE_SNAP_POINT : PEEK_SNAP_POINT}
+                isSearchMode
+                onSnapChange={() => {}}
+                onSelectPlace={() => {}}
+                onClose={() => {}}
+                onEnterSearch={() => {}}
+                onExitSearch={() => {}}
+                onSearchInputFocus={() => {}}
+              />
+            </MemoryRouter>
+          </BottomMenuVisibilityProvider>
+        </ToastProvider>
+      </QueryClientProvider>
+    );
+    const { rerender } = render(tree(null));
+    return { selectPlace: () => rerender(tree(PLACE)), closeDetail: () => rerender(tree(null)) };
+  }
+
+  const searchInput = () =>
+    screen.getByPlaceholderText('장소명을 입력해주세요') as HTMLInputElement;
+  /** 검색 패널을 감싸는 오버레이 — 상세가 떠 있는 동안 여기에 `hidden` 이 붙는다. */
+  const searchOverlay = () => searchInput().closest('.absolute');
+
+  it('상세가 열리면 검색 패널을 가리기만 하고 검색어는 그대로 남긴다', () => {
+    const { selectPlace } = renderSearchingSheet();
+    fireEvent.change(searchInput(), { target: { value: '아이소' } });
+
+    selectPlace();
+
+    expect(searchOverlay()).toHaveClass('hidden');
+    expect(searchInput().value).toBe('아이소');
+  });
+
+  it('상세를 닫으면 치던 검색어 그대로 검색 화면이 다시 드러난다', () => {
+    const { selectPlace, closeDetail } = renderSearchingSheet();
+    fireEvent.change(searchInput(), { target: { value: '아이소' } });
+    selectPlace();
+
+    closeDetail();
+
+    expect(searchOverlay()).not.toHaveClass('hidden');
+    expect(searchInput().value).toBe('아이소');
+  });
+});
