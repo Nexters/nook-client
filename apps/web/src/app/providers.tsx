@@ -10,25 +10,28 @@ import { ToastProvider } from '@/shared/toast';
 const NAVER_MAP_SUBMODULES = ['gl'];
 
 /**
- * 앱 셸(아래 AppProviders 의 375~450px 모바일 뷰 래퍼) DOM 엘리먼트.
+ * 전체화면 오버레이(vaul Drawer 등)를 포탈할 자리.
  *
- * Drawer(vaul) 처럼 `position: fixed` + Portal 을 쓰는 컴포넌트는 기본적으로
- * `document.body` 에 포탈되어 뷰포트 전체 기준으로 위치가 잡힌다. 데스크톱처럼
- * 뷰포트가 셸보다 넓을 때도 셸 폭 안에 붙어있게 하려면, 이 컨테이너를 해당
- * 컴포넌트의 `container` prop 으로 넘겨 셸 안으로 포탈시켜야 한다.
+ * Drawer 처럼 `position: fixed` + Portal 을 쓰는 컴포넌트는 기본적으로 `document.body` 에
+ * 포탈되어 뷰포트 전체 기준으로 위치가 잡힌다. 데스크톱처럼 뷰포트가 셸보다 넓을 때도
+ * 셸 폭 안에 붙어있게 하려면 이 컨테이너를 `container` prop 으로 넘겨야 한다.
+ *
+ * 셸 자체를 넘기면 안 된다. vaul 은 이 컨테이너를 **재서** 스냅 높이를 계산하는데,
+ * 셸은 `min-h-dvh` 라 콘텐츠만큼 늘어난다 — 긴 목록(아카이브 장소 탭 등)에서 지도로
+ * 넘어오면 시트가 뷰포트가 아니라 그 페이지 높이를 기준으로 스냅을 잡아 화면 아래로
+ * 주차된다(장소 상세가 안 올라옴). 그래서 높이가 항상 뷰포트인 빈 호스트를 따로 둔다.
  */
-const AppShellContainerContext = createContext<HTMLElement | null>(null);
+const AppOverlayContainerContext = createContext<HTMLElement | null>(null);
 
-export function useAppShellContainer() {
-  return useContext(AppShellContainerContext);
+export function useAppOverlayContainer() {
+  return useContext(AppOverlayContainerContext);
 }
 
 export function AppProviders({ children }: { children: ReactNode }) {
-  const [shellEl, setShellEl] = useState<HTMLDivElement | null>(null);
+  const [overlayEl, setOverlayEl] = useState<HTMLDivElement | null>(null);
   return (
-    <AppShellContainerContext.Provider value={shellEl}>
+    <AppOverlayContainerContext.Provider value={overlayEl}>
       <div
-        ref={setShellEl}
         // overflow-hidden 이 아니라 clip 이다 — hidden 은 스크롤 컨테이너를 만들어서, 그 안의
         // position:sticky 가 #root 가 아니라 이 셸(스크롤되지 않는다)을 기준으로 삼아 영영 붙지
         // 않는다(아카이브 상세의 게시물/장소 탭). clip 은 스크롤 컨테이너가 아니면서 같은 만큼
@@ -41,7 +44,16 @@ export function AppProviders({ children }: { children: ReactNode }) {
             <ToastProvider>{children}</ToastProvider>
           </NavermapsProvider>
         </QueryClientProvider>
+
+        {/* 오버레이 포탈 자리. 폭은 셸을 따르고 높이는 늘 뷰포트(h-dvh)다 — 셸은 콘텐츠만큼
+            길어지므로 여기 기대면 안 된다(위 컨텍스트 주석). 스스로는 아무것도 받지 않고
+            (pointer-events-none) 안에 들어오는 오버레이만 되살린다. */}
+        <div
+          ref={setOverlayEl}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-dvh"
+        />
       </div>
-    </AppShellContainerContext.Provider>
+    </AppOverlayContainerContext.Provider>
   );
 }

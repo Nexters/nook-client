@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
-import { useAppShellContainer } from '@/app/providers';
+import { useAppOverlayContainer } from '@/app/providers';
 import { useSlideScreen } from '@/app/slide-screen';
 import { EmptySavedPlaces } from '@/features/map/components/EmptySavedPlaces';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
@@ -81,7 +81,7 @@ export function PlaceSheet({
   /** 검색 입력이 포커스될 때 — 낮은 스냅이면 결과가 보이는 높이로 올리는 용도(MapPage). */
   onSearchInputFocus: () => void;
 }) {
-  const shellContainer = useAppShellContainer();
+  const overlayContainer = useAppOverlayContainer();
   const contentRef = useRef<HTMLDivElement>(null);
   // BottomMenu 를 숨기는 조건은 MapPage(선택된 장소 유무)가 정하고, 여기선 그 결과값만
   // 그대로 읽는다 — 나중에 숨기는 이유가 늘어나도 이 시트 레이아웃은 자동으로 따라간다.
@@ -216,7 +216,7 @@ export function PlaceSheet({
         applySnapDuration(prevSnapRef.current, next);
         onSnapChange(next);
       }}
-      container={shellContainer}
+      container={overlayContainer}
     >
       <DrawerContent
         ref={contentRef}
@@ -236,7 +236,8 @@ export function PlaceSheet({
           boxShadow: '0 100dvh 0 0 var(--color-gray-0)',
         }}
         className={cn(
-          'overflow-hidden',
+          // 포탈 자리(pointer-events-none)에서 입력을 되살린다.
+          'pointer-events-auto overflow-hidden',
           suppressTransition && 'transition-none!',
           layoutClassNames.drawer.className,
         )}

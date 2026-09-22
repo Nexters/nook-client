@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 /** 손을 뗐을 때 이만큼 가로로 옮겨 갔으면 넘긴 것으로 본다. */
 const SWIPE_DISTANCE = 56;
@@ -35,10 +35,10 @@ function ownedByInnerGesture(target: EventTarget | null, root: HTMLElement): boo
 }
 
 interface HorizontalSwipeOptions {
-  /** 손가락이 왼쪽으로 — 다음(오른쪽) 화면으로 넘어간다. */
-  onSwipeLeft: () => void;
-  /** 손가락이 오른쪽으로 — 이전(왼쪽) 화면으로 돌아간다. */
-  onSwipeRight: () => void;
+  /** 손가락이 왼쪽으로 — 다음(오른쪽) 화면으로 넘어간다. 인자는 손을 뗀 지점까지의 거리(px). */
+  onSwipeLeft: (distance: number) => void;
+  /** 손가락이 오른쪽으로 — 이전(왼쪽) 화면으로 돌아간다. 인자는 그 거리(px). */
+  onSwipeRight: (distance: number) => void;
   /** false 면 아무것도 듣지 않는다(넘길 상대가 없는 화면). */
   enabled?: boolean;
 }
@@ -50,6 +50,9 @@ interface HorizontalSwipeOptions {
  * 안쪽에 스크롤 컨테이너가 있으면 브라우저가 제스처를 가져가며 pointercancel 만 보낸다.
  * 첫 움직임에서 축을 한 번 정하고 그 뒤로는 바꾸지 않는다. 세로로 정해졌으면 목록
  * 스크롤이 제 몫을 그대로 갖는다.
+ *
+ * 끄는 동안의 거리를 `offset` 으로 내보낸다 — 손가락을 따라 화면이 함께 움직여야
+ * "넘기는 중"이 보인다. 넘길지 말지는 손을 뗄 때 거리로 판정한다.
  */
 export function useHorizontalSwipe({
   onSwipeLeft,
@@ -58,45 +61,67 @@ export function useHorizontalSwipe({
 }: HorizontalSwipeOptions) {
   const start = useRef<{ x: number; y: number } | null>(null);
   const axis = useRef<Axis>('undecided');
+  const [offset, setOffset] = useState(0);
+  // 손을 뗀 뒤 제자리로 돌아갈 때만 애니메이션을 건다. 끄는 동안에는 손가락을 그대로 따라야 한다.
+  const [returning, setReturning] = useState(false);
 
   const release = () => {
     start.current = null;
     axis.current = 'undecided';
   };
 
+  const settle = () => {
+    release();
+    setReturning(true);
+    setOffset(0);
+  };
+
   return {
-    onTouchStart: (event: React.TouchEvent<HTMLElement>) => {
-      release();
-      // 손가락이 둘 이상이면(핀치 등) 아예 보지 않는다 — 두 번째 손가락이 닿는 순간
-      // 이 분기가 다시 돌면서 진행 중이던 판정도 버린다.
-      const touch = enabled && event.touches.length === 1 ? event.touches[0] : undefined;
-      if (!touch) return;
-      if (touch.clientX < EDGE_GUARD || window.innerWidth - touch.clientX < EDGE_GUARD) return;
-      if (ownedByInnerGesture(event.target, event.currentTarget)) return;
+    /** 지금 손가락이 가로로 끌고 온 거리(px). 세로로 굳었거나 손을 뗐으면 0 이다. */
+    offset,
+    /** 이 값이 true 인 동안에만 되돌아가는 transition 을 건다. */
+    returning,
+    handlers: {
+      onTouchStart: (event: React.TouchEvent<HTMLElement>) => {
+        release();
+        setReturning(false);
+        setOffset(0);
+        // 손가락이 둘 이상이면(핀치 등) 아예 보지 않는다 — 두 번째 손가락이 닿는 순간
+        // 이 분기가 다시 돌면서 진행 중이던 판정도 버린다.
+        const touch = enabled && event.touches.length === 1 ? event.touches[0] : undefined;
+        if (!touch) return;
+        if (touch.clientX < EDGE_GUARD || window.innerWidth - touch.clientX < EDGE_GUARD) return;
+        if (ownedByInnerGesture(event.target, event.currentTarget)) return;
 
-      start.current = { x: touch.clientX, y: touch.clientY };
-    },
-    onTouchMove: (event: React.TouchEvent<HTMLElement>) => {
-      const from = start.current;
-      const touch = event.touches.length === 1 ? event.touches[0] : undefined;
-      if (!from || !touch || axis.current !== 'undecided') return;
+        start.current = { x: touch.clientX, y: touch.clientY };
+      },
+      onTouchMove: (event: React.TouchEvent<HTMLElement>) => {
+        const from = start.current;
+        const touch = event.touches.length === 1 ? event.touches[0] : undefined;
+        if (!from || !touch) return;
 
-      const movedSideways = touch.clientX - from.x;
-      const movedDown = touch.clientY - from.y;
-      if (Math.abs(movedSideways) < DIRECTION_LOCK && Math.abs(movedDown) < DIRECTION_LOCK) return;
-      axis.current = Math.abs(movedSideways) > Math.abs(movedDown) ? 'horizontal' : 'vertical';
-    },
-    onTouchEnd: (event: React.TouchEvent<HTMLElement>) => {
-      const from = start.current;
-      const wasHorizontal = axis.current === 'horizontal';
-      const touch = event.changedTouches[0];
-      release();
-      if (!from || !touch || !wasHorizontal) return;
+        const movedSideways = touch.clientX - from.x;
+        const movedDown = touch.clientY - from.y;
+        if (axis.current === 'undecided') {
+          if (Math.abs(movedSideways) < DIRECTION_LOCK && Math.abs(movedDown) < DIRECTION_LOCK)
+            return;
+          axis.current = Math.abs(movedSideways) > Math.abs(movedDown) ? 'horizontal' : 'vertical';
+        }
+        // 가로로 굳었을 때만 따라간다 — 세로면 목록 스크롤이 제 몫을 그대로 갖는다.
+        if (axis.current === 'horizontal') setOffset(movedSideways);
+      },
+      onTouchEnd: (event: React.TouchEvent<HTMLElement>) => {
+        const from = start.current;
+        const wasHorizontal = axis.current === 'horizontal';
+        const touch = event.changedTouches[0];
+        settle();
+        if (!from || !touch || !wasHorizontal) return;
 
-      const movedSideways = touch.clientX - from.x;
-      if (movedSideways <= -SWIPE_DISTANCE) onSwipeLeft();
-      else if (movedSideways >= SWIPE_DISTANCE) onSwipeRight();
+        const movedSideways = touch.clientX - from.x;
+        if (movedSideways <= -SWIPE_DISTANCE) onSwipeLeft(-movedSideways);
+        else if (movedSideways >= SWIPE_DISTANCE) onSwipeRight(movedSideways);
+      },
+      onTouchCancel: settle,
     },
-    onTouchCancel: release,
   };
 }

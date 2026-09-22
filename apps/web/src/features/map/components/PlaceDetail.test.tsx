@@ -448,6 +448,12 @@ describe('PlaceDetail 저장된 게시물', () => {
     expect(screen.getByText('아이소')).toBeInTheDocument();
   });
 
+  /** 장소 상세의 사진 캐러셀과 전체보기 오버레이가 같은 라벨을 쓴다 — 나중에 붙는 쪽이 오버레이다. */
+  const lastByLabel = (name: string) => {
+    const matches = screen.getAllByRole('button', { name });
+    return matches[matches.length - 1] as HTMLElement;
+  };
+
   it('사진 전체보기도 히스토리 뒤로(iOS 엣지 스와이프)로 닫힌다', async () => {
     renderDetail(undefined, { ...PLACE, posts: [], photos: ['a.jpg', 'b.jpg'] });
 
@@ -459,5 +465,34 @@ describe('PlaceDetail 저장된 게시물', () => {
 
     expect(screen.queryByRole('button', { name: '뒤로' })).not.toBeInTheDocument();
     expect(screen.getByText('아이소')).toBeInTheDocument();
+  });
+
+  it('사진 확대뷰에서 히스토리 뒤로는 장소 상세가 아니라 사진 목록으로 돌아온다', async () => {
+    renderDetail(undefined, { ...PLACE, posts: [], photos: ['a.jpg', 'b.jpg'] });
+
+    // 전체보기(목록) → 그 중 한 장을 확대. 상세의 사진 캐러셀에도 같은 라벨이 있어
+    // 나중에 붙는 오버레이 쪽(마지막)을 고른다.
+    fireEvent.click(await screen.findByRole('button', { name: '1번째 사진 크게 보기' }));
+    fireEvent.click(lastByLabel('2번째 사진 크게 보기'));
+    expect(screen.getByText('2/2')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '히스토리 뒤로' }));
+
+    // 확대뷰만 걷힌다 — 승격 전에는 이 제스처가 오버레이째 닫고 장소 화면까지 나갔다.
+    expect(screen.queryByText('2/2')).not.toBeInTheDocument();
+    expect(lastByLabel('1번째 사진 크게 보기')).toBeInTheDocument();
+  });
+
+  it('두 화면 모두 헤더에 뒤로가기 하나뿐이다 — 닫기(X)는 없앴다', async () => {
+    renderDetail(undefined, { ...PLACE, posts: [], photos: ['a.jpg', 'b.jpg'] });
+
+    // 장소 상세 시트에도 닫기가 있어(읽기 전용 헤더) 오버레이 헤더 안만 본다.
+    const overlayHeader = () => lastByLabel('뒤로').closest('header');
+
+    fireEvent.click(await screen.findByRole('button', { name: '1번째 사진 크게 보기' }));
+    expect(overlayHeader()?.querySelector('[aria-label="닫기"]')).toBeNull();
+
+    fireEvent.click(lastByLabel('2번째 사진 크게 보기'));
+    expect(overlayHeader()?.querySelector('[aria-label="닫기"]')).toBeNull();
   });
 });

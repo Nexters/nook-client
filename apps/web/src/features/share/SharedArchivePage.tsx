@@ -7,11 +7,10 @@ import { CollectionCard } from '@/features/archive/components/CollectionCard';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { PlaceCard } from '@/features/place';
 import { Icon16ArrowUpTray, Icon16Check, Icon16Plus } from '@/shared/icons/NookIcons';
-import { useHorizontalSwipe } from '@/shared/lib/useHorizontalSwipe';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
-import { BackButton, COLOR_BG_CLASS, Header } from '@/shared/ui';
+import { BackButton, COLOR_BG_CLASS, Header, SwipePager } from '@/shared/ui';
 import {
   useSharedArchive,
   useSharedArchivePlaces,
@@ -74,12 +73,6 @@ export function SharedArchivePage() {
   const { data: myArchives } = useArchives();
 
   const sentinelRef = useInfiniteScrollSentinel(activeTab === 'posts' ? postsQuery : placesQuery);
-
-  // 아카이브 상세와 같은 계약 — 탭 버튼 말고 좌우 스와이프로도 넘긴다.
-  const swipeHandlers = useHorizontalSwipe({
-    onSwipeLeft: () => setActiveTab('places'),
-    onSwipeRight: () => setActiveTab('posts'),
-  });
 
   if (metaQuery.isPending) return null;
 
@@ -220,9 +213,13 @@ export function SharedArchivePage() {
           })}
         </div>
 
-        <main {...swipeHandlers}>
-          {activeTab === 'posts' ? (
-            posts?.length === 0 ? (
+        <main>
+          {/* 아카이브 상세와 같은 계약 — 탭 버튼 말고 좌우 스와이프로도 넘긴다. */}
+          <SwipePager
+            index={activeTab === 'posts' ? 0 : 1}
+            onIndexChange={(index) => setActiveTab(index === 0 ? 'posts' : 'places')}
+          >
+            {posts?.length === 0 ? (
               <ArchiveEmpty message="저장한 게시물이 없어요" />
             ) : (
               <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
@@ -240,16 +237,17 @@ export function SharedArchivePage() {
                   />
                 ))}
               </div>
-            )
-          ) : places?.length === 0 ? (
-            <ArchiveEmpty message="저장한 장소가 없어요" />
-          ) : (
-            <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
-              {places?.map((place) => (
-                <PlaceCard key={place.id} place={place} onClick={() => openPlace(place.id)} />
-              ))}
-            </div>
-          )}
+            )}
+            {places?.length === 0 ? (
+              <ArchiveEmpty message="저장한 장소가 없어요" />
+            ) : (
+              <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
+                {places?.map((place) => (
+                  <PlaceCard key={place.id} place={place} onClick={() => openPlace(place.id)} />
+                ))}
+              </div>
+            )}
+          </SwipePager>
           <div ref={sentinelRef} aria-hidden="true" className="h-1" />
         </main>
       </PinnedHeaderLayout>

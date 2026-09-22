@@ -11,9 +11,9 @@ function Harness({
   onSwipeRight: () => void;
   enabled?: boolean;
 }) {
-  const handlers = useHorizontalSwipe({ onSwipeLeft, onSwipeRight, enabled });
+  const swipe = useHorizontalSwipe({ onSwipeLeft, onSwipeRight, enabled });
   return (
-    <div data-testid="area" {...handlers}>
+    <div data-testid="area" data-offset={swipe.offset} {...swipe.handlers}>
       <div data-testid="carousel" style={{ overflowX: 'auto' }}>
         <div data-testid="slide" />
       </div>
@@ -87,6 +87,30 @@ describe('useHorizontalSwipe', () => {
 
     swipe(-120, 0, { target: 'slide' });
     expect(onSwipeLeft).not.toHaveBeenCalled();
+  });
+
+  it('끄는 동안 거리를 내보내 화면이 손가락을 따라오게 한다', () => {
+    setup();
+    const area = screen.getByTestId('area');
+    fireEvent.touchStart(area, { touches: [at(START.x, START.y)] });
+    fireEvent.touchMove(area, { touches: [at(START.x - 40, START.y)] });
+    fireEvent.touchMove(area, { touches: [at(START.x - 90, START.y)] });
+
+    expect(area.dataset.offset).toBe('-90');
+
+    // 손을 떼면 제자리 값으로 돌아간다 — 정착은 쓰는 쪽이 그린다.
+    fireEvent.touchEnd(area, { changedTouches: [at(START.x - 90, START.y)] });
+    expect(area.dataset.offset).toBe('0');
+  });
+
+  it('세로로 굳으면 거리를 내보내지 않는다', () => {
+    setup();
+    const area = screen.getByTestId('area');
+    fireEvent.touchStart(area, { touches: [at(START.x, START.y)] });
+    fireEvent.touchMove(area, { touches: [at(START.x - 20, START.y + 60)] });
+    fireEvent.touchMove(area, { touches: [at(START.x - 60, START.y + 200)] });
+
+    expect(area.dataset.offset).toBe('0');
   });
 
   it('enabled 가 false 면 아무것도 듣지 않는다', () => {
