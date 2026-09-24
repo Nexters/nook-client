@@ -199,7 +199,10 @@ function baseConfig(config: ConfigContext['config']): ExpoConfig {
           // 설명까지 채워 쓰지도 않는 권한을 신고하게 된다 — false 는 키 자체를 지운다.
           locationAlwaysAndWhenInUsePermission: false,
           locationAlwaysPermission: false,
-          motionUsagePermission: false,
+          // 모션은 요청하지 않지만 expo-location 바이너리가 CMMotionActivityManager 를 참조해,
+          // 키가 없으면 App Store Connect 가 업로드를 ITMS-90683 으로 거부한다.
+          motionUsagePermission:
+            '위치 기능에 포함된 움직임 감지 기능의 설명이에요. Nook 은 움직임 정보를 요청하거나 사용하지 않아요.',
         },
       ],
       // SPM(기본값)으로 받으면 use_frameworks! 를 dynamic 으로 바꿔야 하는데, 그러면
