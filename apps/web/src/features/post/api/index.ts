@@ -172,6 +172,7 @@ export function toSearchedPlace(dto: PlaceSearchResponse): SearchedPlace {
     distance: dto.distanceMeters != null ? formatDistanceFromMeters(dto.distanceMeters) : undefined,
     latitude: dto.latitude,
     longitude: dto.longitude,
+    categoryGroup: dto.categoryGroup ?? undefined,
   };
 }
 

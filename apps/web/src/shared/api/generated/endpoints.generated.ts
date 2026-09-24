@@ -19,10 +19,12 @@ import type {
   ApiResponseMemberActionResponse,
   ApiResponseMemberProfileResponse,
   ApiResponsePlaceDetailResponse,
+  ApiResponsePlacePostPageResponse,
   ApiResponsePlaceSearchSliceResponse,
   ApiResponsePostPlaceParsingResponse,
   ApiResponsePostResponse,
   ApiResponseProfileImageUploadResponse,
+  ApiResponsePushPreferenceResponse,
   ApiResponseRecentPlaceSliceResponse,
   ApiResponseSavedPlaceSearchPageResponse,
   ApiResponseSavedPostDetailResponse,
@@ -38,6 +40,7 @@ import type {
   DeletePushTokenRequest,
   GetDetailParams,
   GetMapPlacesParams,
+  GetPostsParams,
   GetRecentPlacesParams,
   ListPlacesParams,
   ListPostsParams,
@@ -48,6 +51,7 @@ import type {
   RefreshTokenRequest,
   RegisterPushTokenRequest,
   ReplaceSavedPostGroupsRequest,
+  ReplaceSavedPostsGroupsRequest,
   SaveSharedPostRequest,
   SearchPlacesParams,
   SearchSavedPlacesParams,
@@ -57,6 +61,7 @@ import type {
   UpdatePlaceBookmarkRequest,
   UpdatePlaceMemoRequest,
   UpdatePostMemoRequest,
+  UpdatePushPreferenceRequest,
 } from './models';
 export const getGetPolicyUrl = () => {
   return `/api/public/v1/app-version-policy`;
@@ -74,18 +79,18 @@ export const getPolicy = async (
   });
 };
 
-export const getGetUrl = (token: string) => {
+export const getGet1Url = (token: string) => {
   return `/api/public/v1/groups/${token}`;
 };
 
 /**
  * @summary 공유 그룹 정보 조회
  */
-export const get = async (
+export const get1 = async (
   token: string,
   options?: Parameters<typeof orvalMutator>[1],
 ): Promise<ApiResponseGroupResponse> => {
-  return orvalMutator<ApiResponseGroupResponse>(getGetUrl(token), {
+  return orvalMutator<ApiResponseGroupResponse>(getGet1Url(token), {
     ...options,
     method: 'GET',
   });
@@ -306,19 +311,19 @@ export const delete1 = async (
   });
 };
 
-export const getUpdateUrl = (groupId: number) => {
+export const getUpdate1Url = (groupId: number) => {
   return `/api/v1/groups/${groupId}`;
 };
 
 /**
  * @summary 그룹명과 색상 수정
  */
-export const update = async (
+export const update1 = async (
   groupId: number,
   updateGroupRequest: UpdateGroupRequest,
   options?: Parameters<typeof orvalMutator>[1],
 ): Promise<ApiResponseGroupResponse> => {
-  return orvalMutator<ApiResponseGroupResponse>(getUpdateUrl(groupId), {
+  return orvalMutator<ApiResponseGroupResponse>(getUpdate1Url(groupId), {
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -417,6 +422,57 @@ export const issue = async (
   return orvalMutator<ApiResponseGroupShareLinkResponse>(getIssueUrl(groupId), {
     ...options,
     method: 'PUT',
+  });
+};
+
+export const getListOwnedUrl = () => {
+  return `/api/v1/groups/owned`;
+};
+
+/**
+ * @summary 저장 가능한 내 그룹 목록 조회
+ */
+export const listOwned = async (
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseListGroupResponse> => {
+  return orvalMutator<ApiResponseListGroupResponse>(getListOwnedUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetUrl = () => {
+  return `/api/v1/me/push-preferences`;
+};
+
+/**
+ * @summary 내 푸시 알림 설정 조회
+ */
+export const get = async (
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponsePushPreferenceResponse> => {
+  return orvalMutator<ApiResponsePushPreferenceResponse>(getGetUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getUpdateUrl = () => {
+  return `/api/v1/me/push-preferences`;
+};
+
+/**
+ * @summary 내 푸시 알림 설정 변경
+ */
+export const update = async (
+  updatePushPreferenceRequest: UpdatePushPreferenceRequest,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponsePushPreferenceResponse> => {
+  return orvalMutator<ApiResponsePushPreferenceResponse>(getUpdateUrl(), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updatePushPreferenceRequest),
   });
 };
 
@@ -595,6 +651,36 @@ export const updateMemo1 = async (
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(updatePlaceMemoRequest),
+  });
+};
+
+export const getGetPostsUrl = (placeId: number, params?: GetPostsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/places/${placeId}/posts?${stringifiedParams}`
+    : `/api/v1/places/${placeId}/posts`;
+};
+
+/**
+ * @summary 내 장소의 연관 게시물 목록 조회
+ */
+export const getPosts = async (
+  placeId: number,
+  params?: GetPostsParams,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponsePlacePostPageResponse> => {
+  return orvalMutator<ApiResponsePlacePostPageResponse>(getGetPostsUrl(placeId, params), {
+    ...options,
+    method: 'GET',
   });
 };
 
@@ -886,6 +972,25 @@ export const disconnectPlace = async (
   return orvalMutator<ApiResponseUnit>(getDisconnectPlaceUrl(postId, placeId), {
     ...options,
     method: 'DELETE',
+  });
+};
+
+export const getReplaceGroupsBulkUrl = () => {
+  return `/api/v1/posts/groups`;
+};
+
+/**
+ * @summary 여러 저장 게시물의 그룹 일괄 재지정
+ */
+export const replaceGroupsBulk = async (
+  replaceSavedPostsGroupsRequest: ReplaceSavedPostsGroupsRequest,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseUnit> => {
+  return orvalMutator<ApiResponseUnit>(getReplaceGroupsBulkUrl(), {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(replaceSavedPostsGroupsRequest),
   });
 };
 

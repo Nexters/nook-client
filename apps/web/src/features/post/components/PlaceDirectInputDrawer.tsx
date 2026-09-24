@@ -112,6 +112,7 @@ function PlaceDirectInputDrawer({
                     name: selectedPlace.name,
                     lat: selectedPlace.latitude,
                     lng: selectedPlace.longitude,
+                    categoryGroup: selectedPlace.categoryGroup,
                   }}
                   sheetSnapPoint={PLACE_DETAIL_SNAP_POINTS[0]}
                 />

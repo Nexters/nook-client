@@ -5,6 +5,7 @@
  * OpenAPI spec version: v1
  */
 import type { RecentPlaceResponseAccessType } from './recentPlaceResponseAccessType.generated';
+import type { RecentPlaceResponseCategoryGroup } from './recentPlaceResponseCategoryGroup.generated';
 import type { RecentPlaceResponseThumbnailParsingStatus } from './recentPlaceResponseThumbnailParsingStatus.generated';
 
 export interface RecentPlaceResponse {
@@ -17,6 +18,8 @@ export interface RecentPlaceResponse {
    * @nullable
    */
   category?: string | null;
+  /** 장소 카테고리 그룹 */
+  categoryGroup: RecentPlaceResponseCategoryGroup;
   /**
    * 장소 지역
    * @nullable

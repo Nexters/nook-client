@@ -4,6 +4,7 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { PlaceDetailResponseCategoryGroup } from './placeDetailResponseCategoryGroup.generated';
 import type { PlaceDetailResponseThumbnailParsingStatus } from './placeDetailResponseThumbnailParsingStatus.generated';
 import type { PlaceOpeningHoursResponse } from './placeOpeningHoursResponse.generated';
 import type { PlacePostPageResponse } from './placePostPageResponse.generated';
@@ -18,6 +19,8 @@ export interface PlaceDetailResponse {
    * @nullable
    */
   category?: string | null;
+  /** 장소 카테고리 그룹 */
+  categoryGroup: PlaceDetailResponseCategoryGroup;
   /** provider의 장소 식별자 */
   externalPlaceId: string;
   /** 장소 식별자 */

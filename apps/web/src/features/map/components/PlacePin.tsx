@@ -1,6 +1,7 @@
 import { CustomOverlay } from 'react-naver-maps';
 import emptyThumbnail from '@/assets/images/98_Group.svg';
 import { SelectedPinMarker } from '@/features/map/components/SelectedPinMarker';
+import type { PlaceCategoryGroup } from '@/features/map/types';
 import { type ArchiveColor, COLOR_BG_CLASS } from '@/shared/ui';
 
 /**
@@ -17,6 +18,7 @@ export function PlacePin({
   name,
   color,
   thumbnail,
+  categoryGroup,
   selected = false,
   onClick,
 }: {
@@ -27,6 +29,8 @@ export function PlacePin({
   color: ArchiveColor;
   /** 장소 대표 썸네일(`GET /places/map` 의 `thumbnailUrl`). 없으면 빈 썸네일 고스트를 그린다. */
   thumbnail?: string;
+  /** 선택 핀 글리프(`GET /places/map` 의 `categoryGroup`). */
+  categoryGroup?: PlaceCategoryGroup;
   selected?: boolean;
   onClick?: () => void;
 }) {
@@ -46,7 +50,7 @@ export function PlacePin({
           className={`-translate-x-1/2 absolute bottom-0 left-1/2 block ${selected ? 'z-10' : ''}`}
         >
           {selected ? (
-            <SelectedPinMarker color={color} />
+            <SelectedPinMarker color={color} categoryGroup={categoryGroup} />
           ) : (
             /*
               `max-w-none` 이 없으면 사진 너비가 0 으로 붕괴한다 — Tailwind preflight 의

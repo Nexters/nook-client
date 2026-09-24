@@ -1,4 +1,5 @@
 import type { Place } from '@/features/place';
+import type { PlaceSearchResponseCategoryGroup } from '@/shared/api';
 import type { ArchiveColor } from '@/shared/ui';
 
 /**
@@ -109,6 +110,8 @@ export interface SearchedPlace extends Place {
   selectionToken: string;
   latitude: number;
   longitude: number;
+  /** 프리뷰 지도 핀의 글리프를 고르는 공통 카테고리. */
+  categoryGroup?: PlaceSearchResponseCategoryGroup;
 }
 
 export interface PlaceParsingResult {
