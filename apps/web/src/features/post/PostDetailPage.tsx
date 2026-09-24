@@ -1,8 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
-import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
+import { PinnedHeaderLayout, PinnedHeaderTitle } from '@/app/layouts/PinnedHeaderLayout';
 import { EntryLoginWall } from '@/features/auth/components/LoginWall';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { PushPrimingSheet } from '@/features/notifications/components/PushPrimingSheet';
@@ -49,6 +49,10 @@ export function PostDetailPage() {
   const [searchParams] = useSearchParams();
   const enteredFromShare = searchParams.get('entry') === 'share';
   useHideBottomMenu();
+
+  // 게시물 제목. 스크롤에 실려 헤더 뒤로 숨으면 헤더가 같은 제목을 이어받는다 —
+  // 아카이브 상세의 아카이브명과 같은 계약이다.
+  const titleRef = useRef<HTMLHeadingElement>(null);
 
   const postDetailState = usePostDetail(postId);
   const updateMemoMutation = useUpdatePostMemo(postId);
@@ -200,14 +204,21 @@ export function PostDetailPage() {
   // 콘텐츠는 문서 흐름 그대로 #root 스크롤에 맡기고(러버밴드), 헤더만 화면에 고정한다.
   return (
     <PinnedHeaderLayout
-      header={<Header left={<BackButton onClick={handleBack} />} />}
+      header={
+        <Header
+          left={<BackButton onClick={handleBack} />}
+          title={<PinnedHeaderTitle target={titleRef}>{title}</PinnedHeaderTitle>}
+        />
+      }
       contentStyle={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
     >
       <main>
         <PostImages media={media} onImageClick={openViewerAt} onVideoExpand={openVideoViewer} />
 
         <div className="flex flex-col gap-2 px-4 pt-1">
-          <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
+          <h1 ref={titleRef} className="text-h2 font-semibold text-gray-100">
+            {title}
+          </h1>
 
           {post.caption ? <ExpandableCaption caption={post.caption} /> : null}
 

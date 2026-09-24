@@ -94,13 +94,20 @@ function OnboardingSlide({
   );
 }
 
-export function OnboardingCarousel() {
-  const [activeIndex, setActiveIndex] = useState(0);
+export const ONBOARDING_SLIDE_COUNT = SLIDES.length;
+
+interface OnboardingCarouselProps {
+  activeIndex: number;
+  onActiveIndexChange: (index: number) => void;
+}
+
+/** 현재 장은 바깥(LoginPage)이 들고 있다 — 하단 CTA 가 마지막 장인지에 따라 달라져서다. */
+export function OnboardingCarousel({ activeIndex, onActiveIndexChange }: OnboardingCarouselProps) {
   const pointerStartX = useRef<number | null>(null);
   const animations = useOnboardingAnimations(activeIndex);
 
-  const showPrevious = () => setActiveIndex((current) => Math.max(0, current - 1));
-  const showNext = () => setActiveIndex((current) => Math.min(SLIDES.length - 1, current + 1));
+  const showPrevious = () => onActiveIndexChange(Math.max(0, activeIndex - 1));
+  const showNext = () => onActiveIndexChange(Math.min(SLIDES.length - 1, activeIndex + 1));
 
   return (
     <section
@@ -139,14 +146,9 @@ export function OnboardingCarousel() {
         </div>
       </div>
 
-      <CarouselIndicator
-        count={SLIDES.length}
-        activeIndex={activeIndex}
-        onIndexChange={setActiveIndex}
-        getItemLabel={(index) => `${index + 1}번째 온보딩 보기`}
-        className="mt-10"
-        aria-label="온보딩 페이지 선택"
-      />
+      {/* onIndexChange 를 주지 않아 표시 전용이다 — 점을 눌러 마지막 장으로 건너뛰면
+          온보딩을 끝까지 보게 한다는 취지가 무너진다. 앞뒤 이동은 스와이프로만 한다. */}
+      <CarouselIndicator count={SLIDES.length} activeIndex={activeIndex} className="mt-10" />
     </section>
   );
 }

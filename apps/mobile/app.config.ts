@@ -1,5 +1,8 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import { type ConfigPlugin, IOSConfig, withFinalizedMod } from 'expo/config-plugins';
 import nativePublicConfig from './native-public-config.json';
 
 type AppVariant = keyof typeof nativePublicConfig.appIds;
@@ -9,7 +12,6 @@ const KAKAO_MAVEN_REPOSITORY = 'https://devrepo.kakao.com/nexus/content/groups/p
 // Firebase 콘솔에서 플랫폼·variant(번들 ID)별로 앱을 등록해야 받을 수 있는 파일이다.
 // 커밋하지 않고(gitignore) 로컬 또는 EAS file environment variable 로 공급한다.
 // variant 마다 번들 ID 가 달라 Firebase 앱·설정 파일도 1:1 이어야 해서 경로를 나눈다.
-// 현재 등록 상태: iOS production·development 등록됨. Android 는 Firebase 미등록.
 function googleServicesFile(variant: AppVariant, platform: 'ios' | 'android'): string {
   const envOverride =
     platform === 'ios'
@@ -19,8 +21,88 @@ function googleServicesFile(variant: AppVariant, platform: 'ios' | 'android'): s
   return envOverride ?? `./firebase/${variant}/${fileName}`;
 }
 
+// 관리자가 발급한 팀 개발 프로파일이 이 맥에 설치돼 있으면 본앱·ShareExtension 을 그걸로 수동 서명한다.
+// Individual 계정이라 팀원 Xcode 는 자동 서명으로 프로파일을 못 받아오고, prebuild 는 매번 서명 설정을
+// 새로 쓰기 때문에 여기서 박아야 유지된다. 프로파일이 없으면(EAS·설치 전) 아무것도 하지 않는다.
+// apple-targets 가 ShareExtension 타깃을 자기 mod 에서 따로 쓰므로, 모든 mod 뒤에 도는 finalized 에서 고친다.
+const PROVISIONING_PROFILE_DIRS = [
+  'Library/Developer/Xcode/UserData/Provisioning Profiles',
+  'Library/MobileDevice/Provisioning Profiles',
+];
+
+function installedProvisioningProfileNames(): Set<string> {
+  const names = new Set<string>();
+  for (const dir of PROVISIONING_PROFILE_DIRS) {
+    const abs = join(homedir(), dir);
+    if (!existsSync(abs)) continue;
+    for (const file of readdirSync(abs)) {
+      if (!file.endsWith('.mobileprovision')) continue;
+      // CMS 서명 안의 plist 는 평문이라 파싱 없이 이름만 뽑는다.
+      const match = readFileSync(join(abs, file), 'latin1').match(
+        /<key>Name<\/key>\s*<string>([^<]+)<\/string>/,
+      );
+      if (match) names.add(match[1]);
+    }
+  }
+  return names;
+}
+
+const withIosDevSigning: ConfigPlugin = (config) => {
+  const { appleTeamId, devProfiles } = nativePublicConfig.ios;
+  const installed = installedProvisioningProfileNames();
+  if (!Object.values(devProfiles).every((name) => installed.has(name))) return config;
+
+  return withFinalizedMod(config, [
+    'ios',
+    (config) => {
+      const project = IOSConfig.XcodeUtils.getPbxproj(config.modRequest.projectRoot);
+      const targets = IOSConfig.Target.findSignableTargets(project).map(([targetId, target]) => {
+        const configurations = IOSConfig.XcodeUtils.getBuildConfigurationsForListId(
+          project,
+          target.buildConfigurationList,
+        )
+          .map(([, item]) => item.buildSettings)
+          .filter((settings) => settings.PRODUCT_NAME);
+        const bundleId = String(configurations[0]?.PRODUCT_BUNDLE_IDENTIFIER).replace(/"/g, '');
+        return {
+          targetId,
+          configurations,
+          profile: devProfiles[bundleId as keyof typeof devProfiles],
+        };
+      });
+      // development variant 처럼 프로파일이 없는 식별자면 손대지 않는다 — 한쪽만 수동이면 빌드가 깨진다.
+      if (!targets.every((target) => target.profile)) return config;
+
+      const projectSection = Object.entries(IOSConfig.XcodeUtils.getProjectSection(project)).filter(
+        IOSConfig.XcodeUtils.isNotComment,
+      );
+      for (const { targetId, configurations, profile } of targets) {
+        for (const settings of configurations) {
+          settings.CODE_SIGN_STYLE = 'Manual';
+          settings.CODE_SIGN_IDENTITY = '"Apple Development"';
+          settings.DEVELOPMENT_TEAM = appleTeamId;
+          settings.PROVISIONING_PROFILE_SPECIFIER = `"${profile}"`;
+        }
+        for (const [, item] of projectSection) {
+          item.attributes.TargetAttributes ??= {};
+          item.attributes.TargetAttributes[targetId] = {
+            ...item.attributes.TargetAttributes[targetId],
+            DevelopmentTeam: appleTeamId,
+            ProvisioningStyle: 'Manual',
+          };
+        }
+      }
+      writeFileSync(project.filepath, project.writeSync());
+      return config;
+    },
+  ]);
+};
+
 // 웹의 gray-10. 네이티브 스플래시와 웹 첫 화면 배경을 같은 색으로 맞춰 전환 시 색 점프를 없앤다.
 const SPLASH_BACKGROUND_COLOR = '#f4f5f7';
+
+// 알림 아이콘 틴트. 웹의 gray-100 이자 적응형 아이콘 배경색과 같은 값이다.
+const NOTIFICATION_ICON_COLOR = '#1f1f1f';
 
 // APP_VARIANT 미설정 시 production. 오타·누락으로 엉뚱한 식별자가 만들어지지 않게
 // 알 수 없는 값도 production 으로 떨어뜨린다.
@@ -28,7 +110,9 @@ function resolveVariant(): AppVariant {
   return process.env.APP_VARIANT === 'development' ? 'development' : 'production';
 }
 
-export default ({ config }: ConfigContext): ExpoConfig => {
+export default ({ config }: ConfigContext): ExpoConfig => withIosDevSigning(baseConfig(config));
+
+function baseConfig(config: ConfigContext['config']): ExpoConfig {
   const variant = resolveVariant();
   const appId = nativePublicConfig.appIds[variant];
   const sessionAccessGroup = `$(AppIdentifierPrefix)group.${appId}`;
@@ -50,13 +134,24 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const androidGoogleServices = googleServicesFile(variant, 'android');
 
   // 파일이 없으면 Firebase 없이 빌드된다(런타임 가드가 푸시만 조용히 끈다). 로컬 Metro 까지
-  // 막지 않도록 평소엔 경고만 하고, EAS 빌드에서는 variant 와 무관하게 끊는다 — 여기서 안 끊으면
-  // 설정 실수(file env 누락)로 푸시가 통째로 죽은 스토어 빌드가 정상처럼 만들어진다.
-  if (!existsSync(iosGoogleServices)) {
+  // 막지 않도록 평소엔 경고만 하고, EAS 빌드에서는 지금 빌드 중인 플랫폼의 파일이 없으면 끊는다 —
+  // 여기서 안 끊으면 설정 실수(file env 누락)로 푸시가 통째로 죽은 스토어 빌드가 정상처럼 만들어진다.
+  // 플랫폼을 가려서 보는 이유는 file env 가 플랫폼이 아니라 environment 단위라, 반대편 플랫폼
+  // 파일의 유무로 판정하면 엉뚱한 빌드가 통과해서다.
+  const isEasBuild = process.env.EAS_BUILD === 'true';
+  const easBuildPlatform = process.env.EAS_BUILD_PLATFORM;
+  for (const [platform, filePath, fileName, envVar] of [
+    ['ios', iosGoogleServices, 'GoogleService-Info.plist', 'GOOGLE_SERVICES_FILE_IOS'],
+    ['android', androidGoogleServices, 'google-services.json', 'GOOGLE_SERVICES_FILE_ANDROID'],
+  ] as const) {
+    if (existsSync(filePath)) continue;
     const message =
-      `[firebase] iOS GoogleService-Info.plist 가 없다: ${iosGoogleServices} — ` +
-      'Firebase 콘솔에서 받아 그 경로에 두거나 GOOGLE_SERVICES_FILE_IOS(EAS file env)로 공급해라.';
-    if (process.env.EAS_BUILD === 'true') throw new Error(message);
+      `[firebase] ${platform} ${fileName} 가 없다: ${filePath} — ` +
+      `Firebase 콘솔에서 받아 그 경로에 두거나 ${envVar}(EAS file env)로 공급해라.`;
+    // 플랫폼을 못 읽으면(값이 비면) 양쪽 다 요구해 안전한 쪽으로 떨어뜨린다.
+    if (isEasBuild && (!easBuildPlatform || easBuildPlatform === platform)) {
+      throw new Error(message);
+    }
     console.warn(message);
   }
 
@@ -66,6 +161,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     extra: {
       ...config.extra,
       webUrl,
+      androidNotificationChannelId: nativePublicConfig.android.notificationChannelId,
     },
     name: variant === 'production' ? 'Nook' : `Nook (${variant})`,
     slug: 'nook',
@@ -73,9 +169,39 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     scheme: [appId],
     plugins: [
       ...(config.plugins ?? []),
+      // expo-notifications 와 react-native-firebase 가 같은 FCM meta-data 를 각자 선언해
+      // 매니페스트 병합이 깨지는 걸 푼다. 모드가 역순으로 실행되므로 맨 앞이 곧 마지막 실행이다.
+      './plugins/withFcmNotificationOverride',
       '@bacons/apple-targets',
       'expo-apple-authentication',
-      'expo-notifications',
+      [
+        'expo-notifications',
+        {
+          // 안드로이드는 상태바 아이콘의 알파 채널만 쓰고 색을 버린다. 지정하지 않으면 플러그인이
+          // 관련 매니페스트 항목을 아예 지워서 런처 아이콘으로 폴백하는데, 그건 배경이 불투명한
+          // 정사각형이라 마스킹 결과가 흰 사각형이 된다 — 투명 배경 흰 실루엣을 따로 준다.
+          icon: './assets/notification-icon.png',
+          color: NOTIFICATION_ICON_COLOR,
+          // 앱이 죽어 있을 때 오는 알림은 앱 코드 없이 FCM SDK 가 띄운다. 이 채널을 못 찾으면
+          // 사용자 알림 설정에 "기타" 로 잡히므로, 같은 id 의 채널을 앱 시작 시 만든다
+          // (src/notifications/pushNotifications.ts).
+          defaultChannel: nativePublicConfig.android.notificationChannelId,
+        },
+      ],
+      [
+        'expo-location',
+        {
+          // 지도 화면의 현재 위치 조회(GET_CURRENT_POSITION). 웹의 navigator.geolocation 은
+          // iOS 에서 앱을 켤 때마다 오리진 프롬프트를 다시 띄워 셸이 대신 조회한다.
+          locationWhenInUsePermission:
+            '지도에서 현재 위치와 저장한 장소까지의 거리를 보여주기 위해 위치 정보를 사용해요.',
+          // 앱을 쓰는 동안만 조회한다. 비워두면 플러그인이 영문 기본 문구로 Always·모션 권한
+          // 설명까지 채워 쓰지도 않는 권한을 신고하게 된다 — false 는 키 자체를 지운다.
+          locationAlwaysAndWhenInUsePermission: false,
+          locationAlwaysPermission: false,
+          motionUsagePermission: false,
+        },
+      ],
       // SPM(기본값)으로 받으면 use_frameworks! 를 dynamic 으로 바꿔야 하는데, 그러면
       // kakao-login 이 링크 단계에서 깨진다(_RCTRegisterModule 심볼을 못 찾음).
       // CocoaPods 로 받게 돌려 기존 static 링크를 그대로 둔다.
@@ -156,9 +282,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         // 빌드에서 도로 지운다 — 단, 그 정리 스크립트는 "Expo Dev Launcher" 가 들어간
         // 자기 문구일 때만 지운다. 우리 문구로 덮어쓰면 정리를 피해 스토어 빌드까지
         // 따라 들어가고, 사용자는 "개발용" 이라는 알 수 없는 설명을 보게 된다.
-        // WebView(WKWebView) 내 지도 화면의 navigator.geolocation 호출용.
-        NSLocationWhenInUseUsageDescription:
-          '지도에서 현재 위치와 저장한 장소까지의 거리를 보여주기 위해 위치 정보를 사용해요.',
         NookSessionAccessGroup: sessionAccessGroup,
         NookAppGroup: `group.${appId}`,
       },
@@ -180,14 +303,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             ? './assets/android-icon-foreground-dev.png'
             : './assets/android-icon-foreground.png',
       },
-      // WebView geolocationEnabled 로 navigator.geolocation 을 쓰려면 필요하다.
-      permissions: [
-        ...(config.android?.permissions ?? []),
-        'android.permission.ACCESS_FINE_LOCATION',
-        'android.permission.ACCESS_COARSE_LOCATION',
-      ],
       // expo-image-picker 가 동영상용으로 넣지만 사진만 쓰므로 뺀다.
       blockedPermissions: ['android.permission.RECORD_AUDIO'],
     },
   };
-};
+}

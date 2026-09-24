@@ -35,7 +35,8 @@ function CollectionGridSkeleton() {
  * 수 있어야 해서 헤더는 실물로 그리고, 이름·탭·카드 자리만 뼈대로 채운다.
  *
  * 고정 헤더의 구성·여백은 `ArchiveDetailPage` 와 같게 맞춘다 — 메타가 도착해 실제
- * 헤더로 바뀔 때 콘텐츠 시작 위치가 움직이지 않아야 한다.
+ * 헤더로 바뀔 때 콘텐츠 시작 위치가 움직이지 않아야 한다. 아카이브 이름은 그 화면과
+ * 마찬가지로 고정 영역이 아니라 콘텐츠 쪽에 있다.
  */
 function ArchiveDetailSkeleton() {
   return (
@@ -43,13 +44,6 @@ function ArchiveDetailSkeleton() {
       header={
         <>
           <Header left={<BackButton />} />
-          {/* 아카이브 정보 — 색 스와치(size-3) + 이름(H1) */}
-          <div className="flex flex-col gap-1 px-4 pt-2 pb-4">
-            <div className="flex items-center gap-2">
-              <Skeleton className="size-3 shrink-0 rounded-none" />
-              <Skeleton className="h-7 w-40" />
-            </div>
-          </div>
           {/* 게시물/장소 탭 — 실제 탭의 py-3 + 경계선까지 같은 높이로 둔다. */}
           <div className="flex px-4">
             {['posts', 'places'].map((key) => (
@@ -65,6 +59,14 @@ function ArchiveDetailSkeleton() {
       }
       contentStyle={{ paddingBottom: `calc(1.25rem + ${BOTTOM_MENU_HEIGHT})` }}
     >
+      {/* 아카이브 정보 — 색 스와치(size-3) + 이름(H1). 실제 화면과 같이 고정 영역이
+          아니라 스크롤되는 콘텐츠 맨 위에 둔다. */}
+      <div className="flex flex-col gap-1 px-4 pt-2 pb-4">
+        <div className="flex items-center gap-2">
+          <Skeleton className="size-3 shrink-0 rounded-none" />
+          <Skeleton className="h-7 w-40" />
+        </div>
+      </div>
       <main>
         <CollectionGridSkeleton />
       </main>

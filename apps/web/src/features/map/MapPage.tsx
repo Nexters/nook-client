@@ -151,13 +151,16 @@ export function MapPage() {
     return () => setBottomMenuHidden(false);
   }, [selectedPlaceId, isSearchMode, setBottomMenuHidden]);
 
-  // 선택이 풀리면 "최근 저장한 공간" 목록을 최소 높이로 되돌린다. 핸들러를 거치지 않고
+  // 선택이 풀리면 "최근 저장한 공간" 목록을 최소 높이로 되돌린다. 검색 결과에서 연 상세를
+  // 닫은 경우에는 검색이 그대로 남아 있으므로(handlePlaceClick) 결과가 보이는 mid 로 되돌린다
+  // — peek 은 검색 필드만 남는 높이라 "직전 검색 결과로 복귀"가 되지 않는다. 핸들러를 거치지 않고
   // URL 에서 ?placeId 만 사라지는 경로도 여기로 수렴한다 — 장소 선택 상태에서 하단 탭
   // "지도"를 다시 누르면 같은 라우트로의 이동이라 remount 없이 파라미터만 빠진다(QA:
   // 그때도 목록 + 최소 높이로). 상세 전용 스냅(detailCompact·detailPage)은 목록 모드
   // 스냅 배열(BROWSE_SNAP_POINTS)에 없기도 해서, 남겨두면 시트가 갈 곳을 잃는다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: isSearchMode 는 되돌릴 높이를 고르는 데만 읽는다 — 검색을 켜고 끄는 것만으로 스냅이 움직이면 안 된다
   useEffect(() => {
-    if (selectedPlaceId === null) setSnap(PEEK_SNAP_POINT);
+    if (selectedPlaceId === null) setSnap(isSearchMode ? MID_SNAP_POINT : PEEK_SNAP_POINT);
   }, [selectedPlaceId]);
 
   if (location.status === 'loading') {
@@ -212,8 +215,10 @@ export function MapPage() {
   function handlePlaceClick(id: number, placeShareToken?: string | null) {
     setSelectedPlaceId(id, placeShareToken);
     setSnap(DETAIL_PAGE_SNAP_POINT); // detailPage 스냅으로 열어 상세를 보여준다
-    // 검색 결과에서 골랐어도 상세가 콘텐츠를 통째로 대체하므로 검색은 그대로 닫는다.
-    setIsSearchMode(false);
+    // 검색은 닫지 않는다 — 상세가 검색 패널을 가리기만 하고, 상세를 닫으면(= 뒤로가기 한 번)
+    // 치던 검색어와 결과가 그대로 있는 검색 화면으로 돌아온다. 검색 상태는 히스토리에 없어서
+    // (검색 패널은 엔트리를 쌓지 않는다) 여기서 닫아버리면 되감을 방법이 아예 없다.
+    // 가리는 건 PlaceSheet 가 한다 — 패널은 마운트된 채라 검색어·결과·칩 필터가 살아 있다.
   }
 
   function handleSnapChange(next: number | string | null) {

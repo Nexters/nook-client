@@ -14,6 +14,11 @@ export interface GroupResponse {
   color: string;
   /** 그룹 식별자 */
   id: number;
+  /**
+   * 내 아카이브에 마지막으로 게시물을 저장한 시각. 저장 이력이 없거나 공유 아카이브면 null
+   * @nullable
+   */
+  lastSavedAt?: string | null;
   /** 그룹명 */
   name: string;
   owner?: GroupOwnerResponse | null;

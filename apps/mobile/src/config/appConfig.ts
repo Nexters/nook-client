@@ -1,3 +1,4 @@
+import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 
 /**
@@ -7,6 +8,7 @@ import Constants from 'expo-constants';
  */
 interface NookExtra {
   webUrl?: string;
+  androidNotificationChannelId?: string;
 }
 
 const extra = (Constants.expoConfig?.extra ?? {}) as NookExtra;
@@ -22,7 +24,23 @@ function required(value: string | undefined, key: keyof NookExtra): string {
 export const WEB_URL = required(extra.webUrl, 'webUrl');
 
 /**
+ * 안드로이드 알림 채널 id. 매니페스트에 박히는 defaultChannel(app.config.ts)과 같은 값이어야
+ * 앱이 죽어 있을 때 FCM 이 띄우는 알림이 이 채널로 잡힌다 — 그래서 양쪽 다 SSOT 에서 읽는다.
+ */
+export const ANDROID_NOTIFICATION_CHANNEL_ID = required(
+  extra.androidNotificationChannelId,
+  'androidNotificationChannelId',
+);
+
+/**
  * app.json 의 `version` — 스토어에 노출되는 마케팅 버전이다.
  * URL 들과 달리 없다고 앱이 못 도는 값은 아니라서, 비면 웹이 버전 표기를 숨기게 둔다.
  */
 export const APP_VERSION = Constants.expoConfig?.version ?? '';
+
+/**
+ * 바이너리에 찍힌 네이티브 빌드 번호(iOS CFBundleVersion / Android versionCode).
+ * EAS 가 autoIncrement 로 올리는 값이라 config 가 아닌 바이너리에서 읽는다.
+ * 서버의 최소 지원 버전 정책(X-App-Build-Number)이 이 값을 쓴다.
+ */
+export const APP_BUILD_NUMBER = Application.nativeBuildVersion ?? '';

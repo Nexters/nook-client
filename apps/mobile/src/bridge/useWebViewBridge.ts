@@ -1,13 +1,15 @@
 import { parseWebToNative } from '@nook/bridge-contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Linking, Platform } from 'react-native';
+import { BackHandler, Linking, Platform, Share } from 'react-native';
 import type { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { runSocialLogin } from '../auth/socialLogin';
-import { APP_VERSION, WEB_URL } from '../config/appConfig';
+import { APP_BUILD_NUMBER, APP_VERSION, WEB_URL } from '../config/appConfig';
+import { getCurrentPosition } from '../location/currentPosition';
 import { runImagePick } from '../media/imagePicker';
 import {
   addNotificationOpenedListener,
   addPushTokenRefreshListener,
+  ensureAndroidNotificationChannel,
   getInitialNotificationOpened,
   getPushStatusAndToken,
   type PushNotificationOpened,
@@ -20,6 +22,7 @@ import {
   restoreSession,
 } from '../session/sessionCoordinator';
 import { resolveAppLinkWebUrl } from '../webview/appLink';
+import { buildInjectedGlobalsScript } from '../webview/injectedGlobals';
 import {
   decideNavigation,
   isOpenableExternalUrl,
@@ -29,11 +32,12 @@ import {
 
 const WEB_ORIGIN = resolveHttpOrigin(WEB_URL);
 // 값이 바뀌지 않는 셸 정보라 메시지 왕복 없이 로드 전에 심어둔다(플랫폼과 같은 취급).
-const INJECT_BEFORE = [
-  `window.__nookPlatform = ${JSON.stringify(Platform.OS)};`,
-  `window.__nookAppVersion = ${JSON.stringify(APP_VERSION)};`,
-  'true;',
-].join(' ');
+const INJECT_BEFORE = buildInjectedGlobalsScript({
+  platform: Platform.OS,
+  appVersion: APP_VERSION,
+  buildNumber: APP_BUILD_NUMBER,
+  bridgeFeatures: ['geolocation'],
+});
 
 interface NavigationRequest {
   url: string;
@@ -80,6 +84,8 @@ export function useWebViewBridge() {
       Linking.getInitialURL().catch(() => null),
       restoreSession().catch(() => null),
       getInitialNotificationOpened().catch(() => null),
+      // 첫 알림이 오기 전에 채널이 있어야 한다. 실패해도 앱 시작을 막지 않는다.
+      ensureAndroidNotificationChannel().catch(() => undefined),
     ]).then(([initialUrl, , initialNotificationOpened]) => {
       if (!active) return;
       if (!receivedRuntimeLink && initialUrl) applyAppLink(initialUrl);
@@ -227,6 +233,26 @@ export function useWebViewBridge() {
               type: 'IMAGE_PICK_RESULT',
               payload: { requestId, source, ...outcome },
             });
+          });
+          break;
+        }
+        // 웹의 navigator.share 가 없거나 거절된 경우에만 온다(Android WebView).
+        // 시트가 닫혀야 promise 가 끝나므로 결과는 그때 한 번 보낸다.
+        case 'SHARE': {
+          const { requestId, title, url } = message.payload;
+          // iOS 는 url 을 따로 받아 링크로 다루고, Android 는 message 만 공유한다.
+          void Share.share(Platform.OS === 'ios' ? { title, url } : { title, message: url })
+            .then((result) => (result.action === Share.sharedAction ? 'shared' : 'dismissed'))
+            .catch(() => 'dismissed' as const)
+            .then((status) => {
+              send({ v: 1, type: 'SHARE_RESULT', payload: { requestId, status } });
+            });
+          break;
+        }
+        case 'GET_CURRENT_POSITION': {
+          const { requestId } = message.payload;
+          void getCurrentPosition().then((coords) => {
+            send({ v: 1, type: 'CURRENT_POSITION_RESULT', payload: { requestId, coords } });
           });
           break;
         }

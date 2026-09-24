@@ -1365,6 +1365,14 @@
             "format": "int64",
             "type": "integer"
           },
+          "lastSavedAt": {
+            "description": "내 아카이브에 마지막으로 게시물을 저장한 시각. 저장 이력이 없거나 공유 아카이브면 null",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "name": {
             "description": "그룹명",
             "example": "초록뷰 카페",

@@ -407,7 +407,7 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
     await screen.findByText(`스냅: ${MID_SNAP_POINT}`);
   });
 
-  it('검색 결과에서 장소를 고르면 검색이 닫히고 선택이 URL 에 실린다', async () => {
+  it('검색 결과에서 장소를 골라도 검색 모드는 그대로다 — 상세가 검색 패널을 가릴 뿐이다', async () => {
     renderMapAt('/map');
     await screen.findByText('검색모드: false');
 
@@ -416,8 +416,41 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '검색 결과 선택' }));
 
-    await screen.findByText('검색모드: false');
+    expect(await screen.findByText('선택됨: 장소 1')).toBeInTheDocument();
     expect(screen.getByTestId('search-params').textContent).toBe('?placeId=1');
+    await screen.findByText('검색모드: true');
+  });
+
+  it('검색 결과에서 연 상세를 닫으면 지도가 아니라 직전 검색 결과로 돌아온다', async () => {
+    const { MID_SNAP_POINT } = await import('@/features/map/constants');
+    renderMapAt('/map');
+    await screen.findByText('검색모드: false');
+
+    fireEvent.click(screen.getByRole('button', { name: '검색 진입' }));
+    fireEvent.click(screen.getByRole('button', { name: '검색 결과 선택' }));
+    await screen.findByText('선택됨: 장소 1');
+
+    fireEvent.click(screen.getByRole('button', { name: '상세 닫기' }));
+
+    // 뒤로가기 한 번 = 상세만 닫힌다. 검색은 켜진 채고, 결과가 보이는 높이로 되돌아온다.
+    await screen.findByText('선택 없음');
+    await screen.findByText('검색모드: true');
+    await screen.findByText(`스냅: ${MID_SNAP_POINT}`);
+    expect(screen.getByTestId('search-params').textContent).toBe('');
+  });
+
+  it('검색에서 연 상세는 히스토리 뒤로가기(스와이프·하드웨어 백)로도 검색 결과로 돌아온다', async () => {
+    renderMapAt('/map');
+    await screen.findByText('검색모드: false');
+
+    fireEvent.click(screen.getByRole('button', { name: '검색 진입' }));
+    fireEvent.click(screen.getByRole('button', { name: '검색 결과 선택' }));
+    await screen.findByText('선택됨: 장소 1');
+
+    fireEvent.click(screen.getByRole('button', { name: '뒤로가기' }));
+
+    await screen.findByText('선택 없음');
+    await screen.findByText('검색모드: true');
   });
 
   it('mid/full 등 peek 이 아닌 높이에서는 입력 포커스가 스냅을 바꾸지 않는다', async () => {

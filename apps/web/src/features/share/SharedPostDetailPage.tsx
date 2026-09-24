@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
+import { PinnedHeaderLayout, PinnedHeaderTitle } from '@/app/layouts/PinnedHeaderLayout';
 import { ArchiveEmpty } from '@/features/archive/components/ArchiveEmpty';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { PlaceRow } from '@/features/place';
@@ -43,6 +43,9 @@ export function SharedPostDetailPage() {
   };
   // 영상 확대뷰는 이미지 뷰어와 레이아웃이 달라 별도 레이어다. 닫는 방식은 같다.
   const [videoViewerOpen, openVideoViewer, closeVideoViewer] = useHistoryBackedFlag('videoViewer');
+
+  // 게시물 상세와 같은 계약 — 제목이 헤더 뒤로 숨으면 헤더가 이어받는다.
+  const titleRef = useRef<HTMLHeadingElement>(null);
 
   const detailQuery = useSharedPostDetail(token, sharedPostId);
   const savePost = useSaveSharedPost();
@@ -96,14 +99,21 @@ export function SharedPostDetailPage() {
 
   return (
     <PinnedHeaderLayout
-      header={<Header left={<BackButton onClick={goBack} />} />}
+      header={
+        <Header
+          left={<BackButton onClick={goBack} />}
+          title={<PinnedHeaderTitle target={titleRef}>{title}</PinnedHeaderTitle>}
+        />
+      }
       contentStyle={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
     >
       <main>
         <PostImages media={media} onImageClick={openViewerAt} onVideoExpand={openVideoViewer} />
 
         <div className="flex flex-col gap-2 px-4 pt-1">
-          <h1 className="text-h2 font-semibold text-gray-100">{title}</h1>
+          <h1 ref={titleRef} className="text-h2 font-semibold text-gray-100">
+            {title}
+          </h1>
 
           {post.caption ? <ExpandableCaption caption={post.caption} /> : null}
 

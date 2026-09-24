@@ -54,6 +54,9 @@ export function useArchivePosts(archiveId: number | undefined) {
       totalElements: data.pages[0]?.totalElements ?? 0,
     }),
     enabled: isAuthenticated && archiveId !== undefined,
+    // 폴링은 화면에 있는 동안만 돈다 — 떠나 있는 사이 끝난 처리를 진입 즉시 반영하려면
+    // 한 번은 다시 읽어야 한다. 폴링이 이미 매 3초 전 페이지를 다시 읽으므로 추가 비용은 그보다 작다.
+    refetchOnMount: 'always',
     refetchInterval: (query) => {
       const anyProcessing = query.state.data?.pages.some((page) =>
         page.posts.some((post) => post.processingState === 'processing'),
@@ -81,6 +84,7 @@ export function useArchivePlaces(archiveId: number | undefined) {
       totalElements: data.pages[0]?.totalElements ?? 0,
     }),
     enabled: isAuthenticated && archiveId !== undefined,
+    refetchOnMount: 'always',
     refetchInterval: (query) => {
       const anyProcessing = query.state.data?.pages.some((page) =>
         page.places.some((place) => place.thumbnailState === 'processing'),

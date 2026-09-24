@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -63,6 +64,7 @@ import com.nook.app.share.ui.suit
 
 // 새 아카이브 생성 행 + 아카이브 4개까지 노출(56*5=280), 초과 시 스크롤. 새 아카이브 생성 행도 스크롤에 포함.
 private const val SCROLL_REGION_DP = 280
+private const val ROW_HEIGHT_DP = 56
 
 enum class ShareFeedbackKind(
     val icon: NookIconName,
@@ -80,6 +82,7 @@ data class ShareFeedbackState(val kind: ShareFeedbackKind, val id: Long)
 @Composable
 fun ShareScreen(
     groups: List<Group>,
+    preselectedGroupId: Long?,
     feedback: ShareFeedbackState?,
     onSave: (Set<Long>, String, (Boolean) -> Unit) -> Unit,
     onCreateGroup: (String, Int, (Boolean) -> Unit) -> Unit,
@@ -142,6 +145,7 @@ fun ShareScreen(
                 } else {
                     SelectGroupContent(
                         groups,
+                        preselectedGroupId,
                         panelFraction,
                         onSave,
                         onCreateGroup = { showCreate = true },
@@ -274,13 +278,29 @@ private fun SheetHandle(onDrag: (Float) -> Unit, onDragEnd: () -> Unit) {
 @Composable
 private fun SelectGroupContent(
     groups: List<Group>,
+    preselectedGroupId: Long?,
     panelFraction: Float,
     onSave: (Set<Long>, String, (Boolean) -> Unit) -> Unit,
     onCreateGroup: () -> Unit,
 ) {
-    val selected = remember { mutableStateListOf<Long>() }
+    val selected = remember(preselectedGroupId) {
+        mutableStateListOf<Long>().apply { preselectedGroupId?.let(::add) }
+    }
     var memo by remember { mutableStateOf("") }
     var isSaving by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    val density = LocalDensity.current
+
+    // 방금 만든 아카이브는 서버 정렬상 목록 아래쪽에 올 수 있다 — 체크된 행이 보이도록 끌어온다.
+    // 행 높이가 56dp 고정이라 위치를 바로 계산한다 (생성 행 1개 + 앞선 행들 + 자기 자신).
+    LaunchedEffect(preselectedGroupId, groups) {
+        val index = groups.indexOfFirst { it.id == preselectedGroupId }
+        if (index < 0) return@LaunchedEffect
+        val rowPx = with(density) { ROW_HEIGHT_DP.dp.toPx() }
+        val regionPx = with(density) { SCROLL_REGION_DP.dp.toPx() }
+        val rowBottom = (index + 2) * rowPx
+        scrollState.animateScrollTo((rowBottom - regionPx).coerceAtLeast(0f).roundToInt())
+    }
 
     // 키보드가 열리면 핸들 + 인풋만 남기고, 아카이브 리스트는 키보드 인셋에 맞춰 실시간 접힘
     CollapsibleByIme(panelFraction) {
@@ -288,7 +308,7 @@ private fun SelectGroupContent(
             Modifier
                 .fillMaxWidth()
                 .heightIn(max = SCROLL_REGION_DP.dp)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp),
         ) {
             CreateGroupRow(onClick = onCreateGroup)
@@ -412,6 +432,7 @@ private fun CreateGroupHeader(onBack: () -> Unit) {
 private fun ShareScreenPreview() {
     ShareScreen(
         groups = emptyList(),
+        preselectedGroupId = null,
         feedback = ShareFeedbackState(ShareFeedbackKind.Network, 1),
         onSave = { _, _, _ -> },
         onCreateGroup = { _, _, _ -> },
