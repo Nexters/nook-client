@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const endpoints = vi.hoisted(() => ({
   getDetail: vi.fn(),
+  getMapPlaces: vi.fn(),
 }));
 
 vi.mock('@/shared/api', async (importOriginal) => ({
@@ -10,11 +11,18 @@ vi.mock('@/shared/api', async (importOriginal) => ({
 }));
 
 import type {
+  MapPlaceResponse,
   PlaceDetailResponse,
   RecentPlaceResponse,
   SavedPlaceSearchPageResponse,
 } from '@/shared/api';
-import { fetchPlacePosts, toPlaceDetail, toRecentPlace, toSavedPlaceSearchPage } from '.';
+import {
+  fetchMapPins,
+  fetchPlacePosts,
+  toPlaceDetail,
+  toRecentPlace,
+  toSavedPlaceSearchPage,
+} from '.';
 
 const RECENT_PLACE_BASE: RecentPlaceResponse = {
   id: 21,
@@ -193,7 +201,7 @@ describe('toSavedPlaceSearchPage', () => {
 });
 
 /** 서버 공통 envelope — `unwrapApiResponse` 가 이 모양을 기대한다. */
-function ok(success: PlaceDetailResponse) {
+function ok<T>(success: T) {
   return { resultType: 'SUCCESS' as const, error: null, success };
 }
 
@@ -226,6 +234,40 @@ function placeDetailResponse(posts: {
     categoryGroup: 'ETC',
   };
 }
+
+describe('fetchMapPins', () => {
+  const BOUNDS = { north: 38, south: 37, east: 128, west: 126 };
+  const MAP_PLACE: MapPlaceResponse = {
+    id: 5,
+    name: '앤트러사이트',
+    color: 'YELLOW',
+    categoryGroup: 'BAKERY',
+    latitude: 37.5,
+    longitude: 127,
+    tags: [],
+    thumbnailParsingStatus: 'COMPLETED',
+  };
+
+  it('핀에 카테고리 그룹을 옮긴다', async () => {
+    endpoints.getMapPlaces.mockResolvedValue(ok([MAP_PLACE]));
+
+    const [pin] = await fetchMapPins(BOUNDS);
+
+    expect(pin).toEqual(
+      expect.objectContaining({ id: 5, color: 'yellow', categoryGroup: 'BAKERY' }),
+    );
+  });
+
+  // 운영 서버가 필드를 내리기 전 응답 — 타입은 필수지만 실제로는 빠져 올 수 있다.
+  it('카테고리 그룹이 빠진 응답은 비워 둔다', async () => {
+    const { categoryGroup: _, ...legacy } = MAP_PLACE;
+    endpoints.getMapPlaces.mockResolvedValue(ok([legacy]));
+
+    const [pin] = await fetchMapPins(BOUNDS);
+
+    expect(pin?.categoryGroup).toBeUndefined();
+  });
+});
 
 describe('fetchPlacePosts', () => {
   beforeEach(() => {

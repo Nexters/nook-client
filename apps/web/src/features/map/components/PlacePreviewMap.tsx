@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Container as MapDiv, NaverMap, useNavermaps } from 'react-naver-maps';
 import { PlacePin } from '@/features/map/components/PlacePin';
 import { buildNaverMapStyleProps, resolveMapStyle } from '@/features/map/map-style';
+import type { PlaceCategoryGroup } from '@/features/map/types';
 
 // 장소 1곳을 보여주는 축척이라 홈 지도의 초기 줌(constants `DEFAULT_ZOOM`, 광역)과는 무관하다.
 const PREVIEW_ZOOM = 18;
@@ -27,7 +28,7 @@ export function PlacePreviewMap({
    */
   sheetSnapPoint = 0.5,
 }: {
-  place: { name: string; lat: number; lng: number };
+  place: { name: string; lat: number; lng: number; categoryGroup?: PlaceCategoryGroup };
   sheetSnapPoint?: number;
 }) {
   const navermaps = useNavermaps();
@@ -62,7 +63,14 @@ export function PlacePreviewMap({
         {...styleProps}
       >
         {/* 검색 결과는 아직 아카이브 색이 없다 — 시안(선택 마커)의 파란 물방울로 고정. */}
-        <PlacePin lat={place.lat} lng={place.lng} name={place.name} color="blue" selected />
+        <PlacePin
+          lat={place.lat}
+          lng={place.lng}
+          name={place.name}
+          color="blue"
+          categoryGroup={place.categoryGroup}
+          selected
+        />
       </NaverMap>
     </MapDiv>
   );
