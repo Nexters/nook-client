@@ -4,6 +4,7 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { SavedPlaceSearchItemResponseCategoryGroup } from './savedPlaceSearchItemResponseCategoryGroup.generated';
 
 export interface SavedPlaceSearchItemResponse {
   /** 장소 주소 */
@@ -13,6 +14,8 @@ export interface SavedPlaceSearchItemResponse {
    * @nullable
    */
   category?: string | null;
+  /** 장소 카테고리 그룹 */
+  categoryGroup: SavedPlaceSearchItemResponseCategoryGroup;
   /** 장소 식별자 */
   id: number;
   /** 장소명 */

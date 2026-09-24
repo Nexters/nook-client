@@ -21,6 +21,7 @@ const RECENT_PLACE_BASE: RecentPlaceResponse = {
   name: '온기 카페',
   address: '서울 마포구 연남동',
   category: '카페',
+  categoryGroup: 'CAFE',
   latitude: 37.56,
   longitude: 126.92,
   tags: [],
@@ -102,6 +103,7 @@ const PAGE: SavedPlaceSearchPageResponse = {
       name: '하우스 오브 와일드',
       address: '서울 성동구 성수이로 118',
       category: '카페',
+      categoryGroup: 'CAFE',
       thumbnailUrl: 'https://img.example/haus.jpg',
     },
   ],
@@ -151,6 +153,7 @@ describe('toSavedPlaceSearchPage', () => {
           name: '썸네일 없는 곳',
           address: '서울 마포구',
           category: null,
+          categoryGroup: 'ETC',
           thumbnailUrl: null,
         },
       ],
@@ -162,7 +165,15 @@ describe('toSavedPlaceSearchPage', () => {
   it('카테고리가 null 이면 undefined 로 비운다', () => {
     const page = toSavedPlaceSearchPage({
       ...PAGE,
-      items: [{ id: 12, name: '탐석과 사랑', address: '경기 성남시 분당구', category: null }],
+      items: [
+        {
+          id: 12,
+          name: '탐석과 사랑',
+          address: '경기 성남시 분당구',
+          category: null,
+          categoryGroup: 'ETC',
+        },
+      ],
     });
 
     expect(page.items[0]?.category).toBeUndefined();
@@ -172,7 +183,9 @@ describe('toSavedPlaceSearchPage', () => {
   it('주소가 비어 있으면 region 을 비운다', () => {
     const page = toSavedPlaceSearchPage({
       ...PAGE,
-      items: [{ id: 13, name: '이름만 있는 곳', address: '', category: '카페' }],
+      items: [
+        { id: 13, name: '이름만 있는 곳', address: '', category: '카페', categoryGroup: 'CAFE' },
+      ],
     });
 
     expect(page.items[0]?.region).toBeUndefined();
@@ -210,6 +223,7 @@ function placeDetailResponse(posts: {
     externalPlaceId: 'kakao-9',
     provider: 'kakao',
     thumbnailParsingStatus: 'COMPLETED' as const,
+    categoryGroup: 'ETC',
   };
 }
 

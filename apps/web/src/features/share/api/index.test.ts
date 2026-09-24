@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const endpoints = vi.hoisted(() => ({
-  get: vi.fn(),
+  get1: vi.fn(),
   posts: vi.fn(),
   places: vi.fn(),
   subscribe: vi.fn(),
@@ -45,7 +45,7 @@ const META_RESPONSE = {
 
 describe('share fetchers', () => {
   beforeEach(() => {
-    endpoints.get.mockReset().mockResolvedValue(META_RESPONSE);
+    endpoints.get1.mockReset().mockResolvedValue(META_RESPONSE);
     endpoints.posts.mockReset().mockResolvedValue({
       resultType: 'SUCCESS',
       success: { items: [], hasNext: false, totalElements: 0, ownerNickname: 'ehoidi' },
@@ -56,7 +56,7 @@ describe('share fetchers', () => {
 
   it('메타는 인증 없이 조회하고 Archive 모델로 변환한다', async () => {
     const archive = await fetchSharedArchive('tok-123');
-    expect(endpoints.get).toHaveBeenCalledWith('tok-123');
+    expect(endpoints.get1).toHaveBeenCalledWith('tok-123');
     expect(archive).toMatchObject({ id: 27, name: '카페', owner: { nickname: 'ehoidi' } });
   });
 

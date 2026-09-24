@@ -20,6 +20,7 @@ const PLACE_BASE: GroupPlaceSummaryResponse = {
   name: '스시집',
   address: '서울 강남구',
   category: '스시',
+  categoryGroup: 'RESTAURANT',
   latitude: 37.5,
   longitude: 127.0,
   tags: [],

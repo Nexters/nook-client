@@ -8,6 +8,7 @@ const DTO: PlaceSearchResponse = {
   latitude: 37.478,
   longitude: 126.951,
   category: '일식',
+  categoryGroup: 'RESTAURANT',
   distanceMeters: 16223,
   selectionToken: 'token-앤미',
 };

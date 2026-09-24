@@ -4,6 +4,7 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { MapPlaceResponseCategoryGroup } from './mapPlaceResponseCategoryGroup.generated';
 import type { MapPlaceResponseThumbnailParsingStatus } from './mapPlaceResponseThumbnailParsingStatus.generated';
 
 export interface MapPlaceResponse {
@@ -12,6 +13,8 @@ export interface MapPlaceResponse {
    * @nullable
    */
   category?: string | null;
+  /** 장소 카테고리 그룹 */
+  categoryGroup: MapPlaceResponseCategoryGroup;
   /**
    * 장소 지역
    * @nullable
