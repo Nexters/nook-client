@@ -9,7 +9,8 @@ import type { Archive } from '@/features/archive/types';
 import { toPostDetail, updatePostMemo } from '@/features/post/api';
 import type { PostDetail } from '@/features/post/types';
 import {
-  get as getSharedArchiveEndpoint,
+  // 생성기가 `/me/push-preferences` 의 `get` 과 이름이 겹쳐 붙인 `1` 접미사다 — 여기서만 풀어준다.
+  get1 as getSharedArchiveEndpoint,
   places as listSharedPlacesEndpoint,
   posts as listSharedPostsEndpoint,
   save as saveSharedPostEndpoint,

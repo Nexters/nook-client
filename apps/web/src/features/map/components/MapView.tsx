@@ -196,6 +196,7 @@ export function MapView({
             name={selectedPin.name}
             color={selectedPin.color}
             thumbnail={selectedPin.thumbnail}
+            categoryGroup={selectedPin.categoryGroup}
             selected
             onClick={() => onPlaceClick?.(selectedPin.id)}
           />

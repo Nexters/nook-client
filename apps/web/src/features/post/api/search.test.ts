@@ -8,6 +8,7 @@ const DTO: PlaceSearchResponse = {
   latitude: 37.478,
   longitude: 126.951,
   category: '일식',
+  categoryGroup: 'RESTAURANT',
   distanceMeters: 16223,
   selectionToken: 'token-앤미',
 };
@@ -22,6 +23,7 @@ describe('toSearchedPlace', () => {
     expect(place.address).toBe('서울 관악구 관악로 12길 47 (봉천동)');
     expect(place.latitude).toBe(37.478);
     expect(place.longitude).toBe(126.951);
+    expect(place.categoryGroup).toBe('RESTAURANT');
   });
 
   it('거리는 미터를 시안 표기(km/m)로 바꾼다', () => {

@@ -4,6 +4,7 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { GroupPlaceSummaryResponseCategoryGroup } from './groupPlaceSummaryResponseCategoryGroup.generated';
 import type { GroupPlaceSummaryResponseThumbnailParsingStatus } from './groupPlaceSummaryResponseThumbnailParsingStatus.generated';
 
 export interface GroupPlaceSummaryResponse {
@@ -14,6 +15,8 @@ export interface GroupPlaceSummaryResponse {
    * @nullable
    */
   category?: string | null;
+  /** 장소 카테고리 그룹 */
+  categoryGroup: GroupPlaceSummaryResponseCategoryGroup;
   /**
    * 장소 지역
    * @nullable

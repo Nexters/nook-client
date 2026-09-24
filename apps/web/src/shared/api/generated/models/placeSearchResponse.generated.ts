@@ -4,6 +4,7 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { PlaceSearchResponseCategoryGroup } from './placeSearchResponseCategoryGroup.generated';
 
 export interface PlaceSearchResponse {
   /** 장소 주소 */
@@ -13,11 +14,18 @@ export interface PlaceSearchResponse {
    * @nullable
    */
   category?: string | null;
+  /** 장소 카테고리 그룹 */
+  categoryGroup: PlaceSearchResponseCategoryGroup;
   /**
    * 검색 기준 좌표와의 거리(m)
    * @nullable
    */
   distanceMeters?: number | null;
+  /**
+   * 동일 provider 장소가 서버에 이미 있으면 내부 장소 식별자, 없으면 null
+   * @nullable
+   */
+  existingPlaceId?: number | null;
   /** 장소 위도 */
   latitude: number;
   /** 장소 경도 */

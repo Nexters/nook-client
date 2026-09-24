@@ -1,4 +1,4 @@
-import type { PlaceOpeningHoursResponse } from '@/shared/api';
+import type { MapPlaceResponseCategoryGroup, PlaceOpeningHoursResponse } from '@/shared/api';
 import type { ArchiveColor } from '@/shared/ui';
 
 /** 지도 뷰포트 경계 — `GetMapPlacesParams`(북쪽/남쪽/동쪽/서쪽 위경도)에 대응한다. */
@@ -22,7 +22,12 @@ export interface MapPin {
   color: ArchiveColor;
   /** 장소 대표 썸네일. 없으면 핀이 빈 썸네일 고스트로 그려진다. */
   thumbnail?: string;
+  /** 선택 핀의 글리프를 고르는 공통 카테고리. 없으면 기타 글리프다. */
+  categoryGroup?: PlaceCategoryGroup;
 }
+
+/** 장소 공통 카테고리 그룹 — 장소 응답마다 같은 서버 enum 이 따로 생성돼 지도 쪽 이름 하나로 묶는다. */
+export type PlaceCategoryGroup = MapPlaceResponseCategoryGroup;
 
 /** `PlaceSheet` 목록 모드("최근 저장한 공간")에 쓰는 카드 한 건. */
 export interface RecentPlace {
