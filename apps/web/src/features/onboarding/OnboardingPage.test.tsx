@@ -12,11 +12,20 @@ vi.mock('@/features/share/lib/shareUrl', () => ({ shareViaSystem }));
 // 3장은 Lottie 다. 전역 setup 이 플레이어를 null 로 바꿔 두므로, 이 장이 무엇을 띄웠는지만
 // 보이게 접근성 이름을 흘려 주는 자리표시자로 바꾼다. JSON(1MB)은 읽을 필요가 없다.
 vi.mock('@/shared/ui/lottie', () => ({
-  Lottie: ({ 'aria-label': label }: { 'aria-label'?: string }) => (
-    <div role="img" aria-label={label} />
-  ),
+  Lottie: ({
+    'aria-label': label,
+    animationData,
+  }: {
+    'aria-label'?: string;
+    animationData?: { nm?: string };
+  }) => <div role="img" aria-label={label} data-lottie={animationData?.nm} />,
 }));
-vi.mock('@/assets/lottie/onboarding_guide_3.json', () => ({ default: {} }));
+vi.mock('@/assets/lottie/onboarding_guide_1.json', () => ({ default: { nm: 'slide-1' } }));
+vi.mock('@/assets/lottie/onboarding_guide_2.json', () => ({ default: { nm: 'slide-2-ios' } }));
+vi.mock('@/assets/lottie/onboarding_guide_2_android.json', () => ({
+  default: { nm: 'slide-2-android' },
+}));
+vi.mock('@/assets/lottie/onboarding_guide_3.json', () => ({ default: { nm: 'slide-3' } }));
 
 const postMessage = vi.fn();
 
@@ -95,18 +104,21 @@ beforeEach(() => {
 afterEach(() => {
   localStorage.clear();
   Reflect.deleteProperty(window, 'ReactNativeWebView');
+  Reflect.deleteProperty(window, '__nookPlatform');
   shareViaSystem.mockReset();
   postMessage.mockReset();
 });
 
 describe('온보딩 화면', () => {
-  it('1장의 문구와 모션을 보여준다', () => {
+  it('1장의 문구와 모션을 보여준다 — 그림은 Lottie 다', async () => {
     renderPage();
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('인스타그램 게시물로');
-    expect(screen.getByTitle('앱을 열지 않고도 바로 저장할 수 있어요').getAttribute('src')).toBe(
-      '/onboarding/tutorial-1.html',
-    );
+    expect(
+      await screen.findByRole('img', { name: '앱을 열지 않고도 바로 저장할 수 있어요' }),
+    ).toBeInTheDocument();
+    // HTML 판(4.8MB)은 더 붙지 않는다.
+    expect(screen.queryByTitle('앱을 열지 않고도 바로 저장할 수 있어요')).not.toBeInTheDocument();
   });
 
   it('다음을 누르면 2장 — 모션이 바뀌고 CTA 가 설정하기가 된다', async () => {
@@ -117,9 +129,9 @@ describe('온보딩 화면', () => {
     await act(async () => {});
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('누크를 즐겨찾기하고');
-    expect(screen.getByTitle('이렇게 하면 저장이 2배 더 빨라져요!').getAttribute('src')).toBe(
-      '/onboarding/tutorial-2.html',
-    );
+    expect(
+      screen.getByRole('img', { name: '이렇게 하면 저장이 2배 더 빨라져요!' }),
+    ).toHaveAttribute('data-lottie', 'slide-2-ios');
     expect(screen.getByText('이 화면에서 바로 설정할 수 있어요!')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '다음' })).not.toBeInTheDocument();
   });
@@ -138,7 +150,9 @@ describe('온보딩 화면', () => {
     // 시트가 화면 아래를 덮으므로 문구·버튼은 걷고, 따라 볼 모션만 남긴다.
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '설정하기' })).not.toBeInTheDocument();
-    expect(screen.getByTitle('이렇게 하면 저장이 2배 더 빨라져요!')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: '이렇게 하면 저장이 2배 더 빨라져요!', hidden: true }),
+    ).toBeInTheDocument();
   });
 
   it('시트를 닫으면 2장에 남아 다음·다시 설정하기가 뜨고, 다시 설정하기는 시트를 또 연다', async () => {
@@ -200,10 +214,13 @@ describe('온보딩 화면', () => {
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
 
     expect(currentLocation()).toBe('/onboarding?slide=1');
+    // 2장에 오면 3장 Lottie 를 미리 받기 시작한다 — 그 import 가 끝나는 것까지 기다린다.
+    await act(async () => {});
   });
 
   it('다시 뜰 때 URL 의 장부터 보여준다 — 1·2·3장 어디서 이탈했든 그 장이다', async () => {
     const { unmount } = renderPage('/onboarding?slide=1');
+    await act(async () => {});
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('누크를 즐겨찾기하고');
     // 2장의 안내(말풍선·설정하기)도 그대로다 — 공유 시트를 열기 전 상태로 돌아온다.
     expect(screen.getByRole('button', { name: '설정하기' })).toBeInTheDocument();
@@ -246,6 +263,36 @@ describe('온보딩 화면', () => {
 
     swipeSlide(120);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('누크를 즐겨찾기하고');
+  });
+
+  // 2장은 iOS 공유 시트를 그린 그림이라 Android 에서는 디자이너가 따로 그린 판을 쓴다.
+  // 어느 판을 쓸지는 셸이 로드 전에 심어 준 platform 으로 모듈을 읽는 시점에 정해지므로,
+  // 그 값을 먼저 심고 모듈을 다시 읽어야 한다.
+  it('Android 셸에서는 2장 그림이 Android 판 Lottie 다', async () => {
+    Object.defineProperty(window, '__nookPlatform', { configurable: true, value: 'android' });
+    vi.resetModules();
+    const { OnboardingPage: AndroidOnboardingPage } = await import(
+      '@/features/onboarding/OnboardingPage'
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/onboarding?slide=1']}>
+        <AndroidOnboardingPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('누크를 즐겨찾기하고');
+    // iOS 판(228KB)이 아니라 Android 판(1.25MB)을 받는다 — 시트 모양이 아예 다르다.
+    expect(
+      await screen.findByRole('img', { name: '이렇게 하면 저장이 2배 더 빨라져요!' }),
+    ).toHaveAttribute('data-lottie', 'slide-2-android');
+    // 1장은 어느 OS 에서나 Lottie 다(지금은 화면 밖 장이라 낭독에서 빠져 있다).
+    expect(
+      await screen.findByRole('img', {
+        name: '앱을 열지 않고도 바로 저장할 수 있어요',
+        hidden: true,
+      }),
+    ).toBeInTheDocument();
   });
 
   it('닫기도 기록한다 — 그만 보겠다는 선택이라 다음 진입에 다시 띄우지 않는다', async () => {

@@ -21,21 +21,20 @@ const SHARE_TARGET = { title: 'nook', url: env.webOrigin };
 const INSTAGRAM_URL = 'https://www.instagram.com/p/DcTo_cCD-G8/?stkn=YWRzcjE2d3lrOGdi';
 
 /**
- * 가운데 그림. 디자이너가 HTML 로만 준 장은 iframe 으로, Lottie JSON 이 있는 장은 그걸로 재생한다.
- * JSON 쪽이 가볍다 — 3장의 HTML 은 lottie-web 런타임에 같은 JSON 을 박아 넣은 미리보기일 뿐인데,
- * 런타임은 이미 번들에 있다(`@/shared/ui/lottie`).
+ * 가운데 그림. 모두 Lottie JSON 이다.
+ *
+ * 처음에는 디자이너가 준 HTML(장당 3.5~4.8MB, 대부분 인라인 base64 사진)을 iframe 으로
+ * 띄웠는데, 받고 디코딩하는 동안 빈 자리였고 파일 안 스크립트가 배율을 정할 때까지 CSS 기본
+ * 배율로 크게 그려졌다. Lottie 로 바꾸니 228~1282KB 로 줄고 배율 계산도 사라졌다.
  */
-type OnboardingMotion =
-  | {
-      html: string;
-      /**
-       * iframe 폭. 그림은 파일의 `fitStage` 가 그릇(좌우·위아래 24px 씩 빼고)에 원본 비율로
-       * 맞추므로, 폭만 줄이면 비율을 지킨 채 작아진다. 세로가 모자란 기기에서는 높이 쪽에 맞춰
-       * 더 작아진다. 없으면 장 전체 폭이다.
-       */
-      frameClassName?: string;
-    }
-  | { lottie: () => Promise<{ default: unknown }> };
+interface OnboardingMotion {
+  lottie: () => Promise<{ default: unknown }>;
+  /**
+   * 그림 폭. 없으면 장 전체 폭이다. Lottie 는 제 여백을 남기지 않아 시안 폭을 그대로 준다.
+   * 세로가 모자란 기기에서는 높이 쪽에 맞춰 더 작아진다.
+   */
+  frameClassName?: string;
+}
 
 interface OnboardingSlide {
   title: string;
@@ -60,14 +59,33 @@ const SLIDES: [OnboardingSlide, ...OnboardingSlide[]] = [
   {
     title: '인스타그램 게시물로\n저장하고 싶은 공간들을 모아보세요',
     description: '앱을 열지 않고도 바로 저장할 수 있어요',
-    motion: { html: '/onboarding/tutorial-1.html' },
+    // 첫 화면이라 가장 빨리 떠야 하는 장이다(395KB). 무대는 215×466.
+    // `p-6` 은 그릇 사방 24px 여백 — 그림이 화면 폭을 꽉 채우지 않게 한다.
+    motion: {
+      lottie: () => import('@/assets/lottie/onboarding_guide_1.json'),
+      frameClassName: 'p-6',
+    },
   },
   {
     title: '누크를 즐겨찾기하고\n바로 저장해요',
     description: '이렇게 하면 저장이 2배 더 빨라져요!',
     // 시안: 375 폭 화면에서 270×279(원본 215×222 와 같은 비율). 화면 폭의 72%(270/375)에
     // 파일이 남기는 좌우 여백 48px(3rem)을 더한 폭을 준다.
-    motion: { html: '/onboarding/tutorial-2.html', frameClassName: 'w-[calc(72%+3rem)]' },
+    //
+    // Android 는 공유 시트 모양이 아예 달라 디자이너가 따로 그렸다. 어느 OS 위에서 도는지는
+    // 셸이 로드 전에 심어 준 값(`nativeBridge.platform`)으로 이미 알고 있어, 화면을 그리기 전에
+    // 갈라진다 — 그림이 바뀌어 보이는 깜빡임이 없다. 양쪽 모두 Lottie 라 폭 보정(+3rem)이
+    // 필요 없다. iOS 판 228KB, Android 판 1.25MB.
+    motion:
+      nativeBridge.platform === 'android'
+        ? {
+            lottie: () => import('@/assets/lottie/onboarding_guide_2_android.json'),
+            frameClassName: 'w-[72%]',
+          }
+        : {
+            lottie: () => import('@/assets/lottie/onboarding_guide_2.json'),
+            frameClassName: 'w-[72%]',
+          },
     cta: { label: '설정하기', tooltip: '이 화면에서 바로 설정할 수 있어요!', action: 'share' },
   },
   {
@@ -79,61 +97,15 @@ const SLIDES: [OnboardingSlide, ...OnboardingSlide[]] = [
   },
 ];
 
-/** 모션 파일의 무대(Figma 1배 크기로 그린 그림 전체). 1장은 `.stage`, 2장은 `.nook-stage` 다. */
-const STAGE_SELECTOR = '.stage, .nook-stage';
-
-/**
- * 무대를 `transform: scale` 대신 `zoom` 으로 키운다.
- *
- * 모션 파일은 215px 무대를 `transform: scale(--stage-scale)` 로 2~3배 키운다. 무대 안에 무한
- * 애니메이션·backdrop-filter 가 있어 WebKit 이 이를 합성 레이어로 떼면, 215px 비트맵을 늘려
- * 보여줘서 흐리다. 같은 배율을 `zoom` 으로 주면 레이아웃 단계에서 실제 크기로 그려 선명하다.
- * `--stage-scale` 은 파일의 `fitStage` 가 계속 넣으므로 크기 맞춤은 그대로 파일이 한다.
- * 파일을 고치지 않고 밖에서 덮는다 — 디자이너가 파일을 새로 줘도 다시 손댈 필요가 없다.
- */
-function sharpenStage(frame: HTMLIFrameElement) {
-  const doc = frame.contentDocument;
-  if (!doc) return;
-  const style = doc.createElement('style');
-  style.textContent = `${STAGE_SELECTOR} { transform: none !important; zoom: var(--stage-scale); }`;
-  doc.head.append(style);
-}
-
-/**
- * 모션 HTML 은 `public/` 에 두고 iframe 으로 띄운다.
- *
- * 장당 4~5MB(대부분 인라인 base64 이미지)라 번들에 넣을 물건이 아니고, 파일 안에 제 CSS 와
- * 타임라인을 갖고 있어 우리 스타일과 섞이면 안 된다. 크기는 파일 안 `fitStage` 가 그릇에
- * 맞춰 스스로 조정한다. 같은 출처라 로드 뒤 안을 만질 수 있다(`sharpenStage`).
- */
-function MotionFrame({
-  src,
-  title,
-  className,
-}: {
-  src: string;
-  title: string;
-  className?: string;
-}) {
-  return (
-    <iframe
-      src={src}
-      title={title}
-      onLoad={(event) => sharpenStage(event.currentTarget)}
-      // 프레임이 포인터를 먹으면 그 위에서 스와이프·탭이 죽는다. 보여주기만 하는 그림이다.
-      className={cn('pointer-events-none mx-auto block h-full w-full border-0', className)}
-      scrolling="no"
-    />
-  );
-}
-
 /** Lottie JSON 을 받아 재생한다. 받는 동안은 비워 둔다 — 그릇 크기는 부모가 잡고 있어 흔들리지 않는다. */
 function LottieMotion({
   load,
   title,
+  className,
 }: {
   load: () => Promise<{ default: unknown }>;
   title: string;
+  className?: string;
 }) {
   const [animationData, setAnimationData] = useState<unknown>(null);
 
@@ -150,7 +122,12 @@ function LottieMotion({
   }, [load]);
 
   return animationData ? (
-    <Lottie role="img" aria-label={title} animationData={animationData} className="h-full w-full" />
+    <Lottie
+      role="img"
+      aria-label={title}
+      animationData={animationData}
+      className={cn('mx-auto h-full w-full', className)}
+    />
   ) : null;
 }
 
@@ -163,76 +140,71 @@ const MOTION_MS = 300;
  */
 const SHARE_SHEET_PRESENTATION_DELAY_MS = 300;
 
-/** transition 없이 transform 을 바꿔 끼운다. 같은 모습끼리 바꾸는 것이라 움직이면 안 된다. */
-function swapTransform(box: HTMLElement, transform: string) {
-  box.style.transition = 'none';
-  box.style.transform = transform;
-  // 스타일을 여기서 확정해야 다음 변경부터 다시 transition 이 걸린다.
-  box.getBoundingClientRect();
-  box.style.transition = '';
+/**
+ * 시트가 떠 있을 때 그림 폭 — 시안은 375 폭 화면에서 244×252 지만, 그 크기면 그림 아랫변이
+ * 시트에 닿아 붙어 보인다. 비율을 지킨 채 8px 만큼 줄여(236×244) 아래에 그만큼 틈을 둔다.
+ * 그림 윗변은 `transform-origin` 이 잡고 있어 제자리이므로, 줄인 만큼이 그대로 간격이 된다.
+ */
+const SHEET_ART_WIDTH_RATIO = 236 / 375;
+
+/** 세로가 짧은 기기에서의 상한. iOS 공유 시트가 화면의 60% 안팎을 덮는다. */
+const SHEET_ART_MAX_HEIGHT_RATIO = 0.34;
+
+/**
+ * 그릇 안에서 Lottie 가 실제로 그린 영역. svg 는 그릇을 꽉 채우지만 그림은 그 안에서 원본
+ * 비율(`viewBox`)대로 놓이므로, 그릇째 재면 레터박스 여백까지 그림으로 세게 된다.
+ */
+function artRect(box: HTMLElement) {
+  const svg = box.querySelector('svg');
+  const rect = svg?.getBoundingClientRect();
+  const view = svg?.viewBox.baseVal;
+  if (!rect?.width || !rect.height || !view?.width || !view.height) return null;
+
+  // lottie-react 는 `preserveAspectRatio: xMidYMid meet` — 짧은 쪽에 맞추고 가운데 정렬한다.
+  const fit = Math.min(rect.width / view.width, rect.height / view.height);
+  const width = view.width * fit;
+  const height = view.height * fit;
+  return {
+    top: rect.top + (rect.height - height) / 2,
+    width,
+    height,
+    centerX: rect.left + rect.width / 2,
+  };
 }
 
 /**
  * 시트가 떠 있는 동안 그림을 위로 올려 줄인다. 돌려받은 함수를 부르면 제자리로 돌아간다.
  *
- * 전환 중에는 그릇에 transform 만 건다 — 그릇 크기를 바꾸면 iframe 이 매 프레임 리사이즈되고,
- * 모션 파일의 `fitStage` 가 무거운 문서 전체를 다시 그려 버벅인다. 대신 transform 은 원래
- * 크기로 그린 비트맵을 줄이는 것이라 살짝 흐리다. 그래서 전환이 끝나면 한 번만 안쪽 무대를
- * 목표 배율로 다시 그리고(선명) 바깥은 옮기기만 하도록 바꿔 끼운다. 돌아갈 때는 반대로 바꿔
- * 끼운 뒤 푼다. 두 모습은 위치·크기가 같아 바꿔 끼우는 순간은 보이지 않는다.
+ * 그릇 크기 대신 transform 만 건다 — 크기를 바꾸면 Lottie 가 매 프레임 다시 레이아웃된다.
+ * 벡터라 transform 으로 줄여도 선명하다. (HTML/iframe 시절에는 비트맵이 흐려져서, 전환이
+ * 끝난 뒤 안쪽 무대를 목표 배율로 다시 그리고 바깥 transform 을 바꿔 끼우는 보정이 필요했다.)
  *
- * 목표는 그림 윗변이 문구 자리 윗변(닫기 버튼 바로 아래)에 붙고, 높이는 화면의 34%(iOS 공유
- * 시트가 60% 안팎을 덮는다)에서 모션 파일이 위아래로 남기는 24px 씩을 뺀 만큼. iframe 은 같은
- * 출처라 안의 실제 그림(`.viewport`)을 잴 수 있다 — 그릇째 재면 레터박스 여백까지 줄어 그림이
- * 더 작아진다. 못 재면 그릇을 그림으로 보고, 다시 그리기 없이 transform 만 쓴다.
+ * 목표는 그림 윗변이 문구 자리 윗변(닫기 버튼 바로 아래)에 붙고, 크기는 시안의 244×252.
+ * 폭 기준으로 줄이고(원본 비율은 그대로 따라온다), 세로가 짧은 기기에서는 시트가 덮지 않는
+ * 위쪽 34% 안에 들어가도록 더 줄인다. 그림 크기는 `artRect` 로 실제 그려진 만큼만 잰다 —
+ * 그릇으로 재면 레터박스까지 줄여 그림이 필요 이상으로 작아진다.
  */
 function liftMotion(box: HTMLElement): () => void {
   const boxRect = box.getBoundingClientRect();
-  const frame = box.querySelector('iframe');
-  const frameRect = frame?.getBoundingClientRect();
-  const doc = frame?.contentDocument;
-  const viewport = doc?.querySelector<HTMLElement>('.viewport');
-  const stage = doc?.querySelector<HTMLElement>(STAGE_SELECTOR);
-  const stageRect = viewport?.getBoundingClientRect();
-  const art =
-    frameRect && stageRect
-      ? {
-          top: frameRect.top + stageRect.top,
-          height: stageRect.height,
-          centerX: frameRect.left + stageRect.left + stageRect.width / 2,
-        }
-      : { top: boxRect.top, height: boxRect.height, centerX: boxRect.left + boxRect.width / 2 };
+  const art = artRect(box) ?? {
+    top: boxRect.top,
+    width: boxRect.width,
+    height: boxRect.height,
+    centerX: boxRect.left + boxRect.width / 2,
+  };
   const anchorTop = box.parentElement?.getBoundingClientRect().top ?? art.top;
-  const scale = Math.min(1, (window.innerHeight * 0.34 - 48) / art.height);
+  const scale = Math.min(
+    1,
+    (window.innerWidth * SHEET_ART_WIDTH_RATIO) / art.width,
+    (window.innerHeight * SHEET_ART_MAX_HEIGHT_RATIO) / art.height,
+  );
   // jsdom 처럼 크기가 0 이면 옮기지 않는다.
   if (!(scale > 0 && Number.isFinite(scale))) return () => undefined;
 
-  const scaled = `translateY(${anchorTop - art.top}px) scale(${scale})`;
   box.style.transformOrigin = `${art.centerX - boxRect.left}px ${art.top - boxRect.top}px`;
-  box.style.transform = scaled;
-
-  let unsharpen: (() => void) | undefined;
-  const timer = window.setTimeout(() => {
-    if (!viewport || !stage) return;
-    const { width, height } = viewport.style;
-    const stageScale = stage.style.getPropertyValue('--stage-scale');
-    viewport.style.width = `${Number.parseFloat(width) * scale}px`;
-    viewport.style.height = `${Number.parseFloat(height) * scale}px`;
-    stage.style.setProperty('--stage-scale', String(Number.parseFloat(stageScale) * scale));
-    // 줄어든 그림은 iframe 가운데에 다시 놓인다(파일이 가운데 정렬한다) — 윗변을 제자리로 옮긴다.
-    const sharpTop = art.top + (art.height * (1 - scale)) / 2;
-    swapTransform(box, `translateY(${anchorTop - sharpTop}px)`);
-    unsharpen = () => {
-      viewport.style.width = width;
-      viewport.style.height = height;
-      stage.style.setProperty('--stage-scale', stageScale);
-      swapTransform(box, scaled);
-    };
-  }, MOTION_MS);
+  box.style.transform = `translateY(${anchorTop - art.top}px) scale(${scale})`;
 
   return () => {
-    window.clearTimeout(timer);
-    unsharpen?.();
     box.style.transform = '';
   };
 }
@@ -401,8 +373,10 @@ export function OnboardingPage() {
         >
           {SLIDES.map((item, index) => {
             const active = index === slideIndex;
-            // 그림은 무겁다(iframe 4~5MB, Lottie 1MB). 들어올 다음 장과 막 나간 이전 장만 그려 두고
-            // 나머지는 비운다 — 밀려 들어오는 순간에 이미 떠 있어야 빈 칸이 스치지 않는다.
+            // 들어올 다음 장과 막 나간 이전 장만 그려 두고 나머지는 비운다 — 밀려 들어오는
+            // 순간에 이미 떠 있어야 빈 칸이 스치지 않는다. 자산이 Lottie 가 되며 무게는 문제가
+            // 아니게 됐지만(장당 228KB~1.25MB), Lottie 는 마운트된 장을 계속 재생하므로 안 보이는
+            // 장까지 올려 두면 그만큼 CPU 를 쓴다. 3장뿐이라 실제로 아끼는 건 한 장이다.
             const mountMotion = Math.abs(index - slideIndex) <= 1;
             const collapsed = active && lifted;
             return (
@@ -414,7 +388,8 @@ export function OnboardingPage() {
                 aria-hidden={!active || undefined}
               >
                 {/* 시트가 열릴 때 문구는 자리를 그대로 두고 흐려지기만 한다 — 자리를 접으면 아래
-                    그릇(flex-1)이 커지며 iframe 이 매 프레임 리사이즈된다. 그림이 transform 으로 그 위를 덮는다. */}
+                    그릇(flex-1)이 커지며 그림이 매 프레임 다시 레이아웃된다. 그림은 transform 으로
+                    그 위를 덮는다(`liftMotion`). */}
                 <div
                   className={cn(
                     'transition-opacity duration-200 ease-out motion-reduce:transition-none',
@@ -439,15 +414,11 @@ export function OnboardingPage() {
                   className="mt-6 min-h-0 flex-1 transition-transform duration-300 ease-out motion-reduce:transition-none"
                 >
                   {mountMotion ? (
-                    'html' in item.motion ? (
-                      <MotionFrame
-                        src={item.motion.html}
-                        title={item.description}
-                        className={item.motion.frameClassName}
-                      />
-                    ) : (
-                      <LottieMotion load={item.motion.lottie} title={item.description} />
-                    )
+                    <LottieMotion
+                      load={item.motion.lottie}
+                      title={item.description}
+                      className={item.motion.frameClassName}
+                    />
                   ) : null}
                 </div>
               </section>
