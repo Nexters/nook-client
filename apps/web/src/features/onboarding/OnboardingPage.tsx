@@ -69,13 +69,11 @@ const SLIDES: [OnboardingSlide, ...OnboardingSlide[]] = [
   {
     title: '누크를 즐겨찾기하고\n바로 저장해요',
     description: '이렇게 하면 저장이 2배 더 빨라져요!',
-    // 시안: 375 폭 화면에서 270×279(원본 215×222 와 같은 비율). 화면 폭의 72%(270/375)에
-    // 파일이 남기는 좌우 여백 48px(3rem)을 더한 폭을 준다.
+    // 시안: 375 폭 화면에서 270×279(원본 215×222 와 같은 비율) — 화면 폭의 72% 다.
     //
     // Android 는 공유 시트 모양이 아예 달라 디자이너가 따로 그렸다. 어느 OS 위에서 도는지는
     // 셸이 로드 전에 심어 준 값(`nativeBridge.platform`)으로 이미 알고 있어, 화면을 그리기 전에
-    // 갈라진다 — 그림이 바뀌어 보이는 깜빡임이 없다. 양쪽 모두 Lottie 라 폭 보정(+3rem)이
-    // 필요 없다. iOS 판 228KB, Android 판 1.25MB.
+    // 갈라진다 — 그림이 바뀌어 보이는 깜빡임이 없다. iOS 판 228KB, Android 판 1.25MB.
     motion:
       nativeBridge.platform === 'android'
         ? {
