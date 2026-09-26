@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { markOnboardingSeen } from '@/features/onboarding/onboardingSeen';
 import { shareViaSystem } from '@/features/share/lib/shareUrl';
 import { nativeBridge } from '@/native-bridge';
 import { env } from '@/shared/config/env';
 import { Icon24Close } from '@/shared/icons/NookIcons';
+import { useHorizontalSwipe } from '@/shared/lib/useHorizontalSwipe';
 import { cn } from '@/shared/lib/utils';
 import { Button, CarouselIndicator, Lottie } from '@/shared/ui';
 
@@ -12,12 +13,12 @@ import { Button, CarouselIndicator, Lottie } from '@/shared/ui';
 const SHARE_TARGET = { title: 'nook', url: env.webOrigin };
 
 /**
- * 3장이 보내는 누크 공식 계정. https 주소 그대로 연다 — 인스타그램이 이 도메인을 앱 링크로
+ * 3장이 보내는 누크 공식 계정의 게시물. https 주소 그대로 연다 — 인스타그램이 이 도메인을 앱 링크로
  * 등록해 둬서, 앱이 깔려 있으면 앱으로, 없으면 브라우저로 열린다(`nativeBridge.openExternalUrl`).
  * `instagram://` 스킴을 쓰지 않는 이유: iOS 는 설치 확인에 Info.plist 등록과 셸 재빌드가 필요하고,
  * 스킴 주소에는 `stkn` 을 실을 수 없다.
  */
-const INSTAGRAM_URL = 'https://www.instagram.com/nook.archiving?stkn=NTl6bTd6MW9kOXBu';
+const INSTAGRAM_URL = 'https://www.instagram.com/p/DcTo_cCD-G8/?stkn=YWRzcjE2d3lrOGdi';
 
 /**
  * 가운데 그림. 디자이너가 HTML 로만 준 장은 iframe 으로, Lottie JSON 이 있는 장은 그걸로 재생한다.
@@ -250,7 +251,25 @@ function CtaTooltip({ children }: { children: string }) {
 
 export function OnboardingPage() {
   const navigate = useNavigate();
-  const [slideIndex, setSlideIndex] = useState(0);
+  /**
+   * 지금 보고 있는 장은 URL 이 갖는다(`?slide=`).
+   *
+   * 다른 앱에 다녀오는 동안 WebView 가 회수되면 돌아올 때 같은 주소로 다시 로드된다 — 이때
+   * 컴포넌트 state 는 사라지지만 URL 은 남으므로, 어느 장에서 나갔든 그 장으로 돌아온다.
+   * 지도가 선택한 장소·시트 높이를 `?placeId=`·`?snap=` 으로 싣는 것과 같은 원칙이다.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const parsed = Number(searchParams.get('slide'));
+  const slideIndex = Number.isInteger(parsed)
+    ? Math.min(Math.max(parsed, 0), SLIDES.length - 1)
+    : 0;
+
+  const goToSlide = (index: number) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('slide', String(index));
+    // 장 넘김은 히스토리에 쌓지 않는다 — 쌓으면 뒤로가기가 온보딩 안에서 겉돈다.
+    setSearchParams(next, { replace: true });
+  };
   // OS 공유 시트가 화면 아래쪽을 덮고 있는 동안. 시트는 네이티브 레이어라 높이를 알 수 없어,
   // 덮일 만한 것을 다 걷고 모션만 위에 남긴다 — 사용자가 시트를 조작하며 따라 볼 그림이다.
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -262,22 +281,38 @@ export function OnboardingPage() {
   const motionBoxes = useRef<(HTMLDivElement | null)[]>([]);
   const slide = SLIDES[slideIndex] ?? SLIDES[0];
 
-  // 온보딩을 떠나는 길은 모두 "봤음" 으로 기록한다 — 끝까지 봤든, 닫기(X)로 그만뒀든 다시 띄우지 않는다.
+  // 온보딩을 떠나는 길. 어느 장에서 닫기(X)를 눌렀든 "봤음" 으로 기록한다 — 그만 보겠다는 선택이다.
   const finish = () => {
     markOnboardingSeen();
     navigate('/map', { replace: true });
   };
 
   const showNext = () => {
-    if (slideIndex < SLIDES.length - 1) setSlideIndex(slideIndex + 1);
+    if (slideIndex < SLIDES.length - 1) goToSlide(slideIndex + 1);
     else finish();
   };
 
-  /** 인스타그램을 먼저 열고 온보딩을 닫는다 — 돌아오면 지도에 있다. */
+  /**
+   * 인스타그램으로 보낸다. "봤음" 으로 기록하지만 화면은 그대로 3장에 둔다 — 인스타그램에서
+   * 돌아온 사람이 지도가 아니라 방금 보던 안내를 다시 보고, 나갈 때는 닫기(X)로 나간다.
+   */
   const goToInstagram = () => {
+    markOnboardingSeen();
     nativeBridge.openExternalUrl(INSTAGRAM_URL);
-    finish();
   };
+
+  // 쓸어 넘기기는 장만 옮긴다 — CTA 동작(공유 시트·인스타그램)은 버튼을 눌렀을 때만 한다.
+  // 그래서 2장에서 밀면 시트 없이 바로 3장이고, 마지막 장에서 더 밀어도 온보딩을 끝내지 않는다.
+  const swipe = useHorizontalSwipe({
+    enabled: !sheetOpen,
+    onSwipeLeft: () => goToSlide(Math.min(slideIndex + 1, SLIDES.length - 1)),
+    onSwipeRight: () => goToSlide(Math.max(slideIndex - 1, 0)),
+  });
+  // 넘길 장이 없는 쪽으로는 따라가지 않는다 — 빈 자리가 끌려 들어온다.
+  const dragOffset =
+    (swipe.offset < 0 && slideIndex === SLIDES.length - 1) || (swipe.offset > 0 && slideIndex === 0)
+      ? 0
+      : swipe.offset;
 
   /**
    * 진짜 공유 시트를 띄우고, 닫히면 그림을 제자리로 돌려 놓는다. 다음 장으로는 넘기지 않고
@@ -355,10 +390,14 @@ export function OnboardingPage() {
           내용만 바뀐다(로그인 화면 온보딩과 같은 구조).
           z-20 은 딤 위에 올라서기 위한 것이다 — translateX 가 이 줄을 하나의 쌓임 맥락으로 묶어서,
           안쪽 그림에만 z 를 주면 딤 아래로 깔린다. 줄 자체가 투명해서 그림 밖은 딤이 그대로 비친다. */}
-      <div className="relative z-20 flex min-h-0 flex-1 overflow-hidden">
+      <div className="relative z-20 flex min-h-0 flex-1 overflow-hidden" {...swipe.handlers}>
         <div
-          className="flex w-full min-h-0 transition-transform duration-500 ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none"
-          style={{ transform: `translateX(-${slideIndex * 100}%)` }}
+          className={cn(
+            'flex w-full min-h-0 transition-transform duration-500 ease-[cubic-bezier(.22,1,.36,1)] motion-reduce:transition-none',
+            // 끄는 동안에는 손가락을 그대로 따라간다. 놓으면 다시 transition 으로 자리를 찾는다.
+            dragOffset !== 0 && 'transition-none',
+          )}
+          style={{ transform: `translateX(calc(-${slideIndex * 100}% + ${dragOffset}px))` }}
         >
           {SLIDES.map((item, index) => {
             const active = index === slideIndex;

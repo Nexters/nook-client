@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 import { shouldShowOnboarding } from '@/features/onboarding/onboardingSeen';
@@ -20,16 +20,33 @@ vi.mock('@/assets/lottie/onboarding_guide_3.json', () => ({ default: {} }));
 
 const postMessage = vi.fn();
 
-function renderPage() {
+/** 지금 장은 URL 이 갖는다(`?slide=`) — 그 값이 실제로 바뀌는지 보려고 위치를 흘려 둔다. */
+function LocationProbe() {
+  const location = useLocation();
+  return <p data-testid="location">{`${location.pathname}${location.search}`}</p>;
+}
+
+/** `entry` 는 WebView 가 다시 로드될 때의 주소다 — 그 주소만으로 어느 장이 뜨는지가 정해진다. */
+function renderPage(entry = '/onboarding') {
   return render(
-    <MemoryRouter initialEntries={['/onboarding']}>
+    <MemoryRouter initialEntries={[entry]}>
       <Routes>
-        <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route
+          path="/onboarding"
+          element={
+            <>
+              <OnboardingPage />
+              <LocationProbe />
+            </>
+          }
+        />
         <Route path="/map" element={<p>지도 화면</p>} />
       </Routes>
     </MemoryRouter>,
   );
 }
+
+const currentLocation = () => screen.getByTestId('location').textContent;
 
 /** 시트가 떠 있는 상태를 붙잡아 두고, 닫는 시점은 테스트가 정한다. */
 function openShareSheet(buttonName = '설정하기') {
@@ -46,6 +63,16 @@ function openShareSheet(buttonName = '설정하기') {
     // 그림이 제자리로 돌아온 뒤(300ms)에 CTA 가 드러난다.
     await act(() => new Promise((resolve) => setTimeout(resolve, 300)));
   };
+}
+
+/** 지금 장의 문구 위에서 가로로 dx 만큼 쓸었다 뗀다. 축은 첫 움직임에서 정해진다. */
+function swipeSlide(dx: number) {
+  const target = screen.getByRole('heading', { level: 1 });
+  const at = (clientX: number) => ({ clientX, clientY: 300 });
+  fireEvent.touchStart(target, { touches: [at(200)] });
+  fireEvent.touchMove(target, { touches: [at(200 + dx / 2)] });
+  fireEvent.touchMove(target, { touches: [at(200 + dx)] });
+  fireEvent.touchEnd(target, { changedTouches: [at(200 + dx)] });
 }
 
 /** 1장 → 2장 → 공유 시트를 열었다 닫고 → 다음 으로 3장까지 간다. */
@@ -144,7 +171,7 @@ describe('온보딩 화면', () => {
     expect(shouldShowOnboarding()).toBe(true);
   });
 
-  it('저장하러 가기는 셸에 누크 인스타그램 계정을 열게 하고, 기록한 뒤 지도로 나간다', async () => {
+  it('저장하러 가기는 셸에 인스타그램을 열게 하고 기록만 한다 — 화면은 3장에 그대로 남는다', async () => {
     renderPage();
     await goToLastSlide();
 
@@ -155,12 +182,70 @@ describe('온보딩 화면', () => {
       JSON.stringify({
         v: 1,
         type: 'OPEN_EXTERNAL_URL',
-        payload: { url: 'https://www.instagram.com/nook.archiving?stkn=NTl6bTd6MW9kOXBu' },
+        payload: { url: 'https://www.instagram.com/p/DcTo_cCD-G8/?stkn=YWRzcjE2d3lrOGdi' },
       }),
     );
-    expect(await screen.findByText('지도 화면')).toBeInTheDocument();
     expect(localStorage.getItem('onboarding_guide_seen')).toBe('true');
     expect(shouldShowOnboarding()).toBe(false);
+    // 인스타그램에서 돌아오면 방금 보던 3장이다 — 지도로 넘기지 않는다.
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('이제 바로 저장해볼까요?');
+    expect(screen.queryByText('지도 화면')).not.toBeInTheDocument();
+  });
+
+  it('장을 넘기면 URL 에 남는다 — 다른 앱에 다녀와 화면이 다시 떠도 그 장으로 돌아올 근거다', async () => {
+    renderPage();
+
+    expect(currentLocation()).toBe('/onboarding');
+
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+
+    expect(currentLocation()).toBe('/onboarding?slide=1');
+  });
+
+  it('다시 뜰 때 URL 의 장부터 보여준다 — 1·2·3장 어디서 이탈했든 그 장이다', async () => {
+    const { unmount } = renderPage('/onboarding?slide=1');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('누크를 즐겨찾기하고');
+    // 2장의 안내(말풍선·설정하기)도 그대로다 — 공유 시트를 열기 전 상태로 돌아온다.
+    expect(screen.getByRole('button', { name: '설정하기' })).toBeInTheDocument();
+
+    unmount();
+    renderPage('/onboarding?slide=2');
+    await act(async () => {});
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('이제 바로 저장해볼까요?');
+    expect(screen.getByRole('button', { name: '저장하러 가기' })).toBeInTheDocument();
+  });
+
+  it('URL 의 장 번호가 이상하면 있는 범위로 접는다', async () => {
+    const { unmount } = renderPage('/onboarding?slide=99');
+    await act(async () => {});
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('이제 바로 저장해볼까요?');
+
+    unmount();
+    renderPage('/onboarding?slide=abc');
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('인스타그램 게시물로');
+  });
+
+  it('좌우로 쓸면 장만 넘어간다 — 2장에서 밀어도 공유 시트 없이 바로 3장이다', async () => {
+    renderPage();
+
+    swipeSlide(-120);
+    await act(async () => {});
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('누크를 즐겨찾기하고');
+
+    swipeSlide(-120);
+    await act(async () => {});
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('이제 바로 저장해볼까요?');
+    expect(shareViaSystem).not.toHaveBeenCalled();
+
+    // 마지막 장에서 더 밀어도 끝내지 않는다.
+    swipeSlide(-120);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('이제 바로 저장해볼까요?');
+    expect(localStorage.getItem('onboarding_guide_seen')).toBeNull();
+
+    swipeSlide(120);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('누크를 즐겨찾기하고');
   });
 
   it('닫기도 기록한다 — 그만 보겠다는 선택이라 다음 진입에 다시 띄우지 않는다', async () => {
