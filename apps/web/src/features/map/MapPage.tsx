@@ -128,8 +128,18 @@ export function MapPage() {
     selectedPlace && selectedPlace.photos.length === 0 && requestedSnap === DETAIL_PAGE_SNAP_POINT
       ? DETAIL_COMPACT_SNAP_POINT
       : requestedSnap;
+  // 지도 핀 목록에 없는 선택 장소는 임시 핀으로 그리는데, 상세 응답엔 아카이브 색이 없어
+  // 회색일 수밖에 없다. 멀리 이동하는 동안 그 회색 핀이 먼저 떴다가 목록이 도착하면 실제 색으로
+  // 바뀌는 게 깜빡임으로 보였다(QA) — 목적지 영역의 목록이 도착할 때까지는 아예 그리지 않는다.
+  // 도착한 목록에도 없으면 저장하지 않은 장소(연관 장소 등)라 원래 색이 없다 — 그때 회색으로 그린다.
+  const destinationPinsSettled =
+    selectedPlace !== null &&
+    bounds !== null &&
+    containsCoord(bounds, selectedPlace) &&
+    pinsQuery.isSuccess &&
+    !pinsQuery.isPlaceholderData;
   const pins =
-    selectedPlace && !bboxPins.some((pin) => pin.id === selectedPlace.id)
+    selectedPlace && destinationPinsSettled && !bboxPins.some((pin) => pin.id === selectedPlace.id)
       ? [
           ...bboxPins,
           {
@@ -141,6 +151,7 @@ export function MapPage() {
             // 들어오면 그때 실제 색으로 교체된다(이 임시 핀은 그 전까지만 존재한다).
             color: 'cement' as const,
             thumbnail: selectedPlace.thumbnail,
+            categoryGroup: selectedPlace.categoryGroup,
           },
         ]
       : bboxPins;
@@ -331,4 +342,8 @@ export function MapPage() {
       </div>
     </MainTabPageLayout>
   );
+}
+
+function containsCoord(bounds: MapBounds, { lat, lng }: { lat: number; lng: number }) {
+  return lat <= bounds.north && lat >= bounds.south && lng <= bounds.east && lng >= bounds.west;
 }

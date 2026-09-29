@@ -102,6 +102,8 @@ export interface PlaceDetail {
   id: number;
   name: string;
   category?: string;
+  /** 선택 핀 글리프 — 지도 핀 목록에 아직 없는 장소의 임시 핀도 같은 아이콘으로 그리려고 싣는다. */
+  categoryGroup?: PlaceCategoryGroup;
   address: string;
   lat: number;
   lng: number;

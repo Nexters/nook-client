@@ -19,10 +19,28 @@ vi.mock('@/features/map/api', () => mocks);
 
 // 네이버 지도 SDK 는 jsdom 에서 로드할 수 없다 — 핀 클릭 콜백만 노출하는 스텁으로 대체한다.
 vi.mock('@/features/map/components/MapView', () => ({
-  MapView: ({ onPlaceClick }: { onPlaceClick: (id: number) => void }) => (
-    <button type="button" onClick={() => onPlaceClick(7)}>
-      핀 7 클릭
-    </button>
+  MapView: ({
+    pins,
+    onPlaceClick,
+    onBoundsChanged,
+  }: {
+    pins: { id: number; color: string }[];
+    onPlaceClick: (id: number) => void;
+    onBoundsChanged: (bounds: { north: number; south: number; east: number; west: number }) => void;
+  }) => (
+    <>
+      <button type="button" onClick={() => onPlaceClick(7)}>
+        핀 7 클릭
+      </button>
+      {/* 지도 이동이 끝나 idle 로 경계가 올라온 순간 — 전국을 덮는 경계로 흉내 낸다. */}
+      <button
+        type="button"
+        onClick={() => onBoundsChanged({ north: 39, south: 33, east: 132, west: 124 })}
+      >
+        지도 멈춤
+      </button>
+      <output data-testid="pins">{pins.map((pin) => `${pin.id}:${pin.color}`).join(',')}</output>
+    </>
   ),
 }));
 
@@ -553,5 +571,50 @@ describe('MapPage — 상세의 히스토리 엔트리', () => {
 
     await screen.findByText('선택 없음');
     expect(screen.queryByText('지도에 오기 전 화면')).not.toBeInTheDocument();
+  });
+});
+
+describe('MapPage — 멀리 있는 선택 장소의 핀', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.fetchRecentPlaces.mockResolvedValue([]);
+    mocks.fetchPlaceDetail.mockResolvedValue({
+      id: 7,
+      name: '제주 오름',
+      lat: 33.458,
+      lng: 126.9425,
+      bookmarked: true,
+      thumbnail: null,
+      photos: ['https://img/1.jpg'],
+    });
+  });
+
+  it('목적지 영역의 핀 목록이 오기 전엔 선택 핀을 그리지 않고, 오면 실제 색으로 한 번만 그린다', async () => {
+    // 첫 경계(현재 위치 근처)엔 없고, 이동 후 경계엔 실제 색으로 들어 있다.
+    mocks.fetchMapPins.mockImplementation((bounds: { south: number }) =>
+      Promise.resolve(
+        bounds.south <= 33.458
+          ? [{ id: 7, lat: 33.458, lng: 126.9425, name: '제주 오름', color: 'pink' }]
+          : [],
+      ),
+    );
+    renderMapAt('/map?placeId=7');
+    await screen.findByText('선택됨: 제주 오름');
+
+    // 회색 임시 핀이 먼저 떴다가 색이 바뀌는 깜빡임이 없어야 한다(QA).
+    expect(screen.getByTestId('pins')).toHaveTextContent(/^$/);
+
+    fireEvent.click(screen.getByRole('button', { name: '지도 멈춤' }));
+    await waitFor(() => expect(screen.getByTestId('pins')).toHaveTextContent('7:pink'));
+  });
+
+  it('도착한 목록에도 없는(저장하지 않은) 장소는 그때 회색 임시 핀으로 그린다', async () => {
+    mocks.fetchMapPins.mockResolvedValue([]);
+    renderMapAt('/map?placeId=7');
+    await screen.findByText('선택됨: 제주 오름');
+    expect(screen.getByTestId('pins')).toHaveTextContent(/^$/);
+
+    fireEvent.click(screen.getByRole('button', { name: '지도 멈춤' }));
+    await waitFor(() => expect(screen.getByTestId('pins')).toHaveTextContent('7:cement'));
   });
 });

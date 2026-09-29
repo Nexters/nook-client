@@ -172,6 +172,7 @@ export function toPlaceDetail(dto: PlaceDetailResponse): PlaceDetail {
     id: dto.id,
     name: dto.name,
     category: dto.category ?? undefined,
+    categoryGroup: dto.categoryGroup ?? undefined,
     address: dto.address,
     lat: dto.latitude,
     lng: dto.longitude,
