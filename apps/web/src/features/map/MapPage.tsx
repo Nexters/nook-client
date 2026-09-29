@@ -301,6 +301,7 @@ export function MapPage() {
           // 지도가 늦게 마운트되든(스크립트 Suspense) 상세가 늦게 오든 MapView 가 알아서
           // 준비되는 시점에 이동한다. 선택이 풀리면 undefined 가 되어 이동하지 않는다.
           panTarget={selectedPlace ? { lat: selectedPlace.lat, lng: selectedPlace.lng } : undefined}
+          sheetSnap={typeof snap === 'number' ? snap : undefined}
           onPlaceClick={handlePlaceClick}
           onBoundsChanged={setBounds}
         />
