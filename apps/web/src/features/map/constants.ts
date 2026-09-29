@@ -83,12 +83,3 @@ export const CLUSTER_MERGE_RADIUS_PX = 72;
  * 몇 번 눌러 파고들게 된다 — 한 번에 최대 줌까지 튀는 것보다 위치 감각을 유지하기 쉽다.
  */
 export const CLUSTER_ZOOM_STEP = 2;
-
-/**
- * 장소를 선택해 지도를 재센터링할 때, 선택된 핀이 화면 세로 어느 지점에 와야 하는지
- * (뷰포트 하단 기준 비율 — 스냅 포인트와 같은 표기법). 장소를 막 선택한 시점엔 드로어가
- * DETAIL_PAGE_SNAP_POINT 만큼 화면 아래를 가리므로, 핀을 그냥 화면 정중앙(0.5)에 두면
- * 드로어 경계에 걸쳐 가려진다. 남는 위쪽(드로어에 가려지지 않는) 영역의 정중앙에 오도록
- * 계산하면 (1 + DETAIL_PAGE_SNAP_POINT) / 2 가 된다.
- */
-export const SELECTED_PLACE_VERTICAL_RATIO = (1 + DETAIL_PAGE_SNAP_POINT) / 2;

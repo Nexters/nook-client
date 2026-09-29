@@ -31,7 +31,12 @@ const PINNED_HEADER_HEIGHT_VAR = '--pinned-header-height';
  */
 // Tailwind 는 소스를 정적으로 훑어 클래스를 만든다 — 변수명을 끼워 넣어 조립하면
 // 그 클래스가 소스에 없는 것이 되어 CSS 가 생성되지 않는다. 그래서 통째로 적는다.
-export const PINNED_HEADER_STICKY = 'sticky top-[var(--pinned-header-height)] z-30';
+// top 전환: 헤더가 접히고 펴질 때(`collapseAfter`) 탭 줄이 헤더를 따라 미끄러지게 한다.
+export const PINNED_HEADER_STICKY =
+  'sticky top-[var(--pinned-header-height)] z-30 transition-[top] duration-200 ease-out motion-reduce:transition-none';
+
+/** 이만큼(px) 이상 한 방향으로 움직여야 스크롤 방향이 바뀐 것으로 본다 — 손 떨림 무시. */
+const SCROLL_DIRECTION_THRESHOLD_PX = 8;
 
 interface PinnedHeaderLayoutProps {
   /** 상단에 고정할 영역. 보통 `<Header />` 하나지만, 아카이브 상세처럼 정보 블록까지 함께 붙기도 한다. */
@@ -41,6 +46,12 @@ interface PinnedHeaderLayoutProps {
   background?: 'white' | 'gray';
   /** 콘텐츠 래퍼에 더할 스타일. 하단 여백처럼 화면마다 다른 값만 넘긴다. */
   contentStyle?: CSSProperties;
+  /**
+   * 넘기면 이 요소가 헤더 뒤로 숨은 뒤부터 아래로 스크롤할 때 헤더를 위로 접고, 위로
+   * 스크롤하면 다시 편다(아카이브 상세 시안). 접힌 동안 `PINNED_HEADER_STICKY` 줄은
+   * safe area 바로 밑까지 올라와 화면 맨 위에 남는다.
+   */
+  collapseAfter?: RefObject<HTMLElement | null>;
   className?: string;
 }
 
@@ -64,6 +75,7 @@ export function PinnedHeaderLayout({
   children,
   background = 'white',
   contentStyle,
+  collapseAfter,
   className,
 }: PinnedHeaderLayoutProps) {
   const backgroundClass = background === 'gray' ? 'bg-gray-10' : 'bg-gray-0';
@@ -87,15 +99,40 @@ export function PinnedHeaderLayout({
     return () => observer.disconnect();
   }, []);
 
+  const collapseTargetBehind = useScrolledBehind(collapseAfter, pinnedHeight);
+  const scrollingDown = useScrollingDown(collapseAfter !== undefined);
+  const collapsed = collapseTargetBehind && scrollingDown;
+
   return (
     <PinnedHeightContext.Provider value={pinnedHeight}>
       <div className={cn('min-h-[calc(100dvh+1px)] w-full', backgroundClass, className)}>
         {createPortal(
-          <div ref={pinnedRef} className="fixed inset-x-0 top-0 z-40">
+          <div
+            ref={pinnedRef}
+            className={cn('fixed inset-x-0 top-0 z-40', collapsed && 'pointer-events-none')}
+          >
+            {/* 접힌 헤더가 밀려 올라가는 동안 상태 표시줄 자리를 가린다 — 안 가리면 헤더의
+                아랫부분이 노치 옆에 걸쳐 보인다. 펴진 동안엔 헤더 배경과 같아 티가 안 난다. */}
+            {collapseAfter ? (
+              <div
+                aria-hidden="true"
+                className={cn(
+                  'absolute inset-x-0 top-0 z-10 mx-auto h-[env(safe-area-inset-top)] max-w-[450px]',
+                  backgroundClass,
+                )}
+              />
+            ) : null}
             {/* 포탈 뒤 fixed 기준은 뷰포트 전체 폭이라, 데스크톱에서도 셸 폭(providers.tsx)을
               넘지 않게 안쪽에서 다시 묶는다. 노치와 겹치지 않도록 safe area 만큼 내린다. */}
             <div
-              className={cn('mx-auto w-full max-w-[450px]', backgroundClass)}
+              inert={collapsed}
+              className={cn(
+                'mx-auto w-full max-w-[450px]',
+                backgroundClass,
+                collapseAfter &&
+                  'transition-transform duration-200 ease-out motion-reduce:transition-none',
+                collapsed && '-translate-y-[calc(100%-env(safe-area-inset-top))]',
+              )}
               style={{ paddingTop: 'env(safe-area-inset-top)' }}
             >
               {header}
@@ -108,7 +145,9 @@ export function PinnedHeaderLayout({
           style={
             {
               paddingTop: pinnedHeight,
-              [PINNED_HEADER_HEIGHT_VAR]: `${pinnedHeight}px`,
+              [PINNED_HEADER_HEIGHT_VAR]: collapsed
+                ? 'env(safe-area-inset-top)'
+                : `${pinnedHeight}px`,
               ...contentStyle,
             } as CSSProperties
           }
@@ -128,12 +167,14 @@ export function PinnedHeaderLayout({
  * 좌표를 재는 대신 그 선을 root 로 삼은 IntersectionObserver 에 맡긴다(위/아래 어느
  * 쪽으로 벗어났는지는 콜백이 준 좌표로 가린다 — 아직 아래에 있는 요소는 숨은 게 아니다).
  */
-function useScrolledBehindHeader(target: RefObject<HTMLElement | null>): boolean {
-  const pinnedHeight = useContext(PinnedHeightContext);
+function useScrolledBehind(
+  target: RefObject<HTMLElement | null> | undefined,
+  pinnedHeight: number,
+): boolean {
   const [behind, setBehind] = useState(false);
 
   useEffect(() => {
-    const element = target.current;
+    const element = target?.current;
     if (!element || pinnedHeight <= 0) return;
 
     const observer = new IntersectionObserver(
@@ -164,7 +205,7 @@ export function PinnedHeaderTitle({
   target: RefObject<HTMLElement | null>;
   children: ReactNode;
 }) {
-  const behind = useScrolledBehindHeader(target);
+  const behind = useScrolledBehind(target, useContext(PinnedHeightContext));
 
   return (
     <span
@@ -177,4 +218,33 @@ export function PinnedHeaderTitle({
       {children}
     </span>
   );
+}
+
+/**
+ * 앱 스크롤러(#root)가 마지막으로 아래로 움직였는가. 헤더를 접고 펴는 판정용이라
+ * `enabled` 가 false 면 구독하지 않는다.
+ */
+function useScrollingDown(enabled: boolean): boolean {
+  const [down, setDown] = useState(false);
+
+  useEffect(() => {
+    const root = document.getElementById('root');
+    if (!enabled || !root) return;
+
+    let last = root.scrollTop;
+    const onScroll = () => {
+      const top = root.scrollTop;
+      // 러버밴드(맨 위보다 위·맨 끝보다 아래로 당겨진 구간)의 되튐은 방향 전환이 아니다 —
+      // 끝에서 튕길 때마다 헤더가 튀어나오면 안 된다.
+      if (top < 0 || top > root.scrollHeight - root.clientHeight) return;
+      const delta = top - last;
+      if (Math.abs(delta) < SCROLL_DIRECTION_THRESHOLD_PX) return;
+      last = top;
+      setDown(delta > 0);
+    };
+    root.addEventListener('scroll', onScroll, { passive: true });
+    return () => root.removeEventListener('scroll', onScroll);
+  }, [enabled]);
+
+  return down;
 }

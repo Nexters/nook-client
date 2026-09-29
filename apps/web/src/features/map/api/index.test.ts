@@ -53,6 +53,11 @@ describe('toRecentPlace', () => {
     },
   );
 
+  it('지역(city)을 옮기고, 없으면 비운다', () => {
+    expect(toRecentPlace({ ...RECENT_PLACE_BASE, city: '서울' }).city).toBe('서울');
+    expect(toRecentPlace({ ...RECENT_PLACE_BASE, city: null }).city).toBeUndefined();
+  });
+
   it('구독한 공유 아카이브의 장소는 accessType 과 공유 토큰을 그대로 옮긴다', () => {
     const place = toRecentPlace({
       ...RECENT_PLACE_BASE,

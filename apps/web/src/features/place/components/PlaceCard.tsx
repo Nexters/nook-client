@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Icon14Processing } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
-import { Thumbnail } from '@/shared/ui';
+import { MediaBadge, Thumbnail } from '@/shared/ui';
 import type { Place } from '../types';
 
 /**
@@ -25,10 +25,15 @@ const DRAG_CLICK_THRESHOLD_PX = 10;
 export interface PlaceCardProps {
   place: Place;
   onClick?: () => void;
+  /**
+   * 썸네일 우상단 미디어 표시(지도 드로어 시안). 장소 응답엔 사진/영상 구분이 없어
+   * 사진 아이콘으로 고정한다 — 구분 필드가 생기면 타입을 받게 바꾼다.
+   */
+  mediaBadge?: boolean;
   className?: string;
 }
 
-function PlaceCard({ place, onClick, className }: PlaceCardProps) {
+function PlaceCard({ place, onClick, mediaBadge = false, className }: PlaceCardProps) {
   const Comp = onClick ? 'button' : 'div';
   const isProcessing = place.thumbnailState === 'processing';
   // 파싱 실패는 장소 "사진" 크롤링만 실패한 것이다 — 이름·지역·카테고리는 응답에 그대로
@@ -64,13 +69,17 @@ function PlaceCard({ place, onClick, className }: PlaceCardProps) {
       )}
     >
       {/* 시안 167x208. 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
-      <Thumbnail
-        src={place.thumbnail}
-        alt=""
-        loading={isProcessing}
-        failed={isFailed}
-        className="aspect-[167/208] h-auto w-full"
-      />
+      <div className="relative w-full">
+        <Thumbnail
+          src={place.thumbnail}
+          alt=""
+          loading={isProcessing}
+          failed={isFailed}
+          className="aspect-[167/208] h-auto w-full"
+        />
+        {/* 게시물 카드(CollectionCard)처럼 사진이 아직 없는 처리 중·실패 카드엔 붙이지 않는다. */}
+        {mediaBadge && !isProcessing && !isFailed ? <MediaBadge type="IMAGE" /> : null}
+      </div>
       <div className="flex w-full flex-col gap-0.5 p-1">
         {isProcessing ? (
           <div className="flex items-center gap-1">
@@ -83,7 +92,7 @@ function PlaceCard({ place, onClick, className }: PlaceCardProps) {
           <>
             <p className="line-clamp-2 text-b2 font-semibold text-gray-90">{place.name}</p>
             <p className="truncate text-b3 font-medium text-gray-60">
-              {[place.region, place.category].filter(Boolean).join(' • ')}
+              {[place.region, place.category].filter(Boolean).join(' · ')}
             </p>
           </>
         )}

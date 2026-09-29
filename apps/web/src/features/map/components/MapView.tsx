@@ -7,9 +7,9 @@ import { PlacePin } from '@/features/map/components/PlacePin';
 import {
   CLUSTER_ZOOM_STEP,
   DEFAULT_ZOOM,
+  DETAIL_PAGE_SNAP_POINT,
   PIN_DETAIL_MIN_ZOOM,
   RECENTER_ZOOM,
-  SELECTED_PLACE_VERTICAL_RATIO,
 } from '@/features/map/constants';
 import { buildNaverMapStyleProps, resolveMapStyle } from '@/features/map/map-style';
 import { clusterPins } from '@/features/map/pin-cluster';
@@ -43,6 +43,7 @@ export function MapView({
   initialCenter,
   selectedPlaceId,
   panTarget,
+  sheetSnap = DETAIL_PAGE_SNAP_POINT,
   onPlaceClick,
   onBoundsChanged,
   ref,
@@ -52,11 +53,17 @@ export function MapView({
   initialCenter?: Coordinates;
   selectedPlaceId?: number | null;
   /**
-   * 지도가 보여줘야 할 선택 장소 좌표. 값이 있으면 그 좌표가 드로어에 가려지지 않는
-   * 화면 위쪽 영역 정가운데(`SELECTED_PLACE_VERTICAL_RATIO`)에 오도록 이동한다.
+   * 지도가 보여줘야 할 선택 장소 좌표. 값이 있으면 핀 사진이 보이는 줌(`PIN_DETAIL_MIN_ZOOM`)
+   * 까지 확대하면서, 그 좌표가 드로어에 가려지지 않는 화면 위쪽 영역 정가운데에 오도록 이동한다.
    * 좌표(lat/lng 값)가 바뀔 때마다, 그리고 지도 인스턴스가 늦게 생겨도 그 시점에 적용된다.
    */
   panTarget?: Coordinates | null;
+  /**
+   * 이동하는 순간 드로어가 가리는 화면 비율(스냅 포인트 표기). 사진 없는 장소는 detailCompact
+   * 로 낮게 열려서, 고정값(detailPage)으로 잡으면 핀이 보이는 영역 가운데에 오지 않는다.
+   * 이동 시점의 값만 쓴다 — 시트를 끌어 올리고 내리는 동안 지도가 따라 움직이지 않게.
+   */
+  sheetSnap?: number;
   onPlaceClick?: (id: number) => void;
   /** 지도가 멈춘(idle) 시점의 실제 뷰포트 경계 — 팬/줌이 끝날 때만 넘어온다(최초 마운트 포함). */
   onBoundsChanged?: (bounds: MapBounds) => void;
@@ -105,17 +112,29 @@ export function MapView({
   // 좌표가 같으면 다시 이동하지 않는다.
   const panTargetLat = panTarget?.lat;
   const panTargetLng = panTarget?.lng;
+  const sheetSnapRef = useRef(sheetSnap);
+  sheetSnapRef.current = sheetSnap;
   useEffect(() => {
     if (!map || panTargetLat === undefined || panTargetLng === undefined) return;
     const target = new navermaps.LatLng(panTargetLat, panTargetLng);
     // 그냥 target 을 중심으로 잡으면 화면 정중앙(드로어 경계 부근)에 와서 가려지므로,
-    // target 이 SELECTED_PLACE_VERTICAL_RATIO 높이에 보이도록 중심 좌표를 그만큼
-    // 아래로 옮겨 잡는다(픽셀 오프셋 계산은 지도 투영(projection)에 위임한다).
+    // target 이 드로어 위 남은 영역의 정가운데((1 + snap) / 2 높이)에 보이도록 중심 좌표를
+    // 그만큼 아래로 옮겨 잡는다(픽셀 오프셋 계산은 지도 투영(projection)에 위임한다).
+    // 전체 높이(full)로 복원된 시트는 가리지 않은 영역이 없어 기본 높이 기준으로 둔다.
+    const snap = sheetSnapRef.current < 1 ? sheetSnapRef.current : DETAIL_PAGE_SNAP_POINT;
+    const currentZoom = map.getZoom();
+    // 이미 더 확대해 보고 있었다면 그 축척을 존중한다 — 줌 아웃시키지 않는다.
+    const targetZoom = Math.max(currentZoom, PIN_DETAIL_MIN_ZOOM);
+    // 투영은 현재 줌의 픽셀 좌표계다. 도착 줌에서 필요한 화면 픽셀만큼 옮기려면 줌 차이만큼
+    // 줄여 환산한다(줌 1단계 = 2배).
+    const verticalShiftPx =
+      map.getSize().height * ((1 + snap) / 2 - 0.5) * 2 ** (currentZoom - targetZoom);
     const projection = map.getProjection();
-    const verticalShiftPx = map.getSize().height * (SELECTED_PLACE_VERTICAL_RATIO - 0.5);
     const targetOffset = projection.fromCoordToOffset(target);
     const shiftedOffset = new navermaps.Point(targetOffset.x, targetOffset.y + verticalShiftPx);
-    map.panTo(projection.fromOffsetToCoord(shiftedOffset));
+    const destination = projection.fromOffsetToCoord(shiftedOffset);
+    if (targetZoom === currentZoom) map.panTo(destination);
+    else map.morph(destination, targetZoom);
   }, [map, navermaps, panTargetLat, panTargetLng]);
 
   // 핀치하면서 손가락을 옮기면 지도도 따라 움직이게 한다 — SDK 는 핀치 시작점을 줌 원점으로
@@ -127,11 +146,17 @@ export function MapView({
 
   // 버블을 누르면 그 덩어리 쪽으로 이동하면서 한 단계 확대한다. 최대 줌 초과는 네이버가
   // 알아서 클램프하므로 여기서 상한을 따로 두지 않는다.
+  // 장소가 하나뿐인 버블은 더 쪼갤 게 없다 — 단계를 밟지 않고 핀 사진이 보이는 줌까지
+  // 곧장 당기고, 그 장소를 화면 가운데 둔다. 선택(시트 열기)은 하지 않는다(QA).
   const zoomIntoCluster = useCallback(
-    (lat: number, lng: number) => {
+    (lat: number, lng: number, single: boolean) => {
       const currentMap = mapRef.current;
       if (!currentMap) return;
-      currentMap.morph(new navermaps.LatLng(lat, lng), currentMap.getZoom() + CLUSTER_ZOOM_STEP);
+      const zoom = currentMap.getZoom();
+      currentMap.morph(
+        new navermaps.LatLng(lat, lng),
+        single ? PIN_DETAIL_MIN_ZOOM : zoom + CLUSTER_ZOOM_STEP,
+      );
     },
     [navermaps],
   );
@@ -174,7 +199,11 @@ export function MapView({
                 lat={cluster.lat}
                 lng={cluster.lng}
                 count={cluster.pins.length}
-                onClick={() => zoomIntoCluster(cluster.lat, cluster.lng)}
+                onClick={() => {
+                  const [only] = cluster.pins;
+                  if (cluster.pins.length === 1 && only) zoomIntoCluster(only.lat, only.lng, true);
+                  else zoomIntoCluster(cluster.lat, cluster.lng, false);
+                }}
               />
             ))
           : restPins.map((pin) => (

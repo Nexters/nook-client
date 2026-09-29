@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Outlet } from 'react-router-dom';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
+import { markTabRootNavigation } from '@/app/layouts/MainTabPageLayout';
 import { bottomMenuItems } from '@/app/navigation';
 import { BOTTOM_INSET_VAR, BOTTOM_MENU_HEIGHT, BottomMenu } from '@/shared/ui';
 
@@ -32,7 +33,11 @@ export function ProtectedAppLayout() {
           뷰포트보다 길어지면 탭바가 셸 바닥(화면 밖)에 붙는다 — 문서 스크롤(#root) 중에도
           항상 화면 하단에 있어야 하니 body 로 포탈한다(ToastProvider 와 같은 이유). */}
       {createPortal(
-        <BottomMenu items={bottomMenuItems} hidden={bottomMenuHidden} />,
+        <BottomMenu
+          items={bottomMenuItems}
+          hidden={bottomMenuHidden}
+          onNavigate={markTabRootNavigation}
+        />,
         document.body,
       )}
     </BottomMenuVisibilityProvider>

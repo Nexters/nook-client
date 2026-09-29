@@ -35,6 +35,8 @@ export interface RecentPlace {
   name: string;
   category?: string;
   address: string;
+  /** 지역(예: "서울"). 서버가 주소에서 뽑아 내려준다. */
+  city?: string;
   thumbnail?: string;
   /** 썸네일 파싱 처리 상태. `features/place`의 `Place.thumbnailState`와 같은 의미다. */
   thumbnailState?: 'processing' | 'failed';

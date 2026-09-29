@@ -94,6 +94,7 @@ export function toRecentPlace(dto: RecentPlaceResponse): RecentPlace {
     name: dto.name,
     category: dto.category ?? undefined,
     address: dto.address,
+    city: dto.city ?? undefined,
     thumbnail: dto.thumbnailUrl ?? undefined,
     thumbnailState: toThumbnailState(dto.thumbnailUrl, dto.thumbnailParsingStatus),
     accessType: dto.accessType,
