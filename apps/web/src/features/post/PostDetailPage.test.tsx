@@ -686,7 +686,7 @@ describe('게시물 상세', () => {
     await waitFor(() =>
       expect(screen.queryByPlaceholderText('장소명을 입력해주세요')).not.toBeInTheDocument(),
     );
-    expect(await screen.findByText('아카이브에 저장됐어요')).toBeInTheDocument();
+    expect(await screen.findByText('아카이브에 추가됐어요')).toBeInTheDocument();
     expect(await screen.findByText('앤미')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '앤미 즐겨찾기' })).toHaveAttribute(
       'aria-pressed',

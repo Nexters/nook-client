@@ -124,7 +124,7 @@ describe('SharedArchivePage', () => {
 
   it('비로그인 저장 탭은 로그인 월을 띄우고, 로그인하기를 누르면 로그인 화면으로 간다', async () => {
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: /아카이브에 저장/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /아카이브 추가/ }));
     expect(screen.getByText('로그인하시겠어요?')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '로그인하기' }));
@@ -134,14 +134,14 @@ describe('SharedArchivePage', () => {
   it('로그인 상태의 저장 탭은 구독을 호출하고 완료 토스트를 띄운다', async () => {
     session.status = 'authenticated';
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: /아카이브에 저장/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /아카이브 추가/ }));
 
     // TanStack Query v5 mutationFn 은 (variables, mutationFnContext) 두 인자로 불린다 —
     // 두 번째 인자는 신경 쓰지 않는다.
     await vi.waitFor(() =>
       expect(mocks.subscribeSharedArchive).toHaveBeenCalledWith('tok-123', expect.anything()),
     );
-    expect(await screen.findByText('아카이브에 저장했어요!')).toBeInTheDocument();
+    expect(await screen.findByText('아카이브를 추가했어요!')).toBeInTheDocument();
 
     // 보러가기는 저장한 아카이브 상세가 아니라 내 아카이브 목록으로 보낸다.
     fireEvent.click(screen.getByRole('button', { name: '보러가기' }));
@@ -153,7 +153,7 @@ describe('SharedArchivePage', () => {
     archivesMock.mockResolvedValue([{ ...META, accessType: 'SHARED' }]);
     renderPage();
     // 라벨은 그대로 두고 체크 상태(채워진 칩)로 바뀐다 — Figma butto/40_save Selected.
-    expect(await screen.findByRole('button', { name: /아카이브에 저장/ })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: /아카이브 추가/ })).toBeDisabled();
   });
 
   it('소유자(OWNED)에게는 저장 대신 아카이브 편집 버튼이 보이고, 누르면 편집 페이지로 간다', async () => {
@@ -163,7 +163,7 @@ describe('SharedArchivePage', () => {
 
     // 내 아카이브 목록이 로드된 뒤에 편집 버튼으로 바뀌므로, 버튼이 나타난 다음에 저장 버튼 부재를 확인한다.
     const editButton = await screen.findByRole('button', { name: '아카이브 편집' });
-    expect(screen.queryByRole('button', { name: /아카이브에 저장/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /아카이브 추가/ })).not.toBeInTheDocument();
     fireEvent.click(editButton);
     expect(await screen.findByText('아카이브 편집 화면')).toBeInTheDocument();
   });

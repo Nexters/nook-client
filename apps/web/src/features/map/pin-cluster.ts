@@ -1,7 +1,10 @@
 import { CLUSTER_MERGE_RADIUS_PX } from './constants';
 import type { MapPin } from './types';
 
-/** 웹 메르카토르 타일 한 변의 픽셀 수 — 네이버 지도도 256px 타일을 쓴다. */
+/**
+ * 표준 웹 메르카토르 타일 한 변의 픽셀 수. 여기 `zoom` 은 이 표준 기준이다 — 네이버 지도 줌과는
+ * 축척이 어긋나 있어서, 호출부(`MapView`)가 지도 투영으로 잰 표준 줌을 넘긴다.
+ */
 const TILE_SIZE_PX = 256;
 
 /**
@@ -77,4 +80,31 @@ export function clusterPins(pins: MapPin[], zoom: number): PinCluster[] {
   }
 
   return clusters;
+}
+
+/**
+ * 지금 줌에서 화면상 `spanX`×`spanY`(px) 만큼 벌어진 점들이 `width`×`height`(px) 안에 모두
+ * 들어오는 가장 큰 정수 줌. 줌이 1 오를 때마다 화면상 거리가 두 배가 된다.
+ * 넓이가 없으면(한 곳뿐이거나 좌표가 같은 건물) 어떤 줌이든 들어간다 — 무한대를 돌려주고
+ * 상한은 호출부가 정한다. 화면 폭은 지도 투영으로 재서 넘긴다 — 네이버 줌은 표준 웹
+ * 메르카토르 줌과 축척이 한 단계 어긋나 있어 직접 계산하면 한 단계 과하게 확대된다(QA).
+ */
+export function zoomToFitSpan({
+  spanX,
+  spanY,
+  width,
+  height,
+  zoom,
+}: {
+  spanX: number;
+  spanY: number;
+  width: number;
+  height: number;
+  zoom: number;
+}): number {
+  const scale = Math.min(
+    spanX > 0 ? width / spanX : Infinity,
+    spanY > 0 ? height / spanY : Infinity,
+  );
+  return scale === Infinity ? Infinity : Math.floor(zoom + Math.log2(scale));
 }
