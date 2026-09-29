@@ -1,8 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
-import { PINNED_HEADER_STICKY, PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
+import {
+  PINNED_HEADER_STICKY,
+  PinnedHeaderLayout,
+  PinnedHeaderTitle,
+} from '@/app/layouts/PinnedHeaderLayout';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { PlaceCard } from '@/features/place';
 import { ShareSheet } from '@/features/share/components/ShareSheet';
@@ -60,6 +64,9 @@ export function ArchiveDetailPage() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<DetailTab>('posts');
   const [deletePopupOpen, setDeletePopupOpen] = useState(false);
+  // 스크롤에 실려 올라가는 아카이브 정보 블록 — 헤더 뒤로 숨으면 헤더 제목이 뜨고,
+  // 그 뒤로는 아래로 스크롤할 때 헤더까지 접혀 탭만 남는다.
+  const infoRef = useRef<HTMLDivElement>(null);
 
   // 선택 삭제(Figma `게시글 편집`) — 더보기 메뉴로 켜고, 뒤로가기/장소 탭 전환으로 끈다.
   // 뒤로가기 세 경로(좌상단 버튼·Android 하드웨어 백·iOS 엣지 스와이프)가 모두 "모드 종료"로
@@ -164,14 +171,18 @@ export function ArchiveDetailPage() {
     { key: 'places', label: '장소', count: placesQuery.data?.totalElements },
   ];
 
-  // 화면에 계속 붙어 있는 건 헤더뿐이다. 아카이브 정보(이름·색·소유자)와 액션 칩은
+  // 화면에 붙어 있는 건 헤더뿐이다. 아카이브 정보(이름·색·소유자)와 액션 칩은
   // 스크롤에 실려 올라가 사라지고, 게시물/장소 탭만 헤더 밑에 멈춰 선다 — 고정 영역이
-  // 화면을 절반 가까이 먹던 문제를 여기서 푼다.
+  // 화면을 절반 가까이 먹던 문제를 여기서 푼다. 정보가 다 가려진 뒤로는 내릴 때 헤더도
+  // 접어 탭만 남기고, 올릴 때 제목을 단 헤더로 다시 편다(시안). 탭이 없는 빈 아카이브는
+  // 접을 이유가 없다.
   // 하단 탭바(ProtectedAppLayout)와 선택 모드 CTA 바는 fixed 라, 콘텐츠는 하단 패딩으로만 비켜준다.
   return (
     <PinnedHeaderLayout
+      collapseAfter={isEmpty ? undefined : infoRef}
       header={
         <Header
+          title={<PinnedHeaderTitle target={infoRef}>{archive.name}</PinnedHeaderTitle>}
           // 선택 모드의 뒤로가기는 페이지 이탈이 아니라 모드 종료다.
           left={<BackButton onClick={selecting ? exitSelecting : undefined} />}
           right={
@@ -210,6 +221,7 @@ export function ArchiveDetailPage() {
     >
       {/* 고정 영역에서 내려온 아카이브 정보 — 스크롤하면 탭만 남기고 헤더 뒤로 사라진다. */}
       <div
+        ref={infoRef}
         className={cn(
           'flex flex-col gap-1 px-4 pt-2 pb-4',
           // 빈 아카이브는 탭도 액션 칩도 없어(아래 참고) 이 블록이 화면 위쪽의 끝이다 —
