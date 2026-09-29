@@ -334,9 +334,11 @@ export function PlaceSheet({
                           id: String(place.id),
                           name: place.name,
                           category: place.category ?? '',
+                          region: place.city,
                           thumbnail: place.thumbnail,
                           thumbnailState: place.thumbnailState,
                         }}
+                        mediaBadge
                         // 구독한 공유 아카이브의 장소는 내 API 로는 게시물이 비어 오므로
                         // 토큰을 함께 넘겨 공유 공개 API 로 조회하게 한다.
                         onClick={() => onSelectPlace(place.id, place.shareToken)}

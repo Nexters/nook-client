@@ -179,6 +179,7 @@ export function PlaceSearchPanel({
                     region: place.region,
                     thumbnail: place.thumbnail,
                   }}
+                  mediaBadge
                   onClick={() => onSelectPlace(place.id)}
                 />
               ))}
