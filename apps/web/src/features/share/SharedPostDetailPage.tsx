@@ -143,7 +143,7 @@ export function SharedPostDetailPage() {
                 onClick={handleSaveChip}
                 className="inline-flex h-[26px] w-fit items-center gap-1 rounded-md border border-gray-20 py-0 pr-1.5 pl-2.5 text-b3 font-semibold text-gray-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
               >
-                아카이브에 저장
+                아카이브 추가
                 <Icon16ArrowDown className="size-4" />
               </button>
             )}

@@ -140,7 +140,7 @@ export function PostDetailPage() {
     connectPlaceMutation.mutate(place.selectionToken, {
       onSuccess: (placeId) => {
         capturePostHogEvent('place_directly_added', { post_id: postId, place_id: placeId });
-        showToast({ variant: 'simple', title: '아카이브에 저장됐어요' });
+        showToast({ variant: 'simple', title: '아카이브에 추가됐어요' });
         setDirectInputOpen(false);
       },
       onError: () => {

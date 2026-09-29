@@ -98,14 +98,14 @@ describe('SharedPostDetailPage', () => {
 
   it('비로그인 저장 칩은 로그인 월을 띄운다', async () => {
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: /아카이브에 저장/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /아카이브 추가/ }));
     expect(screen.getByText('로그인하시겠어요?')).toBeInTheDocument();
   });
 
   it('로그인 저장은 시트에서 고른 아카이브로 저장하고 내 게시물 상세로 전환한다', async () => {
     session.status = 'authenticated';
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: /아카이브에 저장/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /아카이브 추가/ }));
     fireEvent.click(await screen.findByText('카페'));
     fireEvent.click(screen.getByRole('button', { name: '저장하기' }));
 
@@ -141,6 +141,6 @@ describe('SharedPostDetailPage', () => {
     renderPage();
     expect(await screen.findByText('카페')).toBeInTheDocument();
     expect(screen.getByText('에 저장')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /아카이브에 저장/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /아카이브 추가/ })).not.toBeInTheDocument();
   });
 });

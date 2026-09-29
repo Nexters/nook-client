@@ -38,7 +38,7 @@ export function SavePostSheet({ open, onOpenChange, onSave, pending }: SavePostS
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
-        <DrawerTitle className="sr-only">내 아카이브에 저장</DrawerTitle>
+        <DrawerTitle className="sr-only">아카이브 추가</DrawerTitle>
         <div className="flex flex-col gap-4 p-4 pb-8">
           <div className="flex max-h-80 flex-col gap-1 overflow-y-auto">
             {/* TODO(후속): 시트 안 인라인 생성 — v1 은 아카이브 목록으로 보내 그 위에 생성
