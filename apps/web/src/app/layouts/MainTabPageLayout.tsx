@@ -2,6 +2,7 @@ import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef } from 
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import nookLogo from '@/assets/logo/header_logo.svg';
+import { nativeBridge } from '@/native-bridge';
 import { env } from '@/shared/config/env';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { cn } from '@/shared/lib/utils';
@@ -9,6 +10,20 @@ import { Header } from '@/shared/ui';
 
 /** 탭 루트에서 Android 백이 수렴하는 홈 탭 — 로그인 후 진입 경로(`ENTRY_PATH`)와 같다. */
 const HOME_TAB_PATH = '/map';
+
+/**
+ * 하단 탭을 눌러 만든 엔트리(탭 루트)의 location key. 탭 이동이 push 라 탭 루트 아래에도
+ * 엔트리가 쌓이는데, 홈 탭 루트에서 Android 백을 누르면 그 아래로 내려가지 말고 앱을
+ * 내려야 한다 — 그러려면 "지금 엔트리가 탭 루트인가"를 알아야 한다. 같은 /map 이라도
+ * 그 위에 push 된 장소 상세 엔트리는 탭 루트가 아니라 히스토리 뒤로 닫혀야 한다.
+ */
+let tabRootKey: string | null = null;
+let tabNavigationPending = false;
+
+/** 하단 탭 클릭 시 호출 — 이어서 마운트/전환되는 엔트리를 탭 루트로 기록한다. */
+export function markTabRootNavigation() {
+  tabNavigationPending = true;
+}
 
 interface MainTabPageLayoutProps {
   children: ReactNode;
@@ -19,18 +34,33 @@ interface MainTabPageLayoutProps {
 export function MainTabPageLayout({ children, variant = 'gray' }: MainTabPageLayoutProps) {
   const overlay = variant === 'transparent';
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, key } = useLocation();
 
-  // 탭 이동이 히스토리를 덮어쓰므로(BottomMenu 의 `replace`) 탭 루트에는 돌아갈 엔트리가
-  // 없다 — 그대로 두면 Android 백이 어느 탭에서든 곧장 앱을 내린다. 홈이 아닌 탭에서는
-  // 홈으로 먼저 보내고(Android 관례), 홈에서만 통과시켜 앱이 내려가게 한다.
-  // 인터셉터는 `BACK_REQUESTED`(Android) 경로 전용이라 iOS 스와이프에는 영향이 없다.
+  // 탭 클릭으로 생긴 엔트리를 탭 루트로 기록한다(`markTabRootNavigation`).
+  useLayoutEffect(() => {
+    if (!tabNavigationPending) return;
+    tabNavigationPending = false;
+    tabRootKey = key;
+  }, [key]);
+
+  // Android 관례: 홈이 아닌 탭에서는 홈으로 먼저 보내고, 홈 탭 루트에서는 앱을 내린다.
+  // 탭 이동이 push 라 탭 루트 아래에도 엔트리가 있다 — 홈에서 그대로 히스토리 뒤로 가면
+  // 직전 탭으로 돌아가 버리므로 여기서 직접 BACK_EXHAUSTED 를 보낸다. 홈 위에 push 된
+  // 엔트리(장소 상세)나 탭을 거치지 않은 첫 진입은 통과시켜 기존 흐름(히스토리 뒤로 →
+  // 없으면 BACK_EXHAUSTED)을 탄다. 인터셉터는 `BACK_REQUESTED`(Android) 경로 전용이라
+  // iOS 스와이프에는 영향이 없다.
   useBackInterceptor(
     useCallback(() => {
-      if (pathname === HOME_TAB_PATH) return false;
+      if (pathname === HOME_TAB_PATH) {
+        if (key !== tabRootKey) return false;
+        nativeBridge.send({ v: 1, type: 'BACK_EXHAUSTED', payload: {} });
+        return true;
+      }
+      // 이렇게 도착한 홈도 탭 루트다 — 거기서 한 번 더 누르면 앱이 내려가야 한다.
+      markTabRootNavigation();
       navigate(HOME_TAB_PATH, { replace: true });
       return true;
-    }, [pathname, navigate]),
+    }, [pathname, key, navigate]),
   );
   const logoTapCount = useRef(0);
   const logoTapResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
