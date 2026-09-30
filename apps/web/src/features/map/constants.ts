@@ -89,4 +89,4 @@ export const SELECTED_PIN_VISIBLE_AREA_RATIO = 0.75;
  * 선택 장소로 지도를 옮기는 애니메이션 시간(ms). SDK 기본값으로는 멀리 갈 때 너무 빨라
  * 어디로 가는지 따라가기 어렵다(QA).
  */
-export const SELECTED_PLACE_MOVE_DURATION_MS = 800;
+export const SELECTED_PLACE_MOVE_DURATION_MS = 1200;

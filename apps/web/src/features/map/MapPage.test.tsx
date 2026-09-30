@@ -19,14 +19,22 @@ vi.mock('@/features/map/api', () => mocks);
 
 // 네이버 지도 SDK 는 jsdom 에서 로드할 수 없다 — 핀 클릭 콜백만 노출하는 스텁으로 대체한다.
 vi.mock('@/features/map/components/MapView', () => ({
+  getLastMapCamera: () => null,
   MapView: ({
     pins,
     onPlaceClick,
     onBoundsChanged,
+    onDestinationBounds,
   }: {
     pins: { id: number; color: string }[];
     onPlaceClick: (id: number) => void;
     onBoundsChanged: (bounds: { north: number; south: number; east: number; west: number }) => void;
+    onDestinationBounds: (bounds: {
+      north: number;
+      south: number;
+      east: number;
+      west: number;
+    }) => void;
   }) => (
     <>
       <button type="button" onClick={() => onPlaceClick(7)}>
@@ -38,6 +46,13 @@ vi.mock('@/features/map/components/MapView', () => ({
         onClick={() => onBoundsChanged({ north: 39, south: 33, east: 132, west: 124 })}
       >
         지도 멈춤
+      </button>
+      {/* 선택 장소로 이동을 막 시작한 순간 — 도착 화면 경계(제주 근처)를 미리 알린다. */}
+      <button
+        type="button"
+        onClick={() => onDestinationBounds({ north: 33.5, south: 33.4, east: 127, west: 126.9 })}
+      >
+        이동 시작
       </button>
       <output data-testid="pins">{pins.map((pin) => `${pin.id}:${pin.color}`).join(',')}</output>
     </>
@@ -605,6 +620,21 @@ describe('MapPage — 멀리 있는 선택 장소의 핀', () => {
     expect(screen.getByTestId('pins')).toHaveTextContent(/^$/);
 
     fireEvent.click(screen.getByRole('button', { name: '지도 멈춤' }));
+    await waitFor(() => expect(screen.getByTestId('pins')).toHaveTextContent('7:pink'));
+  });
+
+  it('이동을 시작하면 도착 영역의 핀을 미리 받아, 지도가 멈추기 전에 선택 핀을 실제 색으로 그린다', async () => {
+    mocks.fetchMapPins.mockImplementation((bounds: { south: number }) =>
+      Promise.resolve(
+        bounds.south <= 33.458
+          ? [{ id: 7, lat: 33.458, lng: 126.9425, name: '제주 오름', color: 'pink' }]
+          : [],
+      ),
+    );
+    renderMapAt('/map?placeId=7');
+    await screen.findByText('선택됨: 제주 오름');
+
+    fireEvent.click(screen.getByRole('button', { name: '이동 시작' }));
     await waitFor(() => expect(screen.getByTestId('pins')).toHaveTextContent('7:pink'));
   });
 
