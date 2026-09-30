@@ -9,6 +9,7 @@ import {
 } from '@/app/layouts/PinnedHeaderLayout';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { PlaceCard } from '@/features/place';
+import { POST_FROM_LIST_STATE } from '@/features/post/postEntry';
 import { ShareSheet } from '@/features/share/components/ShareSheet';
 import { buildShareUrl } from '@/features/share/lib/shareUrl';
 import { Icon16ArrowUpTray } from '@/shared/icons/NookIcons';
@@ -330,7 +331,7 @@ export function ArchiveDetailPage() {
                           : undefined
                         : selecting
                           ? () => togglePostSelected(post.id)
-                          : () => navigate(`/post/${post.id}`)
+                          : () => navigate(`/post/${post.id}`, { state: POST_FROM_LIST_STATE })
                     }
                   />
                 ))}

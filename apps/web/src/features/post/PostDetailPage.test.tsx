@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { type InitialEntry, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import emptyThumbnail from '@/assets/images/98_Group.svg';
@@ -16,9 +16,21 @@ const mocks = vi.hoisted(() => ({
   searchConnectablePlaces: vi.fn(),
   connectPostPlace: vi.fn(),
   disconnectPostPlace: vi.fn(),
+  replacePostArchives: vi.fn(),
+  deletePost: vi.fn(),
 }));
 
 vi.mock('@/features/post/api', () => mocks);
+
+// 아카이브 시트의 목록(내 아카이브). 공유받은 아카이브는 시트에 뜨지 않는다.
+vi.mock('@/features/archive/api', () => ({
+  fetchArchives: () =>
+    Promise.resolve([
+      { id: 1, name: '카페', color: 'yellow', accessType: 'OWNED' },
+      { id: 2, name: '밥집', color: 'green', accessType: 'OWNED' },
+      { id: 3, name: 'LP바', color: 'blue', accessType: 'OWNED' },
+    ]),
+}));
 
 // 네이버 지도 SDK 는 jsdom 에서 로드할 수 없다 — 직접 연결 드로어의 프리뷰 지도는 스텁으로 대체한다.
 vi.mock('@/features/map/components/PlacePreviewMap', () => ({
@@ -175,7 +187,7 @@ function ArchiveRouteProbe() {
   return <p>아카이브 상세 화면</p>;
 }
 
-function renderRoute(initialPath: string, initialEntries = [initialPath]) {
+function renderRoute(initialPath: string, initialEntries: InitialEntry[] = [initialPath]) {
   // 전역 queryClient(retry: 1) 대신 재시도 없는 클라이언트 — 에러 케이스 테스트가 느려지지 않게.
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -195,7 +207,7 @@ function renderRoute(initialPath: string, initialEntries = [initialPath]) {
   );
 }
 
-async function renderPost(postId: number, search = '', initialEntries?: string[]) {
+async function renderPost(postId: number, search = '', initialEntries?: InitialEntry[]) {
   renderRoute(`/post/${postId}${search}`, initialEntries);
   // 게시물 상세와 장소 목록 모두 별도 API 로 비동기 로드된다 — 둘 다 정착할 때까지 기다린다.
   await waitFor(() =>
@@ -221,6 +233,8 @@ describe('게시물 상세', () => {
     mocks.searchConnectablePlaces.mockResolvedValue(SEARCHED_PLACES);
     mocks.connectPostPlace.mockResolvedValue(501);
     mocks.disconnectPostPlace.mockResolvedValue(undefined);
+    mocks.replacePostArchives.mockResolvedValue(undefined);
+    mocks.deletePost.mockResolvedValue(undefined);
   });
 
   it('헤더를 화면에 고정하고 콘텐츠는 그 아래에서 시작한다', async () => {
@@ -314,7 +328,7 @@ describe('게시물 상세', () => {
     expect(screen.getByText('아카이브 상세 화면')).toBeInTheDocument();
   });
 
-  it('저장된 아카이브를 모두 태그 버튼으로 보여주고, 누르면 그 아카이브 상세로 이동한다', async () => {
+  it('여러 아카이브에 저장된 게시물은 칩 하나로 합쳐 "카페 외 1개"로 보여준다', async () => {
     mocks.fetchPostDetail.mockResolvedValue({
       ...POSTS[1],
       archives: [
@@ -324,10 +338,85 @@ describe('게시물 상세', () => {
     });
     await renderPost(1);
 
-    expect(screen.getByRole('button', { name: '카페' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '밥집' }));
+    expect(screen.getByRole('button', { name: '카페 외 1개' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '밥집' })).not.toBeInTheDocument();
+  });
 
-    expect(screen.getByText('아카이브 상세 화면')).toBeInTheDocument();
+  it('아카이브 칩을 누르면 저장된 아카이브가 체크된 시트가 뜬다 — 아카이브 상세로 가지 않는다', async () => {
+    await renderPost(1);
+
+    fireEvent.click(screen.getByRole('button', { name: '카페' }));
+
+    expect(await screen.findByRole('checkbox', { name: '카페' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: '밥집' })).not.toBeChecked();
+    expect(screen.queryByText('아카이브 상세 화면')).not.toBeInTheDocument();
+  });
+
+  it('체크를 바꿔 저장하면 속한 아카이브를 바꾸고 이 화면에 머무르며 토스트를 띄운다', async () => {
+    await renderPost(1);
+    fireEvent.click(screen.getByRole('button', { name: '카페' }));
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: '카페' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'LP바' }));
+    fireEvent.click(screen.getByRole('button', { name: '저장하기' }));
+
+    await waitFor(() => expect(mocks.replacePostArchives).toHaveBeenCalledWith(1, [3]));
+    // 메모는 그대로라 보내지 않는다.
+    expect(mocks.updatePostMemo).not.toHaveBeenCalled();
+    expect(await screen.findByText('"LP바"에 저장됐어요')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '지금 가기 좋은 초록뷰 카페' })).toBeInTheDocument();
+  });
+
+  it('여러 아카이브로 저장하면 "n개의 아카이브"로 알리고, 바뀐 메모도 함께 저장한다', async () => {
+    await renderPost(1);
+    fireEvent.click(screen.getByRole('button', { name: '카페' }));
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: '밥집' }));
+    fireEvent.change(screen.getByPlaceholderText('추가로 메모하고 싶은 내용이 있나요?'), {
+      target: { value: '다음엔 지우랑' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '저장하기' }));
+
+    await waitFor(() => expect(mocks.updatePostMemo).toHaveBeenCalledWith(1, '다음엔 지우랑'));
+    expect(mocks.replacePostArchives).toHaveBeenCalledWith(1, [1, 2]);
+    expect(await screen.findByText('"2개의 아카이브"에 저장됐어요')).toBeInTheDocument();
+  });
+
+  it('체크를 전부 해제하면 CTA 가 [게시물 삭제]로 바뀌고, 확인하면 삭제 뒤 홈 지도로 간다', async () => {
+    await renderPost(1);
+    fireEvent.click(screen.getByRole('button', { name: '카페' }));
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: '카페' }));
+    fireEvent.click(screen.getByRole('button', { name: '게시물 삭제' }));
+    fireEvent.click(await screen.findByRole('button', { name: '삭제하기' }));
+
+    await waitFor(() => expect(mocks.deletePost).toHaveBeenCalledWith(1));
+    expect(await screen.findByTestId('map-route-probe')).toHaveTextContent('/map');
+    expect(screen.getByText('게시물이 삭제됐어요')).toBeInTheDocument();
+  });
+
+  it('여러 게시물을 보던 화면에서 들어왔으면 삭제 뒤 그 화면으로 돌아간다', async () => {
+    await renderPost(1, '', ['/archive/1', { pathname: '/post/1', state: { postFromList: true } }]);
+    fireEvent.click(screen.getByRole('button', { name: '카페' }));
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: '카페' }));
+    fireEvent.click(screen.getByRole('button', { name: '게시물 삭제' }));
+    fireEvent.click(await screen.findByRole('button', { name: '삭제하기' }));
+
+    expect(await screen.findByText('아카이브 상세 화면')).toBeInTheDocument();
+    expect(screen.getByText('게시물이 삭제됐어요')).toBeInTheDocument();
+  });
+
+  it('삭제 확인 팝업에서 취소하면 지우지 않고 게시물에 남는다', async () => {
+    await renderPost(1);
+    fireEvent.click(screen.getByRole('button', { name: '카페' }));
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: '카페' }));
+    fireEvent.click(screen.getByRole('button', { name: '게시물 삭제' }));
+    fireEvent.click(await screen.findByRole('button', { name: '취소' }));
+
+    expect(mocks.deletePost).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: '지금 가기 좋은 초록뷰 카페' })).toBeInTheDocument();
   });
 
   it('장소 목록을 불러오는 동안 로딩 문구를 보여주고 배너는 숨긴다', async () => {

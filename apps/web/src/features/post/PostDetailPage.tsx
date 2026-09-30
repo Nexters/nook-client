@@ -1,22 +1,26 @@
 import { useCallback, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { PinnedHeaderLayout, PinnedHeaderTitle } from '@/app/layouts/PinnedHeaderLayout';
+import { useArchives } from '@/features/archive/api/queries';
 import { EntryLoginWall } from '@/features/auth/components/LoginWall';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { PushPrimingSheet } from '@/features/notifications/components/PushPrimingSheet';
+import { SavePostSheet } from '@/features/share/components/SavePostSheet';
 import { capturePostHogEvent } from '@/lib/posthog';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { useToast } from '@/shared/toast';
-import { BackButton, Header } from '@/shared/ui';
+import { BackButton, Header, Popup } from '@/shared/ui';
 import {
   toPlace,
   useConnectPlace,
+  useDeletePost,
   usePostDetail,
   useRelatedPlaces,
   useUpdatePlaceBookmark,
+  useUpdatePostArchives,
   useUpdatePostMemo,
 } from './api/queries';
 import { ExpandableCaption } from './components/ExpandableCaption';
@@ -31,6 +35,7 @@ import { PostInfo } from './components/PostInfo';
 import { GoHomeTooltip, PostParsingView } from './components/PostParsingView';
 import { PostVideoViewer } from './components/PostVideoViewer';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
+import { isPostFromList } from './postEntry';
 import type { SearchedPlace } from './types';
 
 /**
@@ -48,6 +53,8 @@ export function PostDetailPage() {
   const isAuthenticated = useIsAuthenticated();
   const [searchParams] = useSearchParams();
   const enteredFromShare = searchParams.get('entry') === 'share';
+  // 게시물 여러 개를 보여주던 화면에서 들어왔는가 — 삭제 뒤 그 화면으로 돌아갈지 홈 지도로 갈지.
+  const enteredFromList = isPostFromList(useLocation().state);
   useHideBottomMenu();
 
   // 게시물 제목. 스크롤에 실려 헤더 뒤로 숨으면 헤더가 같은 제목을 이어받는다 —
@@ -113,6 +120,57 @@ export function PostDetailPage() {
       shareEntryBackTarget,
     ]),
   );
+
+  // 아카이브 칩(⌄)이 여는 시트 — 체크를 바꿔 저장하면 이동, 전부 해제하면 삭제(Figma `게시물 이동`·
+  // `게시물 삭제`). 이동은 이 화면에 머무르고, 삭제는 떠난다(QA).
+  const [archivesSheetOpen, setArchivesSheetOpen] = useState(false);
+  const [deletePopupOpen, setDeletePopupOpen] = useState(false);
+  const updateArchivesMutation = useUpdatePostArchives(postId);
+  const deletePostMutation = useDeletePost(postId);
+  const { data: myArchives } = useArchives();
+
+  function handleArchivesSave(
+    currentMemo: string | undefined,
+    { groupIds, memo: nextMemo }: { groupIds: number[]; memo?: string },
+  ) {
+    updateArchivesMutation.mutate(
+      {
+        archiveIds: groupIds,
+        // 메모는 바뀌었을 때만 보낸다 — 비우면 빈 문자열로 보내 지운다(updatePostMemo 가 null 로).
+        memo: (nextMemo ?? '') !== (currentMemo ?? '') ? (nextMemo ?? '') : undefined,
+      },
+      {
+        onSuccess: () => {
+          setArchivesSheetOpen(false);
+          const name =
+            groupIds.length === 1
+              ? myArchives?.find((archive) => archive.id === groupIds[0])?.name
+              : undefined;
+          // 보러가기는 붙이지 않는다 — 지금 보고 있는 이 게시물 상세로 가는 버튼이라 눌러도 제자리다(QA).
+          showToast({
+            variant: 'simple',
+            title: name
+              ? `"${name}"에 저장됐어요`
+              : `"${groupIds.length}개의 아카이브"에 저장됐어요`,
+          });
+        },
+        onError: () => showToast({ variant: 'simple', title: '아카이브를 바꾸지 못했어요' }),
+      },
+    );
+  }
+
+  function handleDeleteConfirm() {
+    deletePostMutation.mutate(undefined, {
+      onSuccess: () => {
+        // 여러 게시물을 보던 화면에서 왔으면 그 화면으로 돌아가 머무르고(지운 카드만 빠진다),
+        // 단일 게시물로 곧장 들어왔으면 돌아갈 목록이 없어 홈 지도로 보낸다(QA).
+        if (enteredFromList) navigate(-1);
+        else navigate('/map', { replace: true });
+        showToast({ variant: 'simple', title: '게시물이 삭제됐어요' });
+      },
+      onError: () => showToast({ variant: 'simple', title: '게시물을 삭제하지 못했어요' }),
+    });
+  }
 
   const updateBookmarkMutation = useUpdatePlaceBookmark(postId);
   const connectPlaceMutation = useConnectPlace(postId);
@@ -226,7 +284,7 @@ export function PostDetailPage() {
             archives={archives}
             memo={memo}
             onMemoEdit={() => setMemoOpen(true)}
-            onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
+            onArchivesClick={() => setArchivesSheetOpen(true)}
             className="pt-2"
           />
 
@@ -255,6 +313,37 @@ export function PostDetailPage() {
             onSuccess: () => capturePostHogEvent('post_memo_saved', { post_id: postId }),
           })
         }
+      />
+
+      <SavePostSheet
+        open={archivesSheetOpen}
+        onOpenChange={setArchivesSheetOpen}
+        title="아카이브 수정"
+        initialGroupIds={archives.map((archive) => archive.id)}
+        initialMemo={memo}
+        pending={updateArchivesMutation.isPending || deletePostMutation.isPending}
+        onSave={(input) => handleArchivesSave(memo, input)}
+        onDelete={() => {
+          // 시안대로 시트를 걷고 게시물 위에 확인 팝업만 띄운다. 취소하면 게시물에 그대로 남는다.
+          setArchivesSheetOpen(false);
+          setDeletePopupOpen(true);
+        }}
+      />
+
+      <Popup
+        open={deletePopupOpen}
+        onClose={() => setDeletePopupOpen(false)}
+        title="게시물을 삭제하시겠어요?"
+        description={
+          <>
+            게시물을 삭제하면 게시물에 포함된
+            <br />
+            장소도 모두 삭제돼요.
+          </>
+        }
+        confirmLabel="삭제하기"
+        variant="warning"
+        onConfirm={handleDeleteConfirm}
       />
 
       {/* fixed 오버레이 — 페이지가 뷰포트보다 길면 셸(will-change-transform)에 붙어

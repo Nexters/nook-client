@@ -15,9 +15,11 @@ import type { Coordinates } from '@/shared/lib/geolocation';
 import type { ParsedPlace, PlaceParsingStatus, PostDetail, SearchedPlace } from '../types';
 import {
   connectPostPlace,
+  deletePost,
   disconnectPostPlace,
   fetchPlaceParsing,
   fetchPostDetail,
+  replacePostArchives,
   searchConnectablePlaces,
   updatePlaceBookmark,
   updatePostMemo,
@@ -195,6 +197,52 @@ export function useUpdatePostMemo(postId: number | undefined) {
       if (postId === undefined) return;
       queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(postId) });
     },
+  });
+}
+
+/**
+ * 게시물 이동·삭제 뒤 이 게시물을 보여주던 목록을 모두 다시 불러온다 — 아카이브 목록·게시물·장소
+ * (`['archives']` 접두사), 장소 상세·저장된 게시물(`['map', 'detail']` 접두사), 지도 핀, 최근 장소.
+ * 삭제면 딸린 장소가 함께 사라질 수 있고, 이동이면 아카이브 색이 바뀐다.
+ */
+function invalidatePostLists(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: archiveQueryKeys.list });
+  queryClient.invalidateQueries({ queryKey: ['map', 'detail'] });
+  queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll });
+  queryClient.invalidateQueries({ queryKey: mapQueryKeys.recent });
+}
+
+/**
+ * 게시물 아카이브 시트의 저장 — 속한 아카이브를 바꾸고(이동), 메모가 바뀌었으면 메모도 저장한다.
+ * `memo` 가 undefined 면 메모는 건드리지 않는다.
+ */
+export function useUpdatePostArchives(postId: number | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ archiveIds, memo }: { archiveIds: number[]; memo?: string }) => {
+      await replacePostArchives(postId as number, archiveIds);
+      if (memo !== undefined) await updatePostMemo(postId as number, memo);
+    },
+    // 아카이브는 바뀌고 메모만 실패해도 목록은 새로 받아야 한다.
+    onSettled: () => {
+      if (postId === undefined) return;
+      queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(postId) });
+      invalidatePostLists(queryClient);
+    },
+  });
+}
+
+/**
+ * 게시물 삭제. 지운 게시물 자신의 상세 캐시는 건드리지 않는다 — 삭제 직후 화면을 떠나기 전까지
+ * 그 상세를 구독하고 있어, 무효화하면 404 로 다시 불러와 에러 화면이 한 번 비친다.
+ */
+export function useDeletePost(postId: number | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => deletePost(postId as number),
+    onSuccess: () => invalidatePostLists(queryClient),
   });
 }
 
