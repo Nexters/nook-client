@@ -194,13 +194,9 @@ export function MapPage() {
     setDestinationBounds(null);
   }, [selectedPlaceId]);
 
-  if (location.status === 'loading') {
-    return (
-      <div className="flex h-dvh w-full items-center justify-center">
-        <p className="text-b2 text-gray-60">위치 확인 중…</p>
-      </div>
-    );
-  }
+  // 지도는 마운트 시점 위치에서 열리므로 위치가 올 때까지 띄우지 않는다. 대기는 앱 기동 후 첫
+  // 진입뿐이고(위치 캐시) 대개 짧아서, 안내 문구가 오히려 깜빡임으로 보였다(QA) — 빈 화면으로 둔다.
+  if (location.status === 'loading') return null;
 
   /**
    * 선택 변경을 URL 에 반영한다.

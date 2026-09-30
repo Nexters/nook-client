@@ -136,7 +136,13 @@ export function PlaceSearchPanel({
             canScroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
           )}
         >
-          <div className="flex shrink-0 items-center gap-2 overflow-x-auto py-2">
+          {/* 칩이 넘치면 가로로 밀어 보되, 스크롤바는 감춘다(QA) — PlaceRow·Carousel 과 같은 방식. */}
+          <div
+            className={cn(
+              'flex shrink-0 items-center gap-2 overflow-x-auto py-2',
+              '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+            )}
+          >
             <button
               type="button"
               onClick={() => setGroupId(null)}
