@@ -5,11 +5,12 @@ import type { PlaceCategoryGroup } from '@/features/map/types';
 import { type ArchiveColor, COLOR_BG_CLASS } from '@/shared/ui';
 
 /**
- * 개별 장소 핀 — 줌인 상태에서 쓴다(줌아웃은 `ClusterBubble`). Figma 139:16951(기본) ·
- * 139:16888(선택).
+ * 개별 장소 핀 — 줌인 상태에서 쓴다(줌아웃은 `ClusterBubble`). Figma 326:14057(기본) ·
+ * 326:14066(선택), NOOK-327.
  *
- * 기본은 48px 장소 사진, 선택되면 물방울(`SelectedPinMarker`)로 바뀐다. 둘 다 높이가 48px
- * 이고 **그래픽 아래변이 좌표에 오도록** 놓기 때문에 선택될 때 그래픽이 튀지 않는다
+ * 기본은 48px 장소 사진에 흰 이름표, 선택되면 56px 물방울(`SelectedPinMarker`)에 어두운
+ * 이름표로 바뀐다 — 밝은 지도에서 선택 쪽이 더 도드라지도록 이름표 톤을 서로 뒤집었다.
+ * 둘 다 **그래픽 아래변이 좌표에 오도록** 놓기 때문에 높이가 달라도 이름표 자리는 그대로다
  * (물방울은 뾰족한 끝이 좌표를 가리켜야 해서 아래변 기준이 맞다).
  */
 export function PlacePin({
@@ -60,7 +61,7 @@ export function PlacePin({
             <img
               src={thumbnail ?? emptyThumbnail}
               alt=""
-              className="block size-12 max-w-none rounded-lg border-2 border-gray-0 bg-gray-10 object-cover shadow-[0_2px_10px_rgba(0,0,0,0.25)]"
+              className="block size-12 max-w-none rounded-lg border-2 border-gray-0 bg-gray-10 object-cover shadow-[0_2px_15px_rgba(0,0,0,0.3)]"
             />
           )}
           {/*
@@ -71,15 +72,13 @@ export function PlacePin({
           */}
           <span
             aria-hidden="true"
-            className={`-translate-x-1/2 absolute top-full left-1/2 mt-1.5 flex items-center gap-1.5 rounded-md ${
-              selected
-                ? 'border border-gray-20 bg-gray-0 px-[7px] py-[3px] drop-shadow-[0_2px_5px_rgba(0,0,0,0.1)]'
-                : 'bg-gray-90/85 px-2 py-1 shadow-[0_2px_10px_rgba(0,0,0,0.2)]'
+            className={`-translate-x-1/2 absolute top-full left-1/2 mt-1.5 flex items-center gap-1.5 rounded-md px-2 py-1 drop-shadow-[0_2px_7.5px_rgba(0,0,0,0.3)] ${
+              selected ? 'bg-gray-90' : 'bg-gray-0'
             }`}
           >
             <span className={`block size-1.5 shrink-0 ${COLOR_BG_CLASS[color]}`} />
             <span
-              className={`whitespace-nowrap text-s1 ${selected ? 'text-gray-100' : 'text-gray-10'}`}
+              className={`whitespace-nowrap text-s1 ${selected ? 'text-gray-10' : 'text-gray-100'}`}
             >
               {name}
             </span>

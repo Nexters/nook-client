@@ -330,6 +330,8 @@ export function MapPage() {
           panTarget={selectedPlace ? { lat: selectedPlace.lat, lng: selectedPlace.lng } : undefined}
           sheetSnap={typeof snap === 'number' ? snap : undefined}
           onPlaceClick={handlePlaceClick}
+          // 빈 지도 탭 = 상세 헤더 닫기와 같은 길(NOOK-327). 선택이 없으면 할 일이 없다.
+          onEmptyMapClick={selectedPlaceId !== null ? handleCloseDetail : undefined}
           onBoundsChanged={setBounds}
           onDestinationBounds={setDestinationBounds}
         />
