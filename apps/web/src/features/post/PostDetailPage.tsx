@@ -191,8 +191,8 @@ export function PostDetailPage() {
             <PostDetailErrorView />
           )}
         </div>
-        {/* 파싱 화면은 "완료되면 알림을 보내드릴게요"라고 약속한다 — 권한이 미결정인
-            사용자에게 여기서만 알림 허용을 권한다. 즉시 완료 저장은 이 분기를 안 탄다. */}
+        {/* 오래 걸리는 저장(파싱 화면)에서만 — 권한이 미결정인 사용자에게 완료 알림을
+            받을지 여기서 묻는다. 즉시 완료 저장은 이 분기를 안 탄다. */}
         <PushPrimingSheet active={isProcessing} />
       </main>
     );
