@@ -4,7 +4,7 @@ import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
-import { MapView, type MapViewHandle } from '@/features/map/components/MapView';
+import { getLastMapCamera, MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
 import {
@@ -90,6 +90,10 @@ export function MapPage() {
   // null로 남아 있고, 그동안은 아래 `effectiveBounds`가 현재 위치 기준 근사값으로 대신한다
   // — 그래서 실제 idle을 영영 못 받아도 핀 조회 자체가 멈추지 않는다.
   const [bounds, setBounds] = useState<MapBounds | null>(null);
+  // 선택 장소로 이동을 시작할 때 MapView 가 알려주는 도착 화면의 경계. 도착(idle)까지 기다리지
+  // 않고 이 영역의 핀을 미리 받아, 이동하는 동안 목적지 핀이 떠 있게 한다(QA: 빈 지도에 핀이
+  // 뒤늦게 뜨는 게 어색하다). 선택이 풀리면 버린다.
+  const [destinationBounds, setDestinationBounds] = useState<MapBounds | null>(null);
   // 검색 패널은 히스토리에 승격하지 않는다 — iOS 엣지 스와이프는 화면 전체를 덮는 것에만
   // 반응해야 하고(제품 결정), 이 패널은 시트 안에서 탐색 콘텐츠만 덮어 화면 높이를 채우지
   // 않는다. 그래서 스와이프는 여기서도 "지도를 떠난다"가 맞다. 좌상단 뒤로가기는 버튼이
@@ -104,9 +108,17 @@ export function MapPage() {
 
   const fallbackCenter =
     location.status === 'resolved' ? (location.coords ?? FALLBACK_CENTER) : FALLBACK_CENTER;
-  const effectiveBounds = bounds ?? toInitialBounds(fallbackCenter);
+  // 지도는 직전에 보던 시점에서 다시 열린다(MapView 의 lastCamera) — 첫 idle 전 근사 경계도 거기에 맞춘다.
+  const lastCamera = getLastMapCamera();
+  const effectiveBounds =
+    bounds ??
+    (lastCamera
+      ? toInitialBounds(lastCamera.center, { zoom: lastCamera.zoom })
+      : toInitialBounds(fallbackCenter));
 
   const pinsQuery = useMapPins(effectiveBounds);
+  // 도착 경계가 없으면 위와 같은 키라 요청이 따로 나가지 않는다.
+  const destinationPinsQuery = useMapPins(destinationBounds ?? effectiveBounds);
   const recentPlacesQuery = useRecentPlaces();
   const placeDetailQuery = usePlaceDetail(selectedPlaceId, shareToken);
 
@@ -116,7 +128,11 @@ export function MapPage() {
   // 장소만 내려줘서 북마크 안 된 연관 장소는 영영 안 내려온다 — 선택돼 있는 동안은
   // 상세 응답의 좌표로 핀을 보장한다. 지도 이동(panTarget)과 같은 데이터 소스라
   // 핀과 이동이 항상 같이 일어난다.
-  const bboxPins = pinsQuery.data ?? [];
+  const viewPins = pinsQuery.data ?? [];
+  const bboxPins = [
+    ...viewPins,
+    ...(destinationPinsQuery.data ?? []).filter((pin) => !viewPins.some((p) => p.id === pin.id)),
+  ];
   const selectedPlace = selectedPlaceId !== null ? (placeDetailQuery.data ?? null) : null;
 
   // 사진이 없는 장소에는 detailPage 스냅이 아예 없다(DETAIL_SNAP_POINTS_WITHOUT_PHOTOS).
@@ -132,12 +148,14 @@ export function MapPage() {
   // 회색일 수밖에 없다. 멀리 이동하는 동안 그 회색 핀이 먼저 떴다가 목록이 도착하면 실제 색으로
   // 바뀌는 게 깜빡임으로 보였다(QA) — 목적지 영역의 목록이 도착할 때까지는 아예 그리지 않는다.
   // 도착한 목록에도 없으면 저장하지 않은 장소(연관 장소 등)라 원래 색이 없다 — 그때 회색으로 그린다.
-  const destinationPinsSettled =
+  const settledAround = (area: MapBounds | null, query: typeof pinsQuery) =>
     selectedPlace !== null &&
-    bounds !== null &&
-    containsCoord(bounds, selectedPlace) &&
-    pinsQuery.isSuccess &&
-    !pinsQuery.isPlaceholderData;
+    area !== null &&
+    containsCoord(area, selectedPlace) &&
+    query.isSuccess &&
+    !query.isPlaceholderData;
+  const destinationPinsSettled =
+    settledAround(destinationBounds, destinationPinsQuery) || settledAround(bounds, pinsQuery);
   const pins =
     selectedPlace && destinationPinsSettled && !bboxPins.some((pin) => pin.id === selectedPlace.id)
       ? [
@@ -171,7 +189,9 @@ export function MapPage() {
   // 스냅 배열(BROWSE_SNAP_POINTS)에 없기도 해서, 남겨두면 시트가 갈 곳을 잃는다.
   // biome-ignore lint/correctness/useExhaustiveDependencies: isSearchMode 는 되돌릴 높이를 고르는 데만 읽는다 — 검색을 켜고 끄는 것만으로 스냅이 움직이면 안 된다
   useEffect(() => {
-    if (selectedPlaceId === null) setSnap(isSearchMode ? MID_SNAP_POINT : PEEK_SNAP_POINT);
+    if (selectedPlaceId !== null) return;
+    setSnap(isSearchMode ? MID_SNAP_POINT : PEEK_SNAP_POINT);
+    setDestinationBounds(null);
   }, [selectedPlaceId]);
 
   if (location.status === 'loading') {
@@ -315,6 +335,7 @@ export function MapPage() {
           sheetSnap={typeof snap === 'number' ? snap : undefined}
           onPlaceClick={handlePlaceClick}
           onBoundsChanged={setBounds}
+          onDestinationBounds={setDestinationBounds}
         />
         {/* 핀을 눌러 상세(detailPage)까지 올라오는 동안은 드로어를 따라 함께 올라온다.
             그보다 더 펼친 스냅(mid/full)에서는 드로어가 자리를 덮으므로 렌더하지 않는다. */}

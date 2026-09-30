@@ -26,6 +26,17 @@ const CLUSTER_FIT_PADDING_PX = 48;
 /** 화면 위쪽을 덮는 로고 헤더 + safe area 몫. 그 아래만 멤버를 맞출 영역으로 친다. */
 const CLUSTER_FIT_TOP_INSET_PX = 100;
 
+/**
+ * 마지막으로 멈춘 지도 시점(중심·줌). 지도 화면은 다른 탭으로 가면 언마운트되는데, 돌아올 때마다
+ * 내 위치·기본 줌에서 다시 시작하면 아카이브에서 장소를 고른 경우만 "기본 줌에서 확 당겨지는"
+ * 이동이 된다(QA) — 앱 프로세스가 살아 있는 동안은 보던 시점에서 이어서 연다.
+ */
+let lastCamera: { center: Coordinates; zoom: number; clusterZoom: number } | null = null;
+
+export function getLastMapCamera() {
+  return lastCamera;
+}
+
 export type MapViewHandle = {
   /** 지도를 초기 중심 좌표·줌으로 되돌린다(현재 위치 버튼용). */
   recenter: () => void;
@@ -53,6 +64,7 @@ export function MapView({
   sheetSnap = DETAIL_PAGE_SNAP_POINT,
   onPlaceClick,
   onBoundsChanged,
+  onDestinationBounds,
   ref,
 }: {
   pins: MapPin[];
@@ -74,6 +86,11 @@ export function MapView({
   onPlaceClick?: (id: number) => void;
   /** 지도가 멈춘(idle) 시점의 실제 뷰포트 경계 — 팬/줌이 끝날 때만 넘어온다(최초 마운트 포함). */
   onBoundsChanged?: (bounds: MapBounds) => void;
+  /**
+   * 선택 장소로 이동을 시작하는 순간, 도착했을 때 보일 뷰포트 경계. 도착(idle)을 기다리지 않고
+   * 목적지 핀을 미리 받아 두라는 신호다 — 받아 두면 도착할 즈음 핀이 이미 떠 있다.
+   */
+  onDestinationBounds?: (bounds: MapBounds) => void;
   ref?: Ref<MapViewHandle>;
 }) {
   const navermaps = useNavermaps();
@@ -84,6 +101,8 @@ export function MapView({
     [navermaps],
   );
   const center = initialCenter ?? FALLBACK_CENTER;
+  // 마운트 시점의 복원 시점 — 이후 idle 로 lastCamera 가 바뀌어도 default 값은 고정이어야 한다.
+  const [restoredCamera] = useState(lastCamera);
   // 인스턴스를 ref(이벤트 핸들러의 동기 접근용)와 state(effect 트리거용) 양쪽에 든다.
   // ref 만 쓰면 인스턴스가 "생긴 순간"을 React 가 알 수 없어, 그 전에 도착해 있던
   // panTarget 을 적용할 재렌더/재실행이 일어나지 않는다.
@@ -91,12 +110,12 @@ export function MapView({
   const [map, setMap] = useState<naver.maps.Map | null>(null);
   // 클러스터/개별 핀 모드 판단용. 줌 제스처 중간값까지 따라갈 필요는 없어서(클러스터가
   // 깜빡이며 재구성되는 게 더 어수선하다) idle 시점 값만 쓴다.
-  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+  const [zoom, setZoom] = useState(restoredCamera?.zoom ?? DEFAULT_ZOOM);
   // 클러스터 계산(`clusterPins`)에 넘기는 줌. 네이버 줌은 표준 웹 메르카토르 줌과 축척이
   // 어긋나 있어(QA: 줌 12 의 화면 폭이 표준 줌 13 과 같다) 그대로 넘기면 병합 반경이 화면에서
   // 두 배로 적용된다 — 지도 투영으로 실제 축척을 재서 맞춘다. 벡터/래스터 지도마다 다를 수
   // 있어 상수로 박지 않는다.
-  const [clusterZoom, setClusterZoom] = useState(DEFAULT_ZOOM);
+  const [clusterZoom, setClusterZoom] = useState(restoredCamera?.clusterZoom ?? DEFAULT_ZOOM);
   const attachMap = useCallback((instance: naver.maps.Map | null) => {
     mapRef.current = instance;
     setMap(instance);
@@ -108,8 +127,14 @@ export function MapView({
   reportIdleRef.current = () => {
     const currentMap = mapRef.current;
     if (!currentMap) return;
-    setZoom(currentMap.getZoom());
-    setClusterZoom(webMercatorZoom(currentMap, navermaps));
+    const mapCenter = currentMap.getCenter();
+    lastCamera = {
+      center: { lat: mapCenter.y, lng: mapCenter.x },
+      zoom: currentMap.getZoom(),
+      clusterZoom: webMercatorZoom(currentMap, navermaps),
+    };
+    setZoom(lastCamera.zoom);
+    setClusterZoom(lastCamera.clusterZoom);
     if (!onBoundsChanged) return;
     // 이 지도는 경위도 좌표계만 쓰므로 런타임엔 항상 LatLngBounds다(PointBounds 는
     // 픽셀 좌표계 지도 전용). naver 타입 선언은 둘의 유니온(Bounds)만 노출한다.
@@ -146,6 +171,8 @@ export function MapView({
   const panTargetLng = panTarget?.lng;
   const sheetSnapRef = useRef(sheetSnap);
   sheetSnapRef.current = sheetSnap;
+  const onDestinationBoundsRef = useRef(onDestinationBounds);
+  onDestinationBoundsRef.current = onDestinationBounds;
   useEffect(() => {
     if (!map || panTargetLat === undefined || panTargetLng === undefined) return;
     const move = () => {
@@ -160,6 +187,7 @@ export function MapView({
         SELECTED_PIN_VISIBLE_AREA_RATIO,
         sheetSnapRef.current,
       );
+      onDestinationBoundsRef.current?.(boundsAt(map, navermaps, destination, targetZoom));
       return animateTo(map, navermaps, destination, targetZoom, () => reportIdleRef.current());
     };
     // 지도가 막 생긴 직후(아카이브 등에서 `?placeId=` 로 들어와 지도와 선택이 같이 뜰 때)엔
@@ -240,8 +268,13 @@ export function MapView({
     <MapDiv style={{ width: '100%', height: '100%' }}>
       <NaverMap
         ref={attachMap}
-        defaultCenter={new navermaps.LatLng(center.lat, center.lng)}
-        defaultZoom={DEFAULT_ZOOM}
+        defaultCenter={
+          new navermaps.LatLng(
+            restoredCamera?.center.lat ?? center.lat,
+            restoredCamera?.center.lng ?? center.lng,
+          )
+        }
+        defaultZoom={restoredCamera?.zoom ?? DEFAULT_ZOOM}
         {...styleProps}
         onIdle={() => reportIdleRef.current()}
       >
@@ -317,6 +350,28 @@ function centerFor(
   const projection = map.getProjection();
   const offset = projection.fromCoordToOffset(coord);
   return projection.fromOffsetToCoord(new navermaps.Point(offset.x, offset.y + verticalShiftPx));
+}
+
+/** `destination` 을 중심으로 `targetZoom` 까지 옮겼을 때 화면이 덮는 경계. 현재 줌의 투영에서 환산한다. */
+function boundsAt(
+  map: naver.maps.Map,
+  navermaps: typeof naver.maps,
+  destination: naver.maps.Coord,
+  targetZoom: number,
+): MapBounds {
+  const size = map.getSize();
+  const scale = 2 ** (map.getZoom() - targetZoom);
+  const projection = map.getProjection();
+  const offset = projection.fromCoordToOffset(destination);
+  const halfX = (size.width / 2) * scale;
+  const halfY = (size.height / 2) * scale;
+  const northWest = projection.fromOffsetToCoord(
+    new navermaps.Point(offset.x - halfX, offset.y - halfY),
+  );
+  const southEast = projection.fromOffsetToCoord(
+    new navermaps.Point(offset.x + halfX, offset.y + halfY),
+  );
+  return { north: northWest.y, west: northWest.x, south: southEast.y, east: southEast.x };
 }
 
 /**
