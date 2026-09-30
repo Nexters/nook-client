@@ -21,7 +21,7 @@ import {
 } from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
-import { Icon16ArrowDown, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
+import { Icon20ArrowUp, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import { cn } from '@/shared/lib/utils';
@@ -34,6 +34,11 @@ const SCROLL_HIDE_HANDLE_THRESHOLD = 4;
  * 레이아웃에서 1px 안쪽으로 어긋나 정확히 같아지지 않는 경우가 있어 여유를 둔다.
  */
 const SCROLL_AT_BOTTOM_THRESHOLD = 8;
+/**
+ * full 상세의 스크롤 끝 여백 — "위로가기"(바닥 2.5rem + 48px)가 목록 맨 아래에 닿는 순간
+ * 뜨므로, 마지막 콘텐츠가 그 위로 1rem 떨어져 끝나도록 버튼 몫만큼 비운다(NOOK-320).
+ */
+const SCROLL_TO_TOP_CLEARANCE = 'calc(6.5rem + env(safe-area-inset-bottom))';
 
 export function PlaceSheet({
   recentPlaces,
@@ -127,7 +132,12 @@ export function PlaceSheet({
     close: onExitSearch,
   });
   // 스크롤 영역과 검색 오버레이가 같은 높이를 공유해야 해서, 높이만 래퍼로 올린다.
-  const { height: contentHeight, ...scrollerStyle } = layoutClassNames.scroller.style ?? {};
+  const { height: contentHeight, ...layoutScrollerStyle } = layoutClassNames.scroller.style ?? {};
+  // full 에선 스냅 보정(0dvh)이 없어 레이아웃 패딩을 버튼 여백으로 통째로 갈아끼워도 된다.
+  const scrollerStyle =
+    isFull && hasSelection
+      ? { ...layoutScrollerStyle, paddingBottom: SCROLL_TO_TOP_CLEARANCE }
+      : layoutScrollerStyle;
 
   // instantOpen: 마운트 직후 잠깐 transform transition 을 꺼서 vaul 의 오프닝 모션(화면
   // 아래 100% → 스냅 위치로 transition)을 생략한다. vaul 이 스냅 배치를 inline style 로
@@ -379,7 +389,7 @@ export function PlaceSheet({
           ) : null}
         </div>
 
-        {/* 목록 맨 아래에 닿았을 때만 뜨는 "위로가기"(Figma `Button/48_up`). */}
+        {/* 목록 맨 아래에 닿았을 때만 뜨는 "위로가기"(Figma `Button/48_up` 330:14349). */}
         {showScrollToTop ? (
           <FloatingButton
             floating={false}
@@ -387,9 +397,10 @@ export function PlaceSheet({
             tone="light"
             aria-label="맨 위로"
             onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="-translate-x-1/2 absolute bottom-[calc(2.5rem+env(safe-area-inset-bottom))] left-1/2 shadow-lg"
+            className="-translate-x-1/2 absolute bottom-[calc(2.5rem+env(safe-area-inset-bottom))] left-1/2 border border-gray-20 shadow-none"
           >
-            <Icon16ArrowDown className="rotate-180" />
+            {/* 생성 아이콘은 stroke 가 검정으로 박혀 있어 시안색(gray-80)은 여기서 덮는다. */}
+            <Icon20ArrowUp className="[&_path]:stroke-gray-80" />
           </FloatingButton>
         ) : null}
       </DrawerContent>
