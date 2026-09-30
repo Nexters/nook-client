@@ -63,6 +63,7 @@ export function MapView({
   panTarget,
   sheetSnap = DETAIL_PAGE_SNAP_POINT,
   onPlaceClick,
+  onEmptyMapClick,
   onBoundsChanged,
   onDestinationBounds,
   ref,
@@ -84,6 +85,8 @@ export function MapView({
    */
   sheetSnap?: number;
   onPlaceClick?: (id: number) => void;
+  /** 핀·클러스터가 아닌 지도 바닥을 탭했을 때(드래그·핀치는 제외 — 네이버가 click 을 안 쏜다). */
+  onEmptyMapClick?: () => void;
   /** 지도가 멈춘(idle) 시점의 실제 뷰포트 경계 — 팬/줌이 끝날 때만 넘어온다(최초 마운트 포함). */
   onBoundsChanged?: (bounds: MapBounds) => void;
   /**
@@ -277,6 +280,12 @@ export function MapView({
         defaultZoom={restoredCamera?.zoom ?? DEFAULT_ZOOM}
         {...styleProps}
         onIdle={() => reportIdleRef.current()}
+        onClick={(e) => {
+          // 오버레이(핀·클러스터 버튼) 위 탭이 지도 click 으로도 올라오면 선택하자마자 풀려
+          // 버린다 — 버튼 위에서 시작된 탭은 걸러 낸다.
+          if ((e.pointerEvent.target as Element | null)?.closest?.('button')) return;
+          onEmptyMapClick?.();
+        }}
       >
         {zoom < PIN_DETAIL_MIN_ZOOM
           ? clusterPins(restPins, clusterZoom).map((cluster) => (
