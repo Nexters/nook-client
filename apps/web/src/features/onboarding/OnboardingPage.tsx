@@ -251,8 +251,19 @@ export function OnboardingPage() {
   const motionBoxes = useRef<(HTMLDivElement | null)[]>([]);
   const slide = SLIDES[slideIndex] ?? SLIDES[0];
 
+  // 마이페이지 `온보딩 다시보기` 로 들어온 경우. 장 넘김이 쿼리를 보존하므로 WebView 가 다시
+  // 로드돼도 남는다. 열람 기록은 건드리지 않고, 나갈 때는 마이페이지로 돌아간다.
+  const replay = searchParams.get('replay') === '1';
+
   // 온보딩을 떠나는 길. 어느 장에서 닫기(X)를 눌렀든 "봤음" 으로 기록한다 — 그만 보겠다는 선택이다.
   const finish = () => {
+    if (replay) {
+      // 다시 로드돼 히스토리가 끊겼으면 뒤로 갈 곳이 없다 — 마이페이지로 바꿔 끼운다.
+      const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+      if (idx > 0) navigate(-1);
+      else navigate('/my', { replace: true });
+      return;
+    }
     markOnboardingSeen();
     navigate('/map', { replace: true });
   };
@@ -267,7 +278,7 @@ export function OnboardingPage() {
    * 돌아온 사람이 지도가 아니라 방금 보던 안내를 다시 보고, 나갈 때는 닫기(X)로 나간다.
    */
   const goToInstagram = () => {
-    markOnboardingSeen();
+    if (!replay) markOnboardingSeen();
     nativeBridge.openExternalUrl(INSTAGRAM_URL);
   };
 

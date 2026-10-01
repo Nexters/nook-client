@@ -12,6 +12,7 @@ import { MyMenuSection } from '@/features/my/components/MyMenuSection';
 import { ProfileImageSheet } from '@/features/my/components/ProfileImageSheet';
 import { deleteRegisteredPushToken } from '@/features/notifications/api/pushTokens';
 import { nativeBridge } from '@/native-bridge';
+import { env } from '@/shared/config/env';
 import {
   Icon16ArrowRight,
   Icon16Chat,
@@ -63,6 +64,11 @@ export function MyPage() {
   const providerLabel = profile ? profile.provider.toLowerCase() : undefined;
   // 셸이 주입한 실제 앱 버전. 브라우저로 열면 알 수 없어 행에서 값만 빠진다.
   const appVersion = nativeBridge.appVersion ? `v${nativeBridge.appVersion}` : undefined;
+  // 공유 시트 즐겨찾기 안내는 iOS 시트 기준으로만 그려져 있다. dev 에서는 시안 확인용으로 늘 연다.
+  // 저장은 계정이 있어야 하는 동작이라 게스트에게는 안내도 두지 않는다.
+  const showSaveGuide = isAuthenticated && (nativeBridge.platform === 'ios' || env.enableDevRoutes);
+  // `/onboarding` 진입 조건(`RequireOnboarding`)과 같다 — 열 수 없는 사람에게는 메뉴도 없다.
+  const showOnboardingReplay = isAuthenticated && (nativeBridge.isNative || env.enableDevRoutes);
 
   const handlePickImage = async (source: ImagePickSource) => {
     setImageSheetOpen(false);
@@ -256,6 +262,38 @@ export function MyPage() {
                 </span>
               </button>
             )}
+
+            {showSaveGuide || showOnboardingReplay ? (
+              <div className="mt-2 flex flex-col gap-2 px-4">
+                {showSaveGuide ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/save-guide')}
+                    className="flex items-center justify-between rounded-sm bg-gray-90 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-2"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="flex h-5 items-center rounded-[20px] bg-nook-blue px-2 text-s1 text-gray-0">
+                        추천
+                      </span>
+                      <span className="text-b2 font-semibold text-gray-0">
+                        더 편하게 저장하는 방법
+                      </span>
+                    </span>
+                    <Icon16ArrowRight className="shrink-0 [&_path]:stroke-gray-0" />
+                  </button>
+                ) : null}
+                {showOnboardingReplay ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/onboarding?replay=1')}
+                    className="flex items-center justify-between rounded-sm bg-gray-60 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-2"
+                  >
+                    <span className="text-b2 font-semibold text-gray-0">온보딩 다시보기</span>
+                    <Icon16ArrowRight className="shrink-0 [&_path]:stroke-gray-0" />
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="mt-6 flex flex-col gap-5 px-4">
               {isAuthenticated ? (

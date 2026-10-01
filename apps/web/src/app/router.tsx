@@ -21,6 +21,7 @@ import { ContactPage } from '@/features/my/ContactPage';
 import { MyPage } from '@/features/my/MyPage';
 import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
+import { SaveGuidePage } from '@/features/my/SaveGuidePage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 import { PostDetailPage } from '@/features/post/PostDetailPage';
 import { SharedArchivePage } from '@/features/share/SharedArchivePage';
@@ -154,6 +155,10 @@ export const router = createBrowserRouter([
       {
         path: 'support',
         element: <ContactPage />,
+      },
+      {
+        path: 'save-guide',
+        element: <SaveGuidePage />,
       },
     ],
   },
