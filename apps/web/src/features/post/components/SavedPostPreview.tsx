@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import { createPortal } from 'react-dom';
 import { Icon24Back } from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
@@ -29,9 +30,17 @@ export interface SavedPostPreviewProps {
   /** 처음 보여줄 미디어 위치 — 카드에서 누른 그 미디어부터 연다. */
   initialIndex?: number;
   onClose: () => void;
+  /** 헤더 오른쪽 — 내 게시물이면 더보기 메뉴(`SavedPostActions`, NOOK-305). 공유 진입은 비운다. */
+  headerRight?: React.ReactNode;
 }
 
-function SavedPostPreview({ title, post, initialIndex = 0, onClose }: SavedPostPreviewProps) {
+function SavedPostPreview({
+  title,
+  post,
+  initialIndex = 0,
+  onClose,
+  headerRight,
+}: SavedPostPreviewProps) {
   const media = post.media ?? [];
 
   return createPortal(
@@ -48,6 +57,7 @@ function SavedPostPreview({ title, post, initialIndex = 0, onClose }: SavedPostP
             <Icon24Back />
           </button>
         }
+        right={headerRight}
       />
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {media.length > 0 ? (

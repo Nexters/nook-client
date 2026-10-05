@@ -204,12 +204,15 @@ export function useUpdatePostMemo(postId: number | undefined) {
  * 게시물 이동·삭제 뒤 이 게시물을 보여주던 목록을 모두 다시 불러온다 — 아카이브 목록·게시물·장소
  * (`['archives']` 접두사), 장소 상세·저장된 게시물(`['map', 'detail']` 접두사), 지도 핀, 최근 장소.
  * 삭제면 딸린 장소가 함께 사라질 수 있고, 이동이면 아카이브 색이 바뀐다.
+ * 떠 있는 목록의 재조회가 끝나면 resolve 한다.
  */
-function invalidatePostLists(queryClient: ReturnType<typeof useQueryClient>) {
-  queryClient.invalidateQueries({ queryKey: archiveQueryKeys.list });
-  queryClient.invalidateQueries({ queryKey: ['map', 'detail'] });
-  queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll });
-  queryClient.invalidateQueries({ queryKey: mapQueryKeys.recent });
+export function invalidatePostLists(queryClient: ReturnType<typeof useQueryClient>) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: archiveQueryKeys.list }),
+    queryClient.invalidateQueries({ queryKey: ['map', 'detail'] }),
+    queryClient.invalidateQueries({ queryKey: mapQueryKeys.pinsAll }),
+    queryClient.invalidateQueries({ queryKey: mapQueryKeys.recent }),
+  ]);
 }
 
 /**
@@ -228,7 +231,7 @@ export function useUpdatePostArchives(postId: number | undefined) {
     onSettled: () => {
       if (postId === undefined) return;
       queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(postId) });
-      invalidatePostLists(queryClient);
+      void invalidatePostLists(queryClient);
     },
   });
 }
@@ -242,7 +245,9 @@ export function useDeletePost(postId: number | undefined) {
 
   return useMutation({
     mutationFn: () => deletePost(postId as number),
-    onSuccess: () => invalidatePostLists(queryClient),
+    onSuccess: () => {
+      void invalidatePostLists(queryClient);
+    },
   });
 }
 

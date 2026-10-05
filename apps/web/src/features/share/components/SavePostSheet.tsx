@@ -73,7 +73,8 @@ export function SavePostSheet({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
+      {/* z-70: 게시물 확대뷰(z-70, 장소 상세)에서도 열린다 — 그 위로 띄운다. */}
+      <DrawerContent className="z-[70]" overlayClassName="z-[70]">
         <DrawerTitle className="sr-only">{title}</DrawerTitle>
         <div className="flex flex-col gap-4 p-4 pb-8">
           <div className="flex max-h-80 flex-col gap-1 overflow-y-auto">

@@ -20,6 +20,7 @@ enum NookIconName {
     case icon16Insta
     case icon16Location
     case icon16Mail
+    case icon16Move
     case icon16Paper
     case icon16Pen
     case icon16Plus
@@ -116,6 +117,8 @@ enum NookIconName {
         case .icon16Location:
             return (CGSize(width: 16, height: 16), CGSize(width: 16, height: 16))
         case .icon16Mail:
+            return (CGSize(width: 16, height: 16), CGSize(width: 16, height: 16))
+        case .icon16Move:
             return (CGSize(width: 16, height: 16), CGSize(width: 16, height: 16))
         case .icon16Paper:
             return (CGSize(width: 16, height: 16), CGSize(width: 16, height: 16))
@@ -793,6 +796,31 @@ struct NookIcon: View {
             path0.addLine(to: CGPoint(x: 13.333, y: 2.66699))
             path0.closeSubpath()
             context.fill(path0, with: .color(Color(red: 0.600000, green: 0.627451, blue: 0.674510)))
+        case .icon16Move:
+            var path0 = Path()
+            path0.move(to: CGPoint(x: 11.523, y: 5.5229))
+            path0.addCurve(to: CGPoint(x: 12.4781, y: 5.5229), control1: CGPoint(x: 11.7866, y: 5.25929), control2: CGPoint(x: 12.2145, y: 5.25929))
+            path0.addLine(to: CGPoint(x: 14.4781, y: 7.5229))
+            path0.addCurve(to: CGPoint(x: 14.4781, y: 8.47798), control1: CGPoint(x: 14.7417, y: 7.7865), control2: CGPoint(x: 14.7417, y: 8.21437))
+            path0.addLine(to: CGPoint(x: 12.4781, y: 10.478))
+            path0.addCurve(to: CGPoint(x: 11.523, y: 10.478), control1: CGPoint(x: 12.2145, y: 10.7416), control2: CGPoint(x: 11.7866, y: 10.7416))
+            path0.addCurve(to: CGPoint(x: 11.523, y: 9.5229), control1: CGPoint(x: 11.2594, y: 10.2144), control2: CGPoint(x: 11.2594, y: 9.7865))
+            path0.addLine(to: CGPoint(x: 12.3706, y: 8.67524))
+            path0.addLine(to: CGPoint(x: 3.63041, y: 8.67524))
+            path0.addLine(to: CGPoint(x: 4.47807, y: 9.5229))
+            path0.addCurve(to: CGPoint(x: 4.47807, y: 10.478), control1: CGPoint(x: 4.74167, y: 9.7865), control2: CGPoint(x: 4.74167, y: 10.2144))
+            path0.addCurve(to: CGPoint(x: 3.52299, y: 10.478), control1: CGPoint(x: 4.21446, y: 10.7416), control2: CGPoint(x: 3.78659, y: 10.7416))
+            path0.addLine(to: CGPoint(x: 1.52299, y: 8.47798))
+            path0.addCurve(to: CGPoint(x: 1.52299, y: 7.5229), control1: CGPoint(x: 1.25939, y: 8.21437), control2: CGPoint(x: 1.25939, y: 7.7865))
+            path0.addLine(to: CGPoint(x: 3.52299, y: 5.5229))
+            path0.addCurve(to: CGPoint(x: 4.47807, y: 5.5229), control1: CGPoint(x: 3.78659, y: 5.25929), control2: CGPoint(x: 4.21446, y: 5.25929))
+            path0.addCurve(to: CGPoint(x: 4.47807, y: 6.47798), control1: CGPoint(x: 4.74167, y: 5.7865), control2: CGPoint(x: 4.74167, y: 6.21437))
+            path0.addLine(to: CGPoint(x: 3.63041, y: 7.32563))
+            path0.addLine(to: CGPoint(x: 12.3706, y: 7.32563))
+            path0.addLine(to: CGPoint(x: 11.523, y: 6.47798))
+            path0.addCurve(to: CGPoint(x: 11.523, y: 5.5229), control1: CGPoint(x: 11.2594, y: 6.21437), control2: CGPoint(x: 11.2594, y: 5.7865))
+            path0.closeSubpath()
+            context.fill(path0, with: .color(Color(red: 0.305882, green: 0.337255, blue: 0.384314)))
         case .icon16Paper:
             var path0 = Path()
             path0.move(to: CGPoint(x: 10.6667, y: 2))
