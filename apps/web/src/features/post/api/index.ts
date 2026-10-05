@@ -1,11 +1,13 @@
 import {
   type CreateGroupRequestColor,
   connectPlace,
+  deleteSavedPost,
   disconnectPlace as disconnectPlaceEndpoint,
   findPlaceParsing,
   getSavedPostDetail,
   type PlaceResponse,
   type PlaceSearchResponse,
+  replaceGroups,
   type SavedPostDetailResponse,
   type SavedPostGroupResponse,
   searchPlaces,
@@ -212,6 +214,22 @@ export async function connectPostPlace(postId: number, selectionToken: string): 
 export async function updatePostMemo(postId: number, memo: string): Promise<void> {
   const trimmed = memo.trim();
   await updateMemo(postId, { memo: trimmed.length > 0 ? trimmed : null }, { auth: 'required' });
+}
+
+/**
+ * `PUT /api/v1/posts/{postId}/groups` — 게시물이 속한 아카이브 목록을 통째로 바꾼다(이동).
+ * 게시물은 여러 아카이브에 속할 수 있어 "A 에서 B 로"가 아니라 "이 목록으로"다.
+ */
+export async function replacePostArchives(postId: number, archiveIds: number[]): Promise<void> {
+  await replaceGroups(postId, { groupIds: archiveIds }, { auth: 'required' });
+}
+
+/**
+ * `DELETE /api/v1/posts/{postId}` — 저장 게시물 삭제. 특정 아카이브에서 빼는 게 아니라
+ * 게시물 자체가 사라져 속해 있던 모든 아카이브에서 빠진다.
+ */
+export async function deletePost(postId: number): Promise<void> {
+  await deleteSavedPost(postId, { auth: 'required' });
 }
 
 /**

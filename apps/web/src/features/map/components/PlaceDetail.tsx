@@ -14,7 +14,7 @@ import {
 import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
 import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
-import { MemoSheet, SavedPostCard, SavedPostPreview } from '@/features/post';
+import { MemoSheet, POST_FROM_LIST_STATE, SavedPostCard, SavedPostPreview } from '@/features/post';
 import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
 import { postQueryKeys } from '@/features/post/api/queries';
 import type { PostDetail } from '@/features/post/types';
@@ -176,7 +176,7 @@ function SavedPostsSection({
                 <SavedPostTile
                   post={post}
                   detail={detailAt(index)}
-                  onClick={() => navigate(`/post/${post.id}`)}
+                  onClick={() => navigate(`/post/${post.id}`, { state: POST_FROM_LIST_STATE })}
                 />
               </div>
             ))}

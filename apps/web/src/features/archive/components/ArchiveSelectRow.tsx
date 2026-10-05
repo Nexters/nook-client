@@ -49,7 +49,7 @@ function ArchiveSelectRow({
         />
         <span className="truncate text-b1 font-medium text-gray-100">{archive.name}</span>
       </span>
-      <CheckIndicator />
+      <CheckIndicator checked={selected} />
     </label>
   );
 }
