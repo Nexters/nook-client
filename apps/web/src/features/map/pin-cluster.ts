@@ -48,7 +48,7 @@ function toWorldPixel(lat: number, lng: number, zoom: number): { x: number; y: n
  * 서울에서 부산까지 한 줄로 이어붙어 무게중심이 아무도 없는 곳에 찍힌다.
  *
  * 지도 인스턴스가 아니라 줌 숫자만 받는 순수 함수다. 멤버가 1개인 덩어리도 그대로 돌려준다
- * — 줌아웃 시안에 "1" 버블이 있고, 그건 "여긴 정말 한 곳뿐"이라는 정직한 표시다.
+ * — 그건 버블이 아니라 개별 핀으로 그리는 건 호출부(`MapView`)가 정한다(NOOK-390).
  */
 export function clusterPins(pins: MapPin[], zoom: number): PinCluster[] {
   // 씨앗 순서를 좌표로 고정한다 — 입력 배열 순서가 흔들려도 같은 그룹이 나오도록.

@@ -266,6 +266,17 @@ export function MapView({
       ? undefined
       : pins.find((pin) => pin.id === selectedPlaceId);
   const restPins = selectedPin ? pins.filter((pin) => pin.id !== selectedPin.id) : pins;
+  const renderPin = (pin: MapPin) => (
+    <PlacePin
+      key={pin.id}
+      lat={pin.lat}
+      lng={pin.lng}
+      name={pin.name}
+      color={pin.color}
+      thumbnail={pin.thumbnail}
+      onClick={() => onPlaceClick?.(pin.id)}
+    />
+  );
 
   return (
     <MapDiv style={{ width: '100%', height: '100%' }}>
@@ -288,26 +299,22 @@ export function MapView({
         }}
       >
         {zoom < PIN_DETAIL_MIN_ZOOM
-          ? clusterPins(restPins, clusterZoom).map((cluster) => (
-              <ClusterBubble
-                key={cluster.key}
-                lat={cluster.lat}
-                lng={cluster.lng}
-                count={cluster.pins.length}
-                onClick={() => zoomIntoCluster(cluster.pins)}
-              />
-            ))
-          : restPins.map((pin) => (
-              <PlacePin
-                key={pin.id}
-                lat={pin.lat}
-                lng={pin.lng}
-                name={pin.name}
-                color={pin.color}
-                thumbnail={pin.thumbnail}
-                onClick={() => onPlaceClick?.(pin.id)}
-              />
-            ))}
+          ? clusterPins(restPins, clusterZoom).map(({ key, lat, lng, pins: members }) =>
+              // 묶인 게 하나뿐이면 "1" 버블 대신 개별 핀으로 그린다 — 버블은 실제로 여러 곳이
+              // 묶일 때만 쓴다(NOOK-390).
+              members.length === 1 && members[0] ? (
+                renderPin(members[0])
+              ) : (
+                <ClusterBubble
+                  key={key}
+                  lat={lat}
+                  lng={lng}
+                  count={members.length}
+                  onClick={() => zoomIntoCluster(members)}
+                />
+              ),
+            )
+          : restPins.map(renderPin)}
         {selectedPin && (
           <PlacePin
             key={selectedPin.id}
