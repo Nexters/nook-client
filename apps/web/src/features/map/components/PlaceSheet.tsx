@@ -24,6 +24,7 @@ import { PlaceCard } from '@/features/place';
 import { Icon20ArrowUp, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
 import type { Coordinates } from '@/shared/lib/geolocation';
+import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
 import { Drawer, DrawerContent, FloatingButton, Header } from '@/shared/ui';
 
@@ -40,8 +41,15 @@ const SCROLL_AT_BOTTOM_THRESHOLD = 8;
  */
 const SCROLL_TO_TOP_CLEARANCE = 'calc(6.5rem + env(safe-area-inset-bottom))';
 
+/** 목록 끝에 다는 무한 스크롤 감시 지점 — 목록과 함께 마운트돼야 관찰이 다시 잡힌다. */
+function LoadMoreSentinel(paging: Parameters<typeof useInfiniteScrollSentinel>[0]) {
+  const ref = useInfiniteScrollSentinel(paging);
+  return <div ref={ref} aria-hidden className="h-px" />;
+}
+
 export function PlaceSheet({
   recentPlaces,
+  recentPlacesPaging,
   selectedPlace,
   shareToken,
   isPlaceDetailPending,
@@ -58,6 +66,8 @@ export function PlaceSheet({
   onSearchInputFocus,
 }: {
   recentPlaces: RecentPlace[];
+  /** 최근 저장한 공간 다음 페이지 정보 — 없으면 받은 목록만 그린다. */
+  recentPlacesPaging?: Parameters<typeof useInfiniteScrollSentinel>[0];
   selectedPlace: PlaceDetailModel | null;
   /**
    * 공유 아카이브 딥링크로 들어온 경우의 토큰 — 있으면 상세를 공유자 기준 읽기 전용으로
@@ -336,25 +346,28 @@ export function PlaceSheet({
                 {recentPlaces.length === 0 ? (
                   <EmptySavedPlaces />
                 ) : (
-                  <div className="grid grid-cols-2 justify-items-center gap-2">
-                    {recentPlaces.map((place) => (
-                      <PlaceCard
-                        key={place.id}
-                        place={{
-                          id: String(place.id),
-                          name: place.name,
-                          category: place.category ?? '',
-                          region: place.city,
-                          thumbnail: place.thumbnail,
-                          thumbnailState: place.thumbnailState,
-                        }}
-                        mediaBadge
-                        // 구독한 공유 아카이브의 장소는 내 API 로는 게시물이 비어 오므로
-                        // 토큰을 함께 넘겨 공유 공개 API 로 조회하게 한다.
-                        onClick={() => onSelectPlace(place.id, place.shareToken)}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <div className="grid grid-cols-2 justify-items-center gap-2">
+                      {recentPlaces.map((place) => (
+                        <PlaceCard
+                          key={place.id}
+                          place={{
+                            id: String(place.id),
+                            name: place.name,
+                            category: place.category ?? '',
+                            region: place.city,
+                            thumbnail: place.thumbnail,
+                            thumbnailState: place.thumbnailState,
+                          }}
+                          mediaBadge
+                          // 구독한 공유 아카이브의 장소는 내 API 로는 게시물이 비어 오므로
+                          // 토큰을 함께 넘겨 공유 공개 API 로 조회하게 한다.
+                          onClick={() => onSelectPlace(place.id, place.shareToken)}
+                        />
+                      ))}
+                    </div>
+                    {recentPlacesPaging ? <LoadMoreSentinel {...recentPlacesPaging} /> : null}
+                  </>
                 )}
               </>
             )}

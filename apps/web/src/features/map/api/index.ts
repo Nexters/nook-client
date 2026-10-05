@@ -24,6 +24,7 @@ import type {
   PlaceDetail,
   PlaceDetailPost,
   RecentPlace,
+  RecentPlacePage,
   SavedPlaceSearchPage,
   SavedPlaceSearchResult,
 } from '../types';
@@ -104,11 +105,14 @@ export function toRecentPlace(dto: RecentPlaceResponse): RecentPlace {
   };
 }
 
-export async function fetchRecentPlaces(): Promise<RecentPlace[]> {
+export async function fetchRecentPlaces(cursor?: string): Promise<RecentPlacePage> {
   const response = unwrapApiResponse(
-    await getRecentPlacesEndpoint(undefined, { auth: 'required' }),
+    await getRecentPlacesEndpoint(cursor ? { cursor } : undefined, { auth: 'required' }),
   );
-  return (response?.items ?? []).map(toRecentPlace);
+  return {
+    places: (response?.items ?? []).map(toRecentPlace),
+    nextCursor: (response?.hasNext && response.nextCursor) || undefined,
+  };
 }
 
 function toSavedPlaceSearchResult(dto: SavedPlaceSearchItemResponse): SavedPlaceSearchResult {

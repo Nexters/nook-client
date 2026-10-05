@@ -117,7 +117,7 @@ const scrollToTopButton = () => screen.queryByRole('button', { name: '맨 위로
 describe('PlaceSheet 위로가기 버튼', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mapApi.fetchRecentPlaces.mockResolvedValue([]);
+    mapApi.fetchRecentPlaces.mockResolvedValue({ places: [] });
   });
 
   it('맨 위에서는 뜨지 않는다', () => {
@@ -212,7 +212,7 @@ describe('PlaceSheet — iOS 좌측 엣지 스와이프 허용 판정', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mapApi.fetchRecentPlaces.mockResolvedValue([]);
+    mapApi.fetchRecentPlaces.mockResolvedValue({ places: [] });
   });
 
   /**
@@ -264,7 +264,7 @@ describe('PlaceSheet — iOS 좌측 엣지 스와이프 허용 판정', () => {
 describe('PlaceSheet 최근 저장한 공간 카드', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mapApi.fetchRecentPlaces.mockResolvedValue([]);
+    mapApi.fetchRecentPlaces.mockResolvedValue({ places: [] });
   });
 
   const RECENT: RecentPlace[] = [
@@ -306,7 +306,7 @@ describe('PlaceSheet 최근 저장한 공간 카드', () => {
 describe('PlaceSheet 검색 패널 — 상세가 열려도 살아남는다', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mapApi.fetchRecentPlaces.mockResolvedValue([]);
+    mapApi.fetchRecentPlaces.mockResolvedValue({ places: [] });
     mapApi.fetchSavedPlaceSearch.mockResolvedValue({ items: [], groups: [], totalCount: 0 });
   });
 

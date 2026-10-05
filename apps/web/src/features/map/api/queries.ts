@@ -57,20 +57,25 @@ export function useMapPins(bounds: MapBounds) {
 }
 
 /**
- * "최근 저장한 공간" — 장소 미선택 상태의 목록 모드.
+ * "최근 저장한 공간" — 장소 미선택 상태의 목록 모드. 커서 기반 무한 스크롤.
  * 저장 직후엔 BE 가 썸네일을 비동기로 파싱한다 — 처리 중(`thumbnailState === 'processing'`)인
  * 장소가 하나라도 있으면 끝날 때까지 폴링해 카드를 실시간으로 채운다.
  */
 export function useRecentPlaces() {
   const isAuthenticated = useIsAuthenticated();
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: mapQueryKeys.recent,
-    queryFn: fetchRecentPlaces,
+    queryFn: ({ pageParam }) => fetchRecentPlaces(pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    select: (data) => data.pages.flatMap((page) => page.places),
     enabled: isAuthenticated,
+    // 무한 쿼리의 refetch 는 받아둔 페이지 전부를 다시 당긴다 — 처리 중 카드가 몇 번째
+    // 페이지에 있든 함께 갱신된다.
     refetchInterval: (query) => {
-      const anyProcessing = query.state.data?.some(
-        (place) => place.thumbnailState === 'processing',
+      const anyProcessing = query.state.data?.pages.some((page) =>
+        page.places.some((place) => place.thumbnailState === 'processing'),
       );
       return anyProcessing ? POLL_INTERVAL_MS : false;
     },
