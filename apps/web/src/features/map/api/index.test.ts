@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const endpoints = vi.hoisted(() => ({
   getDetail: vi.fn(),
   getMapPlaces: vi.fn(),
+  getRecentPlaces: vi.fn(),
 }));
 
 vi.mock('@/shared/api', async (importOriginal) => ({
@@ -19,6 +20,7 @@ import type {
 import {
   fetchMapPins,
   fetchPlacePosts,
+  fetchRecentPlaces,
   toPlaceDetail,
   toRecentPlace,
   toSavedPlaceSearchPage,
@@ -271,6 +273,26 @@ describe('fetchMapPins', () => {
     const [pin] = await fetchMapPins(BOUNDS);
 
     expect(pin?.categoryGroup).toBeUndefined();
+  });
+});
+
+describe('fetchRecentPlaces', () => {
+  it('커서를 넘겨 부르고, hasNext 일 때만 다음 커서를 돌려준다', async () => {
+    endpoints.getRecentPlaces.mockResolvedValue(
+      ok({ items: [RECENT_PLACE_BASE], hasNext: true, nextCursor: 'c2' }),
+    );
+
+    const page = await fetchRecentPlaces('c1');
+
+    expect(endpoints.getRecentPlaces).toHaveBeenCalledWith({ cursor: 'c1' }, { auth: 'required' });
+    expect(page.places).toEqual([expect.objectContaining({ id: 21 })]);
+    expect(page.nextCursor).toBe('c2');
+
+    endpoints.getRecentPlaces.mockResolvedValue(
+      ok({ items: [], hasNext: false, nextCursor: 'stale' }),
+    );
+
+    expect((await fetchRecentPlaces('c2')).nextCursor).toBeUndefined();
   });
 });
 

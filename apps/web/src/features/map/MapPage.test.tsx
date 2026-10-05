@@ -196,7 +196,7 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.fetchMapPins.mockResolvedValue([]);
-    mocks.fetchRecentPlaces.mockResolvedValue([]);
+    mocks.fetchRecentPlaces.mockResolvedValue({ places: [] });
     mocks.fetchPlaceDetail.mockImplementation((id: number) =>
       Promise.resolve({
         id,
@@ -508,7 +508,7 @@ describe('MapPage — 상세의 히스토리 엔트리', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.fetchMapPins.mockResolvedValue([]);
-    mocks.fetchRecentPlaces.mockResolvedValue([]);
+    mocks.fetchRecentPlaces.mockResolvedValue({ places: [] });
     mocks.fetchPlaceDetail.mockImplementation((id: number) =>
       Promise.resolve({
         id,
@@ -592,7 +592,7 @@ describe('MapPage — 상세의 히스토리 엔트리', () => {
 describe('MapPage — 멀리 있는 선택 장소의 핀', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.fetchRecentPlaces.mockResolvedValue([]);
+    mocks.fetchRecentPlaces.mockResolvedValue({ places: [] });
     mocks.fetchPlaceDetail.mockResolvedValue({
       id: 7,
       name: '제주 오름',
