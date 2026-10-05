@@ -1,5 +1,5 @@
 import { useQueries } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
 import { toDisplayPost } from '@/features/map/lib/placePost';
@@ -14,9 +14,16 @@ import {
 import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
 import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
-import { MemoSheet, POST_FROM_LIST_STATE, SavedPostCard, SavedPostPreview } from '@/features/post';
+import {
+  MemoSheet,
+  POST_FROM_LIST_STATE,
+  SavedPostActions,
+  SavedPostCard,
+  SavedPostPreview,
+} from '@/features/post';
 import { fetchPostDetail, formatAuthorHandle } from '@/features/post/api';
 import { postQueryKeys } from '@/features/post/api/queries';
+import { useHiddenPostIds } from '@/features/post/lib/pendingPostRemoval';
 import type { PostDetail } from '@/features/post/types';
 import { fetchSharedPostDetail } from '@/features/share/api';
 import { sharedQueryKeys } from '@/features/share/api/queries';
@@ -114,11 +121,16 @@ function SavedPostTile({
 function SavedPostsSection({
   place,
   shareToken,
+  onClose,
 }: {
   place: PlaceDetailModel;
   shareToken?: string | null;
+  onClose: () => void;
 }) {
-  const posts = place.posts;
+  // 삭제를 확인하고 실행취소를 기다리는 게시물은 목록에서 미리 뺀다(NOOK-305).
+  const hiddenPostIds = useHiddenPostIds();
+  const posts = place.posts.filter((post) => !hiddenPostIds.has(post.id));
+  const postsTotal = place.postsTotal - (place.posts.length - posts.length);
   const postDetailQueries = usePostDetails(posts, shareToken);
   const navigate = useNavigate();
   // 펼쳐진 카드의 사진을 누르면 이 자리 위에 확대 뷰를 얹는다(Figma `전체 보기`).
@@ -127,6 +139,15 @@ function SavedPostsSection({
   // 스와이프가 모두 "확대 뷰 닫기"로 수렴하게 한다.
   const [preview, setPreview] = useState<{ postIndex: number; imageIndex: number } | null>(null);
   const [previewOpen, openPreview, closePreview] = useHistoryBackedFlag('savedPostPreview');
+  // 이 장소의 유일한 게시물을 지우면 장소도 함께 사라진다 — 확대뷰가 닫힌(뒤로가기가 끝난)
+  // 다음 드로어까지 닫아 지도로 돌아간다(Figma `게시물-장소 1:1 구조였을때`). 두 번의 뒤로가기를
+  // 한꺼번에 보내면 브라우저가 하나를 삼켜서, 확대뷰가 실제로 닫힌 걸 보고 이어 보낸다.
+  const [closeAfterPreview, setCloseAfterPreview] = useState(false);
+  useEffect(() => {
+    if (!closeAfterPreview || previewOpen) return;
+    setCloseAfterPreview(false);
+    onClose();
+  }, [closeAfterPreview, previewOpen, onClose]);
 
   if (posts.length === 0) return null;
 
@@ -163,7 +184,7 @@ function SavedPostsSection({
             className="flex items-center gap-1 self-start pt-4 pb-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
           >
             <span className="text-b1 font-semibold text-gray-100">저장된 게시물</span>
-            <span className="text-b1 font-semibold text-nook-blue">{place.postsTotal}</span>
+            <span className="text-b1 font-semibold text-nook-blue">{postsTotal}</span>
             <Icon16ArrowRight />
           </button>
           {/* 좌우 16px 밖으로 빼고 첫/마지막만 ml-4/mr-4 로 되돌린다(SavedPostCard 이미지 줄과 같다). */}
@@ -190,6 +211,18 @@ function SavedPostsSection({
           post={toDisplayPost(previewPost, previewDetail)}
           initialIndex={preview?.imageIndex}
           onClose={closePreview}
+          // 공유 링크로 들어온 장소는 공유자 기준 읽기 전용이라 메뉴가 없다.
+          headerRight={
+            !shareToken && previewDetail ? (
+              <SavedPostActions
+                detail={previewDetail}
+                onDeleted={(removed) => {
+                  closePreview();
+                  if (removed && postsTotal === 1) setCloseAfterPreview(true);
+                }}
+              />
+            ) : undefined
+          }
         />
       ) : null}
     </>
@@ -399,7 +432,7 @@ export function PlaceDetail({
             className="mb-4"
           />
 
-          <SavedPostsSection place={place} shareToken={shareToken} />
+          <SavedPostsSection place={place} shareToken={shareToken} onClose={onClose} />
           <RelatedPlacesSection
             place={place}
             shareToken={shareToken}

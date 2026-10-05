@@ -43,6 +43,13 @@ const devRoutes = env.enableDevRoutes
         },
       },
       {
+        path: '/dev/post-actions',
+        lazy: async () => {
+          const { PostActionsDevPage } = await import('@/dev/PostActionsDevPage');
+          return { Component: PostActionsDevPage };
+        },
+      },
+      {
         path: '/dev/ui/*',
         lazy: async () => {
           const { UiComponentsPage } = await import('@/dev/UiComponentsPage');

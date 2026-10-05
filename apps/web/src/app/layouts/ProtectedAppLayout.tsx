@@ -4,6 +4,7 @@ import { Outlet } from 'react-router-dom';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import { markTabRootNavigation } from '@/app/layouts/MainTabPageLayout';
 import { bottomMenuItems } from '@/app/navigation';
+import { ArchiveJumpHost } from '@/features/post/components/ArchiveJumpPopover';
 import { BOTTOM_INSET_VAR, BOTTOM_MENU_HEIGHT, BottomMenu } from '@/shared/ui';
 
 export function ProtectedAppLayout() {
@@ -29,6 +30,8 @@ export function ProtectedAppLayout() {
       <div className="min-h-dvh">
         <Outlet />
       </div>
+      {/* 게시물 이동·삭제 실행취소 뒤 "보러가기"가 여는 아카이브 목록 — 띄운 화면이 닫힌 뒤에도 뜬다. */}
+      <ArchiveJumpHost />
       {/* 셸의 will-change-transform 이 fixed 의 기준을 셸 박스로 바꿔서, 콘텐츠가
           뷰포트보다 길어지면 탭바가 셸 바닥(화면 밖)에 붙는다 — 문서 스크롤(#root) 중에도
           항상 화면 하단에 있어야 하니 body 로 포탈한다(ToastProvider 와 같은 이유). */}

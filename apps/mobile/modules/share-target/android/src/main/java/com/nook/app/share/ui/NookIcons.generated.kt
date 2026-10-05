@@ -33,6 +33,7 @@ enum class NookIconName {
     Icon16Insta,
     Icon16Location,
     Icon16Mail,
+    Icon16Move,
     Icon16Paper,
     Icon16Pen,
     Icon16Plus,
@@ -115,6 +116,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon16Insta -> 16f to 16f
             NookIconName.Icon16Location -> 16f to 16f
             NookIconName.Icon16Mail -> 16f to 16f
+            NookIconName.Icon16Move -> 16f to 16f
             NookIconName.Icon16Paper -> 16f to 16f
             NookIconName.Icon16Pen -> 16f to 16f
             NookIconName.Icon16Plus -> 16f to 16f
@@ -195,6 +197,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon16Insta -> drawIcon16Insta()
             NookIconName.Icon16Location -> drawIcon16Location()
             NookIconName.Icon16Mail -> drawIcon16Mail()
+            NookIconName.Icon16Move -> drawIcon16Move()
             NookIconName.Icon16Paper -> drawIcon16Paper()
             NookIconName.Icon16Pen -> drawIcon16Pen()
             NookIconName.Icon16Plus -> drawIcon16Plus()
@@ -880,6 +883,35 @@ private fun DrawScope.drawIcon16Mail() {
         close()
     }
     drawPath(path = path0, color = Color(0xFF99A0AC))
+}
+
+private fun DrawScope.drawIcon16Move() {
+    val path0 = Path().apply {
+
+        moveTo(11.523f, 5.5229f)
+        cubicTo(11.7866f, 5.25929f, 12.2145f, 5.25929f, 12.4781f, 5.5229f)
+        lineTo(14.4781f, 7.5229f)
+        cubicTo(14.7417f, 7.7865f, 14.7417f, 8.21437f, 14.4781f, 8.47798f)
+        lineTo(12.4781f, 10.478f)
+        cubicTo(12.2145f, 10.7416f, 11.7866f, 10.7416f, 11.523f, 10.478f)
+        cubicTo(11.2594f, 10.2144f, 11.2594f, 9.7865f, 11.523f, 9.5229f)
+        lineTo(12.3706f, 8.67524f)
+        lineTo(3.63041f, 8.67524f)
+        lineTo(4.47807f, 9.5229f)
+        cubicTo(4.74167f, 9.7865f, 4.74167f, 10.2144f, 4.47807f, 10.478f)
+        cubicTo(4.21446f, 10.7416f, 3.78659f, 10.7416f, 3.52299f, 10.478f)
+        lineTo(1.52299f, 8.47798f)
+        cubicTo(1.25939f, 8.21437f, 1.25939f, 7.7865f, 1.52299f, 7.5229f)
+        lineTo(3.52299f, 5.5229f)
+        cubicTo(3.78659f, 5.25929f, 4.21446f, 5.25929f, 4.47807f, 5.5229f)
+        cubicTo(4.74167f, 5.7865f, 4.74167f, 6.21437f, 4.47807f, 6.47798f)
+        lineTo(3.63041f, 7.32563f)
+        lineTo(12.3706f, 7.32563f)
+        lineTo(11.523f, 6.47798f)
+        cubicTo(11.2594f, 6.21437f, 11.2594f, 5.7865f, 11.523f, 5.5229f)
+        close()
+    }
+    drawPath(path = path0, color = Color(0xFF4E5662))
 }
 
 private fun DrawScope.drawIcon16Paper() {

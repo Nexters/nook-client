@@ -3,8 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { toDisplayPost } from '@/features/map/lib/placePost';
-import { SavedPostCard, SavedPostPreview } from '@/features/post';
+import { SavedPostActions, SavedPostCard, SavedPostPreview } from '@/features/post';
 import { usePostDetails } from '@/features/post/api/queries';
+import { useHiddenPostIds } from '@/features/post/lib/pendingPostRemoval';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { BackButton, Header } from '@/shared/ui';
@@ -17,7 +18,9 @@ export function PlacePostsPage() {
   useHideBottomMenu();
 
   const postsQuery = usePlacePosts(placeId !== null && Number.isFinite(placeId) ? placeId : null);
-  const posts = postsQuery.data?.posts ?? [];
+  // 삭제를 확인하고 실행취소를 기다리는 게시물은 목록에서 미리 뺀다(NOOK-305).
+  const hiddenPostIds = useHiddenPostIds();
+  const posts = (postsQuery.data?.posts ?? []).filter((post) => !hiddenPostIds.has(post.id));
   const postDetailQueries = usePostDetails(posts.map((post) => post.id));
   const sentinelRef = useInfiniteScrollSentinel(postsQuery);
   // 카드의 사진을 누르면 그 사진부터 확대 뷰를 얹는다(Figma `전체 보기`) — 장소 상세와 같다.
@@ -58,6 +61,11 @@ export function PlacePostsPage() {
           post={toDisplayPost(previewPost, previewDetail)}
           initialIndex={preview.imageIndex}
           onClose={closePreview}
+          headerRight={
+            previewDetail ? (
+              <SavedPostActions detail={previewDetail} onDeleted={closePreview} />
+            ) : undefined
+          }
         />
       ) : null}
     </PinnedHeaderLayout>
