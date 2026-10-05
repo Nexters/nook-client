@@ -20,6 +20,7 @@ import {
   FULL_SNAP_POINT,
 } from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
+import { FirstSaveEmpty } from '@/features/onboarding/FirstSaveEmpty';
 import { PlaceCard } from '@/features/place';
 import { Icon20ArrowUp, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
@@ -50,6 +51,7 @@ function LoadMoreSentinel(paging: Parameters<typeof useInfiniteScrollSentinel>[0
 export function PlaceSheet({
   recentPlaces,
   recentPlacesPaging,
+  firstSave = false,
   selectedPlace,
   shareToken,
   isPlaceDetailPending,
@@ -68,6 +70,8 @@ export function PlaceSheet({
   recentPlaces: RecentPlace[];
   /** 최근 저장한 공간 다음 페이지 정보 — 없으면 받은 목록만 그린다. */
   recentPlacesPaging?: Parameters<typeof useInfiniteScrollSentinel>[0];
+  /** 한 번도 저장한 적 없는 사람 — 빈 목록 자리에 저장 방법 안내(`FirstSaveEmpty`)를 띄운다. */
+  firstSave?: boolean;
   selectedPlace: PlaceDetailModel | null;
   /**
    * 공유 아카이브 딥링크로 들어온 경우의 토큰 — 있으면 상세를 공유자 기준 읽기 전용으로
@@ -344,7 +348,12 @@ export function PlaceSheet({
                   </button>
                 </div>
                 {recentPlaces.length === 0 ? (
-                  <EmptySavedPlaces />
+                  firstSave ? (
+                    // 시안은 mid 스냅(617) 기준 432 높이 — 안내 링크가 그 바닥에 붙는다.
+                    <FirstSaveEmpty className="h-[432px] shrink-0 pt-10" />
+                  ) : (
+                    <EmptySavedPlaces />
+                  )
                 ) : (
                   <>
                     <div className="grid grid-cols-2 justify-items-center gap-2">

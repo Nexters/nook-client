@@ -6,11 +6,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   fetchArchivePosts: vi.fn(),
   fetchArchivePlaces: vi.fn(),
+  fetchArchives: vi.fn(),
 }));
 
 vi.mock('@/features/archive/api', () => mocks);
 
-const { useArchivePosts, useArchivePlaces } = await import('@/features/archive/api/queries');
+const { useArchivePosts, useArchivePlaces, useHasSaveHistory } = await import(
+  '@/features/archive/api/queries'
+);
 
 /** 처리가 끝난 뒤의 응답 — 캐시에 남은 'processing' 을 덮어써야 할 값. */
 const DONE_POSTS = {
@@ -58,5 +61,25 @@ describe('목록 진입 시 재조회', () => {
 
     renderHook(() => useArchivePlaces(1), { wrapper });
     await waitFor(() => expect(mocks.fetchArchivePlaces).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe('최초 저장 이력', () => {
+  const owned = { accessType: 'OWNED', placeCount: 0 };
+
+  it.each([
+    ['저장한 적 없음', [{ ...owned, id: 1 }], false],
+    ['다 지웠어도 lastSavedAt 이 남음', [{ ...owned, id: 1, lastSavedAt: '2026-10-01' }], true],
+    ['게시물이 있음', [{ ...owned, id: 1, placeCount: 2 }], true],
+    [
+      '공유 아카이브의 게시물은 내 이력이 아님',
+      [{ id: 2, accessType: 'SHARED', placeCount: 3 }],
+      false,
+    ],
+  ])('%s', async (_, archives, expected) => {
+    mocks.fetchArchives.mockResolvedValue(archives);
+    const { result } = renderHook(() => useHasSaveHistory(), { wrapper });
+    expect(result.current).toBeUndefined();
+    await waitFor(() => expect(result.current).toBe(expected));
   });
 });
