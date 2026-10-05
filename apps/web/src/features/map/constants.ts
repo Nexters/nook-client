@@ -52,7 +52,7 @@ export const DETAIL_SNAP_POINTS_WITHOUT_PHOTOS = [DETAIL_COMPACT_SNAP_POINT, FUL
 
 /**
  * 개별 장소 핀(썸네일+이름표)을 그리는 최소 줌 레벨(네이버 지도 줌 — 클수록 확대, 기본 18).
- * 이보다 zoom-out 하면 핀을 하나하나 찍는 대신 `ClusterBubble` 로 개수만 보여준다.
+ * 이보다 zoom-out 하면 근처 핀을 `ClusterBubble` 로 묶어 개수만 보여준다(혼자 남은 장소는 개별 핀).
  *
  */
 export const PIN_DETAIL_MIN_ZOOM = 16;

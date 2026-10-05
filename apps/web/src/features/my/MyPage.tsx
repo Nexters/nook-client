@@ -288,7 +288,7 @@ export function MyPage() {
                     onClick={() => navigate('/onboarding?replay=1')}
                     className="flex items-center justify-between rounded-sm bg-gray-60 p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-2"
                   >
-                    <span className="text-b2 font-semibold text-gray-0">온보딩 다시보기</span>
+                    <span className="text-b2 font-semibold text-gray-0">Nook 사용법 다시보기</span>
                     <Icon16ArrowRight className="shrink-0 [&_path]:stroke-gray-0" />
                   </button>
                 ) : null}

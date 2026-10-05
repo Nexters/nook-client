@@ -251,7 +251,7 @@ export function OnboardingPage() {
   const motionBoxes = useRef<(HTMLDivElement | null)[]>([]);
   const slide = SLIDES[slideIndex] ?? SLIDES[0];
 
-  // 마이페이지 `온보딩 다시보기` 로 들어온 경우. 장 넘김이 쿼리를 보존하므로 WebView 가 다시
+  // 마이페이지 `Nook 사용법 다시보기` 로 들어온 경우. 장 넘김이 쿼리를 보존하므로 WebView 가 다시
   // 로드돼도 남는다. 열람 기록은 건드리지 않고, 나갈 때는 마이페이지로 돌아간다.
   const replay = searchParams.get('replay') === '1';
 

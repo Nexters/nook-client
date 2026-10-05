@@ -5,7 +5,7 @@ import type { PlaceCategoryGroup } from '@/features/map/types';
 import { type ArchiveColor, COLOR_BG_CLASS } from '@/shared/ui';
 
 /**
- * 개별 장소 핀 — 줌인 상태에서 쓴다(줌아웃은 `ClusterBubble`). Figma 326:14057(기본) ·
+ * 개별 장소 핀 — 줌인 상태와, 줌아웃에서 혼자 남은 장소에 쓴다(여럿이 묶이면 `ClusterBubble`). Figma 326:14057(기본) ·
  * 326:14066(선택), NOOK-327.
  *
  * 기본은 48px 장소 사진에 흰 이름표, 선택되면 56px 물방울(`SelectedPinMarker`)에 어두운

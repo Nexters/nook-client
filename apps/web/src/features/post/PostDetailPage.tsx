@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
@@ -9,10 +9,11 @@ import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider'
 import { PushPrimingSheet } from '@/features/notifications/components/PushPrimingSheet';
 import { SavePostSheet } from '@/features/share/components/SavePostSheet';
 import { capturePostHogEvent } from '@/lib/posthog';
+import { Icon20ArrowUp } from '@/shared/icons/NookIcons';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { useToast } from '@/shared/toast';
-import { BackButton, Header, Popup } from '@/shared/ui';
+import { BackButton, FloatingButton, Header, Popup } from '@/shared/ui';
 import {
   toPlace,
   useConnectPlace,
@@ -38,6 +39,11 @@ import { RelatedPlacesSection } from './components/RelatedPlacesSection';
 import { isPostFromList } from './postEntry';
 import type { SearchedPlace } from './types';
 
+/** 이 값을 넘겨 스크롤된 것으로 본다 — PinnedHeaderLayout 의 +1px 최소 스크롤은 무시. */
+const SCROLL_TOP_THRESHOLD = 4;
+/** 바닥까지 이 거리 안이면 맨 아래로 본다(소수점 레이아웃 오차 여유). */
+const SCROLL_AT_BOTTOM_THRESHOLD = 8;
+
 /**
  * Figma `아카이브 > 게시물 상세` (연관 장소 O / X, 메모 최대글자수, 이미지 확대 뷰)
  * + `메모하기` 바텀시트.
@@ -56,6 +62,7 @@ export function PostDetailPage() {
   // 게시물 여러 개를 보여주던 화면에서 들어왔는가 — 삭제 뒤 그 화면으로 돌아갈지 홈 지도로 갈지.
   const enteredFromList = isPostFromList(useLocation().state);
   useHideBottomMenu();
+  const atBottom = useRootScrolledToBottom();
 
   // 게시물 제목. 스크롤에 실려 헤더 뒤로 숨으면 헤더가 같은 제목을 이어받는다 —
   // 아카이브 상세의 아카이브명과 같은 계약이다.
@@ -268,7 +275,9 @@ export function PostDetailPage() {
           title={<PinnedHeaderTitle target={titleRef}>{title}</PinnedHeaderTitle>}
         />
       }
-      contentStyle={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+      // 맨 아래에서 뜨는 "위로가기"(바닥 2.5rem + 48px)에 마지막 콘텐츠가 가리지 않도록
+      // 버튼 몫 + 1rem 을 비운다 — 장소 상세(PlaceSheet)와 같은 값(NOOK-320).
+      contentStyle={{ paddingBottom: 'calc(6.5rem + env(safe-area-inset-bottom))' }}
     >
       <main>
         <PostImages media={media} onImageClick={openViewerAt} onVideoExpand={openVideoViewer} />
@@ -363,6 +372,24 @@ export function PostDetailPage() {
           )
         : null}
 
+      {/* 맨 아래에 닿았을 때만 뜨는 "위로가기" — 장소 상세와 같은 시안(Figma `Button/48_up`). */}
+      {atBottom ? (
+        <FloatingButton
+          size="lg"
+          tone="light"
+          aria-label="맨 위로"
+          onClick={() => document.getElementById('root')?.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="-translate-x-1/2 border border-gray-20 shadow-none"
+          style={{
+            bottom: 'calc(2.5rem + env(safe-area-inset-bottom))',
+            left: '50%',
+            right: 'auto',
+          }}
+        >
+          <Icon20ArrowUp className="[&_path]:stroke-gray-80" />
+        </FloatingButton>
+      ) : null}
+
       <PlaceDirectInputDrawer
         open={directInputOpen}
         onOpenChange={setDirectInputOpen}
@@ -371,4 +398,30 @@ export function PostDetailPage() {
       />
     </PinnedHeaderLayout>
   );
+}
+
+/**
+ * 앱 스크롤러(#root)가 스크롤된 채 맨 아래에 닿아 있는가. 스크롤이 없는 짧은 게시물에선
+ * false — 장소 상세의 "위로가기" 노출 조건과 같다.
+ */
+function useRootScrolledToBottom(): boolean {
+  const [atBottom, setAtBottom] = useState(false);
+
+  useEffect(() => {
+    const root = document.getElementById('root');
+    if (!root) return;
+
+    const onScroll = () => {
+      const { scrollTop, clientHeight, scrollHeight } = root;
+      setAtBottom(
+        scrollTop > SCROLL_TOP_THRESHOLD &&
+          scrollTop + clientHeight >= scrollHeight - SCROLL_AT_BOTTOM_THRESHOLD,
+      );
+    };
+    onScroll();
+    root.addEventListener('scroll', onScroll, { passive: true });
+    return () => root.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return atBottom;
 }
