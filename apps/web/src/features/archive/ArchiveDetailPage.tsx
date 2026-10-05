@@ -8,6 +8,7 @@ import {
   PinnedHeaderTitle,
 } from '@/app/layouts/PinnedHeaderLayout';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
+import { FirstSaveEmpty } from '@/features/onboarding/FirstSaveEmpty';
 import { PlaceCard } from '@/features/place';
 import { POST_FROM_LIST_STATE } from '@/features/post/postEntry';
 import { ShareSheet } from '@/features/share/components/ShareSheet';
@@ -32,6 +33,7 @@ import {
   useArchivePosts,
   useArchives,
   useDeleteArchivePosts,
+  useHasSaveHistory,
   useIssueShareLink,
   useRemoveSharedArchive,
 } from './api/queries';
@@ -88,6 +90,15 @@ export function ArchiveDetailPage() {
   const archive = isAuthenticated
     ? archives?.find((item) => String(item.id) === archiveId)
     : GUEST_ARCHIVE;
+
+  // 가입 때 만들어지는 기본 아카이브 — 서버가 따로 표시하지 않아 가장 먼저 만든(id 가 가장 작은) 내 것으로 본다.
+  const isDefaultArchive =
+    archive !== undefined &&
+    archive.id ===
+      Math.min(
+        ...(archives ?? []).filter((item) => item.accessType === 'OWNED').map((item) => item.id),
+      );
+  const hasSaveHistory = useHasSaveHistory();
 
   const postsQuery = useArchivePosts(archive?.id);
   const posts = postsQuery.data?.posts;
@@ -302,7 +313,12 @@ export function ArchiveDetailPage() {
 
       <main>
         {isEmpty ? (
-          <ArchiveEmpty message="저장한 게시물이 없어요" />
+          isDefaultArchive && hasSaveHistory === false ? (
+            // 시안: 정보 블록 아래 60, 안내 링크는 하단 탭바 위 47 언저리.
+            <FirstSaveEmpty className="h-[520px] pt-[60px]" />
+          ) : (
+            <ArchiveEmpty message="저장한 게시물이 없어요" />
+          )
         ) : (
           // 탭 버튼 말고 좌우 스와이프로도 넘긴다 — 상태는 activeTab 하나라 어느 쪽으로
           // 바꿔도 같은 결과다.

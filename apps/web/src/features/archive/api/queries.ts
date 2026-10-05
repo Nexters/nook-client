@@ -35,6 +35,20 @@ export function useArchives() {
 }
 
 /**
+ * 한 번이라도 게시물을 저장한 적이 있는가 — 최초 저장 유도 빈 상태(NOOK-393)의 분기.
+ * 지금 개수가 아니라 이력이 기준이라, 다 지워도 남는 내 아카이브의 `lastSavedAt` 을 본다.
+ * 목록이 오기 전(게스트 포함)에는 undefined 다.
+ */
+export function useHasSaveHistory(): boolean | undefined {
+  const { data: archives } = useArchives();
+  return archives?.some(
+    (archive) =>
+      archive.accessType === 'OWNED' &&
+      (archive.lastSavedAt !== undefined || archive.placeCount > 0),
+  );
+}
+
+/**
  * 아카이브에 저장된 게시물. 서버가 페이지로 내려주므로 스크롤에 맞춰 이어 붙인다.
  * 아카이브 소유자 닉네임도 이 응답에만 있어 함께 돌려준다.
  * 저장 직후엔 BE 가 본문/장소를 비동기로 처리해 카드가 로딩 상태로 내려올 수 있다 —

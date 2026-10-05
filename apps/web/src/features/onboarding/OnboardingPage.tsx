@@ -18,7 +18,7 @@ const SHARE_TARGET = { title: 'nook', url: env.webOrigin };
  * `instagram://` 스킴을 쓰지 않는 이유: iOS 는 설치 확인에 Info.plist 등록과 셸 재빌드가 필요하고,
  * 스킴 주소에는 `stkn` 을 실을 수 없다.
  */
-const INSTAGRAM_URL = 'https://www.instagram.com/p/DcTo_cCD-G8/?stkn=YWRzcjE2d3lrOGdi';
+export const INSTAGRAM_URL = 'https://www.instagram.com/p/DcTo_cCD-G8/?stkn=YWRzcjE2d3lrOGdi';
 
 /**
  * 가운데 그림. 모두 Lottie JSON 이다.

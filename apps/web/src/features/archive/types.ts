@@ -27,6 +27,8 @@ export interface Archive {
   owner?: ArchiveOwner;
   /** 공유 상세 진입용 토큰. 내(OWNED) 아카이브에는 없다. */
   shareToken?: string;
+  /** 내 아카이브에 마지막으로 게시물을 저장한 시각. 저장 이력이 없거나 공유 아카이브면 없다. */
+  lastSavedAt?: string;
 }
 
 /**

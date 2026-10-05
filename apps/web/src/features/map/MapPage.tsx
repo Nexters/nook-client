@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useNavigationType, useSearchParams } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
+import { useHasSaveHistory } from '@/features/archive/api/queries';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { getLastMapCamera, MapView, type MapViewHandle } from '@/features/map/components/MapView';
@@ -120,6 +121,7 @@ export function MapPage() {
   // 도착 경계가 없으면 위와 같은 키라 요청이 따로 나가지 않는다.
   const destinationPinsQuery = useMapPins(destinationBounds ?? effectiveBounds);
   const recentPlacesQuery = useRecentPlaces();
+  const hasSaveHistory = useHasSaveHistory();
   const placeDetailQuery = usePlaceDetail(selectedPlaceId, shareToken);
 
   // 선택된 장소의 핀은 bbox 조회를 기다리지 않고 상세 응답으로 바로 그린다.
@@ -343,6 +345,7 @@ export function MapPage() {
         <PlaceSheet
           recentPlaces={recentPlacesQuery.data ?? []}
           recentPlacesPaging={recentPlacesQuery}
+          firstSave={hasSaveHistory === false}
           selectedPlace={placeDetailQuery.data ?? null}
           shareToken={shareToken}
           isPlaceDetailPending={selectedPlaceId !== null && placeDetailQuery.isPending}
