@@ -247,6 +247,40 @@ describe('게시물 상세', () => {
     expect(header.closest('.fixed')?.parentElement).toBe(document.body);
   });
 
+  it('#root 가 스크롤된 채 맨 아래에 닿았을 때만 위로가기 버튼이 뜬다', async () => {
+    // 앱 스크롤러는 #root 다. jsdom 은 레이아웃이 없어 스크롤 값을 직접 심고 이벤트를 쏜다.
+    const root = document.createElement('div');
+    root.id = 'root';
+    document.body.append(root);
+    const scrollRoot = (scrollTop: number) => {
+      for (const [key, value] of [
+        ['scrollHeight', 2000],
+        ['clientHeight', 800],
+        ['scrollTop', scrollTop],
+      ] as const) {
+        Object.defineProperty(root, key, { value, configurable: true, writable: true });
+      }
+      fireEvent.scroll(root);
+    };
+    const scrollToTopButton = () => screen.queryByRole('button', { name: '맨 위로' });
+
+    try {
+      await renderPost(1);
+      expect(scrollToTopButton()).not.toBeInTheDocument();
+
+      scrollRoot(600);
+      expect(scrollToTopButton()).not.toBeInTheDocument();
+
+      scrollRoot(1200);
+      expect(scrollToTopButton()).toBeInTheDocument();
+
+      scrollRoot(0);
+      expect(scrollToTopButton()).not.toBeInTheDocument();
+    } finally {
+      root.remove();
+    }
+  });
+
   it('게시물 상세를 불러오는 동안 로딩 문구를 보여준다', async () => {
     mocks.fetchPostDetail.mockImplementation(
       () => new Promise((resolve) => setTimeout(() => resolve(POSTS[1]), 50)),
