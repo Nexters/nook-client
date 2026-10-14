@@ -7,7 +7,7 @@
 
 export type SearchSavedPlacesParams = {
   /**
-   * 장소명, 주소 또는 카테고리 검색 문자열
+   * 장소명, 주소, 카테고리, 내 장소 메모 또는 장소 태그명 검색 문자열
    * @minLength 0
    * @maxLength 100
    */
