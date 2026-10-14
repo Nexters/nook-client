@@ -197,7 +197,7 @@ describe('온보딩 화면', () => {
       JSON.stringify({
         v: 1,
         type: 'OPEN_EXTERNAL_URL',
-        payload: { url: 'https://www.instagram.com/p/DcTo_cCD-G8/?stkn=YWRzcjE2d3lrOGdi' },
+        payload: { url: 'https://www.instagram.com/reel/Dd8ed6EPreb/?stkn=MWJ2MDc2cGNmY3JiNA==' },
       }),
     );
     expect(localStorage.getItem('onboarding_guide_seen')).toBe('true');
