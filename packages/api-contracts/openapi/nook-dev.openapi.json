@@ -1669,6 +1669,34 @@
         ],
         "type": "object"
       },
+      "OnboardingEventRequest": {
+        "properties": {
+          "eventId": {
+            "description": "발생마다 생성하는 UUID. 재시도 시 같은 값을 사용합니다.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "eventName": {
+            "description": "INSTAGRAM_CTA_CLICK 또는 SHARE_EXTENSION_OPEN",
+            "enum": [
+              "INSTAGRAM_CTA_CLICK",
+              "SHARE_EXTENSION_OPEN"
+            ],
+            "type": "string"
+          },
+          "occurredAt": {
+            "description": "실제 발생 시각 UTC ISO-8601. 서버 현재 시각부터 과거 7일 이내, 미래 불가.",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId",
+          "eventName",
+          "occurredAt"
+        ],
+        "type": "object"
+      },
       "PlaceDetailResponse": {
         "properties": {
           "address": {
@@ -4278,6 +4306,30 @@
         ]
       }
     },
+    "/api/v1/onboarding/events": {
+      "post": {
+        "operationId": "record",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingEventRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "summary": "온보딩 Instagram 클릭 또는 Share Extension 진입 기록",
+        "tags": [
+          "OnboardingEvents"
+        ]
+      }
+    },
     "/api/v1/places/{placeId}": {
       "get": {
         "operationId": "getDetail",
@@ -4601,7 +4653,7 @@
         "operationId": "searchSavedPlaces",
         "parameters": [
           {
-            "description": "장소명, 주소 또는 카테고리 검색 문자열",
+            "description": "장소명, 주소, 카테고리, 내 장소 메모 또는 장소 태그명 검색 문자열",
             "in": "query",
             "name": "query",
             "required": true,
