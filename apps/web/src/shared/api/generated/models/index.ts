@@ -94,6 +94,8 @@ export * from './mapPlaceResponseThumbnailParsingStatus.generated';
 export * from './memberActionResponse.generated';
 export * from './memberProfileResponse.generated';
 export * from './memberProfileResponseProvider.generated';
+export * from './onboardingEventRequest.generated';
+export * from './onboardingEventRequestEventName.generated';
 export * from './placeDetailParams.generated';
 export * from './placeDetailResponse.generated';
 export * from './placeDetailResponseCategoryGroup.generated';
