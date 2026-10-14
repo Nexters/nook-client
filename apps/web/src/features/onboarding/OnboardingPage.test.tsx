@@ -50,6 +50,7 @@ function renderPage(entry = '/onboarding') {
           }
         />
         <Route path="/map" element={<p>지도 화면</p>} />
+        <Route path="/my" element={<p>마이 화면</p>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -196,7 +197,7 @@ describe('온보딩 화면', () => {
       JSON.stringify({
         v: 1,
         type: 'OPEN_EXTERNAL_URL',
-        payload: { url: 'https://www.instagram.com/p/DcTo_cCD-G8/?stkn=YWRzcjE2d3lrOGdi' },
+        payload: { url: 'https://www.instagram.com/reel/Dd8ed6EPreb/?stkn=MWJ2MDc2cGNmY3JiNA==' },
       }),
     );
     expect(localStorage.getItem('onboarding_guide_seen')).toBe('true');
@@ -303,5 +304,14 @@ describe('온보딩 화면', () => {
     expect(await screen.findByText('지도 화면')).toBeInTheDocument();
     expect(localStorage.getItem('onboarding_guide_seen')).toBe('true');
     expect(shouldShowOnboarding()).toBe(false);
+  });
+
+  it('다시보기는 닫으면 마이페이지로 돌아가고 열람 기록을 건드리지 않는다', async () => {
+    renderPage('/onboarding?replay=1');
+
+    fireEvent.click(screen.getByRole('button', { name: '온보딩 닫기' }));
+
+    expect(await screen.findByText('마이 화면')).toBeInTheDocument();
+    expect(localStorage.getItem('onboarding_guide_seen')).toBeNull();
   });
 });

@@ -36,14 +36,14 @@ describe('PushPrimingSheet', () => {
 
   it('처리 중 진입 & 권한 미결정이면 시트가 뜬다', async () => {
     await renderSheet();
-    expect(await screen.findByText('저장이 끝나면 알려드릴까요?')).toBeInTheDocument();
+    expect(await screen.findByText('저장이 완료되면 알려드릴까요?')).toBeInTheDocument();
   });
 
   it('이미 허용/거부된 상태면 뜨지 않는다', async () => {
     mocks.requestPushStatus.mockResolvedValue({ requestId: 'r', status: 'granted' });
     await renderSheet();
     await waitFor(() => expect(mocks.requestPushStatus).toHaveBeenCalled());
-    expect(screen.queryByText('저장이 끝나면 알려드릴까요?')).not.toBeInTheDocument();
+    expect(screen.queryByText('저장이 완료되면 알려드릴까요?')).not.toBeInTheDocument();
   });
 
   it('처리 중이 아니면 상태 조회조차 하지 않는다', async () => {
@@ -72,7 +72,7 @@ describe('PushPrimingSheet', () => {
     const { unmount } = render(<PushPrimingSheet active />);
     fireEvent.click(await screen.findByRole('button', { name: '나중에' }));
     await waitFor(() =>
-      expect(screen.queryByText('저장이 끝나면 알려드릴까요?')).not.toBeInTheDocument(),
+      expect(screen.queryByText('저장이 완료되면 알려드릴까요?')).not.toBeInTheDocument(),
     );
     unmount();
 

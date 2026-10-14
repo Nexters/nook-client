@@ -45,6 +45,7 @@ import type {
   ListPlacesParams,
   ListPostsParams,
   ListSavedPostsParams,
+  OnboardingEventRequest,
   PlaceDetailParams,
   PlacesParams,
   PostsParams,
@@ -581,6 +582,25 @@ export const createProfileImageUpload = async (
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(createProfileImageUploadRequest),
+  });
+};
+
+export const getRecordUrl = () => {
+  return `/api/v1/onboarding/events`;
+};
+
+/**
+ * @summary 온보딩 Instagram 클릭 또는 Share Extension 진입 기록
+ */
+export const record = async (
+  onboardingEventRequest: OnboardingEventRequest,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<void> => {
+  return orvalMutator<void>(getRecordUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(onboardingEventRequest),
   });
 };
 

@@ -693,7 +693,7 @@ export function UiComponentsPage() {
               onClick={() =>
                 showToast({
                   variant: 'link',
-                  title: '아카이브에 저장했어요!',
+                  title: '아카이브를 추가했어요!',
                   actionLabel: '보러가기',
                   onAction: () => setLastAction('토스트 보러가기(링크)'),
                 })

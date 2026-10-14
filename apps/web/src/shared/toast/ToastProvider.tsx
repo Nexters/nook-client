@@ -173,11 +173,11 @@ function ToastRoot({
         'data-[state=open]:animate-toast-in data-[state=closed]:animate-toast-out',
         'data-[swipe=move]:translate-y-[var(--radix-toast-swipe-move-y)] data-[swipe=move]:transition-none',
         'data-[swipe=cancel]:translate-y-0 data-[swipe=cancel]:duration-200 data-[swipe=cancel]:ease-out',
-        simple && 'justify-center',
       )}
     >
+      {/* 문구는 액션 유무와 상관없이 왼쪽 정렬이다(Snackbar 시안, QA). */}
       {simple ? (
-        <ToastPrimitive.Title className="truncate text-b2 font-medium text-gray-0">
+        <ToastPrimitive.Title className="min-w-0 flex-1 truncate text-b2 font-medium text-gray-0">
           {request.title}
         </ToastPrimitive.Title>
       ) : (

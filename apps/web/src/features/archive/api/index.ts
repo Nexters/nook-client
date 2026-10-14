@@ -51,6 +51,7 @@ export function toArchive(dto: GroupResponse): Archive {
       ? { nickname: dto.owner.nickname, profileImageUrl: dto.owner.profileImageUrl ?? undefined }
       : undefined,
     shareToken: dto.shareToken ?? undefined,
+    lastSavedAt: dto.lastSavedAt ?? undefined,
   };
 }
 

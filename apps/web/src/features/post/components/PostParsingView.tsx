@@ -23,7 +23,7 @@ export function PostParsingView({ percent }: { percent: number }) {
             </p>
             <div className="relative pt-3 text-center text-b3 font-medium text-gray-60">
               <p>화면을 나가도 저장은 계속될 거예요.</p>
-              <p>완료되면 알림을 보내드릴게요.</p>
+              <p>약 1분 정도 소요될 수 있어요.</p>
             </div>
           </div>
         }

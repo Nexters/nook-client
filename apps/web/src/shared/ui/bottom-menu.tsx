@@ -45,10 +45,12 @@ export interface BottomMenuItem {
 export interface BottomMenuProps {
   items: BottomMenuItem[];
   hidden?: boolean;
+  /** 탭을 눌러 이동할 때 — 이동으로 생길 엔트리가 탭 루트라는 걸 app 레이어가 기록한다. */
+  onNavigate?: () => void;
   className?: string;
 }
 
-function BottomMenu({ items, hidden = false, className }: BottomMenuProps) {
+function BottomMenu({ items, hidden = false, onNavigate, className }: BottomMenuProps) {
   return (
     <nav
       aria-hidden={hidden}
@@ -73,12 +75,13 @@ function BottomMenu({ items, hidden = false, className }: BottomMenuProps) {
               key={item.label}
               to={item.to}
               end={item.end}
-              // 탭 사이 이동은 히스토리를 쌓지 않고 덮어쓴다. 탭 루트가 늘 스택 맨 아래에
-              // 있어야, 돌아갈 엔트리가 없어서 iOS 엣지 스와이프가 아예 인식되지 않는다 —
-              // 헤더에 뒤로가기 버튼이 없는 화면에서는 스와이프도 없어야 한다는 제품 규칙을
-              // 별도 판정 없이 만족시키는 방법이다(상세·편집은 그대로 push 라 스와이프된다).
-              // Android 하드웨어 백은 `MainTabPageLayout` 의 인터셉터가 따로 받는다.
-              replace
+              // 탭 사이 이동도 push 다 — 덮어쓰지(replace) 않는다. iOS 엣지 스와이프로 막
+              // 돌아온 엔트리를 replace 하면 WKWebView 의 뒤로가기 목록엔 옛 URL 이 남아서,
+              // 그 위에서 다시 스와이프하면 교체 전 화면(예: 아카이브 목록)으로 떨어진다(QA).
+              // 탭 루트 아래에 엔트리가 생기지만, 탭 화면엔 뒤로가기 버튼이 없어 셸의 스와이프
+              // 자체가 꺼져 있다(`shared/lib/backGesture`). Android 하드웨어 백은
+              // `MainTabPageLayout` 의 인터셉터가 따로 받는다.
+              onClick={onNavigate}
               className="flex h-15 w-15 flex-col items-center justify-center"
             >
               {({ isActive }) => (

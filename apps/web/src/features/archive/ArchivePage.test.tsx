@@ -282,7 +282,7 @@ describe('아카이브 화면', () => {
 
     expect(await screen.findByText('을지다락')).toBeInTheDocument();
     // 장소 카드는 게시물 카드와 같은 그리드에 놓이는 세로형(PlaceCard) — 지역·업종을 보여준다.
-    expect(screen.getByText('서울 • 카페')).toBeInTheDocument();
+    expect(screen.getByText('서울 · 카페')).toBeInTheDocument();
     expect(mocks.fetchArchivePlaces.mock.calls[0]?.[0]).toBe(1);
   });
 

@@ -26,6 +26,12 @@ export interface MapPin {
   categoryGroup?: PlaceCategoryGroup;
 }
 
+/** "최근 저장한 공간" 한 페이지. `nextCursor` 가 없으면 마지막 페이지다. */
+export interface RecentPlacePage {
+  places: RecentPlace[];
+  nextCursor?: string;
+}
+
 /** 장소 공통 카테고리 그룹 — 장소 응답마다 같은 서버 enum 이 따로 생성돼 지도 쪽 이름 하나로 묶는다. */
 export type PlaceCategoryGroup = MapPlaceResponseCategoryGroup;
 
@@ -35,6 +41,8 @@ export interface RecentPlace {
   name: string;
   category?: string;
   address: string;
+  /** 지역(예: "서울"). 서버가 주소에서 뽑아 내려준다. */
+  city?: string;
   thumbnail?: string;
   /** 썸네일 파싱 처리 상태. `features/place`의 `Place.thumbnailState`와 같은 의미다. */
   thumbnailState?: 'processing' | 'failed';
@@ -100,6 +108,8 @@ export interface PlaceDetail {
   id: number;
   name: string;
   category?: string;
+  /** 선택 핀 글리프 — 지도 핀 목록에 아직 없는 장소의 임시 핀도 같은 아이콘으로 그리려고 싣는다. */
+  categoryGroup?: PlaceCategoryGroup;
   address: string;
   lat: number;
   lng: number;

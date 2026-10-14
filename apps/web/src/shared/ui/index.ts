@@ -17,6 +17,7 @@ export * from './input';
 export * from './lottie';
 export * from './media';
 export * from './media-badge';
+export * from './more-menu';
 export * from './nav-button';
 export * from './popup';
 export * from './skeleton';

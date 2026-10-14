@@ -104,7 +104,7 @@ export function SharedArchivePage() {
         onSuccess: () =>
           showToast({
             variant: 'link',
-            title: '아카이브에 저장했어요!',
+            title: '아카이브를 추가했어요!',
             actionLabel: '보러가기',
             // 저장한 그 아카이브 상세가 아니라 내 아카이브 목록으로 보낸다 — 방금 저장한
             // 것이 내 목록에 들어왔음을 그 자리에서 보여주는 쪽이라는 QA 결정.
@@ -170,7 +170,7 @@ export function SharedArchivePage() {
               onClick={handleSave}
               className={alreadySaved ? ACTION_CHIP_SELECTED : ACTION_CHIP_DEFAULT}
             >
-              아카이브에 저장
+              아카이브 추가
               {alreadySaved ? <Icon16Check /> : <Icon16Plus />}
             </button>
           )}

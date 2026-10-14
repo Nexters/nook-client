@@ -1,22 +1,27 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
 import { PinnedHeaderLayout, PinnedHeaderTitle } from '@/app/layouts/PinnedHeaderLayout';
+import { useArchives } from '@/features/archive/api/queries';
 import { EntryLoginWall } from '@/features/auth/components/LoginWall';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { PushPrimingSheet } from '@/features/notifications/components/PushPrimingSheet';
+import { SavePostSheet } from '@/features/share/components/SavePostSheet';
 import { capturePostHogEvent } from '@/lib/posthog';
+import { Icon20ArrowUp } from '@/shared/icons/NookIcons';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { useToast } from '@/shared/toast';
-import { BackButton, Header } from '@/shared/ui';
+import { BackButton, FloatingButton, Header, Popup } from '@/shared/ui';
 import {
   toPlace,
   useConnectPlace,
+  useDeletePost,
   usePostDetail,
   useRelatedPlaces,
   useUpdatePlaceBookmark,
+  useUpdatePostArchives,
   useUpdatePostMemo,
 } from './api/queries';
 import { ExpandableCaption } from './components/ExpandableCaption';
@@ -31,7 +36,13 @@ import { PostInfo } from './components/PostInfo';
 import { GoHomeTooltip, PostParsingView } from './components/PostParsingView';
 import { PostVideoViewer } from './components/PostVideoViewer';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
+import { isPostFromList } from './postEntry';
 import type { SearchedPlace } from './types';
+
+/** 이 값을 넘겨 스크롤된 것으로 본다 — PinnedHeaderLayout 의 +1px 최소 스크롤은 무시. */
+const SCROLL_TOP_THRESHOLD = 4;
+/** 바닥까지 이 거리 안이면 맨 아래로 본다(소수점 레이아웃 오차 여유). */
+const SCROLL_AT_BOTTOM_THRESHOLD = 8;
 
 /**
  * Figma `아카이브 > 게시물 상세` (연관 장소 O / X, 메모 최대글자수, 이미지 확대 뷰)
@@ -48,7 +59,10 @@ export function PostDetailPage() {
   const isAuthenticated = useIsAuthenticated();
   const [searchParams] = useSearchParams();
   const enteredFromShare = searchParams.get('entry') === 'share';
+  // 게시물 여러 개를 보여주던 화면에서 들어왔는가 — 삭제 뒤 그 화면으로 돌아갈지 홈 지도로 갈지.
+  const enteredFromList = isPostFromList(useLocation().state);
   useHideBottomMenu();
+  const atBottom = useRootScrolledToBottom();
 
   // 게시물 제목. 스크롤에 실려 헤더 뒤로 숨으면 헤더가 같은 제목을 이어받는다 —
   // 아카이브 상세의 아카이브명과 같은 계약이다.
@@ -114,6 +128,57 @@ export function PostDetailPage() {
     ]),
   );
 
+  // 아카이브 칩(⌄)이 여는 시트 — 체크를 바꿔 저장하면 이동, 전부 해제하면 삭제(Figma `게시물 이동`·
+  // `게시물 삭제`). 이동은 이 화면에 머무르고, 삭제는 떠난다(QA).
+  const [archivesSheetOpen, setArchivesSheetOpen] = useState(false);
+  const [deletePopupOpen, setDeletePopupOpen] = useState(false);
+  const updateArchivesMutation = useUpdatePostArchives(postId);
+  const deletePostMutation = useDeletePost(postId);
+  const { data: myArchives } = useArchives();
+
+  function handleArchivesSave(
+    currentMemo: string | undefined,
+    { groupIds, memo: nextMemo }: { groupIds: number[]; memo?: string },
+  ) {
+    updateArchivesMutation.mutate(
+      {
+        archiveIds: groupIds,
+        // 메모는 바뀌었을 때만 보낸다 — 비우면 빈 문자열로 보내 지운다(updatePostMemo 가 null 로).
+        memo: (nextMemo ?? '') !== (currentMemo ?? '') ? (nextMemo ?? '') : undefined,
+      },
+      {
+        onSuccess: () => {
+          setArchivesSheetOpen(false);
+          const name =
+            groupIds.length === 1
+              ? myArchives?.find((archive) => archive.id === groupIds[0])?.name
+              : undefined;
+          // 보러가기는 붙이지 않는다 — 지금 보고 있는 이 게시물 상세로 가는 버튼이라 눌러도 제자리다(QA).
+          showToast({
+            variant: 'simple',
+            title: name
+              ? `"${name}"에 저장됐어요`
+              : `"${groupIds.length}개의 아카이브"에 저장됐어요`,
+          });
+        },
+        onError: () => showToast({ variant: 'simple', title: '아카이브를 바꾸지 못했어요' }),
+      },
+    );
+  }
+
+  function handleDeleteConfirm() {
+    deletePostMutation.mutate(undefined, {
+      onSuccess: () => {
+        // 여러 게시물을 보던 화면에서 왔으면 그 화면으로 돌아가 머무르고(지운 카드만 빠진다),
+        // 단일 게시물로 곧장 들어왔으면 돌아갈 목록이 없어 홈 지도로 보낸다(QA).
+        if (enteredFromList) navigate(-1);
+        else navigate('/map', { replace: true });
+        showToast({ variant: 'simple', title: '게시물이 삭제됐어요' });
+      },
+      onError: () => showToast({ variant: 'simple', title: '게시물을 삭제하지 못했어요' }),
+    });
+  }
+
   const updateBookmarkMutation = useUpdatePlaceBookmark(postId);
   const connectPlaceMutation = useConnectPlace(postId);
 
@@ -140,7 +205,7 @@ export function PostDetailPage() {
     connectPlaceMutation.mutate(place.selectionToken, {
       onSuccess: (placeId) => {
         capturePostHogEvent('place_directly_added', { post_id: postId, place_id: placeId });
-        showToast({ variant: 'simple', title: '아카이브에 저장됐어요' });
+        showToast({ variant: 'simple', title: '아카이브에 추가됐어요' });
         setDirectInputOpen(false);
       },
       onError: () => {
@@ -191,8 +256,8 @@ export function PostDetailPage() {
             <PostDetailErrorView />
           )}
         </div>
-        {/* 파싱 화면은 "완료되면 알림을 보내드릴게요"라고 약속한다 — 권한이 미결정인
-            사용자에게 여기서만 알림 허용을 권한다. 즉시 완료 저장은 이 분기를 안 탄다. */}
+        {/* 오래 걸리는 저장(파싱 화면)에서만 — 권한이 미결정인 사용자에게 완료 알림을
+            받을지 여기서 묻는다. 즉시 완료 저장은 이 분기를 안 탄다. */}
         <PushPrimingSheet active={isProcessing} />
       </main>
     );
@@ -210,7 +275,9 @@ export function PostDetailPage() {
           title={<PinnedHeaderTitle target={titleRef}>{title}</PinnedHeaderTitle>}
         />
       }
-      contentStyle={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+      // 맨 아래에서 뜨는 "위로가기"(바닥 2.5rem + 48px)에 마지막 콘텐츠가 가리지 않도록
+      // 버튼 몫 + 1rem 을 비운다 — 장소 상세(PlaceSheet)와 같은 값(NOOK-320).
+      contentStyle={{ paddingBottom: 'calc(6.5rem + env(safe-area-inset-bottom))' }}
     >
       <main>
         <PostImages media={media} onImageClick={openViewerAt} onVideoExpand={openVideoViewer} />
@@ -226,7 +293,7 @@ export function PostDetailPage() {
             archives={archives}
             memo={memo}
             onMemoEdit={() => setMemoOpen(true)}
-            onArchiveClick={(archiveId) => navigate(`/archive/${archiveId}`)}
+            onArchivesClick={() => setArchivesSheetOpen(true)}
             className="pt-2"
           />
 
@@ -257,6 +324,37 @@ export function PostDetailPage() {
         }
       />
 
+      <SavePostSheet
+        open={archivesSheetOpen}
+        onOpenChange={setArchivesSheetOpen}
+        title="아카이브 수정"
+        initialGroupIds={archives.map((archive) => archive.id)}
+        initialMemo={memo}
+        pending={updateArchivesMutation.isPending || deletePostMutation.isPending}
+        onSave={(input) => handleArchivesSave(memo, input)}
+        onDelete={() => {
+          // 시안대로 시트를 걷고 게시물 위에 확인 팝업만 띄운다. 취소하면 게시물에 그대로 남는다.
+          setArchivesSheetOpen(false);
+          setDeletePopupOpen(true);
+        }}
+      />
+
+      <Popup
+        open={deletePopupOpen}
+        onClose={() => setDeletePopupOpen(false)}
+        title="게시물을 삭제하시겠어요?"
+        description={
+          <>
+            게시물을 삭제하면 게시물에 포함된
+            <br />
+            장소도 모두 삭제돼요.
+          </>
+        }
+        confirmLabel="삭제하기"
+        variant="warning"
+        onConfirm={handleDeleteConfirm}
+      />
+
       {/* fixed 오버레이 — 페이지가 뷰포트보다 길면 셸(will-change-transform)에 붙어
           화면 밖으로 밀려나니 body 로 포탈해 뷰포트 기준으로 띄운다. */}
       {viewerOpen
@@ -274,6 +372,24 @@ export function PostDetailPage() {
           )
         : null}
 
+      {/* 맨 아래에 닿았을 때만 뜨는 "위로가기" — 장소 상세와 같은 시안(Figma `Button/48_up`). */}
+      {atBottom ? (
+        <FloatingButton
+          size="lg"
+          tone="light"
+          aria-label="맨 위로"
+          onClick={() => document.getElementById('root')?.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="-translate-x-1/2 border border-gray-20 shadow-none"
+          style={{
+            bottom: 'calc(2.5rem + env(safe-area-inset-bottom))',
+            left: '50%',
+            right: 'auto',
+          }}
+        >
+          <Icon20ArrowUp className="[&_path]:stroke-gray-80" />
+        </FloatingButton>
+      ) : null}
+
       <PlaceDirectInputDrawer
         open={directInputOpen}
         onOpenChange={setDirectInputOpen}
@@ -282,4 +398,30 @@ export function PostDetailPage() {
       />
     </PinnedHeaderLayout>
   );
+}
+
+/**
+ * 앱 스크롤러(#root)가 스크롤된 채 맨 아래에 닿아 있는가. 스크롤이 없는 짧은 게시물에선
+ * false — 장소 상세의 "위로가기" 노출 조건과 같다.
+ */
+function useRootScrolledToBottom(): boolean {
+  const [atBottom, setAtBottom] = useState(false);
+
+  useEffect(() => {
+    const root = document.getElementById('root');
+    if (!root) return;
+
+    const onScroll = () => {
+      const { scrollTop, clientHeight, scrollHeight } = root;
+      setAtBottom(
+        scrollTop > SCROLL_TOP_THRESHOLD &&
+          scrollTop + clientHeight >= scrollHeight - SCROLL_AT_BOTTOM_THRESHOLD,
+      );
+    };
+    onScroll();
+    root.addEventListener('scroll', onScroll, { passive: true });
+    return () => root.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return atBottom;
 }

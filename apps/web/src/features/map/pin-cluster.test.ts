@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CLUSTER_MERGE_RADIUS_PX, PIN_DETAIL_MIN_ZOOM } from './constants';
-import { clusterPins } from './pin-cluster';
+import { clusterPins, zoomToFitSpan } from './pin-cluster';
 import type { MapPin } from './types';
 
 function pin(id: number, lat: number, lng: number): MapPin {
@@ -118,5 +118,21 @@ describe('clusterPins', () => {
     expect(reversed.map((cluster) => cluster.pins.length)).toEqual(
       forward.map((cluster) => cluster.pins.length),
     );
+  });
+});
+
+describe('zoomToFitSpan', () => {
+  it('벌어진 폭이 화면에 들어가는 가장 큰 줌을 고른다 — 줌이 1 오르면 폭이 두 배', () => {
+    // 줌 12 에서 75px 벌어진 점들: 폭 300 이면 두 단계(→300px), 폭 299 면 한 단계만 들어간다.
+    expect(zoomToFitSpan({ spanX: 75, spanY: 0, width: 300, height: 500, zoom: 12 })).toBe(14);
+    expect(zoomToFitSpan({ spanX: 75, spanY: 0, width: 299, height: 500, zoom: 12 })).toBe(13);
+  });
+
+  it('가로·세로 중 더 빡빡한 쪽에 맞춘다', () => {
+    expect(zoomToFitSpan({ spanX: 10, spanY: 100, width: 1000, height: 200, zoom: 10 })).toBe(11);
+  });
+
+  it('좌표가 같은(같은 건물) 점들은 넓이가 없어 상한 없이 들어간다 — 상한은 호출부 몫', () => {
+    expect(zoomToFitSpan({ spanX: 0, spanY: 0, width: 300, height: 300, zoom: 12 })).toBe(Infinity);
   });
 });

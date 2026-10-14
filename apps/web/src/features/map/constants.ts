@@ -52,7 +52,7 @@ export const DETAIL_SNAP_POINTS_WITHOUT_PHOTOS = [DETAIL_COMPACT_SNAP_POINT, FUL
 
 /**
  * 개별 장소 핀(썸네일+이름표)을 그리는 최소 줌 레벨(네이버 지도 줌 — 클수록 확대, 기본 18).
- * 이보다 zoom-out 하면 핀을 하나하나 찍는 대신 `ClusterBubble` 로 개수만 보여준다.
+ * 이보다 zoom-out 하면 근처 핀을 `ClusterBubble` 로 묶어 개수만 보여준다(혼자 남은 장소는 개별 핀).
  *
  */
 export const PIN_DETAIL_MIN_ZOOM = 16;
@@ -79,16 +79,14 @@ export const RECENTER_ZOOM = 16;
 export const CLUSTER_MERGE_RADIUS_PX = 72;
 
 /**
- * 클러스터 버블을 눌렀을 때 확대할 줌 단계. 멤버가 많으면 한 번에 다 풀리지 않고
- * 몇 번 눌러 파고들게 된다 — 한 번에 최대 줌까지 튀는 것보다 위치 감각을 유지하기 쉽다.
+ * 장소를 선택해 지도를 옮길 때 선택 핀(물방울 끝)이 드로어 위 남은 영역의 어느 높이에
+ * 오는지 — 위에서부터의 비율. 0.5 면 정가운데. 핀 아래로 이름표가 붙어 있어 가운데보다
+ * 조금 아래(드로어 쪽)가 보기 편하다(QA).
  */
-export const CLUSTER_ZOOM_STEP = 2;
+export const SELECTED_PIN_VISIBLE_AREA_RATIO = 0.75;
 
 /**
- * 장소를 선택해 지도를 재센터링할 때, 선택된 핀이 화면 세로 어느 지점에 와야 하는지
- * (뷰포트 하단 기준 비율 — 스냅 포인트와 같은 표기법). 장소를 막 선택한 시점엔 드로어가
- * DETAIL_PAGE_SNAP_POINT 만큼 화면 아래를 가리므로, 핀을 그냥 화면 정중앙(0.5)에 두면
- * 드로어 경계에 걸쳐 가려진다. 남는 위쪽(드로어에 가려지지 않는) 영역의 정중앙에 오도록
- * 계산하면 (1 + DETAIL_PAGE_SNAP_POINT) / 2 가 된다.
+ * 선택 장소로 지도를 옮기는 애니메이션 시간(ms). SDK 기본값으로는 멀리 갈 때 너무 빨라
+ * 어디로 가는지 따라가기 어렵다(QA).
  */
-export const SELECTED_PLACE_VERTICAL_RATIO = (1 + DETAIL_PAGE_SNAP_POINT) / 2;
+export const SELECTED_PLACE_MOVE_DURATION_MS = 1200;

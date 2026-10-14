@@ -20,10 +20,12 @@ import {
   FULL_SNAP_POINT,
 } from '@/features/map/constants';
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
+import { FirstSaveEmpty } from '@/features/onboarding/FirstSaveEmpty';
 import { PlaceCard } from '@/features/place';
-import { Icon16ArrowDown, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
+import { Icon20ArrowUp, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
 import type { Coordinates } from '@/shared/lib/geolocation';
+import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
 import { Drawer, DrawerContent, FloatingButton, Header } from '@/shared/ui';
 
@@ -34,9 +36,22 @@ const SCROLL_HIDE_HANDLE_THRESHOLD = 4;
  * 레이아웃에서 1px 안쪽으로 어긋나 정확히 같아지지 않는 경우가 있어 여유를 둔다.
  */
 const SCROLL_AT_BOTTOM_THRESHOLD = 8;
+/**
+ * full 상세의 스크롤 끝 여백 — "위로가기"(바닥 2.5rem + 48px)가 목록 맨 아래에 닿는 순간
+ * 뜨므로, 마지막 콘텐츠가 그 위로 1rem 떨어져 끝나도록 버튼 몫만큼 비운다(NOOK-320).
+ */
+const SCROLL_TO_TOP_CLEARANCE = 'calc(6.5rem + env(safe-area-inset-bottom))';
+
+/** 목록 끝에 다는 무한 스크롤 감시 지점 — 목록과 함께 마운트돼야 관찰이 다시 잡힌다. */
+function LoadMoreSentinel(paging: Parameters<typeof useInfiniteScrollSentinel>[0]) {
+  const ref = useInfiniteScrollSentinel(paging);
+  return <div ref={ref} aria-hidden className="h-px" />;
+}
 
 export function PlaceSheet({
   recentPlaces,
+  recentPlacesPaging,
+  firstSave = false,
   selectedPlace,
   shareToken,
   isPlaceDetailPending,
@@ -53,6 +68,10 @@ export function PlaceSheet({
   onSearchInputFocus,
 }: {
   recentPlaces: RecentPlace[];
+  /** 최근 저장한 공간 다음 페이지 정보 — 없으면 받은 목록만 그린다. */
+  recentPlacesPaging?: Parameters<typeof useInfiniteScrollSentinel>[0];
+  /** 한 번도 저장한 적 없는 사람 — 빈 목록 자리에 저장 방법 안내(`FirstSaveEmpty`)를 띄운다. */
+  firstSave?: boolean;
   selectedPlace: PlaceDetailModel | null;
   /**
    * 공유 아카이브 딥링크로 들어온 경우의 토큰 — 있으면 상세를 공유자 기준 읽기 전용으로
@@ -127,7 +146,12 @@ export function PlaceSheet({
     close: onExitSearch,
   });
   // 스크롤 영역과 검색 오버레이가 같은 높이를 공유해야 해서, 높이만 래퍼로 올린다.
-  const { height: contentHeight, ...scrollerStyle } = layoutClassNames.scroller.style ?? {};
+  const { height: contentHeight, ...layoutScrollerStyle } = layoutClassNames.scroller.style ?? {};
+  // full 에선 스냅 보정(0dvh)이 없어 레이아웃 패딩을 버튼 여백으로 통째로 갈아끼워도 된다.
+  const scrollerStyle =
+    isFull && hasSelection
+      ? { ...layoutScrollerStyle, paddingBottom: SCROLL_TO_TOP_CLEARANCE }
+      : layoutScrollerStyle;
 
   // instantOpen: 마운트 직후 잠깐 transform transition 을 꺼서 vaul 의 오프닝 모션(화면
   // 아래 100% → 스냅 위치로 transition)을 생략한다. vaul 이 스냅 배치를 inline style 로
@@ -324,25 +348,35 @@ export function PlaceSheet({
                   </button>
                 </div>
                 {recentPlaces.length === 0 ? (
-                  <EmptySavedPlaces />
+                  firstSave ? (
+                    // 시안은 mid 스냅(617) 기준 432 높이 — 안내 링크가 그 바닥에 붙는다.
+                    <FirstSaveEmpty className="h-[432px] shrink-0 pt-10" />
+                  ) : (
+                    <EmptySavedPlaces />
+                  )
                 ) : (
-                  <div className="grid grid-cols-2 justify-items-center gap-2">
-                    {recentPlaces.map((place) => (
-                      <PlaceCard
-                        key={place.id}
-                        place={{
-                          id: String(place.id),
-                          name: place.name,
-                          category: place.category ?? '',
-                          thumbnail: place.thumbnail,
-                          thumbnailState: place.thumbnailState,
-                        }}
-                        // 구독한 공유 아카이브의 장소는 내 API 로는 게시물이 비어 오므로
-                        // 토큰을 함께 넘겨 공유 공개 API 로 조회하게 한다.
-                        onClick={() => onSelectPlace(place.id, place.shareToken)}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <div className="grid grid-cols-2 justify-items-center gap-2">
+                      {recentPlaces.map((place) => (
+                        <PlaceCard
+                          key={place.id}
+                          place={{
+                            id: String(place.id),
+                            name: place.name,
+                            category: place.category ?? '',
+                            region: place.city,
+                            thumbnail: place.thumbnail,
+                            thumbnailState: place.thumbnailState,
+                          }}
+                          mediaBadge
+                          // 구독한 공유 아카이브의 장소는 내 API 로는 게시물이 비어 오므로
+                          // 토큰을 함께 넘겨 공유 공개 API 로 조회하게 한다.
+                          onClick={() => onSelectPlace(place.id, place.shareToken)}
+                        />
+                      ))}
+                    </div>
+                    {recentPlacesPaging ? <LoadMoreSentinel {...recentPlacesPaging} /> : null}
+                  </>
                 )}
               </>
             )}
@@ -377,7 +411,7 @@ export function PlaceSheet({
           ) : null}
         </div>
 
-        {/* 목록 맨 아래에 닿았을 때만 뜨는 "위로가기"(Figma `Button/48_up`). */}
+        {/* 목록 맨 아래에 닿았을 때만 뜨는 "위로가기"(Figma `Button/48_up` 330:14349). */}
         {showScrollToTop ? (
           <FloatingButton
             floating={false}
@@ -385,9 +419,10 @@ export function PlaceSheet({
             tone="light"
             aria-label="맨 위로"
             onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="-translate-x-1/2 absolute bottom-[calc(2.5rem+env(safe-area-inset-bottom))] left-1/2 shadow-lg"
+            className="-translate-x-1/2 absolute bottom-[calc(2.5rem+env(safe-area-inset-bottom))] left-1/2 border border-gray-20 shadow-none"
           >
-            <Icon16ArrowDown className="rotate-180" />
+            {/* 생성 아이콘은 stroke 가 검정으로 박혀 있어 시안색(gray-80)은 여기서 덮는다. */}
+            <Icon20ArrowUp className="[&_path]:stroke-gray-80" />
           </FloatingButton>
         ) : null}
       </DrawerContent>

@@ -28,7 +28,15 @@ describe('PlaceCard', () => {
 
     // 실패한 건 장소 사진뿐이라 텍스트는 정상 카드와 같아야 한다.
     expect(screen.getByText('카페 온도')).toBeInTheDocument();
-    expect(screen.getByText('서울 • 카페')).toBeInTheDocument();
+    expect(screen.getByText('서울 · 카페')).toBeInTheDocument();
     expect(screen.queryByText('불러오지 못했어요.')).not.toBeInTheDocument();
+  });
+
+  it('mediaBadge 를 켜면 썸네일에 사진 아이콘을 얹고, 처리 중 카드엔 얹지 않는다', () => {
+    const { container, rerender } = render(<PlaceCard place={BASE} mediaBadge />);
+    expect(container.querySelector('[data-slot="media-badge"]')).toBeInTheDocument();
+
+    rerender(<PlaceCard place={{ ...BASE, thumbnailState: 'processing' }} mediaBadge />);
+    expect(container.querySelector('[data-slot="media-badge"]')).not.toBeInTheDocument();
   });
 });

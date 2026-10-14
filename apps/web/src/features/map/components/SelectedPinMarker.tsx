@@ -11,7 +11,7 @@ import { type ArchiveColor, COLOR_TEXT_CLASS } from '@/shared/ui';
  * 쓰는 마커 도형은 여기 두는 편이 싸다.
  */
 
-/** Figma 139:16891 "Union" — 42.844×48 물방울. */
+/** Figma 139:16891 "Union" — 42.844×48 물방울(그리는 크기는 아래 컴포넌트가 정한다). */
 const PIN_SHAPE_PATH =
   'M21.422 0C27.1034 1.35259e-07 32.552 2.25721 36.5694 6.27457C40.5867 10.2919 42.8439 15.7406 42.8439 21.422C42.8439 28.7387 38.8551 34.7277 34.6517 39.024C32.5512 41.1469 30.2588 43.0714 27.8053 44.7742L26.7914 45.4645L26.3158 45.7811L25.4177 46.3529L24.6185 46.841L23.6283 47.417C22.956 47.7996 22.1955 48 21.422 48C20.6484 48 19.8879 47.7996 19.2156 47.417L18.2254 46.841L16.987 46.0782L16.5309 45.7811L15.5546 45.1312C12.9079 43.3397 10.4416 41.2945 8.19223 39.024C3.98882 34.7253 0 28.7387 0 21.422C3.02305e-05 15.7406 2.2572 10.2919 6.27457 6.27457C10.292 2.25721 15.7405 0 21.422 0Z';
 
@@ -62,24 +62,26 @@ export function SelectedPinMarker({
     categoryGroup && Object.hasOwn(CATEGORY_GLYPHS, categoryGroup)
       ? CATEGORY_GLYPHS[categoryGroup]
       : CATEGORY_GLYPHS.ETC;
+  // Figma 326:14066 — 139:16888 의 물방울·글리프를 그대로 7/6 배(48→56px, 글리프 24→28px)
+  // 키운 것이라 path 는 두고 viewBox 로만 늘린다. 그림자는 시안 SVG 필터(dy 2, blur 10, 20%).
   return (
-    <span className="relative block h-12 w-[42.844px]">
+    <span className="relative block h-14 w-[49.985px] drop-shadow-[0_2px_10px_rgba(0,0,0,0.2)]">
       <svg
         viewBox="0 0 42.844 48"
-        width="42.844"
-        height="48"
+        width="49.985"
+        height="56"
         className={`block ${COLOR_TEXT_CLASS[color]}`}
         role="presentation"
         aria-hidden="true"
       >
         <path d={PIN_SHAPE_PATH} fill="currentColor" />
       </svg>
-      {/* 물방울 머리(원) 정중앙 — 시안의 24px 프레임 오프셋 (9.42, 9.42) 그대로. */}
+      {/* 물방울 머리(원) 정중앙 — 시안의 28px 프레임 오프셋 (10.99, 11) 그대로. */}
       <svg
         viewBox="0 0 24 24"
-        width="24"
-        height="24"
-        className="absolute top-[9.42px] left-[9.42px] block text-gray-0"
+        width="28"
+        height="28"
+        className="absolute top-[11px] left-[10.99px] block text-gray-0"
         role="presentation"
         aria-hidden="true"
       >

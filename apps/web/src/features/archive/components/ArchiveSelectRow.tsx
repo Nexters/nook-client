@@ -14,7 +14,8 @@ import type { Archive } from '../types';
  * 시안의 `add` variant 는 아카이브 데이터가 없는 다른 행이라 `ArchiveCreateRow` 로 분리했다.
  */
 export interface ArchiveSelectRowProps {
-  archive: Archive;
+  /** 그리는 건 이름·색뿐이라 게시물의 아카이브(`PostArchive`)도 그대로 받는다. */
+  archive: Pick<Archive, 'name' | 'color'>;
   selected: boolean;
   onSelectedChange: (selected: boolean) => void;
   className?: string;
@@ -49,7 +50,7 @@ function ArchiveSelectRow({
         />
         <span className="truncate text-b1 font-medium text-gray-100">{archive.name}</span>
       </span>
-      <CheckIndicator />
+      <CheckIndicator checked={selected} />
     </label>
   );
 }
