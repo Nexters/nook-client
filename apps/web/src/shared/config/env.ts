@@ -39,8 +39,6 @@ export const env = {
    * 배포 환경 변수로 고정하고, 미설정 시(로컬 등) 현재 오리진으로 대체한다.
    */
   webOrigin: import.meta.env.VITE_WEB_ORIGIN || window.location.origin,
-  /** 배포된 커밋의 짧은 SHA. Vercel 밖(로컬)에서 빌드하면 `dev`. */
-  webCommit: __NOOK_WEB_COMMIT__,
-  /** 웹 빌드 날짜(KST, `2026.08.28`). */
-  webBuildDate: __NOOK_WEB_BUILD_DATE__,
+  /** 웹 빌드 ID — KST 빌드 날짜와 커밋 SHA(`20261018-e7d4caa`). Vercel 밖(로컬)에서는 SHA 자리가 `dev`. */
+  webBuild: __NOOK_WEB_BUILD__,
 } as const;

@@ -13,7 +13,9 @@ vi.mock('@/native-bridge', () => ({
   },
 }));
 
-const WEB_BUILD = /\d{4}\.\d{2}\.\d{2} · (dev|[0-9a-f]{7})/;
+const WEB_BUILD = '\\d{8}-(dev|[0-9a-f]{7})';
+const APP_BUILD_ID = new RegExp(`^v1\\.1\\.1-${WEB_BUILD}$`);
+const WEB_BUILD_ID = new RegExp(`^web-${WEB_BUILD}$`);
 
 function renderRow() {
   render(
@@ -43,36 +45,38 @@ describe('VersionInfoRow', () => {
     vi.unstubAllGlobals();
   });
 
-  it('라벨 아래에 웹 빌드 날짜·커밋을, 오른쪽에 앱 버전을 보여준다', () => {
+  it('라벨 아래에 앱 버전·빌드 날짜·커밋을 이은 빌드 ID 를, 오른쪽에 앱 버전을 보여준다', () => {
     mocks.appVersion = '1.1.1';
     renderRow();
 
-    expect(screen.getByText(new RegExp(`^${WEB_BUILD.source}$`))).toBeInTheDocument();
+    expect(screen.getByText(APP_BUILD_ID)).toBeInTheDocument();
     expect(screen.getByText('v1.1.1')).toBeInTheDocument();
   });
 
-  it('길게 누르면 앱 버전까지 포함한 한 줄을 복사한다', async () => {
+  it('셸 밖에서는 빌드 ID 가 web- 으로 시작한다', () => {
+    renderRow();
+
+    expect(screen.getByText(WEB_BUILD_ID)).toBeInTheDocument();
+  });
+
+  it('길게 누르면 보이는 빌드 ID 를 그대로 복사한다', async () => {
     mocks.appVersion = '1.1.1';
     const writeText = stubClipboard();
     renderRow();
 
     longPress(screen.getByText('버전 정보'), 600);
 
-    expect(writeText).toHaveBeenCalledWith(
-      expect.stringMatching(new RegExp(`^1\\.1\\.1 · ${WEB_BUILD.source}$`)),
-    );
+    expect(writeText).toHaveBeenCalledWith(expect.stringMatching(APP_BUILD_ID));
     expect(await screen.findByText('클립보드에 복사되었습니다.')).toBeInTheDocument();
   });
 
-  it('셸 밖에서는 앱 버전 없이 웹 빌드 정보만 복사한다', () => {
+  it('셸 밖에서는 web- 빌드 ID 를 복사한다', () => {
     const writeText = stubClipboard();
     renderRow();
 
     longPress(screen.getByText('버전 정보'), 600);
 
-    expect(writeText).toHaveBeenCalledWith(
-      expect.stringMatching(new RegExp(`^${WEB_BUILD.source}$`)),
-    );
+    expect(writeText).toHaveBeenCalledWith(expect.stringMatching(WEB_BUILD_ID));
   });
 
   it('짧게 누르면 복사하지 않는다', () => {

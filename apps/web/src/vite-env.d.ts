@@ -1,7 +1,6 @@
 /// <reference types="vite/client" />
 
-declare const __NOOK_WEB_COMMIT__: string;
-declare const __NOOK_WEB_BUILD_DATE__: string;
+declare const __NOOK_WEB_BUILD__: string;
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL: string;
