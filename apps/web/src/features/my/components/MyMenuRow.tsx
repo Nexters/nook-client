@@ -17,6 +17,8 @@ export interface MyMenuRowProps {
   /** 좌측 16px 아이콘 슬롯 */
   icon?: React.ReactNode;
   label: string;
+  /** 라벨 아래 보조 줄 (예: 웹 빌드 식별자). 영문/숫자 표기라 모노로 그린다. */
+  description?: string;
   /** 우측 값 (예: "kakao", "v1.0"). 영문/버전 표기라 모노로 그린다. */
   value?: string;
   /** 값 앞에 붙는 알약 배지 (예: "최신버전") */
@@ -25,7 +27,7 @@ export interface MyMenuRowProps {
   className?: string;
 }
 
-function MyMenuRow({ icon, label, value, badge, onClick, className }: MyMenuRowProps) {
+function MyMenuRow({ icon, label, description, value, badge, onClick, className }: MyMenuRowProps) {
   const Comp = onClick ? 'button' : 'div';
 
   return (
@@ -40,7 +42,12 @@ function MyMenuRow({ icon, label, value, badge, onClick, className }: MyMenuRowP
     >
       <span className="flex min-w-0 items-center gap-2">
         {icon}
-        <span className="truncate text-b2 font-medium text-gray-100">{label}</span>
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-b2 font-medium text-gray-100">{label}</span>
+          {description ? (
+            <span className="truncate font-mono text-e2 text-gray-40">{description}</span>
+          ) : null}
+        </span>
       </span>
 
       <span className="flex shrink-0 items-center gap-2">

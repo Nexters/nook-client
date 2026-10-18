@@ -7,10 +7,10 @@ import { SlideScreen, useSlideScreen } from '@/app/slide-screen';
 import { useArchives } from '@/features/archive/api/queries';
 import { useAuthSession, useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { useLogout, useMyProfile, useSaveProfile, useWithdraw } from '@/features/my/api/queries';
-import { BuildInfoLine } from '@/features/my/components/BuildInfoLine';
 import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
 import { ProfileImageSheet } from '@/features/my/components/ProfileImageSheet';
+import { VersionInfoRow } from '@/features/my/components/VersionInfoRow';
 import { deleteRegisteredPushToken } from '@/features/notifications/api/pushTokens';
 import { nativeBridge } from '@/native-bridge';
 import { env } from '@/shared/config/env';
@@ -20,7 +20,6 @@ import {
   Icon16Info,
   Icon16Paper,
   Icon16User,
-  Icon16Version,
   Icon24Back,
 } from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
@@ -63,8 +62,6 @@ export function MyPage() {
   const savedPlaceCount = archives?.reduce((sum, archive) => sum + archive.placeCount, 0) ?? 0;
   // 서버는 KAKAO/APPLE 처럼 대문자로 주지만 시안 표기는 소문자다.
   const providerLabel = profile ? profile.provider.toLowerCase() : undefined;
-  // 셸이 주입한 실제 앱 버전. 브라우저로 열면 알 수 없어 행에서 값만 빠진다.
-  const appVersion = nativeBridge.appVersion ? `v${nativeBridge.appVersion}` : undefined;
   // 공유 시트 즐겨찾기 안내는 iOS 시트 기준으로만 그려져 있다. dev 에서는 시안 확인용으로 늘 연다.
   // 저장은 계정이 있어야 하는 동작이라 게스트에게는 안내도 두지 않는다.
   const showSaveGuide = isAuthenticated && (nativeBridge.platform === 'ios' || env.enableDevRoutes);
@@ -304,14 +301,7 @@ export function MyPage() {
               ) : null}
 
               <MyMenuSection title="앱 정보">
-                {/* TODO: "최신버전" 배지는 아직 하드코딩이다 — 스토어 최신 버전을 알려주는
-                  API 가 생기기 전까지는 실제 최신 여부를 판단할 수 없다. */}
-                <MyMenuRow
-                  icon={<Icon16Version />}
-                  label="버전 정보"
-                  badge="최신버전"
-                  value={appVersion}
-                />
+                <VersionInfoRow />
                 <MyMenuRow
                   icon={<Icon16Info />}
                   label="개인정보 처리방침"
@@ -351,8 +341,6 @@ export function MyPage() {
                 탈퇴하기
               </button>
             </div>
-
-            <BuildInfoLine />
           </main>
         </MainTabPageLayout>
       </div>
