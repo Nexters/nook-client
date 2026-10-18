@@ -14,6 +14,7 @@ import type {
   ApiResponseGroupPostPageResponse,
   ApiResponseGroupResponse,
   ApiResponseGroupShareLinkResponse,
+  ApiResponseLinkResponse,
   ApiResponseListGroupResponse,
   ApiResponseListMapPlaceResponse,
   ApiResponseMemberActionResponse,
@@ -26,9 +27,12 @@ import type {
   ApiResponseProfileImageUploadResponse,
   ApiResponsePushPreferenceResponse,
   ApiResponseRecentPlaceSliceResponse,
+  ApiResponseRecoveryResponse,
+  ApiResponseResponse,
   ApiResponseSavedPlaceSearchPageResponse,
   ApiResponseSavedPostDetailResponse,
   ApiResponseSavedPostPageResponse,
+  ApiResponseSavePostShareResult,
   ApiResponseSaveSharedPostResponse,
   ApiResponseSocialAuthResponse,
   ApiResponseTokenResponse,
@@ -53,6 +57,7 @@ import type {
   RegisterPushTokenRequest,
   ReplaceSavedPostGroupsRequest,
   ReplaceSavedPostsGroupsRequest,
+  SaveRequest,
   SaveSharedPostRequest,
   SearchPlacesParams,
   SearchSavedPlacesParams,
@@ -80,18 +85,18 @@ export const getPolicy = async (
   });
 };
 
-export const getGet1Url = (token: string) => {
+export const getGet3Url = (token: string) => {
   return `/api/public/v1/groups/${token}`;
 };
 
 /**
  * @summary 공유 그룹 정보 조회
  */
-export const get1 = async (
+export const get3 = async (
   token: string,
   options?: Parameters<typeof orvalMutator>[1],
 ): Promise<ApiResponseGroupResponse> => {
-  return orvalMutator<ApiResponseGroupResponse>(getGet1Url(token), {
+  return orvalMutator<ApiResponseGroupResponse>(getGet3Url(token), {
     ...options,
     method: 'GET',
   });
@@ -201,6 +206,23 @@ export const postDetail = async (
   options?: Parameters<typeof orvalMutator>[1],
 ): Promise<ApiResponseSavedPostDetailResponse> => {
   return orvalMutator<ApiResponseSavedPostDetailResponse>(getPostDetailUrl(token, postId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGet2Url = (token: string) => {
+  return `/api/public/v1/post-shares/${token}`;
+};
+
+/**
+ * @summary 게시물 공유 스냅샷 공개 조회; 로그인 시 내 저장 여부도 반환
+ */
+export const get2 = async (
+  token: string,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseResponse> => {
+  return orvalMutator<ApiResponseResponse>(getGet2Url(token), {
     ...options,
     method: 'GET',
   });
@@ -442,17 +464,17 @@ export const listOwned = async (
   });
 };
 
-export const getGetUrl = () => {
+export const getGet1Url = () => {
   return `/api/v1/me/push-preferences`;
 };
 
 /**
  * @summary 내 푸시 알림 설정 조회
  */
-export const get = async (
+export const get1 = async (
   options?: Parameters<typeof orvalMutator>[1],
 ): Promise<ApiResponsePushPreferenceResponse> => {
-  return orvalMutator<ApiResponsePushPreferenceResponse>(getGetUrl(), {
+  return orvalMutator<ApiResponsePushPreferenceResponse>(getGet1Url(), {
     ...options,
     method: 'GET',
   });
@@ -820,6 +842,26 @@ export const searchPlaces = async (
   });
 };
 
+export const getSave1Url = (token: string) => {
+  return `/api/v1/post-shares/${token}/save`;
+};
+
+/**
+ * @summary 게시물 공유 스냅샷을 내 아카이브에 저장; 기존 저장 건의 장소와 메모는 유지
+ */
+export const save1 = async (
+  token: string,
+  saveRequest: SaveRequest,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseSavePostShareResult> => {
+  return orvalMutator<ApiResponseSavePostShareResult>(getSave1Url(token), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(saveRequest),
+  });
+};
+
 export const getListSavedPostsUrl = (params?: ListSavedPostsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -992,6 +1034,57 @@ export const disconnectPlace = async (
   return orvalMutator<ApiResponseUnit>(getDisconnectPlaceUrl(postId, placeId), {
     ...options,
     method: 'DELETE',
+  });
+};
+
+export const getGetUrl = (postId: number) => {
+  return `/api/v1/posts/${postId}/recovery`;
+};
+
+/**
+ * @summary 내 저장 게시물의 복구 처리 상태 조회
+ */
+export const get = async (
+  postId: number,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseRecoveryResponse> => {
+  return orvalMutator<ApiResponseRecoveryResponse>(getGetUrl(postId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getRequestUrl = (postId: number) => {
+  return `/api/v1/posts/${postId}/recovery`;
+};
+
+/**
+ * @summary 기존 URL과 아카이브로 실패 게시물 복구 요청; 진행 중이거나 완료된 작업은 중복 실행하지 않습니다
+ */
+export const request = async (
+  postId: number,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseRecoveryResponse> => {
+  return orvalMutator<ApiResponseRecoveryResponse>(getRequestUrl(postId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getIssue1Url = (postId: number) => {
+  return `/api/v1/posts/${postId}/share-links`;
+};
+
+/**
+ * @summary 내 저장 게시물의 현재 공개 콘텐츠와 장소 목록을 고정한 공유 토큰 발급
+ */
+export const issue1 = async (
+  postId: number,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseLinkResponse> => {
+  return orvalMutator<ApiResponseLinkResponse>(getIssue1Url(postId), {
+    ...options,
+    method: 'POST',
   });
 };
 

@@ -278,6 +278,43 @@
         ],
         "type": "object"
       },
+      "ApiResponseLinkResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LinkResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
       "ApiResponseListGroupResponse": {
         "description": "공통 API 응답",
         "properties": {
@@ -722,6 +759,80 @@
         ],
         "type": "object"
       },
+      "ApiResponseRecoveryResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RecoveryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
+      "ApiResponseResponse": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Response"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
       "ApiResponseSavedPlaceSearchPageResponse": {
         "description": "공통 API 응답",
         "properties": {
@@ -821,6 +932,43 @@
             "oneOf": [
               {
                 "$ref": "#/components/schemas/SavedPostPageResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "resultType"
+        ],
+        "type": "object"
+      },
+      "ApiResponseSavePostShareResult": {
+        "description": "공통 API 응답",
+        "properties": {
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resultType": {
+            "description": "응답 결과 유형",
+            "enum": [
+              "SUCCESS",
+              "FAIL"
+            ],
+            "type": "string"
+          },
+          "success": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SavePostShareResult"
               },
               {
                 "type": "null"
@@ -1528,6 +1676,22 @@
           }
         },
         "required": [
+          "token"
+        ],
+        "type": "object"
+      },
+      "LinkResponse": {
+        "properties": {
+          "sharedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sharedAt",
           "token"
         ],
         "type": "object"
@@ -2333,6 +2497,82 @@
         ],
         "type": "object"
       },
+      "PostSharePlace": {
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "category": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "externalPlaceId": {
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phoneNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provider": {
+            "type": "string"
+          },
+          "sequence": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "thumbnailParsingStatus": {
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
+          "thumbnailUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "externalPlaceId",
+          "id",
+          "latitude",
+          "longitude",
+          "name",
+          "provider",
+          "sequence",
+          "tags",
+          "thumbnailParsingStatus"
+        ],
+        "type": "object"
+      },
       "ProfileImageUploadResponse": {
         "properties": {
           "contentType": {
@@ -2523,6 +2763,47 @@
         ],
         "type": "object"
       },
+      "RecoveryResponse": {
+        "properties": {
+          "postId": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "processingPercent": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "processingStage": {
+            "enum": [
+              "CONTENT",
+              "PLACE"
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "processingStatus": {
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "COMPLETED",
+              "FAILED"
+            ],
+            "type": "string"
+          },
+          "requested": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "postId",
+          "processingPercent",
+          "processingStatus",
+          "requested"
+        ],
+        "type": "object"
+      },
       "RefreshTokenRequest": {
         "properties": {
           "refreshToken": {
@@ -2611,6 +2892,29 @@
         "required": [
           "groupIds",
           "postIds"
+        ],
+        "type": "object"
+      },
+      "Response": {
+        "properties": {
+          "post": {
+            "$ref": "#/components/schemas/SnapshotResponse"
+          },
+          "sharedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "viewerSavedPostId": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "post",
+          "sharedAt"
         ],
         "type": "object"
       },
@@ -3165,6 +3469,38 @@
         ],
         "type": "object"
       },
+      "SavePostShareResult": {
+        "properties": {
+          "alreadySaved": {
+            "type": "boolean"
+          },
+          "postId": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "alreadySaved",
+          "postId"
+        ],
+        "type": "object"
+      },
+      "SaveRequest": {
+        "properties": {
+          "groupIds": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "groupIds"
+        ],
+        "type": "object"
+      },
       "SaveSharedPostRequest": {
         "properties": {
           "groupIds": {
@@ -3190,6 +3526,63 @@
         },
         "required": [
           "postId"
+        ],
+        "type": "object"
+      },
+      "SnapshotResponse": {
+        "properties": {
+          "authorIdentifier": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "body": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "canonicalUrl": {
+            "type": "string"
+          },
+          "hashtags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/SavedPostMediaResponse"
+            },
+            "type": "array"
+          },
+          "places": {
+            "items": {
+              "$ref": "#/components/schemas/PostSharePlace"
+            },
+            "type": "array"
+          },
+          "publishedAt": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "canonicalUrl",
+          "hashtags",
+          "media",
+          "places"
         ],
         "type": "object"
       },
@@ -3441,7 +3834,7 @@
     },
     "/api/public/v1/groups/{token}": {
       "get": {
-        "operationId": "get_1",
+        "operationId": "get_3",
         "parameters": [
           {
             "description": "공유 링크 토큰",
@@ -3693,6 +4086,37 @@
         "summary": "공유 그룹 게시물 상세 조회",
         "tags": [
           "Public Group"
+        ]
+      }
+    },
+    "/api/public/v1/post-shares/{token}": {
+      "get": {
+        "operationId": "get_2",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "게시물 공유 스냅샷 공개 조회; 로그인 시 내 저장 여부도 반환",
+        "tags": [
+          "Post Share"
         ]
       }
     },
@@ -4098,7 +4522,7 @@
     },
     "/api/v1/me/push-preferences": {
       "get": {
-        "operationId": "get",
+        "operationId": "get_1",
         "responses": {
           "200": {
             "content": {
@@ -4798,6 +5222,47 @@
         ]
       }
     },
+    "/api/v1/post-shares/{token}/save": {
+      "post": {
+        "operationId": "save_1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseSavePostShareResult"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "게시물 공유 스냅샷을 내 아카이브에 저장; 기존 저장 건의 장소와 메모는 유지",
+        "tags": [
+          "Post Share"
+        ]
+      }
+    },
     "/api/v1/posts": {
       "get": {
         "operationId": "listSavedPosts",
@@ -5149,6 +5614,101 @@
         "summary": "저장 게시물의 장소 연결 삭제",
         "tags": [
           "Post"
+        ]
+      }
+    },
+    "/api/v1/posts/{postId}/recovery": {
+      "get": {
+        "operationId": "get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRecoveryResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "내 저장 게시물의 복구 처리 상태 조회",
+        "tags": [
+          "Post"
+        ]
+      },
+      "post": {
+        "operationId": "request",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRecoveryResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "기존 URL과 아카이브로 실패 게시물 복구 요청; 진행 중이거나 완료된 작업은 중복 실행하지 않습니다",
+        "tags": [
+          "Post"
+        ]
+      }
+    },
+    "/api/v1/posts/{postId}/share-links": {
+      "post": {
+        "operationId": "issue_1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseLinkResponse"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "내 저장 게시물의 현재 공개 콘텐츠와 장소 목록을 고정한 공유 토큰 발급",
+        "tags": [
+          "Post Share"
         ]
       }
     },
