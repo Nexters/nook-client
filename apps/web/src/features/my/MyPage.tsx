@@ -7,6 +7,7 @@ import { SlideScreen, useSlideScreen } from '@/app/slide-screen';
 import { useArchives } from '@/features/archive/api/queries';
 import { useAuthSession, useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { useLogout, useMyProfile, useSaveProfile, useWithdraw } from '@/features/my/api/queries';
+import { BuildInfoLine } from '@/features/my/components/BuildInfoLine';
 import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
 import { ProfileImageSheet } from '@/features/my/components/ProfileImageSheet';
@@ -350,6 +351,8 @@ export function MyPage() {
                 탈퇴하기
               </button>
             </div>
+
+            <BuildInfoLine />
           </main>
         </MainTabPageLayout>
       </div>

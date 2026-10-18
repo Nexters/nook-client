@@ -17,7 +17,16 @@ export default defineConfig(({ command, mode }) => {
         }
       : undefined;
 
+  // 빌드 서버(Vercel)는 UTC 라, 스크린샷의 날짜가 한국 날짜와 어긋나지 않게 KST 로 찍는다.
+  const buildDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' })
+    .format(new Date())
+    .replaceAll('-', '.');
+
   return {
+    define: {
+      __NOOK_WEB_COMMIT__: JSON.stringify(env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || 'dev'),
+      __NOOK_WEB_BUILD_DATE__: JSON.stringify(buildDate),
+    },
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
