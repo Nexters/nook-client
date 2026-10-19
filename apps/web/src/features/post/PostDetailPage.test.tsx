@@ -397,7 +397,7 @@ describe('게시물 상세', () => {
     await waitFor(() => expect(mocks.replacePostArchives).toHaveBeenCalledWith(1, [3]));
     // 메모는 그대로라 보내지 않는다.
     expect(mocks.updatePostMemo).not.toHaveBeenCalled();
-    expect(await screen.findByText('"LP바"에 저장됐어요')).toBeInTheDocument();
+    expect(await screen.findByText('"LP바"에 저장됐어요.')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '지금 가기 좋은 초록뷰 카페' })).toBeInTheDocument();
   });
 
@@ -413,7 +413,7 @@ describe('게시물 상세', () => {
 
     await waitFor(() => expect(mocks.updatePostMemo).toHaveBeenCalledWith(1, '다음엔 지우랑'));
     expect(mocks.replacePostArchives).toHaveBeenCalledWith(1, [1, 2]);
-    expect(await screen.findByText('"2개의 아카이브"에 저장됐어요')).toBeInTheDocument();
+    expect(await screen.findByText('"2개의 아카이브"에 저장됐어요.')).toBeInTheDocument();
   });
 
   it('체크를 전부 해제하면 CTA 가 [게시물 삭제]로 바뀌고, 확인하면 삭제 뒤 홈 지도로 간다', async () => {

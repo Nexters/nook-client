@@ -24,6 +24,7 @@ import {
   useUpdatePostArchives,
   useUpdatePostMemo,
 } from './api/queries';
+import { useSavedToArchivesToast } from './components/ArchiveJumpPopover';
 import { ExpandableCaption } from './components/ExpandableCaption';
 import { MemoSheet } from './components/MemoSheet';
 import { OriginalPostLink } from './components/OriginalPostLink';
@@ -135,6 +136,7 @@ export function PostDetailPage() {
   const updateArchivesMutation = useUpdatePostArchives(postId);
   const deletePostMutation = useDeletePost(postId);
   const { data: myArchives } = useArchives();
+  const showSavedToast = useSavedToArchivesToast();
 
   function handleArchivesSave(
     currentMemo: string | undefined,
@@ -149,17 +151,13 @@ export function PostDetailPage() {
       {
         onSuccess: () => {
           setArchivesSheetOpen(false);
-          const name =
-            groupIds.length === 1
-              ? myArchives?.find((archive) => archive.id === groupIds[0])?.name
-              : undefined;
-          // 보러가기는 붙이지 않는다 — 지금 보고 있는 이 게시물 상세로 가는 버튼이라 눌러도 제자리다(QA).
-          showToast({
-            variant: 'simple',
-            title: name
-              ? `"${name}"에 저장됐어요`
-              : `"${groupIds.length}개의 아카이브"에 저장됐어요`,
-          });
+          // 보러가기는 옮긴 아카이브 상세로 간다 — 여럿이면 목록 팝오버(장소 > 게시물 상세와 같다).
+          showSavedToast(
+            groupIds.flatMap((id) => {
+              const archive = myArchives?.find((candidate) => candidate.id === id);
+              return archive ? [{ id, name: archive.name, color: archive.color }] : [];
+            }),
+          );
         },
         onError: () => showToast({ variant: 'simple', title: '아카이브를 바꾸지 못했어요' }),
       },
