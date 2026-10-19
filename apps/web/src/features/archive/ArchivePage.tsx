@@ -3,9 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
+import { FirstSaveModal } from '@/features/onboarding/FirstSaveModal';
 import { FloatingButton } from '@/shared/ui';
 import { ArchiveFormPage } from './ArchiveFormPage';
-import { useArchives } from './api/queries';
+import { useArchives, useHasSaveHistory } from './api/queries';
 import { ArchiveCard } from './components/ArchiveCard';
 import { ArchiveEmpty } from './components/ArchiveEmpty';
 import { ArchiveListSkeleton } from './components/ArchiveListSkeleton';
@@ -22,6 +23,9 @@ export function ArchivePage() {
   // 생성 화면은 이 목록 위에 얹는 오버레이다(`ArchiveFormPage` 주석 참고) — 그래서 열림
   // 상태의 주인이 URL 이 아니라 이 컴포넌트다.
   const [creating, setCreating] = useState(false);
+  // 한 번도 저장하지 않았으면 들어올 때마다 저장 방법 안내 모달을 띄운다 — 닫으면 이번 진입 동안은 그만.
+  const hasSaveHistory = useHasSaveHistory();
+  const [firstSaveDismissed, setFirstSaveDismissed] = useState(false);
 
   // 목록 밖에서 오는 진입은 `?new` 를 달고 온다(공유 게시물 저장 시트의 "새 아카이브
   // 만들기"). 열자마자 파라미터는 지운다 — 남겨두면 새로고침·뒤로가기로 다시 열린다.
@@ -74,6 +78,10 @@ export function ArchivePage() {
         />
         {creating ? <ArchiveFormPage mode="create" onClose={() => setCreating(false)} /> : null}
         {wall}
+        <FirstSaveModal
+          open={isAuthenticated && hasSaveHistory === false && !firstSaveDismissed && !creating}
+          onClose={() => setFirstSaveDismissed(true)}
+        />
       </main>
     </MainTabPageLayout>
   );

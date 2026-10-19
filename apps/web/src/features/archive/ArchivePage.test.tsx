@@ -187,6 +187,27 @@ describe('아카이브 화면', () => {
     expect(screen.getByRole('heading', { name: '카페' })).toBeInTheDocument();
   });
 
+  it('저장한 게시물이 없으면 저장 방법 안내 모달을 띄우고, 닫으면 사라진다', async () => {
+    mocks.fetchArchives.mockResolvedValue([
+      { id: 1, name: '내 아카이브', color: 'blue', placeCount: 0, accessType: 'OWNED' },
+    ]);
+    renderArchiveRoutes('/archive');
+
+    const dialog = await screen.findByRole('alertdialog', {
+      name: /첫 게시물을 저장해보세요/,
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: '닫기' }));
+
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('저장한 게시물이 있으면 안내 모달을 띄우지 않는다', async () => {
+    renderArchiveRoutes('/archive');
+
+    await screen.findByRole('button', { name: /카페/ });
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
   it('목록에 없는 아카이브 상세는 못 찾는 화면 대신 목록으로 돌려보낸다', async () => {
     renderArchiveRoutes('/archive/999');
 
