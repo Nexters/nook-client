@@ -13,6 +13,8 @@ const BASE: GroupResponse = {
   postCount: 12,
   thumbnailUrls: [],
   accessType: 'OWNED',
+  subscriberCount: 0,
+  subscriberPreview: [],
 };
 
 const PLACE_BASE: GroupPlaceSummaryResponse = {

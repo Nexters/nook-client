@@ -16,4 +16,8 @@ export type GetRecentPlacesParams = {
    * @maximum 100
    */
   size?: number;
+  /**
+   * 선택한 내·공유 아카이브 ID. 미지정 시 전체, 빈 값이면 전체 해제
+   */
+  groupIds?: number[];
 };
