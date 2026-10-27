@@ -78,6 +78,7 @@ function renderSheet(
               onEnterSearch={() => {}}
               onExitSearch={() => {}}
               onSearchInputFocus={() => {}}
+              onOpenFilter={() => {}}
             />
           </MemoryRouter>
         </BottomMenuVisibilityProvider>
@@ -331,6 +332,7 @@ describe('PlaceSheet 검색 패널 — 상세가 열려도 살아남는다', () 
                 onEnterSearch={() => {}}
                 onExitSearch={() => {}}
                 onSearchInputFocus={() => {}}
+                onOpenFilter={() => {}}
               />
             </MemoryRouter>
           </BottomMenuVisibilityProvider>

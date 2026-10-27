@@ -5,6 +5,7 @@ import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { useHasSaveHistory } from '@/features/archive/api/queries';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
+import { ArchiveFilterSheet } from '@/features/map/components/ArchiveFilterSheet';
 import { getLastMapCamera, MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
@@ -17,7 +18,7 @@ import {
 } from '@/features/map/constants';
 import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
 import { toInitialBounds } from '@/features/map/initial-bounds';
-import type { MapBounds } from '@/features/map/types';
+import type { ArchiveFilter, MapBounds } from '@/features/map/types';
 import { useMapPins, usePlaceDetail, useRecentPlaces } from './api/queries';
 
 /**
@@ -100,6 +101,10 @@ export function MapPage() {
   // 않는다. 그래서 스와이프는 여기서도 "지도를 떠난다"가 맞다. 좌상단 뒤로가기는 버튼이
   // 직접, Android 하드웨어 백은 useSlideScreen 의 인터셉터가 받는다.
   const [isSearchMode, setIsSearchMode] = useState(false);
+  // 지도에 노출할 아카이브 선택(NOOK-311). 같은 진입 동안만 유지하고 지도를 나갔다 오면
+  // 전체로 초기화한다는 정책이라 URL 이 아니라 이 화면의 state 에 둔다(언마운트 = 초기화).
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // 공유 링크(`?placeId=`)로 들어온 게스트에게 왜 상세가 안 열리는지 알려준다.
   useEffect(() => {
@@ -117,10 +122,10 @@ export function MapPage() {
       ? toInitialBounds(lastCamera.center, { zoom: lastCamera.zoom })
       : toInitialBounds(fallbackCenter));
 
-  const pinsQuery = useMapPins(effectiveBounds);
+  const pinsQuery = useMapPins(effectiveBounds, archiveFilter);
   // 도착 경계가 없으면 위와 같은 키라 요청이 따로 나가지 않는다.
-  const destinationPinsQuery = useMapPins(destinationBounds ?? effectiveBounds);
-  const recentPlacesQuery = useRecentPlaces();
+  const destinationPinsQuery = useMapPins(destinationBounds ?? effectiveBounds, archiveFilter);
+  const recentPlacesQuery = useRecentPlaces(archiveFilter);
   const hasSaveHistory = useHasSaveHistory();
   const placeDetailQuery = usePlaceDetail(selectedPlaceId, shareToken);
 
@@ -304,6 +309,14 @@ export function MapPage() {
     // 넘어간다. peek 에서 입력에 포커스되면 mid 로 올라간다(handleSearchInputFocus).
   }
 
+  function handleOpenFilter() {
+    if (!isAuthenticated) {
+      openLoginWall('저장한 공간을 보려면 로그인이 필요해요');
+      return;
+    }
+    setIsFilterOpen(true);
+  }
+
   /** 검색 패널의 슬라이드 아웃이 끝난 뒤 호출된다(PlaceSheet 의 useSlideScreen 계약). */
   function handleExitSearch() {
     setIsSearchMode(false);
@@ -354,12 +367,23 @@ export function MapPage() {
           instantOpen={instantSheetOpen}
           userCoords={location.coords}
           isSearchMode={isSearchMode}
+          filterActive={archiveFilter !== null}
           onSnapChange={handleSnapChange}
           onSelectPlace={handlePlaceClick}
           onClose={handleCloseDetail}
           onEnterSearch={handleEnterSearch}
           onExitSearch={handleExitSearch}
           onSearchInputFocus={handleSearchInputFocus}
+          onOpenFilter={handleOpenFilter}
+        />
+        <ArchiveFilterSheet
+          open={isFilterOpen}
+          onOpenChange={setIsFilterOpen}
+          value={archiveFilter}
+          onApply={(next) => {
+            setArchiveFilter(next);
+            setIsFilterOpen(false);
+          }}
         />
         {loginWall}
       </div>

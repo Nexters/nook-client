@@ -10,6 +10,12 @@ export interface MapBounds {
 }
 
 /**
+ * 지도에 노출할 아카이브 선택(NOOK-311). null 은 "전체" — 서버에 `groupIds` 를 보내지 않아
+ * 아카이브 없이 저장한 장소까지 포함된다. 빈 배열은 전체 해제라 결과가 비어 있다.
+ */
+export type ArchiveFilter = number[] | null;
+
+/**
  * 지도 핀 하나 — `MapPlaceResponse` 기준. 이름·대표 아카이브 색상·대표 썸네일까지 내려오므로
  * 핀 단계에서 사진과 이름표를 다 그린다. 나머지 상세는 클릭 시 `usePlaceDetail`로 가져온다.
  */

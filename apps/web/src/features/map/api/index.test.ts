@@ -274,6 +274,20 @@ describe('fetchMapPins', () => {
 
     expect(pin?.categoryGroup).toBeUndefined();
   });
+
+  it('아카이브 선택을 groupIds 로 넘기고, 전체 해제면 요청하지 않는다', async () => {
+    endpoints.getMapPlaces.mockResolvedValue(ok([MAP_PLACE]));
+
+    await fetchMapPins(BOUNDS, [1, 2]);
+    expect(endpoints.getMapPlaces).toHaveBeenLastCalledWith(
+      expect.objectContaining({ groupIds: [1, 2] }),
+      { auth: 'required' },
+    );
+
+    endpoints.getMapPlaces.mockClear();
+    expect(await fetchMapPins(BOUNDS, [])).toEqual([]);
+    expect(endpoints.getMapPlaces).not.toHaveBeenCalled();
+  });
 });
 
 describe('fetchRecentPlaces', () => {
@@ -293,6 +307,20 @@ describe('fetchRecentPlaces', () => {
     );
 
     expect((await fetchRecentPlaces('c2')).nextCursor).toBeUndefined();
+  });
+
+  it('아카이브 선택을 groupIds 로 넘기고, 전체 해제면 요청 없이 빈 페이지다', async () => {
+    endpoints.getRecentPlaces.mockResolvedValue(ok({ items: [], hasNext: false }));
+
+    await fetchRecentPlaces(undefined, [3]);
+    expect(endpoints.getRecentPlaces).toHaveBeenLastCalledWith(
+      { cursor: undefined, groupIds: [3] },
+      { auth: 'required' },
+    );
+
+    endpoints.getRecentPlaces.mockClear();
+    expect(await fetchRecentPlaces(undefined, [])).toEqual({ places: [] });
+    expect(endpoints.getRecentPlaces).not.toHaveBeenCalled();
   });
 });
 

@@ -22,7 +22,12 @@ import {
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { FirstSaveEmpty } from '@/features/onboarding/FirstSaveEmpty';
 import { PlaceCard } from '@/features/place';
-import { Icon20ArrowUp, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
+import {
+  Icon20ArrowUp,
+  Icon20Filter,
+  Icon24Back,
+  Icon24MagnifyingGlass,
+} from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
@@ -60,12 +65,14 @@ export function PlaceSheet({
   instantOpen = false,
   userCoords,
   isSearchMode,
+  filterActive = false,
   onSnapChange,
   onSelectPlace,
   onClose,
   onEnterSearch,
   onExitSearch,
   onSearchInputFocus,
+  onOpenFilter,
 }: {
   recentPlaces: RecentPlace[];
   /** 최근 저장한 공간 다음 페이지 정보 — 없으면 받은 목록만 그린다. */
@@ -88,6 +95,8 @@ export function PlaceSheet({
   userCoords?: Coordinates | null;
   /** 저장한 공간 검색 모드 — 탐색 콘텐츠 위로 검색 패널이 슬라이드되어 덮는다. */
   isSearchMode: boolean;
+  /** 아카이브 필터가 걸려 있는지 — 필터 아이콘에 점 배지를 단다. */
+  filterActive?: boolean;
   onSnapChange: (snap: number | string | null) => void;
   /**
    * 장소 선택. 두 번째 인자는 그 장소가 구독한 공유 아카이브의 것일 때의 공유 토큰이다 —
@@ -99,6 +108,8 @@ export function PlaceSheet({
   onExitSearch: () => void;
   /** 검색 입력이 포커스될 때 — 낮은 스냅이면 결과가 보이는 높이로 올리는 용도(MapPage). */
   onSearchInputFocus: () => void;
+  /** 지도에 노출할 아카이브 선택 시트를 연다(NOOK-311). */
+  onOpenFilter: () => void;
 }) {
   const overlayContainer = useAppOverlayContainer();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -338,14 +349,28 @@ export function PlaceSheet({
               <>
                 <div className="flex shrink-0 items-center justify-between">
                   <p className="text-b1 font-medium text-gray-90">최근 저장한 공간</p>
-                  <button
-                    type="button"
-                    aria-label="저장한 공간 검색"
-                    onClick={onEnterSearch}
-                    className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-                  >
-                    <Icon24MagnifyingGlass />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      aria-label={filterActive ? '아카이브 필터 (적용 중)' : '아카이브 필터'}
+                      onClick={onOpenFilter}
+                      className="relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                    >
+                      <Icon20Filter />
+                      {/* 필터가 걸려 있을 때만 우상단 점 배지(Figma `홈_지도`). */}
+                      {filterActive ? (
+                        <span className="-top-0.5 -right-0.5 absolute size-1 rounded-full bg-blue" />
+                      ) : null}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="저장한 공간 검색"
+                      onClick={onEnterSearch}
+                      className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                    >
+                      <Icon24MagnifyingGlass />
+                    </button>
+                  </div>
                 </div>
                 {recentPlaces.length === 0 ? (
                   firstSave ? (
