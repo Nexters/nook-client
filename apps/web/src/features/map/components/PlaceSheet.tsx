@@ -24,7 +24,7 @@ import { FirstSaveEmpty } from '@/features/onboarding/FirstSaveEmpty';
 import { PlaceCard } from '@/features/place';
 import {
   Icon20ArrowUp,
-  Icon20Filter,
+  Icon24AdjustmentsVertical,
   Icon24Back,
   Icon24MagnifyingGlass,
 } from '@/shared/icons/NookIcons';
@@ -55,6 +55,7 @@ function LoadMoreSentinel(paging: Parameters<typeof useInfiniteScrollSentinel>[0
 
 export function PlaceSheet({
   recentPlaces,
+  recentPlacesTotal,
   recentPlacesPaging,
   firstSave = false,
   selectedPlace,
@@ -75,6 +76,8 @@ export function PlaceSheet({
   onOpenFilter,
 }: {
   recentPlaces: RecentPlace[];
+  /** 지금 필터 조건의 전체 장소 수 — 헤더의 `N곳`. 첫 응답 전엔 없어서 숫자를 비워둔다. */
+  recentPlacesTotal?: number;
   /** 최근 저장한 공간 다음 페이지 정보 — 없으면 받은 목록만 그린다. */
   recentPlacesPaging?: Parameters<typeof useInfiniteScrollSentinel>[0];
   /** 한 번도 저장한 적 없는 사람 — 빈 목록 자리에 저장 방법 안내(`FirstSaveEmpty`)를 띄운다. */
@@ -347,28 +350,37 @@ export function PlaceSheet({
               null
             ) : (
               <>
-                <div className="flex shrink-0 items-center justify-between">
-                  <p className="text-b1 font-medium text-gray-90">최근 저장한 공간</p>
-                  <div className="flex items-center gap-3">
+                {/* Figma `홈_지도` 시트 헤더 — 검색창 모양의 진입 버튼, 그 아래 개수와 필터. */}
+                <div className="-mx-4 flex shrink-0 flex-col gap-2 border-gray-10 border-b px-4">
+                  <button
+                    type="button"
+                    onClick={onEnterSearch}
+                    className="flex h-11 w-full items-center gap-2 rounded-lg border border-gray-30 px-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                  >
+                    <Icon24MagnifyingGlass />
+                    <span className="text-b2 font-medium text-gray-50">
+                      저장한 공간을 검색해보세요
+                    </span>
+                  </button>
+                  <div className="flex items-center justify-between py-1">
+                    <p className="text-b2 font-medium text-gray-80">
+                      {recentPlacesTotal === undefined ? null : (
+                        <>
+                          <span className="text-nook-blue">{recentPlacesTotal}</span> 곳
+                        </>
+                      )}
+                    </p>
                     <button
                       type="button"
                       aria-label={filterActive ? '아카이브 필터 (적용 중)' : '아카이브 필터'}
                       onClick={onOpenFilter}
                       className="relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
                     >
-                      <Icon20Filter />
-                      {/* 필터가 걸려 있을 때만 우상단 점 배지(Figma `홈_지도`). */}
+                      <Icon24AdjustmentsVertical />
+                      {/* 필터가 걸려 있을 때만 우상단 점 배지. */}
                       {filterActive ? (
-                        <span className="-top-0.5 -right-0.5 absolute size-1 rounded-full bg-blue" />
+                        <span className="absolute top-0 right-0 size-1 rounded-full bg-nook-blue" />
                       ) : null}
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="저장한 공간 검색"
-                      onClick={onEnterSearch}
-                      className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-                    >
-                      <Icon24MagnifyingGlass />
                     </button>
                   </div>
                 </div>

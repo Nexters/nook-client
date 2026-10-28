@@ -118,7 +118,7 @@ export async function fetchRecentPlaces(
   filter: ArchiveFilter = null,
 ): Promise<RecentPlacePage> {
   // 전체 해제 — `fetchMapPins` 와 같은 이유로 요청 없이 빈 페이지.
-  if (filter?.length === 0) return { places: [] };
+  if (filter?.length === 0) return { places: [], totalCount: 0 };
   const response = unwrapApiResponse(
     await getRecentPlacesEndpoint(
       { cursor: cursor || undefined, groupIds: filter ?? undefined },
@@ -128,6 +128,7 @@ export async function fetchRecentPlaces(
   return {
     places: (response?.items ?? []).map(toRecentPlace),
     nextCursor: (response?.hasNext && response.nextCursor) || undefined,
+    totalCount: response?.totalCount ?? 0,
   };
 }
 

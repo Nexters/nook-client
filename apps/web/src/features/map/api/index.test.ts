@@ -293,7 +293,7 @@ describe('fetchMapPins', () => {
 describe('fetchRecentPlaces', () => {
   it('커서를 넘겨 부르고, hasNext 일 때만 다음 커서를 돌려준다', async () => {
     endpoints.getRecentPlaces.mockResolvedValue(
-      ok({ items: [RECENT_PLACE_BASE], hasNext: true, nextCursor: 'c2' }),
+      ok({ items: [RECENT_PLACE_BASE], hasNext: true, nextCursor: 'c2', totalCount: 34 }),
     );
 
     const page = await fetchRecentPlaces('c1');
@@ -301,6 +301,7 @@ describe('fetchRecentPlaces', () => {
     expect(endpoints.getRecentPlaces).toHaveBeenCalledWith({ cursor: 'c1' }, { auth: 'required' });
     expect(page.places).toEqual([expect.objectContaining({ id: 21 })]);
     expect(page.nextCursor).toBe('c2');
+    expect(page.totalCount).toBe(34);
 
     endpoints.getRecentPlaces.mockResolvedValue(
       ok({ items: [], hasNext: false, nextCursor: 'stale' }),
@@ -319,7 +320,7 @@ describe('fetchRecentPlaces', () => {
     );
 
     endpoints.getRecentPlaces.mockClear();
-    expect(await fetchRecentPlaces(undefined, [])).toEqual({ places: [] });
+    expect(await fetchRecentPlaces(undefined, [])).toEqual({ places: [], totalCount: 0 });
     expect(endpoints.getRecentPlaces).not.toHaveBeenCalled();
   });
 });

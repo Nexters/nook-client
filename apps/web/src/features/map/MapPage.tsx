@@ -356,7 +356,8 @@ export function MapPage() {
           <RecenterButton snapPoint={snap} onClick={() => mapRef.current?.recenter()} />
         )}
         <PlaceSheet
-          recentPlaces={recentPlacesQuery.data ?? []}
+          recentPlaces={recentPlacesQuery.data?.places ?? []}
+          recentPlacesTotal={recentPlacesQuery.data?.totalCount}
           recentPlacesPaging={recentPlacesQuery}
           firstSave={hasSaveHistory === false}
           selectedPlace={placeDetailQuery.data ?? null}

@@ -72,7 +72,10 @@ export function useRecentPlaces(filter: ArchiveFilter = null) {
     queryFn: ({ pageParam }) => fetchRecentPlaces(pageParam, filter),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    select: (data) => data.pages.flatMap((page) => page.places),
+    select: (data) => ({
+      places: data.pages.flatMap((page) => page.places),
+      totalCount: data.pages[0]?.totalCount ?? 0,
+    }),
     enabled: isAuthenticated,
     // 무한 쿼리의 refetch 는 받아둔 페이지 전부를 다시 당긴다 — 처리 중 카드가 몇 번째
     // 페이지에 있든 함께 갱신된다.
