@@ -16,4 +16,6 @@ export interface RecentPlaceSliceResponse {
    * @nullable
    */
   nextCursor?: string | null;
+  /** 선택한 아카이브 조건의 전체 장소 수. 중복 장소는 한 번 집계하며 cursor·size와 무관 */
+  totalCount: number;
 }
