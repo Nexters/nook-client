@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-query';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { usePlacePinToast } from '@/features/place/lib/usePlacePinToast';
-import type { MapBounds, SavedPlaceSearchPage } from '../types';
+import type { ArchiveFilter, MapBounds, SavedPlaceSearchPage } from '../types';
 import {
   disconnectPostPlace,
   fetchMapPins,
@@ -25,8 +25,10 @@ const POLL_INTERVAL_MS = 3000;
 
 export const mapQueryKeys = {
   pinsAll: ['map', 'pins'] as const,
-  pins: (bounds: MapBounds) => ['map', 'pins', bounds] as const,
+  pins: (bounds: MapBounds, filter: ArchiveFilter) => ['map', 'pins', bounds, filter] as const,
+  // 무효화는 접두사(`recent`)로 걸어 아카이브 선택과 무관하게 모든 목록을 갱신한다.
   recent: ['map', 'recent'] as const,
+  recentList: (filter: ArchiveFilter) => ['map', 'recent', filter] as const,
   // 공유 토큰이 있으면 공유자 기준 읽기 전용 상세라 별도 캐시 키를 쓴다 — 내 상세(북마크·메모
   // 포함)와 모양이 다르니 같은 장소를 두 경로로 봤을 때 서로 캐시를 덮어쓰면 안 된다.
   detail: (placeId: number, shareToken?: string | null) =>
@@ -41,12 +43,12 @@ export const mapQueryKeys = {
 };
 
 /** 지도 핀(bbox 안의 북마크 장소). 실제 idle 이벤트를 못 받은 동안엔 호출부가 근사 bbox를 대신 넘긴다. */
-export function useMapPins(bounds: MapBounds) {
+export function useMapPins(bounds: MapBounds, filter: ArchiveFilter = null) {
   const isAuthenticated = useIsAuthenticated();
 
   return useQuery({
-    queryKey: mapQueryKeys.pins(bounds),
-    queryFn: () => fetchMapPins(bounds),
+    queryKey: mapQueryKeys.pins(bounds, filter),
+    queryFn: () => fetchMapPins(bounds, filter),
     // 게스트에게는 찍을 핀이 없다 — 지도만 보이고 목록은 로그인 월이 막는다.
     enabled: isAuthenticated,
     // bbox 가 바뀔 때마다 쿼리 키가 통째로 바뀐다 — placeholder 없이는 새 응답이 올
@@ -61,15 +63,19 @@ export function useMapPins(bounds: MapBounds) {
  * 저장 직후엔 BE 가 썸네일을 비동기로 파싱한다 — 처리 중(`thumbnailState === 'processing'`)인
  * 장소가 하나라도 있으면 끝날 때까지 폴링해 카드를 실시간으로 채운다.
  */
-export function useRecentPlaces() {
+export function useRecentPlaces(filter: ArchiveFilter = null) {
   const isAuthenticated = useIsAuthenticated();
 
   return useInfiniteQuery({
-    queryKey: mapQueryKeys.recent,
-    queryFn: ({ pageParam }) => fetchRecentPlaces(pageParam),
+    // 선택이 바뀌면 키가 바뀌어 목록과 커서가 처음부터 다시 시작한다.
+    queryKey: mapQueryKeys.recentList(filter),
+    queryFn: ({ pageParam }) => fetchRecentPlaces(pageParam, filter),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    select: (data) => data.pages.flatMap((page) => page.places),
+    select: (data) => ({
+      places: data.pages.flatMap((page) => page.places),
+      totalCount: data.pages[0]?.totalCount ?? 0,
+    }),
     enabled: isAuthenticated,
     // 무한 쿼리의 refetch 는 받아둔 페이지 전부를 다시 당긴다 — 처리 중 카드가 몇 번째
     // 페이지에 있든 함께 갱신된다.

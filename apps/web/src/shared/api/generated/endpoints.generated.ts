@@ -14,6 +14,7 @@ import type {
   ApiResponseGroupPostPageResponse,
   ApiResponseGroupResponse,
   ApiResponseGroupShareLinkResponse,
+  ApiResponseGroupSubscriberPageResponse,
   ApiResponseLinkResponse,
   ApiResponseListGroupResponse,
   ApiResponseListMapPlaceResponse,
@@ -46,6 +47,7 @@ import type {
   GetMapPlacesParams,
   GetPostsParams,
   GetRecentPlacesParams,
+  List1Params,
   ListPlacesParams,
   ListPostsParams,
   ListSavedPostsParams,
@@ -61,6 +63,7 @@ import type {
   SaveSharedPostRequest,
   SearchPlacesParams,
   SearchSavedPlacesParams,
+  SharedParams,
   SocialAuthRequest,
   UpdateGroupRequest,
   UpdateMemberProfileRequest,
@@ -211,6 +214,36 @@ export const postDetail = async (
   });
 };
 
+export const getSharedUrl = (token: string, params?: SharedParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/public/v1/groups/${token}/subscribers?${stringifiedParams}`
+    : `/api/public/v1/groups/${token}/subscribers`;
+};
+
+/**
+ * @summary 공유 아카이브를 추가한 사람 조회
+ */
+export const shared = async (
+  token: string,
+  params?: SharedParams,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseGroupSubscriberPageResponse> => {
+  return orvalMutator<ApiResponseGroupSubscriberPageResponse>(getSharedUrl(token, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
 export const getGet2Url = (token: string) => {
   return `/api/public/v1/post-shares/${token}`;
 };
@@ -339,7 +372,7 @@ export const getUpdate1Url = (groupId: number) => {
 };
 
 /**
- * @summary 그룹명과 색상 수정
+ * @summary 그룹명, 색상과 소개글 수정
  */
 export const update1 = async (
   groupId: number,
@@ -445,6 +478,36 @@ export const issue = async (
   return orvalMutator<ApiResponseGroupShareLinkResponse>(getIssueUrl(groupId), {
     ...options,
     method: 'PUT',
+  });
+};
+
+export const getList1Url = (groupId: number, params?: List1Params) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/groups/${groupId}/subscribers?${stringifiedParams}`
+    : `/api/v1/groups/${groupId}/subscribers`;
+};
+
+/**
+ * @summary 내가 열람 가능한 아카이브를 추가한 사람 조회
+ */
+export const list1 = async (
+  groupId: number,
+  params?: List1Params,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseGroupSubscriberPageResponse> => {
+  return orvalMutator<ApiResponseGroupSubscriberPageResponse>(getList1Url(groupId, params), {
+    ...options,
+    method: 'GET',
   });
 };
 
@@ -730,6 +793,15 @@ export const getGetMapPlacesUrl = (params: GetMapPlacesParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['groupIds'];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value));
     }
@@ -759,6 +831,15 @@ export const getGetRecentPlacesUrl = (params?: GetRecentPlacesParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['groupIds'];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value));
     }

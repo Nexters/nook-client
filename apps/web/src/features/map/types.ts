@@ -10,6 +10,12 @@ export interface MapBounds {
 }
 
 /**
+ * 지도에 노출할 아카이브 선택(NOOK-311). null 은 "전체" — 서버에 `groupIds` 를 보내지 않아
+ * 아카이브 없이 저장한 장소까지 포함된다. 빈 배열은 전체 해제라 결과가 비어 있다.
+ */
+export type ArchiveFilter = number[] | null;
+
+/**
  * 지도 핀 하나 — `MapPlaceResponse` 기준. 이름·대표 아카이브 색상·대표 썸네일까지 내려오므로
  * 핀 단계에서 사진과 이름표를 다 그린다. 나머지 상세는 클릭 시 `usePlaceDetail`로 가져온다.
  */
@@ -30,6 +36,8 @@ export interface MapPin {
 export interface RecentPlacePage {
   places: RecentPlace[];
   nextCursor?: string;
+  /** 같은 필터 조건의 전체 장소 수(시트 헤더의 `N곳`) — 서버가 커서와 무관하게 매 페이지 내려준다. */
+  totalCount: number;
 }
 
 /** 장소 공통 카테고리 그룹 — 장소 응답마다 같은 서버 enum 이 따로 생성돼 지도 쪽 이름 하나로 묶는다. */

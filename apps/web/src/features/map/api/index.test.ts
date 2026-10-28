@@ -274,12 +274,26 @@ describe('fetchMapPins', () => {
 
     expect(pin?.categoryGroup).toBeUndefined();
   });
+
+  it('아카이브 선택을 groupIds 로 넘기고, 전체 해제면 요청하지 않는다', async () => {
+    endpoints.getMapPlaces.mockResolvedValue(ok([MAP_PLACE]));
+
+    await fetchMapPins(BOUNDS, [1, 2]);
+    expect(endpoints.getMapPlaces).toHaveBeenLastCalledWith(
+      expect.objectContaining({ groupIds: [1, 2] }),
+      { auth: 'required' },
+    );
+
+    endpoints.getMapPlaces.mockClear();
+    expect(await fetchMapPins(BOUNDS, [])).toEqual([]);
+    expect(endpoints.getMapPlaces).not.toHaveBeenCalled();
+  });
 });
 
 describe('fetchRecentPlaces', () => {
   it('커서를 넘겨 부르고, hasNext 일 때만 다음 커서를 돌려준다', async () => {
     endpoints.getRecentPlaces.mockResolvedValue(
-      ok({ items: [RECENT_PLACE_BASE], hasNext: true, nextCursor: 'c2' }),
+      ok({ items: [RECENT_PLACE_BASE], hasNext: true, nextCursor: 'c2', totalCount: 34 }),
     );
 
     const page = await fetchRecentPlaces('c1');
@@ -287,12 +301,27 @@ describe('fetchRecentPlaces', () => {
     expect(endpoints.getRecentPlaces).toHaveBeenCalledWith({ cursor: 'c1' }, { auth: 'required' });
     expect(page.places).toEqual([expect.objectContaining({ id: 21 })]);
     expect(page.nextCursor).toBe('c2');
+    expect(page.totalCount).toBe(34);
 
     endpoints.getRecentPlaces.mockResolvedValue(
       ok({ items: [], hasNext: false, nextCursor: 'stale' }),
     );
 
     expect((await fetchRecentPlaces('c2')).nextCursor).toBeUndefined();
+  });
+
+  it('아카이브 선택을 groupIds 로 넘기고, 전체 해제면 요청 없이 빈 페이지다', async () => {
+    endpoints.getRecentPlaces.mockResolvedValue(ok({ items: [], hasNext: false }));
+
+    await fetchRecentPlaces(undefined, [3]);
+    expect(endpoints.getRecentPlaces).toHaveBeenLastCalledWith(
+      { cursor: undefined, groupIds: [3] },
+      { auth: 'required' },
+    );
+
+    endpoints.getRecentPlaces.mockClear();
+    expect(await fetchRecentPlaces(undefined, [])).toEqual({ places: [], totalCount: 0 });
+    expect(endpoints.getRecentPlaces).not.toHaveBeenCalled();
   });
 });
 

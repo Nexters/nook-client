@@ -19,6 +19,7 @@ import {
 } from '@/shared/api';
 import type { ArchiveColor } from '@/shared/ui';
 import type {
+  ArchiveFilter,
   MapBounds,
   MapPin,
   PlaceDetail,
@@ -58,7 +59,13 @@ function toMapPin(dto: MapPlaceResponse): MapPin {
 }
 
 /** 지도 뷰포트(bbox) 안의 북마크 장소 핀. `MapView`의 `onIdle`이 넘긴 실제 뷰포트 경계로 조회한다. */
-export async function fetchMapPins(bounds: MapBounds): Promise<MapPin[]> {
+export async function fetchMapPins(
+  bounds: MapBounds,
+  filter: ArchiveFilter = null,
+): Promise<MapPin[]> {
+  // 생성 클라이언트는 빈 배열을 파라미터에서 빼버려 서버가 "전체"로 받는다 — 전체 해제는
+  // 서버 계약상 빈 결과라 묻지 않고 바로 돌려준다.
+  if (filter?.length === 0) return [];
   const pins = unwrapApiResponse(
     await getMapPlacesEndpoint(
       {
@@ -66,6 +73,7 @@ export async function fetchMapPins(bounds: MapBounds): Promise<MapPin[]> {
         southLatitude: bounds.south,
         eastLongitude: bounds.east,
         westLongitude: bounds.west,
+        groupIds: filter ?? undefined,
       },
       { auth: 'required' },
     ),
@@ -105,13 +113,22 @@ export function toRecentPlace(dto: RecentPlaceResponse): RecentPlace {
   };
 }
 
-export async function fetchRecentPlaces(cursor?: string): Promise<RecentPlacePage> {
+export async function fetchRecentPlaces(
+  cursor?: string,
+  filter: ArchiveFilter = null,
+): Promise<RecentPlacePage> {
+  // 전체 해제 — `fetchMapPins` 와 같은 이유로 요청 없이 빈 페이지.
+  if (filter?.length === 0) return { places: [], totalCount: 0 };
   const response = unwrapApiResponse(
-    await getRecentPlacesEndpoint(cursor ? { cursor } : undefined, { auth: 'required' }),
+    await getRecentPlacesEndpoint(
+      { cursor: cursor || undefined, groupIds: filter ?? undefined },
+      { auth: 'required' },
+    ),
   );
   return {
     places: (response?.items ?? []).map(toRecentPlace),
     nextCursor: (response?.hasNext && response.nextCursor) || undefined,
+    totalCount: response?.totalCount ?? 0,
   };
 }
 

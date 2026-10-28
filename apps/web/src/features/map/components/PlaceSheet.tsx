@@ -22,7 +22,12 @@ import {
 import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
 import { FirstSaveEmpty } from '@/features/onboarding/FirstSaveEmpty';
 import { PlaceCard } from '@/features/place';
-import { Icon20ArrowUp, Icon24Back, Icon24MagnifyingGlass } from '@/shared/icons/NookIcons';
+import {
+  Icon20ArrowUp,
+  Icon24AdjustmentsVertical,
+  Icon24Back,
+  Icon24MagnifyingGlass,
+} from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
@@ -50,6 +55,7 @@ function LoadMoreSentinel(paging: Parameters<typeof useInfiniteScrollSentinel>[0
 
 export function PlaceSheet({
   recentPlaces,
+  recentPlacesTotal,
   recentPlacesPaging,
   firstSave = false,
   selectedPlace,
@@ -60,14 +66,18 @@ export function PlaceSheet({
   instantOpen = false,
   userCoords,
   isSearchMode,
+  filterActive = false,
   onSnapChange,
   onSelectPlace,
   onClose,
   onEnterSearch,
   onExitSearch,
   onSearchInputFocus,
+  onOpenFilter,
 }: {
   recentPlaces: RecentPlace[];
+  /** 지금 필터 조건의 전체 장소 수 — 헤더의 `N곳`. 첫 응답 전엔 없어서 숫자를 비워둔다. */
+  recentPlacesTotal?: number;
   /** 최근 저장한 공간 다음 페이지 정보 — 없으면 받은 목록만 그린다. */
   recentPlacesPaging?: Parameters<typeof useInfiniteScrollSentinel>[0];
   /** 한 번도 저장한 적 없는 사람 — 빈 목록 자리에 저장 방법 안내(`FirstSaveEmpty`)를 띄운다. */
@@ -88,6 +98,8 @@ export function PlaceSheet({
   userCoords?: Coordinates | null;
   /** 저장한 공간 검색 모드 — 탐색 콘텐츠 위로 검색 패널이 슬라이드되어 덮는다. */
   isSearchMode: boolean;
+  /** 아카이브 필터가 걸려 있는지 — 필터 아이콘에 점 배지를 단다. */
+  filterActive?: boolean;
   onSnapChange: (snap: number | string | null) => void;
   /**
    * 장소 선택. 두 번째 인자는 그 장소가 구독한 공유 아카이브의 것일 때의 공유 토큰이다 —
@@ -99,6 +111,8 @@ export function PlaceSheet({
   onExitSearch: () => void;
   /** 검색 입력이 포커스될 때 — 낮은 스냅이면 결과가 보이는 높이로 올리는 용도(MapPage). */
   onSearchInputFocus: () => void;
+  /** 지도에 노출할 아카이브 선택 시트를 연다(NOOK-311). */
+  onOpenFilter: () => void;
 }) {
   const overlayContainer = useAppOverlayContainer();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -336,16 +350,39 @@ export function PlaceSheet({
               null
             ) : (
               <>
-                <div className="flex shrink-0 items-center justify-between">
-                  <p className="text-b1 font-medium text-gray-90">최근 저장한 공간</p>
+                {/* Figma `홈_지도` 시트 헤더 — 검색창 모양의 진입 버튼, 그 아래 개수와 필터. */}
+                <div className="-mx-4 flex shrink-0 flex-col gap-2 border-gray-10 border-b px-4">
                   <button
                     type="button"
-                    aria-label="저장한 공간 검색"
                     onClick={onEnterSearch}
-                    className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                    className="flex h-11 w-full items-center gap-2 rounded-lg border border-gray-30 px-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
                   >
                     <Icon24MagnifyingGlass />
+                    <span className="text-b2 font-medium text-gray-50">
+                      저장한 공간을 검색해보세요
+                    </span>
                   </button>
+                  <div className="flex items-center justify-between py-1">
+                    <p className="text-b2 font-medium text-gray-80">
+                      {recentPlacesTotal === undefined ? null : (
+                        <>
+                          <span className="text-nook-blue">{recentPlacesTotal}</span> 곳
+                        </>
+                      )}
+                    </p>
+                    <button
+                      type="button"
+                      aria-label={filterActive ? '아카이브 필터 (적용 중)' : '아카이브 필터'}
+                      onClick={onOpenFilter}
+                      className="relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                    >
+                      <Icon24AdjustmentsVertical />
+                      {/* 필터가 걸려 있을 때만 우상단 점 배지. */}
+                      {filterActive ? (
+                        <span className="absolute top-0 right-0 size-1 rounded-full bg-nook-blue" />
+                      ) : null}
+                    </button>
+                  </div>
                 </div>
                 {recentPlaces.length === 0 ? (
                   firstSave ? (
