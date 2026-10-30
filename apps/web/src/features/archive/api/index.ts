@@ -44,6 +44,7 @@ export function toArchive(dto: GroupResponse): Archive {
     id: dto.id,
     name: dto.name,
     color: SERVER_TO_UI_COLOR[dto.color as CreateGroupRequestColor] ?? 'cement',
+    description: dto.description || undefined,
     placeCount: dto.postCount,
     thumbnails: dto.thumbnailUrls,
     accessType: dto.accessType,
@@ -63,20 +64,26 @@ export async function fetchArchives(): Promise<Archive[]> {
 export interface ArchiveFormInput {
   name: string;
   color: ArchiveColor;
+  /** 수정 시 빈 문자열이면 서버가 소개글을 지운다(생략·null 은 유지라 항상 보낸다). */
+  description: string;
 }
 
-export async function createArchive({ name, color }: ArchiveFormInput): Promise<void> {
-  await createArchiveEndpoint({ name, color: UI_TO_SERVER_COLOR[color] }, { auth: 'required' });
+export async function createArchive({ name, color, description }: ArchiveFormInput): Promise<void> {
+  await createArchiveEndpoint(
+    { name, color: UI_TO_SERVER_COLOR[color], description },
+    { auth: 'required' },
+  );
 }
 
 export async function updateArchive({
   archiveId,
   name,
   color,
+  description,
 }: ArchiveFormInput & { archiveId: number }): Promise<void> {
   await updateArchiveEndpoint(
     archiveId,
-    { name, color: UI_TO_SERVER_COLOR[color] },
+    { name, color: UI_TO_SERVER_COLOR[color], description },
     { auth: 'required' },
   );
 }

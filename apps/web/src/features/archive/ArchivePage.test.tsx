@@ -232,6 +232,7 @@ describe('아카이브 화면', () => {
       expect(mocks.createArchive.mock.calls[0]?.[0]).toEqual({
         name: '토요일 모임',
         color: 'yellow',
+        description: '',
       }),
     );
   });
@@ -249,6 +250,8 @@ describe('아카이브 화면', () => {
         archiveId: 1,
         name: '동네 카페',
         color: 'purple',
+        // 비워 둔 소개글은 빈 문자열로 보내야 서버가 지운다(생략은 유지).
+        description: '',
       }),
     );
   });

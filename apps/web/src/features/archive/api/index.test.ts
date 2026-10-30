@@ -54,6 +54,15 @@ describe('toArchive', () => {
   });
 });
 
+describe('toArchive description', () => {
+  it('소개글 필드가 없거나 null·빈 문자열이면 undefined 로, 있으면 원문 그대로 둔다', () => {
+    expect(toArchive(BASE).description).toBeUndefined();
+    expect(toArchive({ ...BASE, description: null }).description).toBeUndefined();
+    expect(toArchive({ ...BASE, description: '' }).description).toBeUndefined();
+    expect(toArchive({ ...BASE, description: '카페\n모음 ☕' }).description).toBe('카페\n모음 ☕');
+  });
+});
+
 describe('toArchivePlace', () => {
   it.each(['PENDING', 'PROCESSING'] as const)(
     '썸네일이 없고 파싱 상태가 %s 면 thumbnailState 를 processing 으로 표시한다',

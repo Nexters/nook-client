@@ -22,6 +22,11 @@ import { ArchiveDeletePopup } from './components/ArchiveDeletePopup';
 
 /** 시안의 카운터 표기(`0/20`) 기준. */
 const NAME_MAX_LENGTH = 20;
+/**
+ * 시안 카운터(`0/150`). 서버는 보이는 글자(grapheme) 기준 150자지만, 여기선 UTF-16 길이로
+ * 센다 — 이모지가 2~N자로 잡혀 항상 서버 기준보다 같거나 많게 세므로 400 이 날 일이 없다.
+ */
+const DESCRIPTION_MAX_LENGTH = 150;
 
 export type ArchiveFormPageProps =
   | {
@@ -57,6 +62,7 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
   // 서버 값을 그대로 비추므로, 응답이 늦게 도착해도 폼이 빈 채로 굳지 않는다.
   const [editedName, setName] = useState<string>();
   const [editedColor, setColor] = useState<ArchiveColor>();
+  const [editedDescription, setDescription] = useState<string>();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   // 편집은 라우트라 탭바를 숨겨야 한다. 생성 오버레이는 탭바보다 위로 덮으므로 숨기지
@@ -75,6 +81,7 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
 
   const name = editedName ?? archive?.name ?? '';
   const color = editedColor ?? archive?.color ?? ARCHIVE_COLORS[0];
+  const description = editedDescription ?? archive?.description ?? '';
 
   const createArchive = useCreateArchive();
   const updateArchive = useUpdateArchive();
@@ -88,7 +95,7 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
       if (!archive) return;
 
       updateArchive.mutate(
-        { archiveId: archive.id, name: name.trim(), color },
+        { archiveId: archive.id, name: name.trim(), color, description: description.trim() },
         {
           onSuccess: () => {
             capturePostHogEvent('archive_updated', { archive_id: archive.id, color });
@@ -100,7 +107,7 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
     }
 
     createArchive.mutate(
-      { name: name.trim(), color },
+      { name: name.trim(), color, description: description.trim() },
       {
         onSuccess: () => {
           capturePostHogEvent('archive_created', { color });
@@ -183,6 +190,26 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
             />
           ))}
         </fieldset>
+
+        {/* 시안 378:16091 — 이름 영역과 같은 라벨·여백. 카운터는 포커스와 상관없이 늘 보인다. */}
+        <div className="flex flex-col gap-2 px-4 py-3">
+          <label htmlFor="archive-description" className="text-b2 font-medium text-gray-70">
+            아카이브 소개
+          </label>
+          <div className="flex flex-col items-end rounded-lg border border-gray-30 bg-gray-0 px-4 py-3.5 transition-colors focus-within:border-gray-100">
+            <textarea
+              id="archive-description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              maxLength={DESCRIPTION_MAX_LENGTH}
+              placeholder="아카이브를 소개해주세요"
+              className="h-36 w-full resize-none bg-transparent text-b1 font-medium text-gray-100 outline-none placeholder:text-gray-50"
+            />
+            <span className="text-b3 font-medium text-gray-50 tabular-nums">
+              {description.length}/{DESCRIPTION_MAX_LENGTH}
+            </span>
+          </div>
+        </div>
 
         {/* 하단 고정 액션. 키보드가 올라오면 네이티브 WebView 가 뷰포트를 줄여 함께 올라온다. */}
         <div

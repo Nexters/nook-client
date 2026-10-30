@@ -7,6 +7,7 @@ import {
   ArchiveSelectRow,
   CollectionCard,
 } from '@/features/archive';
+import { ArchiveDescription } from '@/features/archive/components/ArchiveDescription';
 import { MyMenuRow, MyMenuSection } from '@/features/my';
 import type { Place } from '@/features/place';
 import {
@@ -158,6 +159,30 @@ const MOCK_ARCHIVE_LONG: Archive = {
   accessType: 'OWNED',
 };
 const MOCK_ARCHIVES = [MOCK_ARCHIVE_FILLED, MOCK_ARCHIVE_EMPTY, MOCK_ARCHIVE_LONG];
+
+/** 아카이브 소개글 — 줄 수·줄바꿈·이모지별로 더보기 노출을 확인한다(최대 150자). */
+const MOCK_ARCHIVE_DESCRIPTIONS: { label: string; description: string }[] = [
+  { label: '1줄 — 더보기 없음', description: '주말에 가고 싶은 카페 모음 ☕' },
+  {
+    label: '정확히 3줄 근처 — 더보기 없음',
+    description:
+      '연말에 친구들이랑 모임하기 좋았던 곳들을 모아뒀어요. 단체석이 있거나 오래 앉아 있어도 눈치 안 보이는 곳 위주예요.',
+  },
+  {
+    label: '3줄 초과(긴 문장) — 더보기',
+    description: '최대3줄보여주자 '.repeat(16).trim(),
+  },
+  {
+    label: '줄바꿈으로 3줄 초과 — 더보기',
+    description:
+      '서울 카페\n성수 · 연남 · 망원\n\n커피 맛집 위주로 모았어요\n디저트 맛집은 따로 정리 중 🍰',
+  },
+  {
+    label: '이모지·결합 이모지 포함 150자 근처',
+    description:
+      '👨‍👩‍👧‍👦 가족이랑 가기 좋은 곳 🇰🇷 아이 동반 OK 👍🏽 주차 가능한 곳만 골랐어요. 유모차 들어가기 편하고 키즈 메뉴 있는 곳, 놀이 공간 있는 곳 위주로 계속 업데이트할게요! 주말 오전엔 사람이 많으니 평일 추천 🙌',
+  },
+];
 
 // 공개 아카이브(다른 사람이 만든 것) — CollectionCard 용
 const MOCK_COLLECTIONS: Archive[] = [
@@ -1094,6 +1119,23 @@ export function UiComponentsPage() {
         </div>
         <p className="text-b3 text-gray-50">
           이미지 줄은 공용 Carousel(scroll-snap)이고, 본문은 2줄로 접힙니다. "더보기"로 펼칩니다.
+        </p>
+      </Section>
+
+      <Section title="archive — ArchiveDescription (아카이브 소개글)">
+        <div className="mx-auto flex w-full max-w-[343px] flex-col gap-6">
+          {MOCK_ARCHIVE_DESCRIPTIONS.map(({ label, description }) => (
+            <div key={label} className="flex flex-col gap-1">
+              <p className="text-b3 text-gray-50">
+                {label} ({description.length}/150)
+              </p>
+              <ArchiveDescription description={description} />
+            </div>
+          ))}
+        </div>
+        <p className="text-b3 text-gray-50">
+          실제 렌더링된 줄 수가 3줄을 넘을 때만 3줄 끝에 "더보기"가 붙고, 펼치면 아래에 "접기"가
+          나옵니다. 창 너비를 바꾸면 다시 잽니다.
         </p>
       </Section>
 

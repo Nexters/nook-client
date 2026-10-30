@@ -38,6 +38,7 @@ import {
   useRemoveSharedArchive,
 } from './api/queries';
 import { ArchiveDeletePopup } from './components/ArchiveDeletePopup';
+import { ArchiveDescription } from './components/ArchiveDescription';
 import { ArchiveDetailMenu } from './components/ArchiveDetailMenu';
 import { ArchiveDetailSkeleton, CollectionGridSkeleton } from './components/ArchiveDetailSkeleton';
 import { ArchiveEmpty } from './components/ArchiveEmpty';
@@ -247,6 +248,10 @@ export function ArchiveDetailPage() {
         </div>
         {postsQuery.data?.ownerNickname ? (
           <p className="font-mono text-e2 text-gray-60">by {postsQuery.data.ownerNickname}</p>
+        ) : null}
+        {/* 시안: 이름·작성자 묶음과 소개글 사이 12 (부모 gap-1 + mt-2). */}
+        {archive.description ? (
+          <ArchiveDescription description={archive.description} className="mt-2" />
         ) : null}
       </div>
 
