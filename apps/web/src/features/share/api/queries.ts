@@ -4,6 +4,7 @@ import {
   fetchSharedArchive,
   fetchSharedArchivePlaces,
   fetchSharedArchivePosts,
+  fetchSharedArchiveSubscribers,
   fetchSharedPostDetail,
   saveSharedPost,
   subscribeSharedArchive,
@@ -13,6 +14,7 @@ export const sharedQueryKeys = {
   meta: (token: string) => ['shared', token, 'meta'] as const,
   posts: (token: string) => ['shared', token, 'posts'] as const,
   places: (token: string) => ['shared', token, 'places'] as const,
+  subscribers: (token: string) => ['shared', token, 'subscribers'] as const,
   postDetail: (token: string, postId: number) => ['shared', token, 'posts', postId] as const,
 };
 
@@ -49,6 +51,17 @@ export function useSharedArchivePlaces(token: string) {
       places: data.pages.flatMap((page) => page.places),
       totalElements: data.pages[0]?.totalElements ?? 0,
     }),
+  });
+}
+
+export function useSharedArchiveSubscribers(token: string) {
+  return useInfiniteQuery({
+    queryKey: sharedQueryKeys.subscribers(token),
+    queryFn: ({ pageParam }) => fetchSharedArchiveSubscribers(token, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    select: (data) => data.pages.flatMap((page) => page.subscribers),
+    refetchOnMount: 'always',
   });
 }
 
