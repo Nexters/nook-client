@@ -32,7 +32,7 @@ import { AllowBackGesture } from '@/shared/lib/backGesture';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
-import { Drawer, DrawerContent, FloatingButton, Header } from '@/shared/ui';
+import { Drawer, DrawerContent, FloatingButton, Header, Skeleton } from '@/shared/ui';
 
 /** 이 값을 넘겨 스크롤된 것으로 판단한다(0 근처의 미세한 바운스/오차 무시). */
 const SCROLL_HIDE_HANDLE_THRESHOLD = 4;
@@ -56,6 +56,7 @@ function LoadMoreSentinel(paging: Parameters<typeof useInfiniteScrollSentinel>[0
 export function PlaceSheet({
   recentPlaces,
   recentPlacesTotal,
+  recentPlacesLoading = false,
   recentPlacesPaging,
   firstSave = false,
   selectedPlace,
@@ -78,6 +79,8 @@ export function PlaceSheet({
   recentPlaces: RecentPlace[];
   /** 지금 필터 조건의 전체 장소 수 — 헤더의 `N곳`. 첫 응답 전엔 없어서 숫자를 비워둔다. */
   recentPlacesTotal?: number;
+  /** 지금 필터 조건의 목록을 아직 한 번도 못 받았는지 — 빈 상태 대신 스켈레톤을 그린다. */
+  recentPlacesLoading?: boolean;
   /** 최근 저장한 공간 다음 페이지 정보 — 없으면 받은 목록만 그린다. */
   recentPlacesPaging?: Parameters<typeof useInfiniteScrollSentinel>[0];
   /** 한 번도 저장한 적 없는 사람 — 빈 목록 자리에 저장 방법 안내(`FirstSaveEmpty`)를 띄운다. */
@@ -259,7 +262,9 @@ export function PlaceSheet({
       <DrawerContent
         ref={contentRef}
         overlay={false}
-        showHandle={!isFull || !isScrolled}
+        // 핸들은 상세의 스티키 헤더가 대신할 때만 숨긴다. 목록 모드에선 어느 스크롤 위치에서든
+        // 남겨 둬야 시트를 다시 내려 지도로 돌아갈 수 있다(NOOK-387).
+        showHandle={!showStickyHeader}
         style={{
           ...layoutClassNames.drawer.style,
           // iOS 는 키보드가 떠도 시트(fixed)를 밀어 올려주지 않고 Safari 가 페이지를 살짝
@@ -350,8 +355,9 @@ export function PlaceSheet({
               null
             ) : (
               <>
-                {/* Figma `홈_지도` 시트 헤더 — 검색창 모양의 진입 버튼, 그 아래 개수와 필터. */}
-                <div className="-mx-4 flex shrink-0 flex-col gap-2 border-gray-10 border-b px-4">
+                {/* Figma `홈_지도` 시트 헤더 — 검색창 모양의 진입 버튼, 그 아래 개수와 필터.
+                    목록을 내려도 위에 붙어 있도록 스크롤러 안에서 sticky 로 둔다(NOOK-387). */}
+                <div className="-mx-4 sticky top-0 z-10 flex shrink-0 flex-col gap-2 border-gray-10 border-b bg-gray-0 px-4">
                   <button
                     type="button"
                     onClick={onEnterSearch}
@@ -384,7 +390,11 @@ export function PlaceSheet({
                     </button>
                   </div>
                 </div>
-                {recentPlaces.length === 0 ? (
+                {recentPlacesLoading ? (
+                  // 첫 진입·필터 변경 직후엔 목록이 비어 있어도 아직 "없음"이 아니다 —
+                  // 빈 상태가 잠깐 튀지 않게 카드 자리를 먼저 깐다.
+                  <RecentPlacesSkeleton />
+                ) : recentPlaces.length === 0 ? (
                   firstSave ? (
                     // 시안은 mid 스냅(617) 기준 432 높이 — 안내 링크가 그 바닥에 붙는다.
                     <FirstSaveEmpty className="h-[432px] shrink-0 pt-10" />
@@ -464,5 +474,23 @@ export function PlaceSheet({
         ) : null}
       </DrawerContent>
     </Drawer>
+  );
+}
+
+/** 최근 저장한 공간 로딩 뼈대 — `PlaceCard` 와 같은 2열·같은 비율로 두 줄을 깐다. */
+function RecentPlacesSkeleton() {
+  return (
+    <div aria-hidden className="grid grid-cols-2 gap-2">
+      {Array.from({ length: 4 }, (_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: 순서가 바뀌지 않는 고정 자리표시
+        <div key={i} className="flex flex-col gap-1 pb-2">
+          <Skeleton className="aspect-[167/208] w-full rounded-sm" />
+          <div className="flex flex-col gap-1.5 p-1">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3.5 w-1/2" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
