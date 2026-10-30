@@ -4,8 +4,9 @@ import {
   toArchive,
   toArchivePlace,
   toArchivePost,
+  toArchiveSubscriberPage,
 } from '@/features/archive/api';
-import type { Archive } from '@/features/archive/types';
+import type { Archive, ArchiveSubscriberPage } from '@/features/archive/types';
 import { toPostDetail, updatePostMemo } from '@/features/post/api';
 import type { PostDetail } from '@/features/post/types';
 import {
@@ -13,6 +14,7 @@ import {
   get3 as getSharedArchiveEndpoint,
   places as listSharedPlacesEndpoint,
   posts as listSharedPostsEndpoint,
+  shared as listSharedSubscribersEndpoint,
   save as saveSharedPostEndpoint,
   postDetail as sharedPostDetailEndpoint,
   subscribe as subscribeEndpoint,
@@ -53,6 +55,17 @@ export async function fetchSharedArchivePlaces(token: string, page = 0): Promise
     nextPage: response?.hasNext ? page + 1 : undefined,
     totalElements: response?.totalElements ?? 0,
   };
+}
+
+/** 공유 링크 열람자도 소유자·구독자와 같은 추가한 사람 목록을 본다. */
+export async function fetchSharedArchiveSubscribers(
+  token: string,
+  page = 0,
+): Promise<ArchiveSubscriberPage> {
+  const response = unwrapApiResponse(
+    await listSharedSubscribersEndpoint(token, { page, size: PAGE_SIZE }),
+  );
+  return toArchiveSubscriberPage(response, page);
 }
 
 /** 공유 아카이브를 내 목록에 추가(구독). 멱등이라 중복 호출해도 안전하다. */

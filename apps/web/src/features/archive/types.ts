@@ -1,5 +1,17 @@
 import type { ArchiveColor } from '@/shared/ui';
 
+/** 아카이브를 추가한 사람 — 목록은 읽기 전용이라 표시에 필요한 것만 둔다. */
+export interface ArchiveSubscriber {
+  nickname: string;
+  profileImageUrl?: string;
+}
+
+export interface ArchiveSubscriberPage {
+  subscribers: ArchiveSubscriber[];
+  /** 다음 페이지 번호. 없으면 마지막 페이지다. */
+  nextPage?: number;
+}
+
 /** 공유 아카이브(SHARED)의 원 소유자 표시용. */
 export interface ArchiveOwner {
   nickname: string;
@@ -17,6 +29,8 @@ export interface Archive {
   color: ArchiveColor;
   /** 소개글 원문(줄바꿈 포함). 미입력이거나 필드가 없는 응답이면 undefined. */
   description?: string;
+  /** 이 아카이브를 자기 NOOK 에 추가(구독)한 사람 수. 0·없음이면 상세에 `N명이 추가함` 을 숨긴다. */
+  subscriberCount?: number;
   /** 아카이브에 담긴 장소 수. 배지에 그대로 노출된다. */
   placeCount: number;
   /** 대표 썸네일 URL. 카드에는 앞의 3개까지만 쓴다. */

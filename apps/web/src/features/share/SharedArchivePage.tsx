@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { PINNED_HEADER_STICKY, PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { useArchives } from '@/features/archive/api/queries';
 import { ArchiveDescription } from '@/features/archive/components/ArchiveDescription';
@@ -152,6 +152,15 @@ export function SharedArchivePage() {
           ) : null}
           {archive.description ? (
             <ArchiveDescription description={archive.description} className="mt-2" />
+          ) : null}
+          {archive.subscriberCount ? (
+            // 시안: 소개글(또는 이름 묶음) 아래 8 — 부모 gap-1 + mt-1. 0명이면 진입도 없다.
+            <Link
+              to={`/shared/${token}/subscribers`}
+              className="mt-1 self-start text-b3 font-medium text-gray-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+            >
+              {archive.subscriberCount}명이 추가함
+            </Link>
           ) : null}
         </div>
 

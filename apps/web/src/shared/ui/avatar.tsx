@@ -22,6 +22,8 @@ const avatarVariants = cva('relative inline-flex shrink-0 rounded-full', {
       lg: 'size-25',
       /** Img/60_Profile */
       sm: 'size-15',
+      /** Img/60_Profile 을 40 으로 줄여 쓰는 목록 행 (추가한 사람 목록) */
+      md: 'size-10',
       /** Img/24_Profile — 목록 행의 이름 앞에 붙는 크기 */
       xs: 'size-6',
     },
@@ -34,6 +36,7 @@ const avatarVariants = cva('relative inline-flex shrink-0 rounded-full', {
 const PLACEHOLDER = {
   lg: profile100,
   sm: profile60,
+  md: profile60,
   xs: profile24,
 } as const;
 

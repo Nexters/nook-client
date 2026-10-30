@@ -7,6 +7,7 @@ import {
   deleteArchivePosts,
   fetchArchivePlaces,
   fetchArchivePosts,
+  fetchArchiveSubscribers,
   fetchArchives,
   issueShareLink,
   removeSharedArchive,
@@ -17,6 +18,7 @@ export const archiveQueryKeys = {
   list: ['archives'] as const,
   posts: (archiveId: number) => ['archives', archiveId, 'posts'] as const,
   places: (archiveId: number) => ['archives', archiveId, 'places'] as const,
+  subscribers: (archiveId: number) => ['archives', archiveId, 'subscribers'] as const,
 };
 
 /** 처리 중(본문 크롤링·장소 파싱)인 게시물이 있는 동안의 재조회 간격 — post 쪽 폴링과 같은 값. */
@@ -105,6 +107,21 @@ export function useArchivePlaces(archiveId: number | undefined) {
       );
       return anyProcessing ? POLL_INTERVAL_MS : false;
     },
+  });
+}
+
+/** 추가한 사람 목록. 구독 해제가 바로 반영되도록 진입할 때마다 다시 읽는다. */
+export function useArchiveSubscribers(archiveId: number | undefined) {
+  const isAuthenticated = useIsAuthenticated();
+
+  return useInfiniteQuery({
+    queryKey: archiveQueryKeys.subscribers(archiveId ?? -1),
+    queryFn: ({ pageParam }) => fetchArchiveSubscribers(archiveId as number, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    select: (data) => data.pages.flatMap((page) => page.subscribers),
+    enabled: isAuthenticated && archiveId !== undefined,
+    refetchOnMount: 'always',
   });
 }
 
