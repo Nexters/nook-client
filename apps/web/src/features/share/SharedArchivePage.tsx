@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { PINNED_HEADER_STICKY, PinnedHeaderLayout } from '@/app/layouts/PinnedHeaderLayout';
 import { useArchives } from '@/features/archive/api/queries';
+import { ArchiveDescription } from '@/features/archive/components/ArchiveDescription';
 import { ArchiveEmpty } from '@/features/archive/components/ArchiveEmpty';
 import { CollectionCard } from '@/features/archive/components/CollectionCard';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
@@ -148,6 +149,9 @@ export function SharedArchivePage() {
           </div>
           {archive.owner ? (
             <p className="font-mono text-e2 text-gray-60">by {archive.owner.nickname}</p>
+          ) : null}
+          {archive.description ? (
+            <ArchiveDescription description={archive.description} className="mt-2" />
           ) : null}
         </div>
 

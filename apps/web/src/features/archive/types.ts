@@ -15,6 +15,8 @@ export interface Archive {
   id: number;
   name: string;
   color: ArchiveColor;
+  /** 소개글 원문(줄바꿈 포함). 미입력이거나 필드가 없는 응답이면 undefined. */
+  description?: string;
   /** 아카이브에 담긴 장소 수. 배지에 그대로 노출된다. */
   placeCount: number;
   /** 대표 썸네일 URL. 카드에는 앞의 3개까지만 쓴다. */
