@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
@@ -27,6 +27,33 @@ const NAME_MAX_LENGTH = 20;
  * 센다 — 이모지가 2~N자로 잡혀 항상 서버 기준보다 같거나 많게 세므로 400 이 날 일이 없다.
  */
 const DESCRIPTION_MAX_LENGTH = 150;
+
+/**
+ * 키보드를 뺀 "지금 보이는 영역"(visualViewport)의 위치·높이.
+ *
+ * iOS WKWebView 는 키보드가 떠도 레이아웃 뷰포트를 줄이지 않고, 포커스된 입력이 보이게
+ * 화면 전체를 위로 민다 — `fixed inset-0` 인 이 폼은 헤더까지 같이 밀려 올라간다(QA).
+ * 폼을 보이는 영역에 맞춰 두면 헤더는 늘 맨 위에 붙고, 줄어든 안쪽 스크롤러만 입력을 따라간다.
+ * Android 는 WebView 가 키보드만큼 줄어들어 offsetTop 0·height = innerHeight 라 그대로다.
+ */
+function useVisibleViewport() {
+  const [box, setBox] = useState<{ top: number; height: number }>();
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => setBox({ top: viewport.offsetTop, height: viewport.height });
+    update();
+    viewport.addEventListener('resize', update);
+    viewport.addEventListener('scroll', update);
+    return () => {
+      viewport.removeEventListener('resize', update);
+      viewport.removeEventListener('scroll', update);
+    };
+  }, []);
+
+  return box;
+}
 
 export type ArchiveFormPageProps =
   | {
@@ -83,6 +110,8 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
   const color = editedColor ?? archive?.color ?? ARCHIVE_COLORS[0];
   const description = editedDescription ?? archive?.description ?? '';
 
+  const visibleViewport = useVisibleViewport();
+
   const createArchive = useCreateArchive();
   const updateArchive = useUpdateArchive();
 
@@ -137,7 +166,8 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
       data-slot="archive-form"
       // 슬라이드 동안 문서가 아래로 늘어나지 않도록 뷰포트에 고정한다(내용이 넘치면 안에서 스크롤).
       className={cn(
-        'fixed inset-0 flex flex-col overflow-hidden bg-gray-0',
+        // 높이·위치는 보이는 영역(useVisibleViewport)을 따른다 — 측정 전엔 화면 전체.
+        'fixed inset-x-0 top-0 flex h-dvh flex-col overflow-hidden bg-gray-0',
         // 생성 오버레이는 하단 탭바(z-[60]) 위로 덮는다.
         !editing && 'z-[70]',
         // duration 은 `useSlideScreen` 의 SLIDE_DURATION_MS 와 같은 값이어야 한다.
@@ -145,7 +175,10 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
         // 편집은 전환 없이 바로 뜬다 — 아래에서 올라오는 건 생성뿐이다.
         editing || slidIn ? 'translate-y-0' : 'translate-y-full',
       )}
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        ...(visibleViewport && { top: visibleViewport.top, height: visibleViewport.height }),
+      }}
     >
       <Header
         // 생성은 좌상단 뒤로가기 대신 우상단 닫기다(시안 273:10642) — 떠나는 길을 아래로

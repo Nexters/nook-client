@@ -433,7 +433,8 @@ export function PlaceSheet({
           {isSearchMode ? (
             <div
               className={cn(
-                'absolute inset-0 bg-gray-0',
+                // 목록 헤더가 sticky z-10 이라 그보다 위에 쌓아야 검색 필드를 가리지 않는다.
+                'absolute inset-0 z-20 bg-gray-0',
                 'transition-transform duration-300 ease-out motion-reduce:transition-none',
                 searchSlidIn ? 'translate-x-0' : 'translate-x-full',
                 // 상세가 떠 있는 동안만 숨긴다. 언마운트가 아니라 display:none 이라 검색어와
