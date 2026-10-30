@@ -259,7 +259,9 @@ export function PlaceSheet({
       <DrawerContent
         ref={contentRef}
         overlay={false}
-        showHandle={!isFull || !isScrolled}
+        // 핸들은 상세의 스티키 헤더가 대신할 때만 숨긴다. 목록 모드에선 어느 스크롤 위치에서든
+        // 남겨 둬야 시트를 다시 내려 지도로 돌아갈 수 있다(NOOK-387).
+        showHandle={!showStickyHeader}
         style={{
           ...layoutClassNames.drawer.style,
           // iOS 는 키보드가 떠도 시트(fixed)를 밀어 올려주지 않고 Safari 가 페이지를 살짝
@@ -350,8 +352,9 @@ export function PlaceSheet({
               null
             ) : (
               <>
-                {/* Figma `홈_지도` 시트 헤더 — 검색창 모양의 진입 버튼, 그 아래 개수와 필터. */}
-                <div className="-mx-4 flex shrink-0 flex-col gap-2 border-gray-10 border-b px-4">
+                {/* Figma `홈_지도` 시트 헤더 — 검색창 모양의 진입 버튼, 그 아래 개수와 필터.
+                    목록을 내려도 위에 붙어 있도록 스크롤러 안에서 sticky 로 둔다(NOOK-387). */}
+                <div className="-mx-4 sticky top-0 z-10 flex shrink-0 flex-col gap-2 border-gray-10 border-b bg-gray-0 px-4">
                   <button
                     type="button"
                     onClick={onEnterSearch}
