@@ -358,6 +358,7 @@ export function MapPage() {
         <PlaceSheet
           recentPlaces={recentPlacesQuery.data?.places ?? []}
           recentPlacesTotal={recentPlacesQuery.data?.totalCount}
+          recentPlacesLoading={recentPlacesQuery.isLoading}
           recentPlacesPaging={recentPlacesQuery}
           firstSave={hasSaveHistory === false}
           selectedPlace={placeDetailQuery.data ?? null}

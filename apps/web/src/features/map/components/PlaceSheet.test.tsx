@@ -53,9 +53,11 @@ function renderSheet(
   place: PlaceDetailModel | null = PLACE,
   {
     recentPlaces = [],
+    recentPlacesLoading = false,
     onSelectPlace = () => {},
   }: {
     recentPlaces?: RecentPlace[];
+    recentPlacesLoading?: boolean;
     onSelectPlace?: (id: number, shareToken?: string | null) => void;
   } = {},
 ) {
@@ -67,6 +69,7 @@ function renderSheet(
           <MemoryRouter initialEntries={['/map']}>
             <PlaceSheet
               recentPlaces={recentPlaces}
+              recentPlacesLoading={recentPlacesLoading}
               selectedPlace={place}
               isPlaceDetailPending={false}
               isPlaceDetailError={false}
@@ -284,6 +287,13 @@ describe('PlaceSheet 최근 저장한 공간 카드', () => {
       shareToken: 'tok-abc',
     },
   ];
+
+  it('목록을 아직 못 받았으면 빈 상태 대신 스켈레톤을 그린다 — 필터를 바꿀 때 빈 화면이 튀지 않게', () => {
+    const { container } = renderSheet(PEEK_SNAP_POINT, null, { recentPlacesLoading: true });
+
+    expect(screen.queryByText('아직 저장한 공간이 없어요')).toBeNull();
+    expect(container.ownerDocument.querySelector('[data-slot="skeleton"]')).not.toBeNull();
+  });
 
   it('구독한 공유 아카이브의 장소는 공유 토큰과 함께 선택을 올린다', () => {
     const onSelectPlace = vi.fn();
