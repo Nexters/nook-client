@@ -61,6 +61,8 @@ class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear
+        // 온보딩 전환 퍼널의 "확장 진입". 로그인 안 된 진입은 계정이 없어 기록하지 않는다.
+        Task { [api] in await api.recordShareExtensionOpen() }
         loadGroups()
     }
 

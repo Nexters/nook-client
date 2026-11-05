@@ -14,6 +14,11 @@ import java.nio.channels.FileChannel
 import java.nio.charset.StandardCharsets
 import java.nio.file.StandardOpenOption
 import java.security.KeyStore
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+import java.util.UUID
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
@@ -24,6 +29,7 @@ import org.json.JSONObject
 
 internal data class ShareSession(val accessToken: String, val refreshToken: String?, val apiBaseUrl: String?, val revision: Int)
 internal class ShareAuthenticationRequiredException : IllegalStateException("로그인이 필요합니다")
+internal class ShareHttpException(val status: Int) : IllegalStateException("API 요청 실패 ($status)")
 internal class SharePrivatePostException : IllegalStateException("비공개 게시물은 저장할 수 없습니다")
 
 class ShareApiClient(private val context: Context) {
@@ -68,6 +74,70 @@ class ShareApiClient(private val context: Context) {
         )
         unwrap(response).getJSONObject("value").getLong("postId")
     }
+
+    // 온보딩 전환 측정 (`POST /onboarding/events`).
+    //
+    // 확장이 열린 순간을 먼저 저장소에 적고 보낸다 — 사용자가 바로 닫아도 기록이 남고, 다음에
+    // 확장이 열릴 때 다시 보낸다. 서버가 eventId 로 중복을 걸러 주므로 재전송은 id·시각을 그대로
+    // 쓴다. 탭한 계정(JWT sub)을 함께 적어 두고 지금 계정의 것만 보낸다.
+    // 웹의 `features/onboarding/onboardingEvents.ts`, iOS `ShareApiClient.swift` 와 같은 규칙이다.
+    private val eventPrefs = context.getSharedPreferences("nook_onboarding_events", Context.MODE_PRIVATE)
+
+    // 블로킹 호출만 있는 한 블록이라, 화면이 닫혀 코루틴이 취소돼도 시작한 전송·삭제는 끝까지 간다.
+    suspend fun recordShareExtensionOpen() = withContext(Dispatchers.IO) {
+        val owner = currentOwner() ?: return@withContext
+        val now = System.currentTimeMillis()
+        val utc = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
+        val event = JSONObject()
+            .put("eventId", UUID.randomUUID().toString())
+            .put("eventName", "SHARE_EXTENSION_OPEN")
+            .put("occurredAt", utc.format(Date(now)))
+            .put("atMs", now)
+            .put("owner", owner)
+        writeEvents(readEvents() + event)
+        flushOnboardingEvents(owner)
+    }
+
+    private fun flushOnboardingEvents(owner: String) {
+        for (event in readEvents().filter { it.optString("owner") == owner }) {
+            val id = event.getString("eventId")
+            val body = JSONObject().put("eventId", id).put("eventName", event.getString("eventName"))
+                .put("occurredAt", event.getString("occurredAt")).toString()
+            try {
+                protectedRequest("/onboarding/events", "POST", body)
+                removeEvent(id)
+            } catch (error: ShareHttpException) {
+                // 종류·UUID·시각 오류(단말 시계가 서버보다 빠름 등). 다시 보내도 같다.
+                if (error.status != 400) return
+                Log.w(TAG, "온보딩 이벤트 거절됨, 버림: $id")
+                removeEvent(id)
+            } catch (_: Exception) {
+                return // 네트워크·세션 없음: 남겨 두고 다음 실행 때 다시 보낸다.
+            }
+        }
+    }
+
+    // 서버 허용 범위는 발생 후 7일. 경계에서 400 이 나지 않게 1시간 일찍 버린다.
+    private fun readEvents(): List<JSONObject> {
+        val minMs = System.currentTimeMillis() - (7 * 24 - 1) * 3_600_000L
+        val array = runCatching { JSONArray(eventPrefs.getString("pending", "[]")) }.getOrNull() ?: return emptyList()
+        return (0 until array.length()).mapNotNull { array.optJSONObject(it) }.filter { it.optLong("atMs") >= minMs }
+    }
+
+    private fun writeEvents(events: List<JSONObject>) {
+        eventPrefs.edit().putString("pending", JSONArray(events).toString()).commit()
+    }
+
+    private fun removeEvent(eventId: String) {
+        writeEvents(readEvents().filter { it.optString("eventId") != eventId })
+    }
+
+    /** 토큰의 `sub`. 서명은 확인하지 않는다 — 어느 계정 이벤트인지 가르는 데만 쓴다. */
+    private fun currentOwner(): String? = runCatching {
+        val payload = vault.read()?.accessToken?.split('.')?.getOrNull(1) ?: return null
+        val json = JSONObject(String(Base64.decode(payload, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP), Charsets.UTF_8))
+        json.opt("sub")?.takeIf { it != JSONObject.NULL }?.toString()
+    }.getOrNull()
 
     private fun protectedRequest(path: String, method: String = "GET", body: String? = null): String {
         val initial = vault.read() ?: throw ShareAuthenticationRequiredException()
@@ -138,7 +208,7 @@ class ShareApiClient(private val context: Context) {
         if (error?.optString("errorCode").orEmpty().uppercase() == "PRIVATE_POST") {
             return SharePrivatePostException()
         }
-        return IllegalStateException(status?.let { "API 요청 실패 ($it)" } ?: "API 실패 응답")
+        return status?.let { ShareHttpException(it) } ?: IllegalStateException("API 실패 응답")
     }
 
     private companion object {
