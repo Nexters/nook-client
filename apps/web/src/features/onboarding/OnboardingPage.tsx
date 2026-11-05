@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { trackInstagramCtaClick } from '@/features/onboarding/onboardingEvents';
 import { markOnboardingSeen } from '@/features/onboarding/onboardingSeen';
 import { shareViaSystem } from '@/features/share/lib/shareUrl';
 import { nativeBridge } from '@/native-bridge';
@@ -277,8 +278,10 @@ export function OnboardingPage() {
   /**
    * 인스타그램으로 보낸다. "봤음" 으로 기록하지만 화면은 그대로 3장에 둔다 — 인스타그램에서
    * 돌아온 사람이 지도가 아니라 방금 보던 안내를 다시 보고, 나갈 때는 닫기(X)로 나간다.
+   * 전환 측정용 클릭 기록은 다시보기에서도 남긴다 — 서버가 사용자별 첫 클릭을 기준으로 삼는다.
    */
   const goToInstagram = () => {
+    trackInstagramCtaClick();
     if (!replay) markOnboardingSeen();
     nativeBridge.openExternalUrl(INSTAGRAM_URL);
   };
