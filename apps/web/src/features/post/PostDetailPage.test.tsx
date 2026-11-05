@@ -200,6 +200,7 @@ function renderRoute(initialPath: string, initialEntries: InitialEntry[] = [init
             <Routes>
               <Route path="/post/:postId" element={<PostDetailPage />} />
               <Route path="/map" element={<MapRouteProbe />} />
+              <Route path="/archive" element={<p>아카이브 목록 화면</p>} />
               <Route path="/archive/:archiveId" element={<ArchiveRouteProbe />} />
             </Routes>
           </MemoryRouter>
@@ -346,6 +347,17 @@ describe('게시물 상세', () => {
       ).toBeInTheDocument(),
     );
     expect(mocks.requestPostRecovery).not.toHaveBeenCalled();
+  });
+
+  it('없는 게시물(404)이면 안내 후 아카이브 목록으로 돌려보낸다', async () => {
+    mocks.fetchPostDetail.mockRejectedValue(
+      new ApiClientError('not found', { kind: 'http', status: 404 }),
+    );
+    renderRoute('/post/999');
+
+    expect(await screen.findByText('게시물을 찾을 수 없어요')).toBeInTheDocument();
+    expect(await screen.findByText('아카이브 목록 화면')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument();
   });
 
   describe('수집 실패(FAILED) 건의 다시 시도', () => {

@@ -39,7 +39,7 @@ import { PostInfo } from './components/PostInfo';
 import { GoHomeTooltip, PostParsingView } from './components/PostParsingView';
 import { PostVideoViewer } from './components/PostVideoViewer';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
-import { isPostFromList } from './postEntry';
+import { isPostFromList, POST_NOT_FOUND_TOAST } from './postEntry';
 import type { SearchedPlace } from './types';
 
 /** 이 값을 넘겨 스크롤된 것으로 본다 — PinnedHeaderLayout 의 +1px 최소 스크롤은 무시. */
@@ -95,6 +95,14 @@ export function PostDetailPage() {
     : '/map';
 
   const isProcessing = postDetailState.status === 'processing';
+
+  // 삭제·계정 전환 등으로 없는 게시물 — 다시 시도할 거리가 없어 아카이브 목록으로 돌려보낸다.
+  const isNotFound = postDetailState.status === 'notFound';
+  useEffect(() => {
+    if (!isNotFound) return;
+    showToast(POST_NOT_FOUND_TOAST);
+    navigate('/archive', { replace: true });
+  }, [isNotFound, navigate, showToast]);
 
   // 수집 실패 건의 `다시 시도` — 기존 URL·아카이브로 서버에 재처리를 요청한다(NOOK-410).
   // 접수되면 상세 무효화로 처리 중 화면이 이어받으므로 화면 전환은 쿼리에 맡기고 안내만 띄운다.
@@ -277,7 +285,7 @@ export function PostDetailPage() {
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
           {isProcessing ? (
             <PostParsingView percent={postDetailState.percent} />
-          ) : postDetailState.status === 'loading' ? (
+          ) : postDetailState.status === 'loading' || isNotFound ? (
             <PostDetailLoadingView />
           ) : postDetailState.status === 'failed' ? (
             <PostDetailErrorView

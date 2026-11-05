@@ -11,6 +11,7 @@ import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider'
 import { mapQueryKeys } from '@/features/map/api/queries';
 import type { Place } from '@/features/place';
 import { usePlacePinToast } from '@/features/place/lib/usePlacePinToast';
+import { ApiClientError } from '@/shared/api';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import type { ParsedPlace, PlaceParsingStatus, PostDetail, SearchedPlace } from '../types';
 import {
@@ -41,13 +42,17 @@ export type PostDetailState =
   /** 본문 수집이 `FAILED` 로 끝난 저장 건 — 서버 복구 요청 대상. */
   | { status: 'failed' }
   /** 상세 조회 자체(네트워크 등)가 실패한 경우 — 다시 조회하면 된다. */
-  | { status: 'error'; retry: () => void };
+  | { status: 'error'; retry: () => void }
+  /** 404 — 삭제됐거나 다른 계정의 저장 건이다. 다시 조회해도 같으니 목록으로 돌려보낸다. */
+  | { status: 'notFound' };
+
+const isNotFound = (error: unknown) => error instanceof ApiClientError && error.status === 404;
 
 /**
  * 게시물 상세. 저장 직후엔 BE 가 본문을 비동기로 처리해서 title/media 가 비어 있을 수
  * 있다 — `processingStatus` 가 PENDING/PROCESSING 동안은 폴링하며
  * processing 상태(진행률 포함)로 노출한다.
- * TanStack Query 상태 + 처리 상태를 화면용 5-state union 으로 좁혀 노출한다 — 소비처
+ * TanStack Query 상태 + 처리 상태를 화면용 6-state union 으로 좁혀 노출한다 — 소비처
  * (PostDetailPage)가 쿼리 객체 전체에 의존하지 않게 하기 위해서다.
  */
 export function usePostDetail(postId: number | undefined): PostDetailState {
@@ -66,7 +71,10 @@ export function usePostDetail(postId: number | undefined): PostDetailState {
   });
 
   if (query.isPending) return { status: 'loading' };
-  if (query.isError) return { status: 'error', retry: () => void query.refetch() };
+  if (query.isError) {
+    if (isNotFound(query.error)) return { status: 'notFound' };
+    return { status: 'error', retry: () => void query.refetch() };
+  }
 
   const detail = query.data;
   if (detail.processingStatus === 'PENDING' || detail.processingStatus === 'PROCESSING') {
