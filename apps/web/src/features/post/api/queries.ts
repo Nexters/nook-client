@@ -20,6 +20,7 @@ import {
   fetchPlaceParsing,
   fetchPostDetail,
   replacePostArchives,
+  requestPostRecovery,
   searchConnectablePlaces,
   updatePlaceBookmark,
   updatePostMemo,
@@ -37,13 +38,16 @@ export type PostDetailState =
   | { status: 'loading' }
   | { status: 'processing'; percent: number }
   | { status: 'success'; detail: PostDetail }
-  | { status: 'error' };
+  /** 본문 수집이 `FAILED` 로 끝난 저장 건 — 서버 복구 요청 대상. */
+  | { status: 'failed' }
+  /** 상세 조회 자체(네트워크 등)가 실패한 경우 — 다시 조회하면 된다. */
+  | { status: 'error'; retry: () => void };
 
 /**
  * 게시물 상세. 저장 직후엔 BE 가 본문을 비동기로 처리해서 title/media 가 비어 있을 수
  * 있다 — `processingStatus` 가 PENDING/PROCESSING 동안은 폴링하며
  * processing 상태(진행률 포함)로 노출한다.
- * TanStack Query 상태 + 처리 상태를 화면용 4-state union 으로 좁혀 노출한다 — 소비처
+ * TanStack Query 상태 + 처리 상태를 화면용 5-state union 으로 좁혀 노출한다 — 소비처
  * (PostDetailPage)가 쿼리 객체 전체에 의존하지 않게 하기 위해서다.
  */
 export function usePostDetail(postId: number | undefined): PostDetailState {
@@ -62,14 +66,13 @@ export function usePostDetail(postId: number | undefined): PostDetailState {
   });
 
   if (query.isPending) return { status: 'loading' };
-  if (query.isError) return { status: 'error' };
+  if (query.isError) return { status: 'error', retry: () => void query.refetch() };
 
   const detail = query.data;
   if (detail.processingStatus === 'PENDING' || detail.processingStatus === 'PROCESSING') {
     return { status: 'processing', percent: detail.processingPercent };
   }
-  // 처리 실패 전용 화면은 아직 시안이 없다 — 연관 장소 파싱 실패와 같은 처리로 임시 통일한다.
-  if (detail.processingStatus === 'FAILED') return { status: 'error' };
+  if (detail.processingStatus === 'FAILED') return { status: 'failed' };
   return { status: 'success', detail };
 }
 
@@ -246,6 +249,24 @@ export function useDeletePost(postId: number | undefined) {
   return useMutation({
     mutationFn: () => deletePost(postId as number),
     onSuccess: () => {
+      void invalidatePostLists(queryClient);
+    },
+  });
+}
+
+/**
+ * 수집 실패 저장 건의 복구 요청. 성공하면 상세를 무효화한다 — 서버가 PENDING 으로 되돌려 둔
+ * 상태를 다시 읽어 기존 처리 중 화면·폴링이 이어받고, 이미 완료된 건이면 상세가 그대로 뜬다.
+ * 목록 카드도 실패 → 처리 중으로 바뀌므로 함께 무효화한다.
+ */
+export function useRequestPostRecovery(postId: number | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => requestPostRecovery(postId as number),
+    onSuccess: () => {
+      if (postId === undefined) return;
+      queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(postId) });
       void invalidatePostLists(queryClient);
     },
   });
