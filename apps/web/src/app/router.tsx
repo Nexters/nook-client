@@ -24,6 +24,7 @@ import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
 import { SaveGuidePage } from '@/features/my/SaveGuidePage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
+import { OnboardingEventSyncHost } from '@/features/onboarding/onboardingEvents';
 import { PostDetailPage } from '@/features/post/PostDetailPage';
 import { SharedArchivePage } from '@/features/share/SharedArchivePage';
 import { SharedArchiveSubscribersPage } from '@/features/share/SharedArchiveSubscribersPage';
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
         <RootScrollReset />
         <NativeBackHost />
         <PushTokenSyncHost />
+        <OnboardingEventSyncHost />
         <NativePushHost />
         <AppUpdateGateHost />
       </>
