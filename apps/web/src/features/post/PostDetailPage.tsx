@@ -9,6 +9,7 @@ import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider'
 import { PushPrimingSheet } from '@/features/notifications/components/PushPrimingSheet';
 import { SavePostSheet } from '@/features/share/components/SavePostSheet';
 import { capturePostHogEvent } from '@/lib/posthog';
+import { ApiClientError } from '@/shared/api';
 import { Icon20ArrowUp } from '@/shared/icons/NookIcons';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
@@ -20,6 +21,7 @@ import {
   useDeletePost,
   usePostDetail,
   useRelatedPlaces,
+  useRequestPostRecovery,
   useUpdatePlaceBookmark,
   useUpdatePostArchives,
   useUpdatePostMemo,
@@ -93,6 +95,33 @@ export function PostDetailPage() {
     : '/map';
 
   const isProcessing = postDetailState.status === 'processing';
+
+  // 수집 실패 건의 `다시 시도` — 기존 URL·아카이브로 서버에 재처리를 요청한다(NOOK-410).
+  // 접수되면 상세 무효화로 처리 중 화면이 이어받으므로 화면 전환은 쿼리에 맡기고 안내만 띄운다.
+  // TODO(NOOK-410): 접수 토스트 외 문구는 시안에 없어 임시 문구다 — 기획 확인 후 교체.
+  const recoveryMutation = useRequestPostRecovery(postId);
+  function handleRequestRecovery() {
+    recoveryMutation.mutate(undefined, {
+      onSuccess: ({ requested, processingStatus }) => {
+        if (requested) {
+          showToast({ variant: 'simple', title: '다시 저장을 요청했어요. 완료되면 알려드릴게요.' });
+        } else if (processingStatus === 'PENDING' || processingStatus === 'PROCESSING') {
+          showToast({ variant: 'simple', title: '이미 다시 저장하고 있어요.' });
+        }
+        // COMPLETED 는 이미 저장된 건 — 상세가 다시 그려지는 것으로 충분하다.
+      },
+      onError: (error) => {
+        const code = error instanceof ApiClientError ? error.code : undefined;
+        const title =
+          code === 'GROUP_NOT_FOUND'
+            ? '저장했던 아카이브가 없어 다시 저장할 수 없어요'
+            : code === 'POST_PROCESSING_STATE_CONFLICT'
+              ? '다시 저장할 수 없는 게시물이에요'
+              : '다시 저장을 요청하지 못했어요';
+        showToast({ variant: 'simple', title });
+      },
+    });
+  }
 
   function handleBack() {
     // 파싱 중엔 돌아갈 완성 화면이 없다 — 툴팁 문구대로 홈(지도)으로 보낸다.
@@ -250,8 +279,13 @@ export function PostDetailPage() {
             <PostParsingView percent={postDetailState.percent} />
           ) : postDetailState.status === 'loading' ? (
             <PostDetailLoadingView />
+          ) : postDetailState.status === 'failed' ? (
+            <PostDetailErrorView
+              onRetry={handleRequestRecovery}
+              retryDisabled={recoveryMutation.isPending}
+            />
           ) : (
-            <PostDetailErrorView />
+            <PostDetailErrorView onRetry={postDetailState.retry} />
           )}
         </div>
         {/* 오래 걸리는 저장(파싱 화면)에서만 — 권한이 미결정인 사용자에게 완료 알림을

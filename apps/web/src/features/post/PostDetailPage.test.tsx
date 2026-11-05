@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import emptyThumbnail from '@/assets/images/98_Group.svg';
 import type { PlaceParsingResult, PostDetail, SearchedPlace } from '@/features/post/types';
+import { ApiClientError } from '@/shared/api';
 import { ToastProvider } from '@/shared/toast';
 
 // HTTP 전송이 아니라 화면 ↔ Query ↔ feature API 배선만 검증한다.
@@ -18,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   disconnectPostPlace: vi.fn(),
   replacePostArchives: vi.fn(),
   deletePost: vi.fn(),
+  requestPostRecovery: vi.fn(),
 }));
 
 vi.mock('@/features/post/api', () => mocks);
@@ -331,11 +333,88 @@ describe('게시물 상세', () => {
     expect(screen.getByTestId('map-route-probe')).toHaveTextContent('/map');
   });
 
-  it('게시물 조회에 실패하면 안내 문구를 보여준다', async () => {
-    mocks.fetchPostDetail.mockRejectedValue(new Error('404'));
-    renderRoute('/post/999');
+  it('게시물 조회에 실패하면 안내 문구를 보여주고, 다시 시도는 복구 요청 없이 재조회만 한다', async () => {
+    mocks.fetchPostDetail.mockRejectedValueOnce(new Error('network'));
+    renderRoute('/post/1');
 
-    await waitFor(() => expect(screen.getByText('게시물을 불러오지 못했어요')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/게시물을 불러오지 못했어요/)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: '다시 시도' }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', { name: '지금 가기 좋은 초록뷰 카페' }),
+      ).toBeInTheDocument(),
+    );
+    expect(mocks.requestPostRecovery).not.toHaveBeenCalled();
+  });
+
+  describe('수집 실패(FAILED) 건의 다시 시도', () => {
+    const FAILED_POST = { ...POSTS[1], processingStatus: 'FAILED' as const, processingPercent: 0 };
+    const recovery = (overrides: Record<string, unknown>) => ({
+      postId: 1,
+      requested: true,
+      processingStatus: 'PENDING',
+      processingPercent: 5,
+      ...overrides,
+    });
+
+    async function clickRetry() {
+      renderRoute('/post/1');
+      await waitFor(() =>
+        expect(screen.getByText(/게시물을 불러오지 못했어요/)).toBeInTheDocument(),
+      );
+      fireEvent.click(screen.getByRole('button', { name: '다시 시도' }));
+    }
+
+    beforeEach(() => {
+      mocks.fetchPostDetail.mockResolvedValue(FAILED_POST);
+    });
+
+    it('복구를 요청하고 접수 안내 뒤 처리 중 화면으로 넘어간다', async () => {
+      mocks.requestPostRecovery.mockImplementation(async () => {
+        mocks.fetchPostDetail.mockResolvedValue({ ...FAILED_POST, processingStatus: 'PENDING' });
+        return recovery({});
+      });
+      await clickRetry();
+
+      expect(mocks.requestPostRecovery).toHaveBeenCalledWith(1);
+      expect(
+        await screen.findByText('다시 저장을 요청했어요. 완료되면 알려드릴게요.'),
+      ).toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getByRole('status', { name: '장소 불러오는 중' })).toBeInTheDocument(),
+      );
+    });
+
+    it('요청이 끝나기 전에는 버튼을 막아 중복 요청하지 않는다', async () => {
+      mocks.requestPostRecovery.mockReturnValue(new Promise(() => {}));
+      await clickRetry();
+
+      const button = screen.getByRole('button', { name: '다시 시도' });
+      await waitFor(() => expect(button).toBeDisabled());
+      fireEvent.click(button);
+      expect(mocks.requestPostRecovery).toHaveBeenCalledTimes(1);
+    });
+
+    it('이미 처리 중인 건이면 새로 접수하지 않았다고 알린다', async () => {
+      mocks.requestPostRecovery.mockResolvedValue(
+        recovery({ requested: false, processingStatus: 'PROCESSING' }),
+      );
+      await clickRetry();
+
+      expect(await screen.findByText('이미 다시 저장하고 있어요.')).toBeInTheDocument();
+    });
+
+    it('저장했던 아카이브가 모두 삭제됐으면 복구할 수 없다고 알린다', async () => {
+      mocks.requestPostRecovery.mockRejectedValue(
+        new ApiClientError('not found', { kind: 'http', status: 404, code: 'GROUP_NOT_FOUND' }),
+      );
+      await clickRetry();
+
+      expect(
+        await screen.findByText('저장했던 아카이브가 없어 다시 저장할 수 없어요'),
+      ).toBeInTheDocument();
+    });
   });
 
   it('공유하기로 진입하면 뒤로가기 시 첫 번째 장소가 선택된 지도로 이동한다', async () => {
