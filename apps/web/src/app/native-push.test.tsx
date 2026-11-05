@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { NativePushHost } from '@/app/native-push';
 import { postQueryKeys } from '@/features/post/api/queries';
 import { nativeBridge } from '@/native-bridge';
+import { ToastProvider } from '@/shared/toast';
 
 function LocationProbe() {
   const location = useLocation();
@@ -16,13 +17,16 @@ let queryClient: QueryClient;
 function renderHost() {
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/archive']}>
-        <NativePushHost />
-        <Routes>
-          <Route path="/archive" element={<LocationProbe />} />
-          <Route path="/post/:postId" element={<LocationProbe />} />
-        </Routes>
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter initialEntries={['/map']}>
+          <NativePushHost />
+          <Routes>
+            <Route path="/map" element={<LocationProbe />} />
+            <Route path="/archive" element={<LocationProbe />} />
+            <Route path="/post/:postId" element={<LocationProbe />} />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   );
 }
@@ -55,7 +59,7 @@ describe('푸시로 게시물 상세에 들어갈 때', () => {
     queryClient.setQueryData(postQueryKeys.placeParsing(7), { placeParsingStatus: 'PENDING' });
     renderHost();
 
-    receivePush({ type: 'POST_PROCESSING', postId: '7' });
+    receivePush({ type: 'POST_PROCESSING', postId: '101', savedPostId: '7' });
 
     expect(screen.getByTestId('path').textContent).toBe('/post/7');
     expect(queryClient.getQueryState(postQueryKeys.detail(7))?.isInvalidated).toBe(true);
@@ -66,8 +70,37 @@ describe('푸시로 게시물 상세에 들어갈 때', () => {
     queryClient.setQueryData(postQueryKeys.detail(8), { placeParsingStatus: 'COMPLETED' });
     renderHost();
 
-    receivePush({ type: 'POST_PROCESSING', postId: '7' });
+    receivePush({ type: 'POST_PROCESSING', postId: '101', savedPostId: '7' });
 
     expect(queryClient.getQueryState(postQueryKeys.detail(8))?.isInvalidated).toBe(false);
+  });
+});
+
+/** 푸시의 postId 는 원본 게시물 ID 라 내 상세 ID 와 다르다 — 수신자별 savedPostId 로 연다. */
+describe('푸시의 게시물 ID', () => {
+  it('원본 postId 가 아니라 savedPostId 로 상세를 연다', () => {
+    renderHost();
+
+    receivePush({
+      type: 'POST_PROCESSING',
+      outcome: 'COMPLETED',
+      postId: '101',
+      savedPostId: '710',
+    });
+
+    expect(screen.getByTestId('path').textContent).toBe('/post/710');
+  });
+
+  it.each([
+    ['savedPostId 가 없는 구형 알림', { postId: '101' }],
+    ['양의 정수가 아닌 값', { postId: '101', savedPostId: '0' }],
+    ['숫자가 아닌 값', { postId: '101', savedPostId: 'abc' }],
+  ])('%s은 원본 ID 로 열지 않고 안내 후 아카이브 목록으로 보낸다', async (_, data) => {
+    renderHost();
+
+    receivePush({ type: 'POST_PROCESSING', ...data });
+
+    expect(screen.getByTestId('path').textContent).toBe('/archive');
+    expect(await screen.findByText('게시물을 찾을 수 없어요')).toBeInTheDocument();
   });
 });
