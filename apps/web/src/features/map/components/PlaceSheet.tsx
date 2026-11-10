@@ -332,7 +332,10 @@ export function PlaceSheet({
             inert={searchVisible || undefined}
             className={cn(
               'flex h-full flex-col gap-3 px-4',
-              canScroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
+              // overflow-y 만 주면 x 도 auto 가 돼 -mx-4 sticky 헤더 때문에 좌우로 밀린다(NOOK-422 QA).
+              canScroll
+                ? 'overflow-y-auto overflow-x-hidden overscroll-contain'
+                : 'overflow-hidden',
               layoutClassNames.scroller.className,
             )}
           >
@@ -357,7 +360,14 @@ export function PlaceSheet({
               <>
                 {/* Figma `홈_지도` 시트 헤더 — 검색창 모양의 진입 버튼, 그 아래 개수와 필터.
                     목록을 내려도 위에 붙어 있도록 스크롤러 안에서 sticky 로 둔다(NOOK-387). */}
-                <div className="-mx-4 sticky top-0 z-10 flex shrink-0 flex-col gap-2 border-gray-10 border-b bg-gray-0 px-4">
+                <div
+                  className={cn(
+                    '-mx-4 sticky top-0 z-10 flex shrink-0 flex-col gap-2 border-b bg-gray-0 px-4',
+                    // 기본 상태엔 선 없이, 목록이 헤더 밑으로 스크롤될 때만 하단 스트로크(NOOK-422 QA).
+                    // 선을 붙였다 뗐다 하면 1px 씩 목록이 튀어서 두께는 두고 색만 바꾼다.
+                    isScrolled ? 'border-gray-10' : 'border-transparent',
+                  )}
+                >
                   <button
                     type="button"
                     onClick={onEnterSearch}
@@ -372,7 +382,11 @@ export function PlaceSheet({
                     <p className="text-b2 font-medium text-gray-80">
                       {recentPlacesTotal === undefined ? null : (
                         <>
-                          <span className="text-nook-blue">{recentPlacesTotal}</span> 곳
+                          {/* 필터를 걸기 전엔 숫자에 색을 넣지 않는다(NOOK-422 QA). */}
+                          <span className={cn(filterActive && 'text-nook-blue')}>
+                            {recentPlacesTotal}
+                          </span>{' '}
+                          곳
                         </>
                       )}
                     </p>
