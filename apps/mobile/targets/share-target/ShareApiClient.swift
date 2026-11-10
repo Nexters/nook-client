@@ -14,7 +14,8 @@ private struct ApiEnvelope<T: Decodable>: Decodable {
 private struct ApiStatusEnvelope: Decodable { let resultType: String; let error: ApiFailure? }
 private struct TokenPair: Codable { let accessToken: String; let refreshToken: String }
 private struct SessionRecord: Codable { let schemaVersion: Int; let accessToken: String; let refreshToken: String?; let apiBaseUrl: String?; let revision: Int }
-private struct ServerGroup: Decodable { let id: Int64; let name: String; let color: String }
+// accessType: OWNED | SHARED. 생성 응답 등에서 빠져도 디코딩이 깨지지 않게 옵셔널로 둔다.
+private struct ServerGroup: Decodable { let id: Int64; let name: String; let color: String; let accessType: String? }
 private struct SavedPost: Decodable { let postId: Int64 }
 private struct OnboardingEvent: Codable { let eventId: String; let eventName: String; let occurredAt: String; let owner: String }
 
@@ -47,7 +48,10 @@ final class ShareApiClient {
     func groups() async throws -> [Group] {
         let data = try await protectedRequest(path: "/groups")
         let result = try unwrap(ApiEnvelope<[ServerGroup]>.self, data)
-        return result.map { Group(id: $0.id, name: $0.name, color: groupColor($0.color)) }
+        // /groups 는 공유받은 아카이브도 함께 준다 — 남의 아카이브에는 저장할 수 없으니 내 것만 남긴다.
+        return result
+            .filter { $0.accessType != "SHARED" }
+            .map { Group(id: $0.id, name: $0.name, color: groupColor($0.color)) }
     }
 
     func createGroup(name: String, colorIndex: Int) async throws -> Group {

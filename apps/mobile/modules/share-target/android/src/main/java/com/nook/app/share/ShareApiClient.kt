@@ -51,6 +51,8 @@ class ShareApiClient(private val context: Context) {
         buildList {
             for (index in 0 until values.length()) {
                 val item = values.getJSONObject(index)
+                // /groups 는 공유받은 아카이브도 함께 준다 — 남의 아카이브에는 저장할 수 없으니 내 것만 남긴다.
+                if (item.optString("accessType") == "SHARED") continue
                 add(Group(item.getLong("id"), item.getString("name"), groupColor(item.getString("color"))))
             }
         }
