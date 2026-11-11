@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   fetchRecentPlaces: vi.fn(),
   fetchPlaceDetail: vi.fn(),
   fetchSharedPlaceDetail: vi.fn(),
+  fetchSavedPlaceSearch: vi.fn(),
   disconnectPostPlace: vi.fn(),
   updatePlaceBookmark: vi.fn(),
   updatePlaceMemo: vi.fn(),
@@ -26,7 +27,7 @@ vi.mock('@/features/map/components/MapView', () => ({
     onBoundsChanged,
     onDestinationBounds,
   }: {
-    pins: { id: number; color: string }[];
+    pins: { id: number; color: string; outsideSearch?: boolean }[];
     onPlaceClick: (id: number) => void;
     onBoundsChanged: (bounds: { north: number; south: number; east: number; west: number }) => void;
     onDestinationBounds: (bounds: {
@@ -54,7 +55,9 @@ vi.mock('@/features/map/components/MapView', () => ({
       >
         이동 시작
       </button>
-      <output data-testid="pins">{pins.map((pin) => `${pin.id}:${pin.color}`).join(',')}</output>
+      <output data-testid="pins">
+        {pins.map((pin) => `${pin.id}:${pin.color}${pin.outsideSearch ? ':밖' : ''}`).join(',')}
+      </output>
     </>
   ),
 }));
@@ -81,6 +84,10 @@ vi.mock('@/features/map/components/PlaceSheet', async () => {
       onEnterSearch,
       onExitSearch,
       onSearchInputFocus,
+      searchQuery,
+      onSearchQueryChange,
+      onSelectSearchResult,
+      hidden,
     }: {
       selectedPlace: { name: string } | null;
       snap: number | string | null;
@@ -92,8 +99,21 @@ vi.mock('@/features/map/components/PlaceSheet', async () => {
       onEnterSearch: () => void;
       onExitSearch: () => void;
       onSearchInputFocus: () => void;
+      searchQuery: string;
+      onSearchQueryChange: (query: string) => void;
+      onSelectSearchResult: (id: number) => void;
+      hidden?: boolean;
     }) => (
       <div>
+        <p>시트 가림: {String(hidden ?? false)}</p>
+        <input
+          aria-label="검색어"
+          value={searchQuery}
+          onChange={(event) => onSearchQueryChange(event.target.value)}
+        />
+        <button type="button" onClick={() => onSelectSearchResult(1)}>
+          검색 결과 카드 선택
+        </button>
         <p>{selectedPlace ? `선택됨: ${selectedPlace.name}` : '선택 없음'}</p>
         <p>스냅: {String(snap)}</p>
         <p>즉시열림: {String(instantOpen ?? false)}</p>
@@ -136,6 +156,31 @@ vi.mock('@/features/map/components/PlaceSheet', async () => {
     ),
   };
 });
+
+// 플로팅 카드는 넘기기·닫기 콜백과 받은 목록만 노출한다 — 카드 렌더는 PlaceDetail 쪽 테스트 몫이다.
+vi.mock('@/features/map/components/FloatingPlaceCards', () => ({
+  FloatingPlaceCards: ({
+    placeIds,
+    activeIndex,
+    onActiveIndexChange,
+    onClose,
+  }: {
+    placeIds: number[];
+    activeIndex: number;
+    onActiveIndexChange: (index: number) => void;
+    onClose: () => void;
+  }) => (
+    <div>
+      <output data-testid="cards">{`${placeIds.join(',')}@${activeIndex}`}</output>
+      <button type="button" onClick={() => onActiveIndexChange(activeIndex + 1)}>
+        다음 카드로 넘기기
+      </button>
+      <button type="button" onClick={onClose}>
+        카드 닫기
+      </button>
+    </div>
+  ),
+}));
 
 const { MapPage } = await import('./MapPage');
 
@@ -646,5 +691,115 @@ describe('MapPage — 멀리 있는 선택 장소의 핀', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '지도 멈춤' }));
     await waitFor(() => expect(screen.getByTestId('pins')).toHaveTextContent('7:cement'));
+  });
+});
+
+describe('MapPage — 검색 결과 지도(NOOK-383)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // 지도 영역엔 검색 결과(1)와 결과 밖 저장 장소(7)가 함께 있다.
+    mocks.fetchMapPins.mockResolvedValue([
+      { id: 1, lat: 37.5, lng: 127, name: '장소 1', color: 'blue' },
+      { id: 7, lat: 37.51, lng: 127.01, name: '장소 7', color: 'red' },
+    ]);
+    mocks.fetchRecentPlaces.mockResolvedValue({ places: [] });
+    mocks.fetchSavedPlaceSearch.mockResolvedValue({
+      items: [
+        { id: 1, name: '장소 1', region: '서울' },
+        { id: 2, name: '장소 2', region: '서울' },
+      ],
+      groups: [],
+      totalCount: 2,
+    });
+    mocks.fetchPlaceDetail.mockImplementation((id: number) =>
+      Promise.resolve({
+        id,
+        name: `장소 ${id}`,
+        lat: 37.5,
+        lng: 127,
+        bookmarked: true,
+        photos: ['https://img/1.jpg'],
+      }),
+    );
+  });
+
+  /** 검색에 들어가 검색어를 치고, 결과가 온 뒤 첫 결과 카드를 고른다. */
+  async function openSearchMap() {
+    renderMapAt('/map');
+    await screen.findByText('검색모드: false');
+    fireEvent.click(screen.getByRole('button', { name: '검색 진입' }));
+    fireEvent.change(screen.getByLabelText('검색어'), { target: { value: '성수' } });
+    await waitFor(() => expect(mocks.fetchSavedPlaceSearch).toHaveBeenCalledWith('성수', null));
+    fireEvent.click(screen.getByRole('button', { name: '검색 결과 카드 선택' }));
+    await screen.findByTestId('cards');
+  }
+
+  it('결과 카드를 고르면 시트를 가리고 검색 헤더와 결과 순서의 플로팅 카드를 띄운다', async () => {
+    await openSearchMap();
+
+    expect(screen.getByText('시트 가림: true')).toBeInTheDocument();
+    // 시트는 상세를 그리지 않는다 — 상세는 플로팅 카드 몫이다.
+    expect(screen.getByText('선택 없음')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '검색 결과로 돌아가기' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '성수' })).toBeInTheDocument();
+    expect(screen.getByTestId('cards').textContent).toBe('1,2@0');
+    expect(screen.getByTestId('search-params').textContent).toBe('?placeId=1');
+  });
+
+  it('검색 결과에 없는 저장 장소는 작은 원형 핀으로 구분한다', async () => {
+    await openSearchMap();
+    fireEvent.click(screen.getByRole('button', { name: '지도 멈춤' }));
+
+    await waitFor(() => expect(screen.getByTestId('pins').textContent).toBe('1:blue,7:red:밖'));
+  });
+
+  it('카드를 넘기면 다음 결과로 선택이 바뀌고, 뒤로가기 한 번이면 결과 목록이다', async () => {
+    await openSearchMap();
+
+    fireEvent.click(screen.getByRole('button', { name: '다음 카드로 넘기기' }));
+    await waitFor(() => expect(screen.getByTestId('search-params').textContent).toBe('?placeId=2'));
+    expect(screen.getByTestId('cards').textContent).toBe('1,2@1');
+
+    fireEvent.click(screen.getByRole('button', { name: '검색 결과로 돌아가기' }));
+
+    await screen.findByText('시트 가림: false');
+    expect(screen.queryByTestId('cards')).not.toBeInTheDocument();
+    expect(screen.getByText('검색모드: true')).toBeInTheDocument();
+    expect(screen.getByLabelText('검색어')).toHaveValue('성수');
+    expect(screen.getByTestId('search-params').textContent).toBe('');
+  });
+
+  it('결과 밖 핀을 고르면 넘기기 없는 단일 카드가 된다', async () => {
+    await openSearchMap();
+
+    fireEvent.click(screen.getByRole('button', { name: '핀 7 클릭' }));
+
+    await waitFor(() => expect(screen.getByTestId('cards').textContent).toBe('7@0'));
+    // 검색 헤더는 그대로다 — 검색어는 탐색 중인 조건이다.
+    expect(screen.getByRole('button', { name: '성수' })).toBeInTheDocument();
+  });
+
+  it('카드를 닫아도 검색 결과 지도에 남고, 뒤로가기 한 번이면 결과 목록이다', async () => {
+    await openSearchMap();
+
+    fireEvent.click(screen.getByRole('button', { name: '카드 닫기' }));
+
+    await waitFor(() => expect(screen.queryByTestId('cards')).not.toBeInTheDocument());
+    expect(screen.getByText('시트 가림: true')).toBeInTheDocument();
+    expect(screen.getByTestId('search-params').textContent).toBe('');
+
+    fireEvent.click(screen.getByRole('button', { name: '뒤로가기' }));
+
+    await screen.findByText('시트 가림: false');
+    expect(screen.getByText('검색모드: true')).toBeInTheDocument();
+  });
+
+  it('검색어 지우기는 결과 목록으로 돌아가며 검색어를 비운다', async () => {
+    await openSearchMap();
+
+    fireEvent.click(screen.getByRole('button', { name: '검색어 지우기' }));
+
+    await screen.findByText('시트 가림: false');
+    expect(screen.getByLabelText('검색어')).toHaveValue('');
   });
 });

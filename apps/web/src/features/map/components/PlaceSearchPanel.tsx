@@ -1,13 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { SLIDE_DURATION_MS } from '@/app/slide-screen';
-import { useSearchSavedPlaces } from '@/features/map/api/queries';
 import { EmptySavedPlaces } from '@/features/map/components/EmptySavedPlaces';
+import type { SavedPlaceSearchPage } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
 import { Icon24Back, Icon24Delete } from '@/shared/icons/NookIcons';
-import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { cn } from '@/shared/lib/utils';
-
-const SEARCH_DEBOUNCE_MS = 300;
 
 /**
  * 지도 바텀시트의 검색 모드 콘텐츠 — Figma `검색 추가`.
@@ -16,8 +13,14 @@ const SEARCH_DEBOUNCE_MS = 300;
  *
  * 시트 안에 어떻게 얹히는지(슬라이드 전환·높이)는 `PlaceSheet` 가 정하고,
  * 이 패널은 주어진 높이(h-full)를 채우는 콘텐츠만 책임진다.
+ *
+ * 검색어와 결과는 `MapPage` 가 갖는다 — 결과 카드를 고르면 들어가는 검색 결과 지도(NOOK-383)가
+ * 같은 결과로 핀을 나누고 카드를 넘기기 때문이다.
  */
 export function PlaceSearchPanel({
+  query,
+  page,
+  onQueryChange,
   canScroll,
   scrollPaddingBottom,
   onExit,
@@ -25,6 +28,10 @@ export function PlaceSearchPanel({
   onInputFocus,
   onInputBlur,
 }: {
+  query: string;
+  /** 지금 검색어의 결과. 첫 결과가 오기 전(undefined)에는 결과 영역을 그리지 않는다(Figma: 진입 직후엔 필드만). */
+  page: SavedPlaceSearchPage | undefined;
+  onQueryChange: (query: string) => void;
   /** 내부 스크롤 허용 여부 — 시트의 스냅 규칙(`PlaceSheet` 의 canScroll)을 그대로 받는다. */
   canScroll: boolean;
   /**
@@ -41,13 +48,8 @@ export function PlaceSearchPanel({
   /** 입력 포커스가 풀릴 때 — 키보드 때문에 막아둔 최소 스냅을 다시 연다(PlaceSheet 배선). */
   onInputBlur: () => void;
 }) {
-  const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const fieldRef = useRef<HTMLDivElement>(null);
-  const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
-  // 첫 결과가 오기 전(undefined)에는 결과 영역을 그리지 않는다(Figma: 진입 직후엔 필드만).
-  // ponytail: 지도 아카이브 필터는 아직 검색에 안 걸린다 — 서버 검색 API 가 groupIds 를 받게 되면 넘긴다.
-  const page = useSearchSavedPlaces(debouncedQuery, null);
 
   // 검색 모드 진입 = 검색하려는 의도가 확실하므로 자동으로 입력을 받는다. 단 슬라이드
   // 전환이 끝난 뒤에 — 패널이 아직 translate 로 화면 밖(오른쪽)에 있는 동안 포커스하면
@@ -92,7 +94,7 @@ export function PlaceSearchPanel({
           value={query}
           onFocus={onInputFocus}
           onBlur={onInputBlur}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => onQueryChange(event.target.value)}
           placeholder="장소명을 입력해주세요"
           className="min-w-0 flex-1 bg-transparent text-b2 font-medium text-gray-100 outline-none placeholder:text-gray-50"
         />
@@ -101,7 +103,7 @@ export function PlaceSearchPanel({
             type="button"
             aria-label="입력 지우기"
             onClick={() => {
-              setQuery('');
+              onQueryChange('');
               inputRef.current?.focus();
             }}
             className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-1"

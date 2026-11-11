@@ -6,9 +6,11 @@ import { useHasSaveHistory } from '@/features/archive/api/queries';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { ArchiveFilterSheet } from '@/features/map/components/ArchiveFilterSheet';
+import { FloatingPlaceCards } from '@/features/map/components/FloatingPlaceCards';
 import { getLastMapCamera, MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
+import { SearchMapHeader } from '@/features/map/components/SearchMapHeader';
 import {
   DETAIL_COMPACT_SNAP_POINT,
   DETAIL_PAGE_SNAP_POINT,
@@ -19,7 +21,8 @@ import {
 import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
 import { toInitialBounds } from '@/features/map/initial-bounds';
 import type { ArchiveFilter, MapBounds } from '@/features/map/types';
-import { useMapPins, usePlaceDetail, useRecentPlaces } from './api/queries';
+import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
+import { useMapPins, usePlaceDetail, useRecentPlaces, useSearchSavedPlaces } from './api/queries';
 
 /**
  * 상세를 이 화면 안에서 열어(핀·카드 클릭) 히스토리 엔트리를 하나 쌓았다는 표시.
@@ -27,6 +30,13 @@ import { useMapPins, usePlaceDetail, useRecentPlaces } from './api/queries';
  * 전 화면"이라, 닫기가 히스토리를 되감으면 지도를 통째로 떠나버린다.
  */
 const DETAIL_ENTRY_STATE_KEY = 'placeDetail';
+/**
+ * 그 상세 엔트리가 검색 결과에서 연 "검색 결과 지도"라는 표시(NOOK-383). 시트 대신 상단 검색
+ * 헤더 + 플로팅 카드로 보여주고, 검색 결과 밖 장소는 작은 원형 핀으로 그린다. 히스토리 엔트리에
+ * 실어 두는 이유: 뒤로가기(버튼·Android 백)가 그 엔트리를 되감는 순간 자동으로 결과 목록이 된다.
+ */
+const SEARCH_MAP_STATE_KEY = 'searchMap';
+const SEARCH_DEBOUNCE_MS = 300;
 
 const FALLBACK_CENTER = { lat: 37.5729, lng: 126.9762 }; // 위치 못 가져왔을 때 광화문 인근 폴백
 
@@ -101,6 +111,16 @@ export function MapPage() {
   // 않는다. 그래서 스와이프는 여기서도 "지도를 떠난다"가 맞다. 좌상단 뒤로가기는 버튼이
   // 직접, Android 하드웨어 백은 useSlideScreen 의 인터셉터가 받는다.
   const [isSearchMode, setIsSearchMode] = useState(false);
+  // 검색어·결과는 여기서 갖는다 — 결과 목록(검색 패널)과 검색 결과 지도가 같은 결과를 쓴다.
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, SEARCH_DEBOUNCE_MS);
+  // ponytail: 지도 아카이브 필터는 아직 검색에 안 걸린다 — 서버 검색 API 가 groupIds 를 받게 되면 넘긴다.
+  const searchPage = useSearchSavedPlaces(debouncedSearchQuery, null);
+  // 검색 결과 지도. 검색 모드는 히스토리에 없어서, 새로고침으로 검색 상태가 날아가면 같은
+  // 엔트리라도 일반 상세로 떨어진다. 결과 유무는 조건에 넣지 않는다 — 헤더의 검색어 지우기처럼
+  // 결과가 먼저 비고 엔트리가 뒤늦게 되감기는 사이에 시트 상세가 한 프레임 비치면 안 된다.
+  const searchMapActive = isSearchMode && historyState?.[SEARCH_MAP_STATE_KEY] === true;
+  const searchResultIds = searchMapActive ? (searchPage?.items.map((item) => item.id) ?? []) : [];
   // 지도에 노출할 아카이브 선택(NOOK-311). 같은 진입 동안만 유지하고 지도를 나갔다 오면
   // 전체로 초기화한다는 정책이라 URL 이 아니라 이 화면의 state 에 둔다(언마운트 = 초기화).
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>(null);
@@ -163,7 +183,7 @@ export function MapPage() {
     !query.isPlaceholderData;
   const destinationPinsSettled =
     settledAround(destinationBounds, destinationPinsQuery) || settledAround(bounds, pinsQuery);
-  const pins =
+  const placePins =
     selectedPlace && destinationPinsSettled && !bboxPins.some((pin) => pin.id === selectedPlace.id)
       ? [
           ...bboxPins,
@@ -180,6 +200,13 @@ export function MapPage() {
           },
         ]
       : bboxPins;
+  // 검색 결과 지도에선 결과에 없는 저장 장소를 작은 원형 핀으로 구분한다. 결과는 한 번에 최대
+  // 100곳까지 받으므로(fetchSavedPlaceSearch) 받은 목록이 곧 결과 전체다.
+  const pins = searchMapActive
+    ? placePins.map((pin) => ({ ...pin, outsideSearch: !searchResultIds.includes(pin.id) }))
+    : placePins;
+  const searchResultIndex =
+    searchMapActive && selectedPlaceId !== null ? searchResultIds.indexOf(selectedPlaceId) : -1;
 
   useEffect(() => {
     // 검색 모드도 상세처럼 시트가 화면을 채우는 상태라 하단 탭바를 함께 숨긴다(Figma `검색 추가`).
@@ -217,8 +244,14 @@ export function MapPage() {
    * 횟수만큼 뒤로가기를 반복해야 목록에 닿는 건 화면 단위 감각과 어긋난다. 선택을 푸는
    * 경로도 replace 다(되감을 엔트리가 있으면 아래 `handleCloseDetail` 이 먼저 가로챈다).
    */
-  function setSelectedPlaceId(id: number | null, nextShareToken?: string | null) {
-    const opensDetail = id !== null && selectedPlaceId === null;
+  function setSelectedPlaceId(
+    id: number | null,
+    nextShareToken?: string | null,
+    { entersSearchMap = false }: { entersSearchMap?: boolean } = {},
+  ) {
+    // 검색 결과 지도 안에서의 선택·카드 닫기는 엔트리를 더 쌓지 않는다 — 상단 뒤로가기 한 번에
+    // 결과 목록으로 돌아가야 한다.
+    const opensDetail = id !== null && selectedPlaceId === null && !searchMapActive;
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -236,7 +269,13 @@ export function MapPage() {
         replace: !opensDetail,
         // state 를 넘기지 않으면 react-router 가 undefined 로 덮어써 마커가 사라진다 —
         // 상세를 옮겨 다니거나 스냅을 바꾸는 동안에도 그대로 실어 보낸다.
-        state: opensDetail ? { ...historyState, [DETAIL_ENTRY_STATE_KEY]: true } : historyState,
+        state: opensDetail
+          ? {
+              ...historyState,
+              [DETAIL_ENTRY_STATE_KEY]: true,
+              ...(entersSearchMap && { [SEARCH_MAP_STATE_KEY]: true }),
+            }
+          : historyState,
       },
     );
   }
@@ -248,7 +287,9 @@ export function MapPage() {
    */
   function handlePlaceClick(id: number, placeShareToken?: string | null) {
     setSelectedPlaceId(id, placeShareToken);
-    setSnap(DETAIL_PAGE_SNAP_POINT); // detailPage 스냅으로 열어 상세를 보여준다
+    // 검색 결과 지도에선 시트를 쓰지 않아 높이를 건드리지 않는다 — 결과 목록으로 돌아갔을 때
+    // 보던 높이(mid)가 그대로여야 한다.
+    if (!searchMapActive) setSnap(DETAIL_PAGE_SNAP_POINT); // detailPage 스냅으로 열어 상세를 보여준다
     // 검색은 닫지 않는다 — 상세가 검색 패널을 가리기만 하고, 상세를 닫으면(= 뒤로가기 한 번)
     // 치던 검색어와 결과가 그대로 있는 검색 화면으로 돌아온다. 검색 상태는 히스토리에 없어서
     // (검색 패널은 엔트리를 쌓지 않는다) 여기서 닫아버리면 되감을 방법이 아예 없다.
@@ -290,11 +331,40 @@ export function MapPage() {
    * 우리 엔트리가 없으므로 파라미터만 지워 지도에 남는다.
    */
   function handleCloseDetail() {
+    // 검색 결과 지도의 카드 닫기 — 카드만 내리고 검색 결과 지도에 남는다(NOOK-383).
+    if (searchMapActive) {
+      setSelectedPlaceId(null);
+      return;
+    }
     if (detailIsHistoryEntry) {
       navigate(-1);
       return;
     }
     setSelectedPlaceId(null);
+  }
+
+  /** 검색 결과 카드 선택 — 시트 상세 대신 검색 결과 지도로 들어간다(NOOK-383). */
+  function handleSearchResultClick(id: number) {
+    setSelectedPlaceId(id, null, { entersSearchMap: true });
+  }
+
+  /** 검색 결과 지도의 상단 뒤로가기 — 결과 목록으로 돌아간다(검색어·결과·스크롤 유지). */
+  function handleExitSearchMap() {
+    if (detailIsHistoryEntry) {
+      navigate(-1);
+      return;
+    }
+    // 되감을 엔트리가 없는 드문 경우 — 표시만 지워 결과 목록으로 둔다.
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('placeId');
+        next.delete('shareToken');
+        next.delete('snap');
+        return next;
+      },
+      { replace: true, state: { ...historyState, [SEARCH_MAP_STATE_KEY]: false } },
+    );
   }
 
   function handleEnterSearch() {
@@ -320,6 +390,7 @@ export function MapPage() {
   /** 검색 패널의 슬라이드 아웃이 끝난 뒤 호출된다(PlaceSheet 의 useSlideScreen 계약). */
   function handleExitSearch() {
     setIsSearchMode(false);
+    setSearchQuery('');
   }
 
   /**
@@ -343,7 +414,10 @@ export function MapPage() {
           // 지도가 늦게 마운트되든(스크립트 Suspense) 상세가 늦게 오든 MapView 가 알아서
           // 준비되는 시점에 이동한다. 선택이 풀리면 undefined 가 되어 이동하지 않는다.
           panTarget={selectedPlace ? { lat: selectedPlace.lat, lng: selectedPlace.lng } : undefined}
-          sheetSnap={typeof snap === 'number' ? snap : undefined}
+          // 검색 결과 지도는 시트 대신 플로팅 카드가 화면 아래 절반쯤을 덮는다.
+          sheetSnap={
+            searchMapActive ? DETAIL_PAGE_SNAP_POINT : typeof snap === 'number' ? snap : undefined
+          }
           onPlaceClick={handlePlaceClick}
           // 빈 지도 탭 = 상세 헤더 닫기와 같은 길(NOOK-327). 선택이 없으면 할 일이 없다.
           onEmptyMapClick={selectedPlaceId !== null ? handleCloseDetail : undefined}
@@ -352,23 +426,67 @@ export function MapPage() {
         />
         {/* 핀을 눌러 상세(detailPage)까지 올라오는 동안은 드로어를 따라 함께 올라온다.
             그보다 더 펼친 스냅(mid/full)에서는 드로어가 자리를 덮으므로 렌더하지 않는다. */}
-        {typeof snap === 'number' && snap <= DETAIL_PAGE_SNAP_POINT && (
-          <RecenterButton snapPoint={snap} onClick={() => mapRef.current?.recenter()} />
+        {searchMapActive ? (
+          // 카드가 떠 있으면 카드 위로, 닫혀 있으면 화면 아래쪽에 둔다.
+          <RecenterButton
+            snapPoint={selectedPlaceId !== null ? DETAIL_PAGE_SNAP_POINT : 0}
+            onClick={() => mapRef.current?.recenter()}
+          />
+        ) : (
+          typeof snap === 'number' &&
+          snap <= DETAIL_PAGE_SNAP_POINT && (
+            <RecenterButton snapPoint={snap} onClick={() => mapRef.current?.recenter()} />
+          )
         )}
+        {searchMapActive ? (
+          <SearchMapHeader
+            query={searchQuery}
+            onBack={handleExitSearchMap}
+            onClear={() => {
+              setSearchQuery('');
+              handleExitSearchMap();
+            }}
+          />
+        ) : null}
+        {searchMapActive && selectedPlaceId !== null ? (
+          <FloatingPlaceCards
+            // 결과 넘기기 ↔ 결과 밖 단일 카드 전환은 다시 마운트해 그 카드에 바로 서게 한다.
+            key={searchResultIndex >= 0 ? 'results' : 'single'}
+            placeIds={searchResultIndex >= 0 ? searchResultIds : [selectedPlaceId]}
+            activeIndex={Math.max(searchResultIndex, 0)}
+            userCoords={location.coords}
+            onActiveIndexChange={(index) => {
+              const id = searchResultIds[index];
+              if (id !== undefined) setSelectedPlaceId(id);
+            }}
+            onClose={handleCloseDetail}
+            onSelectPlace={handlePlaceClick}
+          />
+        ) : null}
         <PlaceSheet
           recentPlaces={recentPlacesQuery.data?.places ?? []}
           recentPlacesTotal={recentPlacesQuery.data?.totalCount}
           recentPlacesLoading={recentPlacesQuery.isLoading}
           recentPlacesPaging={recentPlacesQuery}
           firstSave={hasSaveHistory === false}
-          selectedPlace={placeDetailQuery.data ?? null}
+          // 검색 결과 지도의 상세는 플로팅 카드가 그린다 — 시트는 결과 목록 그대로 가려 둔다.
+          selectedPlace={searchMapActive ? null : (placeDetailQuery.data ?? null)}
           shareToken={shareToken}
-          isPlaceDetailPending={selectedPlaceId !== null && placeDetailQuery.isPending}
-          isPlaceDetailError={selectedPlaceId !== null && placeDetailQuery.isError}
+          isPlaceDetailPending={
+            !searchMapActive && selectedPlaceId !== null && placeDetailQuery.isPending
+          }
+          isPlaceDetailError={
+            !searchMapActive && selectedPlaceId !== null && placeDetailQuery.isError
+          }
           snap={snap}
           instantOpen={instantSheetOpen}
           userCoords={location.coords}
           isSearchMode={isSearchMode}
+          searchQuery={searchQuery}
+          searchPage={searchPage}
+          onSearchQueryChange={setSearchQuery}
+          onSelectSearchResult={handleSearchResultClick}
+          hidden={searchMapActive}
           filterActive={archiveFilter !== null}
           onSnapChange={handleSnapChange}
           onSelectPlace={handlePlaceClick}

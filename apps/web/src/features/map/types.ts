@@ -30,6 +30,11 @@ export interface MapPin {
   thumbnail?: string;
   /** 선택 핀의 글리프를 고르는 공통 카테고리. 없으면 기타 글리프다. */
   categoryGroup?: PlaceCategoryGroup;
+  /**
+   * 검색 결과 지도에서 이 장소가 검색 결과에 없는 "주변 저장 장소"인지(NOOK-383).
+   * true 면 대표 이미지 대신 작은 원형 핀으로 그린다. 일반 지도에서는 늘 비어 있다.
+   */
+  outsideSearch?: boolean;
 }
 
 /** "최근 저장한 공간" 한 페이지. `nextCursor` 가 없으면 마지막 페이지다. */

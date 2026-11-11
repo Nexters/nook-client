@@ -19,7 +19,11 @@ import {
   DETAIL_SNAP_POINTS_WITHOUT_PHOTOS,
   FULL_SNAP_POINT,
 } from '@/features/map/constants';
-import type { PlaceDetail as PlaceDetailModel, RecentPlace } from '@/features/map/types';
+import type {
+  PlaceDetail as PlaceDetailModel,
+  RecentPlace,
+  SavedPlaceSearchPage,
+} from '@/features/map/types';
 import { FirstSaveEmpty } from '@/features/onboarding/FirstSaveEmpty';
 import { PlaceCard } from '@/features/place';
 import {
@@ -67,6 +71,11 @@ export function PlaceSheet({
   instantOpen = false,
   userCoords,
   isSearchMode,
+  searchQuery,
+  searchPage,
+  onSearchQueryChange,
+  onSelectSearchResult,
+  hidden = false,
   filterActive = false,
   onSnapChange,
   onSelectPlace,
@@ -101,6 +110,17 @@ export function PlaceSheet({
   userCoords?: Coordinates | null;
   /** 저장한 공간 검색 모드 — 탐색 콘텐츠 위로 검색 패널이 슬라이드되어 덮는다. */
   isSearchMode: boolean;
+  /** 검색어·결과 — 검색 결과 지도와 같은 값을 써야 해서 `MapPage` 가 갖는다. */
+  searchQuery: string;
+  searchPage: SavedPlaceSearchPage | undefined;
+  onSearchQueryChange: (query: string) => void;
+  /** 검색 결과 카드 선택 — 시트 상세가 아니라 검색 결과 지도로 들어간다(NOOK-383). */
+  onSelectSearchResult: (id: number) => void;
+  /**
+   * 시트를 통째로 가린다 — 검색 결과 지도(NOOK-383)는 시트 대신 플로팅 카드를 쓴다. 언마운트가
+   * 아니라 가리기만 하는 이유: 돌아왔을 때 검색 결과 목록의 스크롤 위치가 그대로여야 한다.
+   */
+  hidden?: boolean;
   /** 아카이브 필터가 걸려 있는지 — 필터 아이콘에 점 배지를 단다. */
   filterActive?: boolean;
   onSnapChange: (snap: number | string | null) => void;
@@ -157,10 +177,20 @@ export function PlaceSheet({
   // 닫으면 치던 검색어·결과·칩 필터가 그대로 있는 검색 화면으로 돌아와야 한다(MapPage 가
   // 검색 모드를 끄지 않는 이유). 가려진 동안은 존재하지 않는 것처럼 굴어야 한다 —
   // 뒤로가기 인터셉터(아래 open)도, 상세 위로 덮는 오버레이도 함께 빠진다.
-  const searchVisible = isSearchMode && !hasSelection;
+  // 시트를 가린 동안(검색 결과 지도)도 패널은 "덮인" 것으로 친다 — 뒤로가기 인터셉터가 빠져야
+  // Android 백이 검색 닫기가 아니라 결과 목록 복귀(히스토리 되감기)로 간다.
+  const searchVisible = isSearchMode && !hasSelection && !hidden;
+  // 검색 결과 지도에서 결과 목록으로 돌아오는 건 "뒤로" 라 패널이 다시 옆에서 들어오면 안 된다 —
+  // 가려 두었던 그 자리에 그대로 서 있어야 한다(보던 스크롤 포함).
+  const wasHiddenRef = useRef(hidden);
+  const returningFromHidden = wasHiddenRef.current && !hidden;
+  useEffect(() => {
+    wasHiddenRef.current = hidden;
+  });
   const { slidIn: searchSlidIn, slideOut: slideOutSearch } = useSlideScreen({
     open: searchVisible,
     close: onExitSearch,
+    enter: !returningFromHidden,
   });
   // 스크롤 영역과 검색 오버레이가 같은 높이를 공유해야 해서, 높이만 래퍼로 올린다.
   const { height: contentHeight, ...layoutScrollerStyle } = layoutClassNames.scroller.style ?? {};
@@ -283,6 +313,7 @@ export function PlaceSheet({
           'pointer-events-auto overflow-hidden',
           suppressTransition && 'transition-none!',
           layoutClassNames.drawer.className,
+          hidden && 'pointer-events-none invisible',
         )}
       >
         {/* 전체화면(full)까지 올린 상세만 iOS 좌측 엣지 스와이프를 허용한다. 이 시트의
@@ -450,19 +481,25 @@ export function PlaceSheet({
                 // 목록 헤더가 sticky z-10 이라 그보다 위에 쌓아야 검색 필드를 가리지 않는다.
                 'absolute inset-0 z-20 bg-gray-0',
                 'transition-transform duration-300 ease-out motion-reduce:transition-none',
-                searchSlidIn ? 'translate-x-0' : 'translate-x-full',
+                searchSlidIn || hidden || returningFromHidden
+                  ? 'translate-x-0'
+                  : 'translate-x-full',
                 // 상세가 떠 있는 동안만 숨긴다. 언마운트가 아니라 display:none 이라 검색어와
-                // 결과가 살아 있고, 상세를 닫으면 그대로 다시 슬라이드해 들어온다.
-                !searchVisible && 'hidden',
+                // 결과가 살아 있고, 상세를 닫으면 그대로 다시 슬라이드해 들어온다. 시트째 가린
+                // 동안(hidden)은 display 를 살려 둔다 — display:none 이면 결과 스크롤 위치가 날아간다.
+                !searchVisible && !hidden && 'hidden',
               )}
             >
               <PlaceSearchPanel
+                query={searchQuery}
+                page={searchPage}
+                onQueryChange={onSearchQueryChange}
                 canScroll={canScroll}
                 // 오버레이는 탐색 스크롤러와 같은 높이 래퍼를 쓰지만 스크롤 영역은 제 것이라,
                 // 스냅 보정 패딩(scrollerStyle)을 직접 넘겨야 mid 스냅에서도 목록 끝에 닿는다.
                 scrollPaddingBottom={scrollerStyle.paddingBottom}
                 onExit={slideOutSearch}
-                onSelectPlace={onSelectPlace}
+                onSelectPlace={onSelectSearchResult}
                 onInputFocus={() => {
                   setSearchInputFocused(true);
                   onSearchInputFocus();

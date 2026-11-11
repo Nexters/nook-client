@@ -1,7 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useSearchSavedPlaces } from '@/features/map/api/queries';
 import type { SavedPlaceSearchPage } from '@/features/map/types';
+import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { PlaceSearchPanel } from './PlaceSearchPanel';
 
 // HTTP 전송이 아니라 배선만 검증한다 — feature api 모듈 단위로 모킹하는 컨벤션.
@@ -43,18 +46,33 @@ const FILTERED_PAGE: SavedPlaceSearchPage = {
   totalCount: 1,
 };
 
-function renderPanel(props: Partial<React.ComponentProps<typeof PlaceSearchPanel>> = {}) {
+type PanelProps = React.ComponentProps<typeof PlaceSearchPanel>;
+
+/** 검색어·결과는 MapPage 가 갖는다 — 같은 배선(디바운스 300ms → 검색 쿼리)을 여기서 흉내 낸다. */
+function Harness(props: Partial<Omit<PanelProps, 'query' | 'page' | 'onQueryChange'>>) {
+  const [query, setQuery] = useState('');
+  const debounced = useDebouncedValue(query, 300);
+  const page = useSearchSavedPlaces(debounced, null);
+  return (
+    <PlaceSearchPanel
+      query={query}
+      page={page}
+      onQueryChange={setQuery}
+      canScroll
+      onExit={() => {}}
+      onSelectPlace={() => {}}
+      onInputFocus={() => {}}
+      onInputBlur={() => {}}
+      {...props}
+    />
+  );
+}
+
+function renderPanel(props: Partial<Omit<PanelProps, 'query' | 'page' | 'onQueryChange'>> = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <PlaceSearchPanel
-        canScroll
-        onExit={() => {}}
-        onSelectPlace={() => {}}
-        onInputFocus={() => {}}
-        onInputBlur={() => {}}
-        {...props}
-      />
+      <Harness {...props} />
     </QueryClientProvider>,
   );
 }
