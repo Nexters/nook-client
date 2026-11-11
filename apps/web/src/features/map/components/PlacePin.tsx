@@ -1,6 +1,6 @@
 import { CustomOverlay } from 'react-naver-maps';
 import emptyThumbnail from '@/assets/images/98_Group.svg';
-import { SelectedPinMarker } from '@/features/map/components/SelectedPinMarker';
+import { CategoryGlyph, SelectedPinMarker } from '@/features/map/components/SelectedPinMarker';
 import type { PlaceCategoryGroup } from '@/features/map/types';
 import { type ArchiveColor, COLOR_BG_CLASS } from '@/shared/ui';
 
@@ -21,6 +21,7 @@ export function PlacePin({
   thumbnail,
   categoryGroup,
   selected = false,
+  compact = false,
   onClick,
 }: {
   lat: number;
@@ -33,8 +34,44 @@ export function PlacePin({
   /** 선택 핀 글리프(`GET /places/map` 의 `categoryGroup`). */
   categoryGroup?: PlaceCategoryGroup;
   selected?: boolean;
+  /**
+   * 검색 결과 지도의 "검색 결과에 없는 주변 장소" 핀(Figma `mappin/검색결과에포함되지않은장소`,
+   * NOOK-383) — 28px 회색 원 + 카테고리 글리프 + 작은 이름. 선택되면 일반 선택 핀과 같다.
+   */
+  compact?: boolean;
   onClick?: () => void;
 }) {
+  if (compact && !selected) {
+    return (
+      <CustomOverlay position={{ lat, lng }}>
+        {/* 원의 중심이 좌표에 온다 — 대표 이미지 핀과 달리 가리키는 끝이 없는 점 표기라서다. */}
+        <div className="relative h-0 w-0">
+          <button
+            type="button"
+            onClick={onClick}
+            aria-label={name}
+            className="-translate-x-1/2 -translate-y-[14px] absolute top-0 left-1/2 flex w-[52px] flex-col items-center gap-1"
+          >
+            <span className="flex size-7 items-center justify-center rounded-full border border-gray-0 bg-gray-60">
+              <CategoryGlyph
+                categoryGroup={categoryGroup}
+                size={16}
+                className="block text-gray-0"
+              />
+            </span>
+            {/* 이름은 aria-label 이 이미 갖고 있다. 시안 S1 이 Bold 라 토큰(SemiBold)에 굵기만 덮는다. */}
+            <span
+              aria-hidden="true"
+              className="w-max max-w-[72px] truncate text-center font-bold text-gray-100 text-s1"
+            >
+              {name}
+            </span>
+          </button>
+        </div>
+      </CustomOverlay>
+    );
+  }
+
   return (
     <CustomOverlay position={{ lat, lng }}>
       {/*
