@@ -124,7 +124,7 @@ const SAMPLE_IMAGE =
 
 // `Media` 의 영상 분기 확인용. 오프라인에서 재생되는 샘플 영상은 없어서(외부 URL 금지,
 // data URI 로 넣기엔 크다) 태그가 video 로 갈리는지까지만 본다.
-const SAMPLE_VIDEO = 'https://cdn.example.com/sample.mp4';
+const SAMPLE_VIDEO = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
 
 /** 사진 태그(`n/6`)와 캐러셀을 확인하려면 여러 장이 필요하다 — 색만 다른 같은 도형. */
 const SAMPLE_PHOTOS = ['#38c8c4', '#a58af2', '#f2a58a', '#8af2a5', '#f28ac8', '#c8f28a'].map(
@@ -791,8 +791,8 @@ export function UiComponentsPage() {
       <Section title="Media (이미지/영상)">
         <p className="text-b3 text-gray-50">
           URL 확장자로 `&lt;img&gt;` / `&lt;video&gt;` 를 고릅니다. 영상은 `controls` 를 켤 때만
-          재생 컨트롤이 붙고, 끄면 첫 프레임만 보여주는 썸네일이 됩니다. 아래 영상 URL 은 실제
-          파일이 아니라 분기만 확인하는 값이라 재생되지는 않습니다.
+          재생 컨트롤이 붙고, 끄면 첫 프레임만 보여주는 썸네일이 됩니다. 아래 영상은 공개
+          샘플(CC0)이라 실제로 재생됩니다.
         </p>
         <Row label="이미지 URL — img">
           <Media src={SAMPLE_IMAGE} alt="샘플 사진" className="size-24 rounded-sm object-cover" />
@@ -824,8 +824,8 @@ export function UiComponentsPage() {
       <Section title="VideoPlayer">
         <p className="text-b3 text-gray-50">
           영상을 재생하는 자리 전용입니다. 가운데 재생/일시정지와 (넘겼을 때) 우하단 확대만 그리고,
-          재생 중에는 컨트롤이 2초 뒤 사라졌다가 화면을 누르면 돌아옵니다. 아래 URL 은 실제 파일이
-          아니라 재생은 시작되지 않고 멈춘 상태(재생 버튼)로 보입니다.
+          재생 중에는 컨트롤이 2초 뒤 사라졌다가 화면을 누르면 돌아옵니다. 아래는 공개 샘플
+          영상(CC0)이라 실제로 재생됩니다.
         </p>
         <Row label="확대 버튼 없음 / 있음 — 게시물 상세 프레임(343:429)">
           <div className="w-full max-w-[171px]">

@@ -76,19 +76,24 @@ describe('VideoPlayer', () => {
   });
 
   /**
-   * 컨트롤이 숨은 뒤에도 클릭이 살아 있으면, 보이지도 않는 확대 버튼이 눌려 엉뚱한 화면이
-   * 열린다. 투명도만 낮추지 않고 포인터 이벤트까지 끄는지 확인한다.
+   * 아이콘 레이어는 전체 버튼 위에 있다 — 레이어가 탭을 받으면 아이콘이 보이는 동안
+   * 재생/일시정지가 먹지 않는다(NOOK-432). 레이어는 언제나 탭을 통과시키고, 확대 버튼만
+   * 보일 때 탭을 받아야 한다 — 숨은 뒤에도 눌리면 보이지도 않는 버튼이 엉뚱한 화면을 연다.
    */
-  it('재생 중이면 컨트롤이 저절로 숨고 클릭도 함께 꺼진다', () => {
+  it('아이콘 레이어는 탭을 통과시키고 확대 버튼은 보일 때만 눌린다', () => {
     const { container } = render(<VideoPlayer src={VIDEO_URL} onExpand={vi.fn()} />);
     const overlay = container.querySelector('.z-30');
+    const expand = screen.getByRole('button', { name: '영상 크게 보기' });
 
     expect(overlay?.className).toContain('opacity-100');
+    expect(overlay?.className).toContain('pointer-events-none');
+    expect(expand.className).toContain('pointer-events-auto');
 
     act(() => vi.advanceTimersByTime(2000));
 
     expect(overlay?.className).toContain('opacity-0');
     expect(overlay?.className).toContain('pointer-events-none');
+    expect(expand.className).not.toContain('pointer-events-auto');
   });
 
   it('멈춰 있으면 컨트롤을 숨기지 않는다', () => {
