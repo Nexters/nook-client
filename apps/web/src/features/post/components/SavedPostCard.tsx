@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import type { PostArchive } from '@/features/post/types';
+import { Icon24Play } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { ArchiveTag, Carousel, Media, Thumbnail } from '@/shared/ui';
 import type { Post } from '../types';
@@ -14,12 +15,12 @@ import { OriginalPostLink } from './OriginalPostLink';
  *   여러 개(177:24457) — 140x175 를 가로로 늘어놓고 화면(343)을 넘기므로 공용 `Carousel`
  *     (네이티브 scroll-snap)에 얹는다. 점 인디케이터는 두지 않는다(`indicator={false}`)
  *     — 인디케이터가 있는 건 독립 `캐러셀` 쪽이다.
- *   단일 이미지(177:23309) — 343x212 박스 안에 167x208 썸네일을 가운데 둔다. 세로 사진이
- *     한 장뿐일 때 폭을 억지로 채우지 않으려는 시안 의도라, 박스와 썸네일이 따로 있다.
- *   단일 영상(177:23190) — 같은 343x212 를 `cover` 로 꽉 채운다. 잘리는 건 시안대로 둔다.
+ *   단일(177:23309) — 343x212 박스 안에 167x208 썸네일을 가운데 둔다. 세로 사진이 한 장뿐일
+ *     때 폭을 억지로 채우지 않으려는 시안 의도라, 박스와 썸네일이 따로 있다. 영상도 같은 틀을
+ *     쓴다(12:34772) — 예전처럼 `cover` 로 채우면 릴스가 잘려 영상인지 알아보기 어려웠다
+ *     (NOOK-325). 대신 가운데에 재생 표시를 얹어 사진과 구분한다.
  *
- * 여기는 재생하지 않는 자리라 영상은 포스터(`thumbnailUrl`)를 먼저 그린다. 다만 **레이아웃은
- * 종류(`type`)가 정한다** — 포스터가 있어도 영상 자리는 영상 자리라 167x208 틀을 타지 않는다.
+ * 여기는 재생하지 않는 자리라 영상은 포스터(`thumbnailUrl`)를 먼저 그리고, 없으면 첫 프레임이다.
  *
  * 본문은 `ExpandableCaption` 에 맡긴다 — 게시물 상세와 같이 "더보기"로 펼치고,
  * 펼친 뒤엔 "접기" 버튼이나 본문을 눌러 접는다. 여기선 2줄로 접는다.
@@ -114,19 +115,23 @@ function SavedPostCard({
         // 미디어 아래 본문까지 12px — 여러 장일 때의 pb-3 과 같은 간격이다.
         <div className="w-full pb-3">
           <MediaButton index={0} onImageClick={onImageClick} className={SINGLE_FRAME}>
-            {media[0].type === 'VIDEO' ? (
-              // 영상은 프레임을 꽉 채우고 잘리는 대로 둔다 — 원본을 축소해 맞추지 않는다.
-              <Media
+            {/* 잘리지 않게 167:208 썸네일로 가운데에 앉힌다. 박스의 테두리·배경은 `Thumbnail` 이
+                이미 갖고 있는 것과 같은 토큰이다. */}
+            <span className="relative flex size-full items-center justify-center rounded-sm border border-gray-20 bg-gray-10">
+              <Thumbnail
                 src={media[0].thumbnailUrl ?? media[0].url}
-                className="size-full rounded-sm object-cover"
+                className="aspect-[167/208] h-full w-auto"
               />
-            ) : (
-              // 이미지는 잘리지 않게 167:208 썸네일로 가운데에 앉힌다. 박스의 테두리·배경은
-              // `Thumbnail` 이 이미 갖고 있는 것과 같은 토큰이다.
-              <span className="flex size-full items-center justify-center rounded-sm border border-gray-20 bg-gray-10">
-                <Thumbnail src={media[0].url} className="aspect-[167/208] h-full w-auto" />
-              </span>
-            )}
+              {media[0].type === 'VIDEO' ? (
+                <span
+                  data-slot="play-badge"
+                  aria-hidden="true"
+                  className="-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/2 left-1/2 flex size-11 items-center justify-center rounded-full bg-gray-0/90"
+                >
+                  <Icon24Play className="[&_path]:fill-gray-100" />
+                </span>
+              ) : null}
+            </span>
           </MediaButton>
         </div>
       ) : media.length > 1 ? (

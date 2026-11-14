@@ -1120,6 +1120,15 @@ export function UiComponentsPage() {
         <p className="text-b3 text-gray-50">
           이미지 줄은 공용 Carousel(scroll-snap)이고, 본문은 2줄로 접힙니다. "더보기"로 펼칩니다.
         </p>
+        <div className="mx-auto w-full max-w-[375px] rounded-lg border border-gray-20">
+          <SavedPostCard
+            post={{ ...MOCK_POST, media: [{ url: SAMPLE_VIDEO, type: 'VIDEO' }] }}
+            archives={[{ id: 1, name: '밥집', color: 'purple' }]}
+          />
+        </div>
+        <p className="text-b3 text-gray-50">
+          단일 영상은 단일 이미지와 같은 167:208 틀에 앉히고 재생 표시를 얹습니다.
+        </p>
       </Section>
 
       <Section title="archive — ArchiveDescription (아카이브 소개글)">
