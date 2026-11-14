@@ -76,24 +76,49 @@ describe('VideoPlayer', () => {
   });
 
   /**
-   * 아이콘 레이어는 전체 버튼 위에 있다 — 레이어가 탭을 받으면 아이콘이 보이는 동안
-   * 재생/일시정지가 먹지 않는다(NOOK-432). 레이어는 언제나 탭을 통과시키고, 확대 버튼만
-   * 보일 때 탭을 받아야 한다 — 숨은 뒤에도 눌리면 보이지도 않는 버튼이 엉뚱한 화면을 연다.
+   * 자동재생 시안(31:15103)엔 영상만 있다 — 가운데 아이콘은 재생 중엔 숨고, 탭하면 잠깐
+   * 나타났다 다시 숨는다. 아이콘은 그리기만 하고 탭은 전체 버튼이 받는다(NOOK-432).
    */
-  it('아이콘 레이어는 탭을 통과시키고 확대 버튼은 보일 때만 눌린다', () => {
-    const { container } = render(<VideoPlayer src={VIDEO_URL} onExpand={vi.fn()} />);
-    const overlay = container.querySelector('.z-30');
-    const expand = screen.getByRole('button', { name: '영상 크게 보기' });
+  it('자동재생 중엔 가운데 아이콘을 숨기고, 탭하면 잠깐 보였다 다시 숨는다', () => {
+    const { container } = render(<VideoPlayer src={VIDEO_URL} />);
+    const icon = container.querySelector('[data-slot="video-player-icon"]');
 
-    expect(overlay?.className).toContain('opacity-100');
-    expect(overlay?.className).toContain('pointer-events-none');
-    expect(expand.className).toContain('pointer-events-auto');
+    expect(icon?.className).toContain('opacity-0');
+    expect(icon?.className).toContain('pointer-events-none');
+
+    // 멈췄다가 다시 재생하면 아이콘이 보였다가 2초 뒤 숨는다.
+    act(() => screen.getByRole('button', { name: '일시정지' }).click());
+    act(() => screen.getByRole('button', { name: '재생' }).click());
+    expect(icon?.className).toContain('opacity-100');
 
     act(() => vi.advanceTimersByTime(2000));
+    expect(icon?.className).toContain('opacity-0');
+  });
 
-    expect(overlay?.className).toContain('opacity-0');
-    expect(overlay?.className).toContain('pointer-events-none');
-    expect(expand.className).not.toContain('pointer-events-auto');
+  it('자동재생이 거절되면 재생 버튼을 바로 보여준다', async () => {
+    HTMLMediaElement.prototype.play = vi.fn(() => Promise.reject(new Error('NotAllowedError')));
+    const { container } = render(<VideoPlayer src={VIDEO_URL} />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector('[data-slot="video-player-icon"]')?.className).toContain(
+      'opacity-100',
+    );
+    expect(screen.getByRole('button', { name: '재생' })).toBeInTheDocument();
+  });
+
+  it('확대 버튼은 재생 중에도 계속 보이고 눌린다', () => {
+    const onExpand = vi.fn();
+    render(<VideoPlayer src={VIDEO_URL} onExpand={onExpand} />);
+
+    act(() => vi.advanceTimersByTime(5000));
+    const expand = screen.getByRole('button', { name: '영상 크게 보기' });
+    expect(expand.className).not.toContain('opacity-0');
+    expect(expand.className).not.toContain('pointer-events-none');
+    act(() => expand.click());
+    expect(onExpand).toHaveBeenCalled();
   });
 
   it('멈춰 있으면 컨트롤을 숨기지 않는다', () => {
@@ -103,6 +128,8 @@ describe('VideoPlayer', () => {
     act(() => screen.getByRole('button', { name: '일시정지' }).click());
     act(() => vi.advanceTimersByTime(5000));
 
-    expect(container.querySelector('.z-30')?.className).toContain('opacity-100');
+    expect(container.querySelector('[data-slot="video-player-icon"]')?.className).toContain(
+      'opacity-100',
+    );
   });
 });
