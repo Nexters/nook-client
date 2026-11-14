@@ -34,6 +34,7 @@ const mocks = vi.hoisted(() => ({
   fetchArchives: vi.fn(),
   clearSession: vi.fn(),
   requestImagePick: vi.fn(),
+  openExternalUrl: vi.fn(),
   isNative: true,
 }));
 
@@ -64,6 +65,7 @@ vi.mock('@/native-bridge', () => ({
     appVersion: null,
     appBuildNumber: null,
     requestImagePick: mocks.requestImagePick,
+    openExternalUrl: mocks.openExternalUrl,
   },
 }));
 
@@ -131,6 +133,17 @@ describe('MyPage', () => {
     expect(screen.getByText('문의하기')).toBeInTheDocument();
     // 로그인 정보는 이동할 곳이 없어 눌리지 않는 행이다(화살표 없음).
     expect(screen.queryByRole('button', { name: /로그인 정보/ })).not.toBeInTheDocument();
+  });
+
+  it('누크 인스타그램 행은 공식 계정을 앱 밖으로 연다', async () => {
+    renderMyPage();
+    await screen.findByText('졸림핑');
+
+    fireEvent.click(screen.getByRole('button', { name: /누크 인스타그램/ }));
+
+    expect(mocks.openExternalUrl).toHaveBeenCalledWith(
+      expect.stringMatching(/^https:\/\/www\.instagram\.com\//),
+    );
   });
 
   it('가입에 쓴 소셜 로그인을 로그인 정보 행에 보여준다', async () => {
