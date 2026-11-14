@@ -7,12 +7,12 @@
 
 export type List1Params = {
   /**
-   * 페이지 번호. 0부터 시작합니다.
+   * 페이지 번호. 0부터 시작
    * @minimum 0
    */
   page?: number;
   /**
-   * 페이지당 사용자 수. 최대 100명입니다.
+   * 페이지당 게시물 수. 최대 100
    * @minimum 1
    * @maximum 100
    */
