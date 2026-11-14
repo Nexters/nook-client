@@ -18,6 +18,7 @@ import {
   Icon16ArrowRight,
   Icon16Chat,
   Icon16Info,
+  Icon16Insta,
   Icon16Paper,
   Icon16User,
   Icon24Back,
@@ -28,6 +29,12 @@ import { useToast } from '@/shared/toast';
 import { Avatar, Button, Header, Input, Popup, Skeleton } from '@/shared/ui';
 
 type Dialog = 'logout' | 'withdraw' | null;
+
+/**
+ * 누크 공식 인스타그램(NOOK-409). 온보딩과 같이 https 주소를 그대로 열어 앱이 있으면 앱으로,
+ * 없으면 브라우저로 간다.
+ */
+const NOOK_INSTAGRAM_URL = 'https://www.instagram.com/nook.archiving';
 
 export function MyPage() {
   const navigate = useNavigate();
@@ -300,8 +307,19 @@ export function MyPage() {
                 </MyMenuSection>
               ) : null}
 
+              {/* 행 순서는 Figma `My`(1541:35540)를 따른다. */}
               <MyMenuSection title="앱 정보">
-                <VersionInfoRow />
+                <MyMenuRow
+                  icon={<Icon16Insta className="[&_path]:fill-gray-60" />}
+                  label="누크 인스타그램"
+                  external
+                  onClick={() => nativeBridge.openExternalUrl(NOOK_INSTAGRAM_URL)}
+                />
+                <MyMenuRow
+                  icon={<Icon16Chat />}
+                  label="문의하기"
+                  onClick={() => navigate('/support')}
+                />
                 <MyMenuRow
                   icon={<Icon16Info />}
                   label="개인정보 처리방침"
@@ -312,11 +330,7 @@ export function MyPage() {
                   label="이용약관"
                   onClick={() => navigate('/terms')}
                 />
-                <MyMenuRow
-                  icon={<Icon16Chat />}
-                  label="문의하기"
-                  onClick={() => navigate('/support')}
-                />
+                <VersionInfoRow />
               </MyMenuSection>
             </div>
 
