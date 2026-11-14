@@ -78,7 +78,10 @@ export async function fetchMapPins(
       { auth: 'required' },
     ),
   );
-  return (pins ?? []).map(toMapPin);
+  // 같은 장소가 여러 아카이브에 저장돼 있으면 서버가 아카이브마다 한 줄씩 내려 같은 자리에
+  // 핀이 겹친다(NOOK-423). 핀은 장소 단위라 첫 줄만 남긴다 — 색도 먼저 온 아카이브를 따른다.
+  const seen = new Set<number>();
+  return (pins ?? []).map(toMapPin).filter((pin) => !seen.has(pin.id) && Boolean(seen.add(pin.id)));
 }
 
 /**
