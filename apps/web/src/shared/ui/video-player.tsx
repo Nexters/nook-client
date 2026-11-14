@@ -87,10 +87,12 @@ function VideoPlayer({ src, onExpand, unmuted = false, className }: VideoPlayerP
       />
 
       <div
-        // 숨을 때 클릭까지 사라져야 한다 — 안 그러면 안 보이는 확대 버튼이 계속 눌린다.
+        // 이 레이어는 그리기만 한다 — 탭은 항상 아래 깔린 전체 버튼이 받아야 한다. 레이어가 탭을
+        // 가로채면 아이콘이 보이는 동안(재생 직후 2초, 일시정지 중) 재생/일시정지가 먹지 않는다(NOOK-370).
+        // 확대 버튼만 보일 때 탭을 되살린다 — 안 보이는 확대 버튼이 눌리면 안 된다.
         className={cn(
-          'absolute inset-0 z-30 transition-opacity duration-200',
-          controlsVisible ? 'opacity-100' : 'pointer-events-none opacity-0',
+          'pointer-events-none absolute inset-0 z-30 transition-opacity duration-200',
+          controlsVisible ? 'opacity-100' : 'opacity-0',
         )}
       >
         {/* 재생 상태 표시. 누르는 건 아래 깔린 전체 버튼이 받게 클릭을 통과시킨다. */}
@@ -109,7 +111,10 @@ function VideoPlayer({ src, onExpand, unmuted = false, className }: VideoPlayerP
             aria-hidden={!controlsVisible}
             tabIndex={controlsVisible ? undefined : -1}
             onClick={onExpand}
-            className="absolute right-3 bottom-3 flex size-7 items-center justify-center rounded-full bg-gray-100/50"
+            className={cn(
+              'absolute right-3 bottom-3 flex size-7 items-center justify-center rounded-full bg-gray-100/50',
+              controlsVisible && 'pointer-events-auto',
+            )}
           >
             <Icon16Expand />
           </button>
