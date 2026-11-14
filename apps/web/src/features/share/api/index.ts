@@ -11,7 +11,7 @@ import { toPostDetail, updatePostMemo } from '@/features/post/api';
 import type { PostDetail } from '@/features/post/types';
 import {
   // 생성기가 다른 `get` 들과 이름이 겹쳐 붙인 접미사다 — 여기서만 풀어준다.
-  get3 as getSharedArchiveEndpoint,
+  get4 as getSharedArchiveEndpoint,
   places as listSharedPlacesEndpoint,
   posts as listSharedPostsEndpoint,
   shared as listSharedSubscribersEndpoint,
