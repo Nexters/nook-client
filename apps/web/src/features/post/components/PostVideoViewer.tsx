@@ -1,114 +1,257 @@
+import type { KeyboardEvent, PointerEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { Icon24Pause, Icon24Play } from '@/shared/icons/NookIcons';
+import { Icon24Close, Icon24Play } from '@/shared/icons/NookIcons';
 import { playInlineVideo } from '@/shared/lib/inlineVideo';
-import { useSwipeDownToDismiss } from '@/shared/lib/useSwipeDownToDismiss';
-import { BackButton } from '@/shared/ui';
+import { VolumeIcon } from '@/shared/ui/video-player';
 
-/**
- * Figma `8월 21일 작업 > 영상 확대뷰`(177:23620).
- *
- * 영상을 화면 폭 꽉 채워 보여주는 전체화면 레이어. 라우트가 아니라 상세 위에 얹는
- * 오버레이라서(뒤로가기 = 닫기) 사용처가 열림 상태를 소유한다 — `PostImageViewer` 와 같다.
- *
- * 이미지 뷰어와 레이아웃이 달라(9:16 프레임 + 하단 진행바, 캐러셀 없음) 파일을 나눴다.
- * 여기서는 소리를 켠다 — 확대뷰는 사용자가 눌러서 들어온 화면이라 자동재생 제약이 없다.
- */
-/** 시안의 영상 프레임 — 375x667 = 9:16. */
-const FRAME_CLASS = 'aspect-[9/16] w-full object-cover';
-
+/** 게시물 상세 위에 포탈로 띄우는 커스텀 전체화면 동영상 뷰어. */
 export interface PostVideoViewerProps {
   src: string;
   onClose: () => void;
 }
 
+function formatTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+  const whole = Math.floor(seconds);
+  const minutes = Math.floor(whole / 60);
+  const remaining = String(whole % 60).padStart(2, '0');
+  return `${minutes}:${remaining}`;
+}
+
 function PostVideoViewer({ src, onClose }: PostVideoViewerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const previewRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
-  // 진행바가 채워진 비율(0~1). `timeupdate` 는 초당 4회쯤 와서 따로 rAF 를 돌리지 않는다.
-  const [progress, setProgress] = useState(0);
-  // 헤더 버튼 말고 아래로 쓸어내려서도 닫는다 — 전체화면이라 버튼까지 손이 가기 멀다.
-  const swipe = useSwipeDownToDismiss(onClose);
+  const [muted, setMuted] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [scrubTime, setScrubTime] = useState<number | null>(null);
 
-  // 확대뷰로 들어온 순간부터 소리가 나야 한다. muted 로 시작하지 않으므로 자동재생이
-  // 막힐 수 있는데, 그때는 멈춘 상태로 재생 버튼을 보여주면 된다(아래 onPause 가 받는다).
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
-    void playInlineVideo(video, false).then((started) => {
+    if (!video || video.getAttribute('src') !== src) return;
+    const inlineVideo = document.querySelector<HTMLVideoElement>(
+      '[data-slot="video-player"] video',
+    );
+    const startingTime = inlineVideo && !inlineVideo.ended ? inlineVideo.currentTime : 0;
+    const startingMuted = inlineVideo?.muted ?? true;
+    inlineVideo?.pause();
+    setMuted(startingMuted);
+    setCurrentTime(startingTime);
+    setDuration(0);
+    const seekToStart = () => {
+      if (startingTime > 0)
+        video.currentTime = Math.min(startingTime, video.duration || startingTime);
+    };
+    video.addEventListener('loadedmetadata', seekToStart);
+    if (video.readyState >= 1) seekToStart();
+    void playInlineVideo(video, startingMuted).then((started) => {
       if (!started) setPlaying(false);
     });
-  }, []);
+    return () => {
+      const shouldResume = !video.paused && !video.ended;
+      video.pause();
+      video.removeEventListener('loadedmetadata', seekToStart);
+      if (inlineVideo?.isConnected) {
+        inlineVideo.currentTime = video.currentTime;
+        inlineVideo.muted = video.muted;
+        if (shouldResume) void playInlineVideo(inlineVideo, video.muted);
+      }
+    };
+  }, [src]);
 
-  const toggle = () => {
+  // 본 영상은 손을 놓을 때만 이동한다. 드래그 중 미리보기용 영상만 해당 시각으로 탐색한다.
+  useEffect(() => {
+    const preview = previewRef.current;
+    if (scrubTime === null || !preview || preview.readyState < 1) return;
+    preview.currentTime = scrubTime;
+  }, [scrubTime]);
+
+  const togglePlayback = () => {
     const video = videoRef.current;
     if (!video) return;
-    if (video.paused) void playInlineVideo(video, false);
-    else video.pause();
+    if (video.paused || video.ended) {
+      if (video.ended) video.currentTime = 0;
+      void playInlineVideo(video, video.muted);
+    } else {
+      video.pause();
+    }
   };
 
+  const toggleMute = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setMuted(video.muted);
+  };
+
+  const timeAtPointer = (event: PointerEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (bounds.width <= 0 || duration <= 0) return 0;
+    return Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)) * duration;
+  };
+
+  const startScrub = (event: PointerEvent<HTMLDivElement>) => {
+    if (duration <= 0) return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    videoRef.current?.pause();
+    setScrubTime(timeAtPointer(event));
+  };
+
+  const finishScrub = (event: PointerEvent<HTMLDivElement>) => {
+    if (scrubTime === null) return;
+    const nextTime = timeAtPointer(event);
+    const video = videoRef.current;
+    if (video) {
+      video.currentTime = nextTime;
+      setCurrentTime(nextTime);
+      void playInlineVideo(video, video.muted);
+    }
+    setScrubTime(null);
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const seekWithKeyboard = (event: KeyboardEvent<HTMLDivElement>) => {
+    const video = videoRef.current;
+    if (!video || duration <= 0) return;
+    let nextTime: number;
+    switch (event.key) {
+      case 'ArrowLeft':
+      case 'ArrowDown':
+        nextTime = currentTime - 5;
+        break;
+      case 'ArrowRight':
+      case 'ArrowUp':
+        nextTime = currentTime + 5;
+        break;
+      case 'Home':
+        nextTime = 0;
+        break;
+      case 'End':
+        nextTime = duration;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    video.currentTime = Math.max(0, Math.min(duration, nextTime));
+    setCurrentTime(video.currentTime);
+  };
+
+  const shownTime = scrubTime ?? currentTime;
+  const progress = duration > 0 ? Math.max(0, Math.min(1, shownTime / duration)) : 0;
+
   return (
-    // z-70: 전체화면 뷰어라 탭바(60)까지 덮는다.
-    <div className="fixed inset-0 z-[70]" {...swipe.handlers}>
-      {/* 배경을 따로 깐다 — 쓸어내리는 동안 옅어지며 뒤 화면이 비쳐야 한다. */}
-      <div
-        className="absolute inset-0 bg-gray-0"
-        style={{
-          opacity: swipe.backdropOpacity,
-          transition: swipe.returning ? 'opacity 200ms ease-out' : undefined,
-        }}
-      />
-      {/* body 포탈로 뜨면 fixed 기준이 뷰포트 전체 폭이라, 데스크톱에서도 셸 폭
-          (max-w-[450px], providers.tsx)을 넘지 않게 안쪽에서 다시 묶는다. */}
-      <div className="relative mx-auto h-full w-full max-w-[450px]">
-        {/* 영상은 헤더 아래 남은 공간이 아니라 화면 전체를 기준으로 세로 가운데에 온다.
-            `PostImageViewer` 와 같은 이유로 가운데 보정(-50%)과 끌어내린 거리를 한 값에 합친다. */}
-        <div
-          className="absolute inset-x-0 top-1/2"
-          style={{
-            translate: `0 calc(-50% + ${swipe.offset}px)`,
-            transition: swipe.returning ? 'translate 200ms ease-out' : undefined,
+    <div className="fixed inset-0 z-[70] bg-black">
+      <div className="relative mx-auto h-full w-full max-w-[450px] overflow-hidden bg-black">
+        <video
+          ref={videoRef}
+          src={src}
+          playsInline
+          webkit-playsinline=""
+          muted={muted}
+          preload="metadata"
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEnded={() => setPlaying(false)}
+          onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+          onTimeUpdate={(event) => {
+            if (scrubTime === null) setCurrentTime(event.currentTarget.currentTime);
           }}
+          className="size-full object-cover"
+        />
+
+        <button
+          type="button"
+          aria-label={playing ? '일시정지' : '재생'}
+          onClick={togglePlayback}
+          className="absolute inset-0 z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-0"
+        />
+        {!playing ? (
+          <span
+            data-slot="video-viewer-play-icon"
+            aria-hidden="true"
+            className="-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/2 left-1/2 z-20 flex size-15 items-center justify-center rounded-full bg-black/45"
+          >
+            <Icon24Play />
+          </span>
+        ) : null}
+
+        <button
+          type="button"
+          aria-label="확대 화면 닫기"
+          onClick={onClose}
+          className="absolute top-[calc(env(safe-area-inset-top)+20px)] right-5 z-30 flex size-10 items-center justify-center"
         >
-          <div className="relative w-full">
-            {/* 화면이 아니라 영상 프레임을 기준으로 좌·상단에서 각각 20px 떨어뜨린다. */}
-            <BackButton
-              onClick={onClose}
-              className="absolute top-5 left-5 z-10 drop-shadow-[0_0_5px_rgba(0,0,0,0.5)] [&_path]:stroke-gray-0"
-            />
-            {/* biome-ignore lint/a11y/useMediaCaption: 외부 게시물 영상이라 자막 트랙이 없다 */}
-            <video
-              ref={videoRef}
-              src={src}
-              loop
-              playsInline
-              webkit-playsinline=""
-              preload="metadata"
-              onPlay={() => setPlaying(true)}
-              onPause={() => setPlaying(false)}
-              onTimeUpdate={(event) => {
-                const video = event.currentTarget;
-                // 길이를 모르는 동안(메타데이터 전·라이브)엔 0 으로 둔다 — NaN 이 width 로 새면
-                // 진행바가 통째로 사라진다.
-                setProgress(video.duration > 0 ? video.currentTime / video.duration : 0);
+          <Icon24Close className="[&_path]:stroke-gray-0" />
+        </button>
+
+        <div className="absolute right-6 bottom-[calc(env(safe-area-inset-bottom)+30px)] left-6 z-30 text-gray-0">
+          <div className="font-sans text-b2 font-semibold">
+            {formatTime(shownTime)} / {formatTime(duration)}
+          </div>
+          <div className="flex items-center gap-4">
+            <div
+              data-slot="video-seek-bar"
+              role="slider"
+              aria-label="동영상 재생 위치"
+              aria-valuemin={0}
+              aria-valuemax={Math.floor(duration)}
+              aria-valuenow={Math.floor(shownTime)}
+              aria-valuetext={`${formatTime(shownTime)} / ${formatTime(duration)}`}
+              tabIndex={0}
+              onKeyDown={seekWithKeyboard}
+              onPointerDown={startScrub}
+              onPointerMove={(event) => {
+                if (scrubTime !== null) setScrubTime(timeAtPointer(event));
               }}
-              className={FRAME_CLASS}
-            />
-            {/* 시안엔 재생/일시정지만 있고 탐색은 없다. 진행바는 표시 전용이라 button 이 아니다. */}
+              onPointerUp={finishScrub}
+              onPointerCancel={finishScrub}
+              className="relative flex h-8 min-w-0 flex-1 cursor-pointer touch-none items-center select-none"
+            >
+              <div className="absolute inset-x-0 top-3 h-1.5 rounded-full bg-[#777777]/90">
+                <div
+                  data-slot="video-progress"
+                  className="h-full rounded-full bg-gray-0"
+                  style={{ width: `${progress * 100}%` }}
+                />
+              </div>
+              {scrubTime !== null ? (
+                <>
+                  <div
+                    className="-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-[15px] size-3 rounded-full bg-gray-0"
+                    style={{ left: `${progress * 100}%` }}
+                  />
+                  <div
+                    className="-translate-x-1/2 pointer-events-none absolute bottom-8 h-[107px] w-[60px] overflow-hidden rounded-lg border border-gray-0 bg-black"
+                    style={{ left: `clamp(30px, ${progress * 100}%, calc(100% - 30px))` }}
+                  >
+                    <video
+                      ref={previewRef}
+                      src={src}
+                      muted
+                      playsInline
+                      preload="auto"
+                      onLoadedMetadata={(event) => {
+                        event.currentTarget.currentTime = scrubTime;
+                      }}
+                      className="size-full object-cover"
+                    />
+                  </div>
+                </>
+              ) : null}
+            </div>
             <button
               type="button"
-              aria-label={playing ? '일시정지' : '재생'}
-              onClick={toggle}
-              className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 flex size-15 items-center justify-center rounded-full bg-gray-100/80"
+              aria-label={muted ? '소리 켜기' : '소리 끄기'}
+              aria-pressed={!muted}
+              onClick={toggleMute}
+              className="flex size-8 shrink-0 items-center justify-center"
             >
-              {playing ? <Icon24Pause /> : <Icon24Play />}
+              <VolumeIcon muted={muted} />
             </button>
-            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gray-0">
-              <div
-                data-slot="video-progress"
-                className="h-full bg-gray-100"
-                style={{ width: `${progress * 100}%` }}
-              />
-            </div>
           </div>
         </div>
       </div>
