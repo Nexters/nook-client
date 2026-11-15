@@ -7,20 +7,39 @@ import { cn } from '@/shared/lib/utils';
  * Figma `8월 21일 작업 > 릴스 상세`(177:23568) · `릴스 상세 자동재생`(31:15103).
  *
  * 영상을 재생하는 자리 전용 컴포넌트. 네이티브 `controls` 대신 시안의 컨트롤을 직접 그린다 —
- * 시안은 가운데 재생/일시정지 하나와 우하단 확대뿐이라 브라우저 기본 컨트롤 바와 모양이 다르다.
+ * 시안은 가운데 재생/일시정지, 우상단 음량, 우하단 확대 버튼을 사용한다.
  *
  * 썸네일 자리(첫 프레임만 보여주는 곳)는 여전히 `Media` 가 맡는다. 여기는 "재생시키는 자리"다.
  *
  * 자동재생은 `muted` 없이는 어느 브라우저에서도 시작되지 않는다(사용자 제스처 정책). 시안의
- * 기본 상태가 재생 중이라 muted 로 걸어 둔다 — 소리는 확대뷰에서 켠다.
+ * 기본 상태가 재생 중이라 muted 로 걸어 둔다 — 음량 버튼을 누르면 소리를 켤 수 있다.
+ * 영상은 한 번만 재생하고 끝나면 가운데 재생 버튼으로 처음부터 다시 볼 수 있다.
  *
  * 가운데 아이콘은 재생 중엔 보이지 않는다(자동재생 시안엔 영상만 있다). 탭하면 잠깐 나타났다
- * 숨고, 멈춰 있는 동안은 계속 보인다. 확대 버튼은 시안대로 상시 노출이다.
+ * 숨고, 멈춰 있는 동안은 계속 보인다. 음량·확대 버튼은 상시 노출이다.
  *
  * 크기·비율은 사용처가 `className` 으로 준다. 프리미티브는 표면과 컨트롤만 소유한다.
  */
 /** 재생 중 가운데 아이콘이 저절로 사라지기까지의 시간. */
 const AUTO_HIDE_MS = 2000;
+
+function VolumeIcon({ muted, size = 16 }: { muted: boolean; size?: number }) {
+  return (
+    <svg viewBox="0 0 16 16" width={size} height={size} fill="none" aria-hidden="true">
+      <path d="M2 6v4h2.5L8 13V3L4.5 6H2Z" fill="white" stroke="white" strokeLinejoin="round" />
+      {muted ? (
+        <path d="m10.5 6 3 4m0-4-3 4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+      ) : (
+        <path
+          d="M10.5 5.5a3.5 3.5 0 0 1 0 5m1.75-7a6 6 0 0 1 0 9"
+          stroke="white"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      )}
+    </svg>
+  );
+}
 
 export interface VideoPlayerProps {
   src: string;
@@ -35,6 +54,7 @@ function VideoPlayer({ src, onExpand, unmuted = false, className }: VideoPlayerP
   const videoRef = React.useRef<HTMLVideoElement>(null);
   // 실제 play 이벤트가 오기 전에는 재생 중으로 간주하지 않는다.
   const [playing, setPlaying] = React.useState(false);
+  const [muted, setMuted] = React.useState(!unmuted);
   // 자동재생을 전제로 숨긴 채 시작한다 — 재생이 거절되면 아래 effect 가 다시 꺼낸다.
   const [iconVisible, setIconVisible] = React.useState(false);
 
@@ -43,6 +63,7 @@ function VideoPlayer({ src, onExpand, unmuted = false, className }: VideoPlayerP
   React.useEffect(() => {
     const video = videoRef.current;
     if (!video || video.getAttribute('src') !== src) return;
+    setMuted(!unmuted);
     void playInlineVideo(video, !unmuted).then((started) => {
       if (!started) {
         setPlaying(false);
@@ -62,8 +83,17 @@ function VideoPlayer({ src, onExpand, unmuted = false, className }: VideoPlayerP
     const video = videoRef.current;
     if (!video) return;
     setIconVisible(true);
-    if (video.paused) void playInlineVideo(video, !unmuted);
-    else video.pause();
+    if (video.paused || video.ended) {
+      if (video.ended) video.currentTime = 0;
+      void playInlineVideo(video, video.muted);
+    } else video.pause();
+  };
+
+  const toggleMute = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
+    setMuted(video.muted);
   };
 
   return (
@@ -81,15 +111,19 @@ function VideoPlayer({ src, onExpand, unmuted = false, className }: VideoPlayerP
       <video
         ref={videoRef}
         src={src}
-        loop
         playsInline
         webkit-playsinline=""
-        muted={!unmuted}
+        muted={muted}
         preload="metadata"
+        onVolumeChange={(event) => setMuted(event.currentTarget.muted)}
         onPlay={() => setPlaying(true)}
         onPause={() => {
           setPlaying(false);
           // 탭이 아니라 백그라운드 전환 등으로 멈춰도 재생 버튼은 보여야 한다.
+          setIconVisible(true);
+        }}
+        onEnded={() => {
+          setPlaying(false);
           setIconVisible(true);
         }}
         className="size-full object-cover"
@@ -107,6 +141,16 @@ function VideoPlayer({ src, onExpand, unmuted = false, className }: VideoPlayerP
         {playing ? <Icon24Pause /> : <Icon24Play />}
       </span>
 
+      <button
+        type="button"
+        aria-label={muted ? '소리 켜기' : '소리 끄기'}
+        aria-pressed={!muted}
+        onClick={toggleMute}
+        className="absolute top-3 right-3 z-30 flex size-7 items-center justify-center rounded-full bg-gray-100/50"
+      >
+        <VolumeIcon muted={muted} />
+      </button>
+
       {onExpand ? (
         // 시안의 프레임 안쪽 여백 11px — 가장 가까운 토큰인 3(12px)으로 맞춘다.
         <button
@@ -122,4 +166,4 @@ function VideoPlayer({ src, onExpand, unmuted = false, className }: VideoPlayerP
   );
 }
 
-export { VideoPlayer };
+export { VideoPlayer, VolumeIcon };
