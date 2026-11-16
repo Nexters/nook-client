@@ -46,3 +46,28 @@ export function createPrototypeScenarioData(id: string, cards: PrototypeCardMode
   }
   return data;
 }
+
+/** Remote-controlled reminder fixtures, isolated from the map scenarios. */
+export const prototypeReminderCases = [
+  { id: '0', label: '0개 · 배너 없음', count: 0 },
+  { id: 'text', label: '안내형 · 이미지 없음', count: 2 },
+  { id: '1', label: '1개', count: 1 },
+  { id: '2', label: '2개', count: 2 },
+  { id: '3', label: '3개', count: 3 },
+  { id: '12', label: '12개 · +9 표시', count: 12 },
+] as const;
+export function getPrototypeReminderCase() {
+  const id = sessionStorage.getItem('nook.prototype.reminder');
+  return prototypeReminderCases.find((item) => item.id === id) ?? null;
+}
+export function createReminderData(count: number) {
+  const data = createPrototypeData();
+  data.posts.slice(0, count).forEach((post, index) => {
+    post.places = [];
+    if (index < 3 && post.media[0]) {
+      const url = `/prototype/reminder/post-${index + 1}.png`;
+      post.media[0] = { ...post.media[0], url, thumbnailUrl: url };
+    }
+  });
+  return data;
+}

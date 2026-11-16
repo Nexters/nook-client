@@ -10,6 +10,7 @@ import { useArchives, useHasSaveHistory } from './api/queries';
 import { ArchiveCard } from './components/ArchiveCard';
 import { ArchiveEmpty } from './components/ArchiveEmpty';
 import { ArchiveListSkeleton } from './components/ArchiveListSkeleton';
+import { PlaceConnectionReminder } from './components/PlaceConnectionReminder';
 import { GUEST_ARCHIVE } from './guest';
 
 /** Figma `아카이브 > 홈 - 아카이브` (아카이브 없음 / 빈 아카이브 / 아카이브 여러개). */
@@ -51,6 +52,7 @@ export function ArchivePage() {
         // 하단 탭바(60px) + FAB 가 마지막 카드를 가리지 않도록 스크롤 끝에 여백을 둔다.
         style={{ paddingBottom: 'calc(7.5rem + env(safe-area-inset-bottom))' }}
       >
+        <PlaceConnectionReminder />
         {/* 로딩 중에는 빈 상태 문구가 잠깐 스쳐 지나가지 않도록 카드 자리만 스켈레톤으로 채운다.
             게스트는 쿼리를 돌리지 않아 계속 pending 이라, 먼저 갈라 기본 아카이브를 그린다. */}
         {isAuthenticated && isPending ? (

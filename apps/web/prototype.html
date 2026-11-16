@@ -33,10 +33,13 @@
     .keyboard-bottom button[data-action="done"] { width: 88px; color: white; background: #3478f6; }
     .keyboard-home-indicator { position: absolute; bottom: 8px; left: 50%; width: 134px; height: 5px; border-radius: 4px; background: #111; transform: translateX(-50%); }
     #remote { position: fixed; right: 16px; bottom: 16px; z-index: 10; width: 208px; padding: 12px; border: 1px solid #dfe1e4; border-radius: 16px; background: #fff; box-shadow: 0 4px 20px #00000008; }
+    [hidden] { display: none !important; }
+    #remote { max-height: calc(100dvh - 32px); overflow-y: auto; }
+    #replay-reminder, #reset { width: 100%; margin-top: 8px; }
     #remote.collapsed { width: auto; padding: 4px; border-radius: 24px; }
     #remote.collapsed #remote-body { display: none; }
     #remote #remote-toggle { width: 100%; border: 0; font-weight: 600; text-align: center; }
-    #case-select, #cards-select { width: 100%; padding: 8px 4px; border: 1px solid #e4e6e9; border-radius: 8px; font: inherit; background: white; color: inherit; }
+    #case-select, #cards-select, #reminder-select { width: 100%; padding: 8px 4px; border: 1px solid #e4e6e9; border-radius: 8px; font: inherit; background: white; color: inherit; }
     #remote p { margin: 0 0 16px; color: #67707d; line-height: 1.6; }
     #remote h2 { margin: 20px 0 8px; font-size: 12px; color: #67707d; }
     #cases { display: grid; gap: 6px; }
@@ -58,17 +61,18 @@
     </div></div>
     <aside id="remote" class="collapsed" aria-label="프로토타입 리모컨">
       <button id="remote-toggle" type="button" aria-expanded="false" aria-controls="remote-body">QA 리모컨 ⌃</button>
-      <div id="remote-body"><h2>플로팅 카드</h2><select id="cards-select" aria-label="카드 장수 선택"></select>
+      <div id="remote-body"><div data-page="archive" hidden><h2>장소 미연결 게시물</h2><select id="reminder-select" aria-label="미연결 게시물 개수"></select><button id="replay-reminder" type="button">등장 애니메이션 다시 보기 ↻</button></div><div data-page="map"><h2>플로팅 카드</h2><select id="cards-select" aria-label="카드 장수 선택"></select>
       <h2>사진 · 해시태그</h2><select id="case-select" aria-label="시나리오 선택"></select>
-      <h2>인터랙션</h2><div class="actions"><button type="button" data-action="previous">← 이전 장소</button><button type="button" data-action="next">다음 장소 →</button><button type="button" data-action="expand">전체로 당기기 ↑</button><button type="button" data-action="collapse">카드로 접기 ↓</button><button type="button" data-action="compact">접힌 카드</button><button type="button" data-action="search">검색 · 키보드</button><button type="button" id="reset">케이스 초기화</button></div>
+      <h2>인터랙션</h2><div class="actions"><button type="button" data-action="previous">← 이전 장소</button><button type="button" data-action="next">다음 장소 →</button><button type="button" data-action="expand">전체로 당기기 ↑</button><button type="button" data-action="collapse">카드로 접기 ↓</button><button type="button" data-action="compact">접힌 카드</button><button type="button" data-action="search">검색 · 키보드</button></div>
       <p class="hint">사진 영역은 사진 넘기기, 제목·여백은 장소 넘기기. 케이스는 첫 장소에 적용됩니다.</p>
-      <a id="design-link" href="https://www.figma.com/design/Pe5ioISShzi7RDhKlaydiU?node-id=42-2581" target="_blank" rel="noopener noreferrer">Figma 시안 보기 ↗</a></div>
+      </div><button type="button" id="reset">현재 페이지 케이스 초기화</button><a id="design-link" href="https://www.figma.com/design/Pe5ioISShzi7RDhKlaydiU?node-id=42-2581" target="_blank" rel="noopener noreferrer">Figma 시안 보기 ↗</a></div>
     </aside>
   </div></main>
   <script type="module">
     import { attachPrototypeKeyboard } from '/src/dev/prototype-keyboard.ts';
+    import { attachPrototypeRemote } from '/src/dev/prototype-remote.ts';
     import { installPrototypeSafeAreas } from '/src/dev/prototype-safe-areas.ts';
-    import { prototypeCardModes, prototypeScenarios } from '/src/dev/prototype-scenarios.ts';
+    import { prototypeCardModes, prototypeReminderCases, prototypeScenarios } from '/src/dev/prototype-scenarios.ts';
 
     const main = document.querySelector('main');
     const stage = document.querySelector('#stage');
@@ -78,17 +82,52 @@
     const keyboard = document.querySelector('#keyboard');
     let selectedCase = 'multi-tags';
     let selectedCards = 'multi';
+    let selectedReminder = '0';
+    let currentPage = 'map';
+    attachPrototypeRemote(frame, remote, page => {
+      currentPage = page;
+      if (page === 'archive') {
+        if (sessionStorage.getItem('nook.prototype.reminder') !== selectedReminder) { selectReminder(selectedReminder); return; }
+        document.querySelector('#reminder-select').value = selectedReminder;
+        updateReminderLink(selectedReminder);
+      } else if (page === 'map') {
+        if (sessionStorage.getItem('nook.prototype.reminder')) { selectCase(selectedCase); return; }
+        updateMapLink(selectedCase);
+      }
+    });
+    function updateMapLink(id) {
+      const node = id.startsWith('none') ? '42-2727' : id.startsWith('single') ? '42-2654' : '42-2581';
+      document.querySelector('#design-link').href = `https://www.figma.com/design/Pe5ioISShzi7RDhKlaydiU?node-id=${node}`;
+    }
+    function updateReminderLink(id) {
+      const nodes = { text: '51-3830', '1': '51-3987', '2': '51-3866', '3': '51-3905', '12': '51-3945' };
+      document.querySelector('#design-link').href = `https://www.figma.com/design/Pe5ioISShzi7RDhKlaydiU?node-id=${nodes[id] || '51-3830'}`;
+    }
     const safeAreas = installPrototypeSafeAreas(frame);
     attachPrototypeKeyboard(frame, keyboard, (visible) => { frame.style.height = visible ? '521px' : '812px'; safeAreas.keyboard(visible); });
     function selectCase(id, cards = selectedCards) {
+      sessionStorage.removeItem('nook.prototype.reminder');
       selectedCase = id; selectedCards = cards;
       frame.src = `/map?prototypeCase=${id}&prototypeCards=${cards}&placeId=1`;
       document.querySelector('#case-select').value = id;
       document.querySelector('#cards-select').value = cards;
-      const node = id.startsWith('none') ? '42-2727' : id.startsWith('single') ? '42-2654' : '42-2581';
-      document.querySelector('#design-link').href = `https://www.figma.com/design/Pe5ioISShzi7RDhKlaydiU?node-id=${node}`;
+      updateMapLink(id);
       history.replaceState(null, '', `?case=${id}&cards=${cards}`);
     }
+    function selectReminder(id) {
+      selectedReminder = id;
+      sessionStorage.setItem('nook.prototype.reminder', id);
+      localStorage.removeItem(`nook.local-prototype.v1.reminder.${id}`);
+      frame.src = `/archive?reminder=${id}`;
+      document.querySelector('#reminder-select').value = id;
+      updateReminderLink(id);
+      history.replaceState(null, '', `?reminder=${id}`);
+    }
+    for (const item of prototypeReminderCases) {
+      const option = document.createElement('option'); option.value = item.id; option.textContent = item.label;
+      document.querySelector('#reminder-select').append(option);
+    }
+    document.querySelector('#reminder-select').addEventListener('change', event => selectReminder(event.target.value));
     for (const scenario of prototypeScenarios) {
       const option = document.createElement('option'); option.value = scenario.id; option.textContent = scenario.label;
       document.querySelector('#case-select').append(option);
@@ -107,20 +146,26 @@
       frame.contentWindow.postMessage({ type: 'nook:prototype-action', action: button.dataset.action }, location.origin);
     }); });
     document.querySelector('#reset').addEventListener('click', () => {
+      if (currentPage === 'archive') { selectReminder(selectedReminder); return; }
       localStorage.removeItem(`nook.local-prototype.v1.${selectedCase}.${selectedCards}`); selectCase(selectedCase);
     });
+    document.querySelector('#replay-reminder').addEventListener('click', () => frame.contentWindow.location.reload());
+    document.querySelector('header a[href="/archive"]').addEventListener('click', event => { event.preventDefault(); selectReminder(selectedReminder); });
+    document.querySelector('header a[href="/map"]').addEventListener('click', event => { event.preventDefault(); selectCase(selectedCase); });
     function fitStage() {
       const scale = Math.max(.2, Math.min(1, (main.clientWidth - 24) / 375, (main.clientHeight - 24) / 812));
       stage.style.width = `${375 * scale}px`; stage.style.height = `${812 * scale}px`;
       device.style.transform = `scale(${scale})`;
     }
     new ResizeObserver(fitStage).observe(main);
+    const initialReminder = new URLSearchParams(location.search).get('reminder');
     const initial = new URLSearchParams(location.search).get('case');
     const initialCards = new URLSearchParams(location.search).get('cards');
     selectCase(
       prototypeScenarios.some(item => item.id === initial) ? initial : selectedCase,
       prototypeCardModes.some(item => item.id === initialCards) ? initialCards : selectedCards,
     );
+    if (prototypeReminderCases.some(item => item.id === initialReminder)) selectReminder(initialReminder);
     fitStage();
   </script>
 </body>

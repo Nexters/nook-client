@@ -7,6 +7,7 @@ import type {
 
 export interface PrototypeData {
   dataVersion: number;
+  placeReminderEnabled?: boolean;
   profile: MemberProfileResponse;
   groups: GroupResponse[];
   places: PlaceDetailResponse[];

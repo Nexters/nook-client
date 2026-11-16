@@ -1,0 +1,40 @@
+/* The banner is one expanding object: photos, buttons and archive rows settle together. */
+.reminder-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  width: 100%;
+  transition: grid-template-rows 560ms cubic-bezier(0.77, 0, 0.175, 1);
+}
+.reminder-reveal[data-revealed="true"] {
+  grid-template-rows: 1fr;
+}
+.reminder-reveal-clip {
+  min-height: 0;
+  overflow: hidden;
+}
+/* Bleed the shadow into the existing 16px button gap instead of cutting it at the photo edge. */
+.reminder-reveal-clip {
+  overflow: clip;
+  overflow-clip-margin: 12px;
+}
+.reminder-photo {
+  transform-origin: center bottom;
+  opacity: 0;
+  transition:
+    transform 480ms cubic-bezier(0.77, 0, 0.175, 1),
+    opacity 360ms ease;
+}
+.reminder-reveal[data-revealed="true"] .reminder-photo {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reminder-reveal {
+    grid-template-rows: 1fr;
+    transition: none;
+  }
+  .reminder-photo {
+    opacity: 1;
+    transform: none !important;
+    transition: none;
+  }
+}

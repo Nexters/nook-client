@@ -2,12 +2,16 @@ import type { ApiRequestInit } from '@/shared/api/http';
 import { createPrototypeData, type PrototypeData } from './local-prototype-data';
 import {
   createPrototypeScenarioData,
+  createReminderData,
   getPrototypeCardMode,
+  getPrototypeReminderCase,
   getPrototypeScenario,
 } from './prototype-scenarios';
 
 const STORAGE_KEY = 'nook.local-prototype.v1';
 const storageKey = () => {
+  const reminder = getPrototypeReminderCase();
+  if (reminder) return `${STORAGE_KEY}.reminder.${reminder.id}`;
   const scenario = getPrototypeScenario();
   return scenario ? `${STORAGE_KEY}.${scenario.id}.${getPrototypeCardMode()}` : STORAGE_KEY;
 };
@@ -68,6 +72,8 @@ function read(): PrototypeData {
   } catch {
     /* 잘못된 로컬 데이터는 새 샘플로 복구한다. */
   }
+  const reminder = getPrototypeReminderCase();
+  if (reminder) return createReminderData(reminder.count);
   const scenario = getPrototypeScenario();
   return scenario
     ? createPrototypeScenarioData(scenario.id, getPrototypeCardMode())
@@ -294,6 +300,22 @@ export async function localPrototypeRequest(
       post.groups = postGroups(body.groupIds ?? []);
     return success(null);
   }
+  if (path === '/posts/unlinked-places' && method === 'GET')
+    return success(
+      page(
+        db.posts
+          .filter(
+            (post) =>
+              post.places.length === 0 &&
+              post.groups.some((group) =>
+                db.groups.some((owned) => owned.id === group.id && owned.accessType === 'OWNED'),
+              ) &&
+              post.processingStatus === 'COMPLETED',
+          )
+          .map(postSummary),
+        params,
+      ),
+    );
   if (path === '/posts' && method === 'GET')
     return success(page(db.posts.map(postSummary), params));
   const postMatch = path.match(
@@ -335,8 +357,19 @@ export async function localPrototypeRequest(
       return success(db.profile);
     }
   }
-  if (path === '/me/place-connection-reminder')
-    return success({ enabled: false, showBanner: false, unlinkedPostCount: 0 });
+  if (path === '/me/place-connection-reminder') {
+    if (method === 'PATCH') db.placeReminderEnabled = Boolean(body.enabled);
+    const count = db.posts.filter(
+      (post) =>
+        post.places.length === 0 &&
+        post.processingStatus === 'COMPLETED' &&
+        post.groups.some((group) =>
+          db.groups.some((owned) => owned.id === group.id && owned.accessType === 'OWNED'),
+        ),
+    ).length;
+    const enabled = db.placeReminderEnabled ?? true;
+    return success({ enabled, showBanner: enabled && count > 0, unlinkedPostCount: count });
+  }
   if (path === '/me/push-preferences') return success({ postProcessingEnabled: false });
   if (path === '/onboarding/events' || path === '/auth/logout') return success(null);
   throw new Error(`로컬 목 모드에서 지원하지 않는 요청입니다: ${method} ${path}`);

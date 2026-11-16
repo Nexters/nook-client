@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
@@ -13,7 +13,10 @@ vi.mock('@/shared/config/env', async (original) => {
   return { env: { ...actual.env, localPrototype: true } };
 });
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  sessionStorage.clear();
+});
 
 it('shows the current archive components with local data and opens their real detail page', async () => {
   const fetcher = vi.spyOn(globalThis, 'fetch');
@@ -42,4 +45,57 @@ it('shows the current archive components with local data and opens their real de
   expect((await screen.findAllByText('오후의 커피')).length).toBeGreaterThan(0);
   expect(fetcher).not.toHaveBeenCalled();
   fetcher.mockRestore();
+});
+
+it('opens only the reminder fixture posts from the archive banner', async () => {
+  sessionStorage.setItem('nook.prototype.reminder', '2');
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <AuthSessionProvider>
+        <ToastProvider>
+          <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
+            <MemoryRouter initialEntries={['/archive']}>
+              <ArchivePage />
+            </MemoryRouter>
+          </BottomMenuVisibilityProvider>
+        </ToastProvider>
+      </AuthSessionProvider>
+    </QueryClientProvider>,
+  );
+  expect(await screen.findByText('2개')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '게시물 보기' }));
+  expect(await screen.findByRole('dialog', { name: '장소 없는 게시물' })).toBeInTheDocument();
+  expect(screen.getAllByText('0 Places')).toHaveLength(2);
+});
+
+it('offers the existing action toast and restores reminder settings on cancel', async () => {
+  sessionStorage.setItem('nook.prototype.reminder', '2');
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <AuthSessionProvider>
+        <ToastProvider>
+          <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
+            <MemoryRouter initialEntries={['/archive']}>
+              <ArchivePage />
+            </MemoryRouter>
+          </BottomMenuVisibilityProvider>
+        </ToastProvider>
+      </AuthSessionProvider>
+    </QueryClientProvider>,
+  );
+  fireEvent.click(await screen.findByRole('button', { name: '다시 보지 않음' }));
+  expect(await screen.findByText('설정에서 언제든지 변경할 수 있어요')).toBeInTheDocument();
+  await waitFor(() =>
+    expect(
+      screen.queryByRole('region', { name: '장소 미연결 게시물 안내' }),
+    ).not.toBeInTheDocument(),
+  );
+  fireEvent.click(screen.getByRole('button', { name: '취소' }));
+  expect(
+    await screen.findByRole('region', { name: '장소 미연결 게시물 안내' }),
+  ).toBeInTheDocument();
 });
