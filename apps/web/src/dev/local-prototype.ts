@@ -23,7 +23,7 @@ function read(): PrototypeData {
         Array.isArray(parsed.posts) &&
         parsed.profile
       )
-        if (parsed.dataVersion !== 2) {
+        if ((parsed.dataVersion ?? 1) < 2) {
           const seed = createPrototypeData();
           for (const place of parsed.places) {
             const fresh = seed.places.find((item) => item.id === place.id);
@@ -48,6 +48,21 @@ function read(): PrototypeData {
           parsed.dataVersion = 2;
           localStorage.setItem(storageKey(), JSON.stringify(parsed));
         }
+      // v3: 게시물마다 같은 동네 장소를 더 담는다. 장소 하나만 담긴 게시물에만 채우고,
+      // 사용자가 고친 장소(메모·북마크)는 저장된 값을 그대로 쓴다.
+      if (parsed.dataVersion === 2) {
+        const seed = createPrototypeData();
+        for (const post of parsed.posts) {
+          const fresh = seed.posts.find((item) => item.postId === post.postId);
+          if (!fresh || post.places.length !== 1) continue;
+          post.places = fresh.places.flatMap((place, sequence) => {
+            const stored = parsed.places.find((item) => item.id === place.id);
+            return stored ? [{ ...stored, sequence }] : [];
+          });
+        }
+        parsed.dataVersion = 3;
+        localStorage.setItem(storageKey(), JSON.stringify(parsed));
+      }
       return parsed;
     }
   } catch {

@@ -55,13 +55,15 @@ it('supports shared links, archive moves and bookmark state across requests', as
   const shared = await localPrototypeRequest(`/api/public/v1/groups/${link.token}`);
   expect(shared.success).toMatchObject({ id: 1, name: '커피 한 잔의 여유' });
   await request('/posts/1/groups', 'PUT', { groupIds: [2] });
-  expect(await request('/groups/1/places')).toMatchObject({ totalElements: 9 });
-  expect(await request('/groups/2/places')).toMatchObject({ totalElements: 11 });
+  // 게시물마다 같은 동네 장소 3곳을 담는다 — 1번 게시물(장소 1·2·3)을 옮겨도 그 장소들은
+  // 1번 아카이브의 다른 게시물에도 담겨 있어 남고, 2번 아카이브엔 세 곳이 더해진다.
+  expect(await request('/groups/1/places')).toMatchObject({ totalElements: 10 });
+  expect(await request('/groups/2/places')).toMatchObject({ totalElements: 13 });
   await request('/places/1/bookmark', 'PATCH', { bookmarked: false });
   const map = (await request('/places/map')) as { id: number }[];
   expect(map.some((place) => place.id === 1)).toBe(false);
   expect(await request('/posts/1')).toMatchObject({
-    places: [expect.objectContaining({ bookmarked: false })],
+    places: expect.arrayContaining([expect.objectContaining({ id: 1, bookmarked: false })]),
   });
 });
 
@@ -110,5 +112,5 @@ it('updates existing sample coordinates without losing the user edits', async ()
     address: expect.stringContaining('잠실동'),
   });
   const stored = JSON.parse(localStorage.getItem('nook.local-prototype.v1') ?? '{}');
-  expect(stored.dataVersion).toBe(2);
+  expect(stored.dataVersion).toBe(3);
 });

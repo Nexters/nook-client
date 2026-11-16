@@ -70,6 +70,12 @@ function areaAt(index: number) {
   );
 }
 
+/** 게시물 i 가 담는 장소 — 자기 장소 + 같은 동네 묶음 안의 다음 두 곳. */
+function relatedPlaceIndexes(i: number) {
+  const start = Math.floor(i / 5) * 5;
+  return [i, start + ((i + 1) % 5), start + ((i + 2) % 5)];
+}
+
 export function createPrototypeData(): PrototypeData {
   const groups: GroupResponse[] = [
     {
@@ -133,7 +139,12 @@ export function createPrototypeData(): PrototypeData {
     groups: groups.slice(Math.floor(i / 10), Math.floor(i / 10) + 1),
     hashtags: ['성수', '서울숲', '취향기록'],
     media: [{ sequence: 0, type: 'IMAGE', url: place.thumbnailUrl ?? '/og-default.png' }],
-    places: [{ ...place, sequence: 0 }],
+    // 같은 동네(5곳 묶음)의 다음 두 곳을 함께 담는다 — 장소 상세의 "게시물에 포함된 장소"
+    // 리스트(스와이프로 연결 끊기)가 프로토타입에서도 보이게 한다.
+    places: relatedPlaceIndexes(i).flatMap((index, sequence) => {
+      const related = places[index];
+      return related ? [{ ...related, sequence }] : [];
+    }),
     placeParsingStatus: 'COMPLETED',
     processingStatus: 'COMPLETED',
     processingPercent: 100,
@@ -146,7 +157,7 @@ export function createPrototypeData(): PrototypeData {
       .flatMap((post) => post.media.slice(0, 1).map((media) => media.url));
   }
   return {
-    dataVersion: 2,
+    dataVersion: 3,
     profile: { id: 1, nickname: '문지우', provider: 'KAKAO', profileImageUrl: null },
     groups,
     places,
