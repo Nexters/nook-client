@@ -59,9 +59,13 @@ export function FloatingPlaceCards({
   const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // 처음 그릴 땐 고른 카드에 바로 서 있어야 한다 — 첫 카드에서 미끄러져 오면 어색하다.
   const mountedRef = useRef(false);
-  // 손으로 넘기는 동안엔 왼쪽 카드도 보여야 미끄러져 들어오는 게 자연스럽다 — 멈추면 다시 숨긴다.
-  const [swiping, setSwiping] = useState(false);
+  // 왼쪽 끝에 걸쳐 보이는 첫 카드 — 이보다 앞 카드는 숨긴다. 스크롤 위치에서 바로 계산해서
+  // 넘기는 순간 사라지고(잔상 없음), 되돌려 넘기기 시작하면 바로 나타난다. 마지막 장은 스크롤
+  // 끝이 한 칸에 못 미쳐(오른쪽 8px 정렬) 자연히 이전 카드까지 보인다.
   const lastIndex = placeIds.length - 1;
+  const [firstVisible, setFirstVisible] = useState(
+    activeIndex === lastIndex ? activeIndex - 1 : activeIndex,
+  );
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -90,9 +94,11 @@ export function FloatingPlaceCards({
   }, [onHeightChange, activeIndex]);
 
   const handleScroll = () => {
+    const live = scrollerRef.current;
+    const liveStep = live ? stepOf(live) : 0;
+    if (live && liveStep > 0) setFirstVisible(Math.floor(live.scrollLeft / liveStep + 0.01));
     clearTimeout(settleTimer.current);
     settleTimer.current = setTimeout(() => {
-      setSwiping(false);
       const scroller = scrollerRef.current;
       if (!scroller) return;
       const step = stepOf(scroller);
@@ -116,11 +122,6 @@ export function FloatingPlaceCards({
         aria-label="검색 결과 장소"
         aria-roledescription="캐러셀"
         onScroll={placeIds.length > 1 ? handleScroll : undefined}
-        onTouchStartCapture={placeIds.length > 1 ? () => setSwiping(true) : undefined}
-        onPointerDownCapture={placeIds.length > 1 ? () => setSwiping(true) : undefined}
-        // 스크롤 없이 손을 떼도 settle 타이머로 다시 숨긴다.
-        onTouchEndCapture={placeIds.length > 1 ? handleScroll : undefined}
-        onPointerUpCapture={placeIds.length > 1 ? handleScroll : undefined}
         style={{ gap: CARD_GAP_PX }}
         className={cn(
           'pointer-events-auto flex items-end',
@@ -141,7 +142,7 @@ export function FloatingPlaceCards({
             // 기본: 오른쪽에 다음 카드만 비치고 왼쪽 이전 카드는 숨긴다.
             // 마지막 장: 다음 카드가 없으니 오른쪽은 비우고 왼쪽 이전 카드를 비춘다.
             multi={placeIds.length > 1}
-            peekHidden={!swiping && index < activeIndex - (activeIndex === lastIndex ? 1 : 0)}
+            peekHidden={index < firstVisible}
             userCoords={userCoords}
             onClose={onClose}
             onSelectPlace={onSelectPlace}
@@ -187,8 +188,7 @@ function FloatingPlaceCard({
       aria-label={place?.name ?? '장소'}
       aria-hidden={peekHidden || undefined}
       className={cn(
-        'transition-opacity duration-150',
-        peekHidden && 'pointer-events-none opacity-0',
+        peekHidden && 'invisible',
         // 카드 폭은 화면 - 24px 로 고정한다. 단일 카드는 좌우 12px 가운데, 여러 장은 스크롤러
         // 좌우 패딩(8px)에서 8px 를 더 빼 다음 카드가 간격(4px) 뒤로 12px 비친다.
         onExpand && 'touch-pan-x',
