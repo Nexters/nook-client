@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSearchSavedPlaces } from '@/features/map/api/queries';
@@ -142,23 +142,30 @@ describe('PlaceSearchPanel', () => {
     expect(scroller).toHaveStyle({ paddingBottom: '55dvh' });
   });
 
-  it('자동 포커스는 슬라이드 전환이 끝난 뒤 preventScroll 로 준다 — 전환 중(translate 상태) 포커스는 iOS Safari 가 뷰포트를 옆으로 팬해 화면이 밀린 채 남는다', () => {
-    vi.useFakeTimers();
-    const focusSpy = vi.spyOn(HTMLInputElement.prototype, 'focus');
-    try {
-      renderPanel();
+  it('검색 입력이 같은 자리에서 즉시 포커스된다 — 화면 전환 지연 없이 입력을 시작한다', () => {
+    const onInputFocus = vi.fn();
+    renderPanel({ onInputFocus });
+    expect(screen.getByPlaceholderText('장소명을 입력해주세요')).toHaveFocus();
+    expect(onInputFocus).toHaveBeenCalledTimes(1);
+  });
 
-      expect(focusSpy).not.toHaveBeenCalled();
-
-      act(() => {
-        vi.advanceTimersByTime(300);
-      });
-
-      expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
-    } finally {
-      focusSpy.mockRestore();
-      vi.useRealTimers();
-    }
+  it('리모컨이 포커스를 다시 요청하면 이미 열린 입력창에도 포커스를 돌려준다', () => {
+    const props = {
+      query: '',
+      page: undefined,
+      onQueryChange: () => {},
+      canScroll: true,
+      onExit: () => {},
+      onSelectPlace: () => {},
+      onInputFocus: () => {},
+      onInputBlur: () => {},
+    };
+    const { rerender } = render(<PlaceSearchPanel {...props} focusRequest={0} />);
+    const input = screen.getByPlaceholderText('장소명을 입력해주세요');
+    input.blur();
+    expect(input).not.toHaveFocus();
+    rerender(<PlaceSearchPanel {...props} focusRequest={1} />);
+    expect(input).toHaveFocus();
   });
 
   it('뒤로가기를 누르면 onExit 을 호출한다', () => {

@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
+import { env } from '@/shared/config/env';
 
 // 데이터는 feature api 모듈을 거친다 — HTTP 가 아니라 페이지 ↔ Query ↔ api 배선만 검증한다.
 const mocks = vi.hoisted(() => ({
@@ -24,11 +25,13 @@ vi.mock('@/features/map/components/MapView', () => ({
   MapView: ({
     pins,
     onPlaceClick,
+    onEmptyMapClick,
     onBoundsChanged,
     onDestinationBounds,
   }: {
     pins: { id: number; color: string; outsideSearch?: boolean }[];
     onPlaceClick: (id: number) => void;
+    onEmptyMapClick?: () => void;
     onBoundsChanged: (bounds: { north: number; south: number; east: number; west: number }) => void;
     onDestinationBounds: (bounds: {
       north: number;
@@ -40,6 +43,9 @@ vi.mock('@/features/map/components/MapView', () => ({
     <>
       <button type="button" onClick={() => onPlaceClick(7)}>
         핀 7 클릭
+      </button>
+      <button type="button" onClick={() => onEmptyMapClick?.()}>
+        빈 지도 클릭
       </button>
       {/* 지도 이동이 끝나 idle 로 경계가 올라온 순간 — 전국을 덮는 경계로 흉내 낸다. */}
       <button
@@ -164,16 +170,24 @@ vi.mock('@/features/map/components/FloatingPlaceCards', () => ({
     activeIndex,
     onActiveIndexChange,
     onClose,
+    onExpand,
+    compact,
   }: {
     placeIds: number[];
     activeIndex: number;
     onActiveIndexChange: (index: number) => void;
     onClose: () => void;
+    onExpand: () => void;
+    compact?: boolean;
   }) => (
     <div>
       <output data-testid="cards">{`${placeIds.join(',')}@${activeIndex}`}</output>
+      <output data-testid="cards-compact">{String(Boolean(compact))}</output>
       <button type="button" onClick={() => onActiveIndexChange(activeIndex + 1)}>
         다음 카드로 넘기기
+      </button>
+      <button type="button" onClick={onExpand}>
+        카드 전체 화면
       </button>
       <button type="button" onClick={onClose}>
         카드 닫기
@@ -767,6 +781,71 @@ describe('MapPage — 검색 결과 지도(NOOK-383)', () => {
     expect(screen.getByText('검색모드: true')).toBeInTheDocument();
     expect(screen.getByLabelText('검색어')).toHaveValue('성수');
     expect(screen.getByTestId('search-params').textContent).toBe('');
+  });
+
+  it('플로팅 카드를 확장하면 전체 상세를 열고, 닫으면 검색 맥락을 유지한 채 카드로 복귀한다', async () => {
+    await openSearchMap();
+    fireEvent.click(screen.getByRole('button', { name: '카드 전체 화면' }));
+    await screen.findByText('시트 가림: false');
+    expect(screen.getByText('스냅: 1')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '성수' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('cards')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '상세 닫기' }));
+    await screen.findByTestId('cards');
+    expect(screen.getByLabelText('검색어')).toHaveValue('성수');
+    expect(screen.getByTestId('cards')).toHaveTextContent('1,2@0');
+    expect(screen.getByText('시트 가림: true')).toBeInTheDocument();
+  });
+
+  it('전체 상세를 기본 높이로 내리면 검색 헤더와 같은 플로팅 카드로 돌아간다', async () => {
+    await openSearchMap();
+    fireEvent.click(screen.getByRole('button', { name: '카드 전체 화면' }));
+    await screen.findByText('스냅: 1');
+    fireEvent.click(screen.getByRole('button', { name: '시트 최저 높이로' }));
+    await screen.findByTestId('cards');
+    expect(screen.getByRole('button', { name: '성수' })).toBeInTheDocument();
+    expect(screen.getByTestId('cards')).toHaveTextContent('1,2@0');
+    expect(screen.getByLabelText('검색어')).toHaveValue('성수');
+    expect(screen.getByText('시트 가림: true')).toBeInTheDocument();
+  });
+
+  it('로컬 리모컨의 케이스 URL과 확장·접기·다음 장소 명령을 실제 상태에 연결한다', async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(env, 'localPrototype');
+    Object.defineProperty(env, 'localPrototype', { value: true, configurable: true });
+    try {
+      renderMapAt('/map?prototypeCase=multi-tags&placeId=1');
+      await screen.findByTestId('cards');
+      await waitFor(() => expect(screen.getByTestId('cards')).toHaveTextContent('1,2@0'));
+      const command = (action: string) =>
+        fireEvent(
+          window,
+          new MessageEvent('message', {
+            origin: window.location.origin,
+            source: window,
+            data: { type: 'nook:prototype-action', action },
+          }),
+        );
+      command('expand');
+      await screen.findByText('스냅: 1');
+      expect(screen.queryByTestId('cards')).not.toBeInTheDocument();
+      command('collapse');
+      await screen.findByTestId('cards');
+      command('next');
+      await waitFor(() => expect(screen.getByTestId('cards')).toHaveTextContent('1,2@1'));
+    } finally {
+      if (descriptor) Object.defineProperty(env, 'localPrototype', descriptor);
+    }
+  });
+
+  it('검색 결과 카드가 떠 있을 때 빈 지도를 누르면 닫지 않고 접힌 카드로 내린다', async () => {
+    await openSearchMap();
+    expect(screen.getByTestId('cards-compact')).toHaveTextContent('false');
+
+    fireEvent.click(screen.getByRole('button', { name: '빈 지도 클릭' }));
+
+    await waitFor(() => expect(screen.getByTestId('cards-compact')).toHaveTextContent('true'));
+    expect(screen.getByTestId('cards')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '성수' })).toBeInTheDocument();
   });
 
   it('결과 밖 핀을 고르면 넘기기 없는 단일 카드가 된다', async () => {

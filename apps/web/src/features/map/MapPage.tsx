@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useLocation, useNavigate, useNavigationType, useSearchParams } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
@@ -21,7 +21,9 @@ import {
 import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
 import { toInitialBounds } from '@/features/map/initial-bounds';
 import type { ArchiveFilter, MapBounds } from '@/features/map/types';
+import { env } from '@/shared/config/env';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
+import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { useMapPins, usePlaceDetail, useRecentPlaces, useSearchSavedPlaces } from './api/queries';
 
 /**
@@ -110,9 +112,15 @@ export function MapPage() {
   // 반응해야 하고(제품 결정), 이 패널은 시트 안에서 탐색 콘텐츠만 덮어 화면 높이를 채우지
   // 않는다. 그래서 스와이프는 여기서도 "지도를 떠난다"가 맞다. 좌상단 뒤로가기는 버튼이
   // 직접, Android 하드웨어 백은 useSlideScreen 의 인터셉터가 받는다.
-  const [isSearchMode, setIsSearchMode] = useState(false);
+  const prototypeCase = env.localPrototype ? searchParams.get('prototypeCase') : null;
+  const [isSearchMode, setIsSearchMode] = useState(Boolean(prototypeCase));
+  const [floatingCardHeight, setFloatingCardHeight] = useState(0);
+  const [floatingCompact, setFloatingCompact] = useState(false);
+  const [floatingExpanded, openFloatingDetail, closeFloatingDetail] =
+    useHistoryBackedFlag('floatingPlaceExpanded');
   // 검색어·결과는 여기서 갖는다 — 결과 목록(검색 패널)과 검색 결과 지도가 같은 결과를 쓴다.
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(prototypeCase ? '성수' : '');
+  const [searchFocusRequest, setSearchFocusRequest] = useState(0);
   const debouncedSearchQuery = useDebouncedValue(searchQuery, SEARCH_DEBOUNCE_MS);
   // ponytail: 지도 아카이브 필터는 아직 검색에 안 걸린다 — 서버 검색 API 가 groupIds 를 받게 되면 넘긴다.
   const searchPage = useSearchSavedPlaces(debouncedSearchQuery, null);
@@ -230,7 +238,6 @@ export function MapPage() {
 
   // 지도는 마운트 시점 위치에서 열리므로 위치가 올 때까지 띄우지 않는다. 대기는 앱 기동 후 첫
   // 진입뿐이고(위치 캐시) 대개 짧아서, 안내 문구가 오히려 깜빡임으로 보였다(QA) — 빈 화면으로 둔다.
-  if (location.status === 'loading') return null;
 
   /**
    * 선택 변경을 URL 에 반영한다.
@@ -303,6 +310,17 @@ export function MapPage() {
       return;
     }
 
+    if (
+      searchMapActive &&
+      floatingExpanded &&
+      typeof next === 'number' &&
+      next <= DETAIL_PAGE_SNAP_POINT
+    ) {
+      setSnap(next);
+      setFloatingCompact(next <= DETAIL_COMPACT_SNAP_POINT);
+      closeFloatingDetail();
+      return;
+    }
     setSnap(next);
     // 예전엔 peek 까지 내려가면 선택을 풀었지만, 이제 상세의 최저점은 detailCompact 라
     // 끌어내려도 목록으로 나가지 않는다 — 나가는 길은 헤더의 닫기 버튼뿐이다(QA).
@@ -350,6 +368,10 @@ export function MapPage() {
 
   /** 검색 결과 지도의 상단 뒤로가기 — 결과 목록으로 돌아간다(검색어·결과·스크롤 유지). */
   function handleExitSearchMap() {
+    if (floatingExpanded && detailIsHistoryEntry) {
+      navigate(-2);
+      return;
+    }
     if (detailIsHistoryEntry) {
       navigate(-1);
       return;
@@ -387,7 +409,7 @@ export function MapPage() {
     setIsFilterOpen(true);
   }
 
-  /** 검색 패널의 슬라이드 아웃이 끝난 뒤 호출된다(PlaceSheet 의 useSlideScreen 계약). */
+  /** 검색 입력 상태를 즉시 닫고 목록으로 돌아간다. */
   function handleExitSearch() {
     setIsSearchMode(false);
     setSearchQuery('');
@@ -401,6 +423,76 @@ export function MapPage() {
     setSnap((current) => (current === PEEK_SNAP_POINT ? MID_SNAP_POINT : current));
   }
 
+  // 리모컨은 로컬 목 모드에서만 활성화한다. 실제 검색·선택·확장 핸들러를 재사용한다.
+  useEffect(() => {
+    if (!prototypeCase || historyState?.prototypeScenario === prototypeCase) return;
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.set('placeId', '1');
+        return next;
+      },
+      {
+        replace: true,
+        state: { ...historyState, [SEARCH_MAP_STATE_KEY]: true, prototypeScenario: prototypeCase },
+      },
+    );
+  }, [prototypeCase, historyState, setSearchParams]);
+
+  const onPrototypeAction = useEffectEvent((action: string) => {
+    if (action === 'expand' && searchMapActive && selectedPlaceId !== null && !floatingExpanded) {
+      if (floatingCompact) setFloatingCompact(false);
+      else {
+        setSnap(FULL_SNAP_POINT);
+        openFloatingDetail();
+      }
+    } else if (action === 'collapse') {
+      if (floatingExpanded) {
+        setFloatingCompact(false);
+        closeFloatingDetail();
+      } else setFloatingCompact(true);
+    } else if (action === 'compact') {
+      setFloatingCompact(true);
+      if (floatingExpanded) closeFloatingDetail();
+    } else if (action === 'next' || action === 'previous') {
+      const next = Math.min(
+        searchResultIds.length - 1,
+        Math.max(0, searchResultIndex + (action === 'next' ? 1 : -1)),
+      );
+      const id = searchResultIds[next];
+      if (id !== undefined) setSelectedPlaceId(id);
+    } else if (action === 'search') {
+      setSearchFocusRequest((current) => current + 1);
+      setSearchQuery('');
+      setIsSearchMode(true);
+      setSnap(MID_SNAP_POINT);
+      const prototypeCards = searchParams.get('prototypeCards');
+      const query = new URLSearchParams();
+      if (prototypeCase) query.set('prototypeCase', prototypeCase);
+      if (prototypeCards) query.set('prototypeCards', prototypeCards);
+      navigate(`/map${query.size > 0 ? `?${query}` : ''}`, {
+        replace: true,
+        state: { prototypeScenario: prototypeCase, [SEARCH_MAP_STATE_KEY]: false },
+      });
+    }
+  });
+  useEffect(() => {
+    if (!env.localPrototype) return;
+    const receive = (event: MessageEvent) => {
+      if (
+        event.origin !== window.location.origin ||
+        event.source !== window.parent ||
+        event.data?.type !== 'nook:prototype-action'
+      )
+        return;
+      if (typeof event.data.action === 'string') onPrototypeAction(event.data.action);
+    };
+    window.addEventListener('message', receive);
+    return () => window.removeEventListener('message', receive);
+  }, []);
+
+  if (location.status === 'loading') return null;
+
   return (
     <MainTabPageLayout variant="transparent">
       <div className="relative h-full w-full overflow-hidden">
@@ -408,7 +500,9 @@ export function MapPage() {
           ref={mapRef}
           pins={pins}
           currentLocation={location.coords}
-          initialCenter={location.coords ?? undefined}
+          initialCenter={
+            env.localPrototype ? { lat: 37.547, lng: 127.042 } : (location.coords ?? undefined)
+          }
           selectedPlaceId={selectedPlaceId}
           // 선택 장소로의 이동은 명령이 아니라 선언 — 상세 응답의 좌표를 그대로 내려주면
           // 지도가 늦게 마운트되든(스크립트 Suspense) 상세가 늦게 오든 MapView 가 알아서
@@ -420,7 +514,15 @@ export function MapPage() {
           }
           onPlaceClick={handlePlaceClick}
           // 빈 지도 탭 = 상세 헤더 닫기와 같은 길(NOOK-327). 선택이 없으면 할 일이 없다.
-          onEmptyMapClick={selectedPlaceId !== null ? handleCloseDetail : undefined}
+          // 검색 결과 플로팅 카드가 떠 있으면 닫지 않고 접힌 카드로 내린다 — 결과를 둘러보던
+          // 맥락(검색 헤더·카드 위치)은 그대로 두고 지도만 넓게 보여준다.
+          onEmptyMapClick={
+            selectedPlaceId === null
+              ? undefined
+              : searchMapActive && !floatingExpanded
+                ? () => setFloatingCompact(true)
+                : handleCloseDetail
+          }
           onBoundsChanged={setBounds}
           onDestinationBounds={setDestinationBounds}
         />
@@ -430,6 +532,11 @@ export function MapPage() {
           // 카드가 떠 있으면 카드 위로, 닫혀 있으면 화면 아래쪽에 둔다.
           <RecenterButton
             snapPoint={selectedPlaceId !== null ? DETAIL_PAGE_SNAP_POINT : 0}
+            bottomOffset={
+              selectedPlaceId !== null && floatingCardHeight > 0
+                ? `calc(max(env(safe-area-inset-bottom), 1.25rem) + ${floatingCardHeight + 16}px)`
+                : undefined
+            }
             onClick={() => mapRef.current?.recenter()}
           />
         ) : (
@@ -438,7 +545,7 @@ export function MapPage() {
             <RecenterButton snapPoint={snap} onClick={() => mapRef.current?.recenter()} />
           )
         )}
-        {searchMapActive ? (
+        {searchMapActive && !floatingExpanded ? (
           <SearchMapHeader
             query={searchQuery}
             onBack={handleExitSearchMap}
@@ -448,12 +555,22 @@ export function MapPage() {
             }}
           />
         ) : null}
-        {searchMapActive && selectedPlaceId !== null ? (
+        {searchMapActive && selectedPlaceId !== null && !floatingExpanded ? (
           <FloatingPlaceCards
             // 결과 넘기기 ↔ 결과 밖 단일 카드 전환은 다시 마운트해 그 카드에 바로 서게 한다.
             key={searchResultIndex >= 0 ? 'results' : 'single'}
             placeIds={searchResultIndex >= 0 ? searchResultIds : [selectedPlaceId]}
             activeIndex={Math.max(searchResultIndex, 0)}
+            onHeightChange={setFloatingCardHeight}
+            compact={floatingCompact}
+            onCollapse={() => setFloatingCompact(true)}
+            onExpand={() => {
+              if (floatingCompact) setFloatingCompact(false);
+              else {
+                setSnap(FULL_SNAP_POINT);
+                openFloatingDetail();
+              }
+            }}
             userCoords={location.coords}
             onActiveIndexChange={(index) => {
               const id = searchResultIds[index];
@@ -469,28 +586,35 @@ export function MapPage() {
           recentPlacesLoading={recentPlacesQuery.isLoading}
           recentPlacesPaging={recentPlacesQuery}
           firstSave={hasSaveHistory === false}
-          // 검색 결과 지도의 상세는 플로팅 카드가 그린다 — 시트는 결과 목록 그대로 가려 둔다.
-          selectedPlace={searchMapActive ? null : (placeDetailQuery.data ?? null)}
+          // 검색 결과는 플로팅 카드로 시작하고, 위로 당기면 같은 장소를 전체 상세 시트로 확장한다.
+          selectedPlace={
+            searchMapActive && !floatingExpanded ? null : (placeDetailQuery.data ?? null)
+          }
           shareToken={shareToken}
           isPlaceDetailPending={
-            !searchMapActive && selectedPlaceId !== null && placeDetailQuery.isPending
+            (!searchMapActive || floatingExpanded) &&
+            selectedPlaceId !== null &&
+            placeDetailQuery.isPending
           }
           isPlaceDetailError={
-            !searchMapActive && selectedPlaceId !== null && placeDetailQuery.isError
+            (!searchMapActive || floatingExpanded) &&
+            selectedPlaceId !== null &&
+            placeDetailQuery.isError
           }
           snap={snap}
           instantOpen={instantSheetOpen}
           userCoords={location.coords}
           isSearchMode={isSearchMode}
           searchQuery={searchQuery}
+          searchFocusRequest={searchFocusRequest}
           searchPage={searchPage}
           onSearchQueryChange={setSearchQuery}
           onSelectSearchResult={handleSearchResultClick}
-          hidden={searchMapActive}
+          hidden={searchMapActive && !floatingExpanded}
           filterActive={archiveFilter !== null}
           onSnapChange={handleSnapChange}
           onSelectPlace={handlePlaceClick}
-          onClose={handleCloseDetail}
+          onClose={searchMapActive && floatingExpanded ? closeFloatingDetail : handleCloseDetail}
           onEnterSearch={handleEnterSearch}
           onExitSearch={handleExitSearch}
           onSearchInputFocus={handleSearchInputFocus}

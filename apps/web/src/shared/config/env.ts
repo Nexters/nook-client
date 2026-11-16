@@ -33,6 +33,7 @@ export const env = {
   posthogKey: import.meta.env.VITE_PUBLIC_POSTHOG_KEY ?? '',
   posthogHost: import.meta.env.VITE_PUBLIC_POSTHOG_HOST ?? '',
   isDev: import.meta.env.DEV,
+  localPrototype: import.meta.env.DEV && import.meta.env.VITE_LOCAL_PROTOTYPE === 'true',
   enableDevRoutes: import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_ROUTES === 'true',
   /**
    * 공유 링크에 쓰는 웹 오리진. 셸 웹뷰에서도 링크는 항상 공개 웹 주소여야 하므로

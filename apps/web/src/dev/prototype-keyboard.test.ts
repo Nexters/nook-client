@@ -1,0 +1,33 @@
+import { fireEvent } from '@testing-library/react';
+import { expect, it, vi } from 'vitest';
+import { attachPrototypeKeyboard } from './prototype-keyboard';
+
+it('shows on input focus, types without stealing focus, and dismisses on search', () => {
+  const frame = document.createElement('iframe');
+  const keyboard = document.createElement('aside');
+  document.body.append(frame, keyboard);
+  const doc = frame.contentDocument;
+  if (!doc) throw new Error('Missing frame document');
+  doc.body.innerHTML = '<input placeholder="검색" />';
+  const input = doc.querySelector('input');
+  if (!input) throw new Error('Missing input');
+  const visible = vi.fn();
+  const dispose = attachPrototypeKeyboard(frame, keyboard, visible);
+  input.focus();
+  expect(keyboard.hidden).toBe(false);
+  expect(visible).toHaveBeenLastCalledWith(true);
+  const key = keyboard.querySelector<HTMLButtonElement>('[data-key="q"]');
+  if (!key) throw new Error('Missing q key');
+  fireEvent.pointerDown(key);
+  fireEvent.click(key);
+  expect(input.value).toBe('q');
+  expect(doc.activeElement).toBe(input);
+  const search = keyboard.querySelector<HTMLButtonElement>('[data-action="done"]');
+  if (!search) throw new Error('Missing search key');
+  fireEvent.click(search);
+  expect(keyboard.hidden).toBe(true);
+  expect(visible).toHaveBeenLastCalledWith(false);
+  dispose();
+  frame.remove();
+  keyboard.remove();
+});

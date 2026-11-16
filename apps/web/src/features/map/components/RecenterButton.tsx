@@ -16,10 +16,13 @@ const GAP_ABOVE_SHEET = 20;
 export function RecenterButton({
   onClick,
   snapPoint,
+  bottomOffset,
 }: {
   onClick: () => void;
   /** 현재 드로어 스냅(0~1). 이 비율만큼 화면 아래에서 띄운다. */
   snapPoint: number;
+  /** 플로팅 카드의 실제 높이에 맞춰 버튼을 배치할 때 사용한다. */
+  bottomOffset?: string;
 }) {
   return (
     <button
@@ -27,7 +30,7 @@ export function RecenterButton({
       onClick={onClick}
       aria-label="현재 위치로 이동"
       className="absolute right-4 flex size-10 items-center justify-center rounded-full bg-gray-0 text-gray-100 drop-shadow-[0px_0px_2px_rgba(31,31,31,0.3)] transition-[bottom] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
-      style={{ bottom: `calc(${snapPoint * 100}% + ${GAP_ABOVE_SHEET}px)` }}
+      style={{ bottom: bottomOffset ?? `calc(${snapPoint * 100}% + ${GAP_ABOVE_SHEET}px)` }}
     >
       <LocationCrosshair className="size-4" />
     </button>

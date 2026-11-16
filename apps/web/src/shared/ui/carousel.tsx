@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { usePointerDragScroll } from '@/shared/lib/usePointerDragScroll';
 import { cn } from '@/shared/lib/utils';
 import { CarouselIndicator } from '@/shared/ui/carousel-indicator';
 
@@ -13,6 +14,7 @@ import { CarouselIndicator } from '@/shared/ui/carousel-indicator';
 export interface CarouselProps extends React.HTMLAttributes<HTMLDivElement> {
   /** 슬라이드 사이 간격(px). 인디케이터 인덱스 계산에도 쓰이므로 시안 기본값 8 을 유지한다. */
   gap?: number;
+  indicatorSize?: 4;
   /**
    * 하단 점 인디케이터. 시안 `캐러셀`은 있고 `저장된 게시물`의 이미지 줄은 없어서 옵션이다.
    * (슬라이드가 1개면 값과 무관하게 렌더하지 않는다.)
@@ -39,6 +41,7 @@ function Carousel({
   children,
   gap = 8,
   indicator = true,
+  indicatorSize,
   padded = true,
   initialIndex = 0,
   onActiveIndexChange,
@@ -48,6 +51,14 @@ function Carousel({
   const scrollerRef = React.useRef<HTMLDivElement>(null);
   const [active, setActive] = React.useState(initialIndex);
   const count = React.Children.count(children);
+  const pointerDrag = usePointerDragScroll(scrollerRef, {
+    count,
+    gap,
+    onIndexChange: (index) => {
+      setActive(index);
+      onActiveIndexChange?.(index);
+    },
+  });
 
   // 마운트 직후 한 번만 시작 위치로 점프한다(애니메이션 없이 — 이미 그 사진을 누른 상태다).
   // biome-ignore lint/correctness/useExhaustiveDependencies: 시작 위치는 마운트 시점 값만 쓴다
@@ -76,6 +87,7 @@ function Carousel({
   return (
     <div data-slot="carousel" className={cn('w-full bg-gray-0', className)} {...props}>
       <div
+        {...pointerDrag}
         ref={scrollerRef}
         onScroll={handleScroll}
         style={{ gap }}
@@ -92,7 +104,14 @@ function Carousel({
         {children}
       </div>
 
-      {indicator ? <CarouselIndicator count={count} activeIndex={active} className="py-3" /> : null}
+      {indicator ? (
+        <CarouselIndicator
+          count={count}
+          activeIndex={active}
+          fixedSize={indicatorSize}
+          className="py-3"
+        />
+      ) : null}
     </div>
   );
 }

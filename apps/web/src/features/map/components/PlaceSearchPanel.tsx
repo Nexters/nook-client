@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react';
-import { SLIDE_DURATION_MS } from '@/app/slide-screen';
+import { useLayoutEffect, useRef } from 'react';
 import { EmptySavedPlaces } from '@/features/map/components/EmptySavedPlaces';
 import type { SavedPlaceSearchPage } from '@/features/map/types';
 import { PlaceCard } from '@/features/place';
@@ -11,7 +10,7 @@ import { cn } from '@/shared/lib/utils';
  * 검색 필드(뒤로가기·입력·지우기) + 장소 카드 그리드. 개수·아카이브 필터는 목록 헤더(`N곳`·필터)
  * 한 곳에서만 보여준다 — 검색 안에 칩·건수를 따로 두면 두 필터가 겹친다(QA).
  *
- * 시트 안에 어떻게 얹히는지(슬라이드 전환·높이)는 `PlaceSheet` 가 정하고,
+ * 시트 안에 어떻게 얹히는지(표시 상태·높이)는 `PlaceSheet` 가 정하고,
  * 이 패널은 주어진 높이(h-full)를 채우는 콘텐츠만 책임진다.
  *
  * 검색어와 결과는 `MapPage` 가 갖는다 — 결과 카드를 고르면 들어가는 검색 결과 지도(NOOK-383)가
@@ -27,8 +26,11 @@ export function PlaceSearchPanel({
   onSelectPlace,
   onInputFocus,
   onInputBlur,
+  focusRequest = 0,
 }: {
   query: string;
+  /** 이미 마운트된 검색 입력에 다시 포커스할 때 증가시킨다. */
+  focusRequest?: number;
   /** 지금 검색어의 결과. 첫 결과가 오기 전(undefined)에는 결과 영역을 그리지 않는다(Figma: 진입 직후엔 필드만). */
   page: SavedPlaceSearchPage | undefined;
   onQueryChange: (query: string) => void;
@@ -51,17 +53,12 @@ export function PlaceSearchPanel({
   const inputRef = useRef<HTMLInputElement>(null);
   const fieldRef = useRef<HTMLDivElement>(null);
 
-  // 검색 모드 진입 = 검색하려는 의도가 확실하므로 자동으로 입력을 받는다. 단 슬라이드
-  // 전환이 끝난 뒤에 — 패널이 아직 translate 로 화면 밖(오른쪽)에 있는 동안 포커스하면
-  // iOS Safari 가 입력을 보이게 하려고 비주얼 뷰포트를 옆으로 팬해, 전환이 끝나도 화면이
-  // 왼쪽으로 밀린 채 남는다. preventScroll 은 같은 스크롤-인투-뷰 동작의 이중 안전장치다.
-  useEffect(() => {
-    const timer = setTimeout(
-      () => inputRef.current?.focus({ preventScroll: true }),
-      SLIDE_DURATION_MS,
-    );
-    return () => clearTimeout(timer);
-  }, []);
+  // 제자리에서 바로 입력을 받는다. 화면 이동이나 애니메이션을 기다리지 않아
+  // 탭 직후 포커스와 키보드 표시가 같은 사용자 동작 안에서 이어진다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: focusRequest는 이미 열린 입력에 포커스를 다시 주는 외부 요청 신호다.
+  useLayoutEffect(() => {
+    inputRef.current?.focus({ preventScroll: true });
+  }, [focusRequest]);
 
   // 검색 필드 밖에 손이 닿는 순간 입력 포커스를 푼다 — 키보드가 바로 내려가고 그 터치는
   // 그대로 스크롤/시트 드래그로 이어진다(iOS 의 drag-dismiss 관례).

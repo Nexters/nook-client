@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nook · iOS 디자인 QA</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #ececea; color: #353c46; font: 12px system-ui, sans-serif; }
+    header { height: 44px; display: flex; align-items: center; justify-content: center; gap: 18px; }
+    a { color: inherit; text-underline-offset: 3px; }
+    main { height: calc(100dvh - 44px); display: grid; place-items: center; overflow: auto; }
+    #workspace { display: flex; align-items: center; padding: 12px; }
+    #stage { position: relative; flex: none; }
+    #device { position: absolute; inset: 0 auto auto 0; width: 375px; height: 812px; overflow: hidden; transform-origin: top left; box-shadow: 0 4px 32px #0002; border-radius: 24px; background: #fff; }
+    .ios-status { position: absolute; inset: 0 0 auto; height: 54px; z-index: 2; background: transparent; color: #1f1f1f; }
+    .ios-time { position: absolute; left: 40px; top: 19px; font-size: 15px; font-weight: 600; letter-spacing: -.3px; }
+    .ios-indicators { position: absolute; right: 20px; top: 20px; display: flex; align-items: center; gap: 5px; }
+    .ios-battery { position: relative; display: flex; align-items: center; }
+    .ios-battery::after { content: ''; position: absolute; left: 2px; top: 2px; width: 18px; height: 7px; border-radius: 1.3px; background: #1f1f1f; }
+    .ios-home { position: absolute; bottom: 0; left: 0; width: 375px; height: 20px; background: transparent; pointer-events: none; }
+    .ios-home::after { content: ''; position: absolute; bottom: 7px; left: 50%; width: 134px; height: 5px; border-radius: 4px; background: #111; transform: translateX(-50%); }
+    iframe { position: absolute; top: 0; left: 0; width: 375px; height: 812px; border: 0; background: white; }
+    #keyboard { position: absolute; bottom: 0; left: 0; width: 375px; height: 291px; padding: 6px 3px 0; background: #d1d3d9; color: #111; z-index: 3; }
+    #keyboard[hidden] { display: none; }
+    .keyboard-caption { height: 32px; display: grid; place-items: center; color: #5b5d64; font-size: 11px; }
+    .keyboard-row { display: flex; justify-content: center; gap: 5px; height: 51px; padding: 3px 0; }
+    .keyboard-row button { width: 32px; min-width: 0; padding: 0; border: 0; border-radius: 5px; background: #fff; color: #111; box-shadow: 0 1px 0 #85868b; font: 22px system-ui; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
+    .keyboard-row button:active { background: #b7bbc4; }
+    .keyboard-row button[data-action] { width: 42px; background: #adb3be; font-size: 18px; }
+    .keyboard-bottom button[data-action] { font-size: 14px; }
+    .keyboard-bottom button[data-action="space"] { flex: 1; background: white; }
+    .keyboard-bottom button[data-action="done"] { width: 88px; color: white; background: #3478f6; }
+    .keyboard-home-indicator { position: absolute; bottom: 8px; left: 50%; width: 134px; height: 5px; border-radius: 4px; background: #111; transform: translateX(-50%); }
+    #remote { position: fixed; right: 16px; bottom: 16px; z-index: 10; width: 208px; padding: 12px; border: 1px solid #dfe1e4; border-radius: 16px; background: #fff; box-shadow: 0 4px 20px #00000008; }
+    #remote.collapsed { width: auto; padding: 4px; border-radius: 24px; }
+    #remote.collapsed #remote-body { display: none; }
+    #remote #remote-toggle { width: 100%; border: 0; font-weight: 600; text-align: center; }
+    #case-select, #cards-select { width: 100%; padding: 8px 4px; border: 1px solid #e4e6e9; border-radius: 8px; font: inherit; background: white; color: inherit; }
+    #remote p { margin: 0 0 16px; color: #67707d; line-height: 1.6; }
+    #remote h2 { margin: 20px 0 8px; font-size: 12px; color: #67707d; }
+    #cases { display: grid; gap: 6px; }
+    #remote button { min-height: 32px; padding: 6px 8px; border: 1px solid #e4e6e9; border-radius: 8px; background: #fff; color: #353c46; font: inherit; text-align: left; cursor: pointer; touch-action: manipulation; }
+    #remote button[aria-pressed="true"] { background: #f0f5ff; border-color: #558eff; color: #246ad4; }
+    #remote button:active { background: #e4e6e9; }
+    #remote button:focus-visible { outline: 2px solid #558eff; outline-offset: 2px; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    #remote .hint { font-size: 11px; margin-top: 16px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header><span>nook · 375 × 812</span><a href="/map" target="prototype-app">지도</a><a href="/archive" target="prototype-app">아카이브</a><a href="/my" target="prototype-app">마이</a></header>
+  <main><div id="workspace">
+    <div id="stage"><div id="device">
+      <div class="ios-status" aria-hidden="true"><span class="ios-time">9:41</span><div class="ios-indicators"><img src="/prototype/ios/cellular.svg" alt="이동통신 신호" /><img src="/prototype/ios/wifi.svg" alt="Wi-Fi" /><span class="ios-battery"><img src="/prototype/ios/battery.svg" alt="배터리" /></span></div></div>
+      <iframe name="prototype-app" title="nook 375 × 812 프로토타입" src="/map?prototypeCase=multi-tags&amp;placeId=1"></iframe>
+      <div class="ios-home" aria-hidden="true"></div><aside id="keyboard" hidden></aside>
+    </div></div>
+    <aside id="remote" class="collapsed" aria-label="프로토타입 리모컨">
+      <button id="remote-toggle" type="button" aria-expanded="false" aria-controls="remote-body">QA 리모컨 ⌃</button>
+      <div id="remote-body"><h2>플로팅 카드</h2><select id="cards-select" aria-label="카드 장수 선택"></select>
+      <h2>사진 · 해시태그</h2><select id="case-select" aria-label="시나리오 선택"></select>
+      <h2>인터랙션</h2><div class="actions"><button type="button" data-action="previous">← 이전 장소</button><button type="button" data-action="next">다음 장소 →</button><button type="button" data-action="expand">전체로 당기기 ↑</button><button type="button" data-action="collapse">카드로 접기 ↓</button><button type="button" data-action="compact">접힌 카드</button><button type="button" data-action="search">검색 · 키보드</button><button type="button" id="reset">케이스 초기화</button></div>
+      <p class="hint">사진 영역은 사진 넘기기, 제목·여백은 장소 넘기기. 케이스는 첫 장소에 적용됩니다.</p>
+      <a id="design-link" href="https://www.figma.com/design/Pe5ioISShzi7RDhKlaydiU?node-id=42-2581" target="_blank" rel="noopener noreferrer">Figma 시안 보기 ↗</a></div>
+    </aside>
+  </div></main>
+  <script type="module">
+    import { attachPrototypeKeyboard } from '/src/dev/prototype-keyboard.ts';
+    import { installPrototypeSafeAreas } from '/src/dev/prototype-safe-areas.ts';
+    import { prototypeCardModes, prototypeScenarios } from '/src/dev/prototype-scenarios.ts';
+
+    const main = document.querySelector('main');
+    const stage = document.querySelector('#stage');
+    const frame = document.querySelector('iframe');
+    const device = document.querySelector('#device');
+    const remote = document.querySelector('#remote');
+    const keyboard = document.querySelector('#keyboard');
+    let selectedCase = 'multi-tags';
+    let selectedCards = 'multi';
+    const safeAreas = installPrototypeSafeAreas(frame);
+    attachPrototypeKeyboard(frame, keyboard, (visible) => { frame.style.height = visible ? '521px' : '812px'; safeAreas.keyboard(visible); });
+    function selectCase(id, cards = selectedCards) {
+      selectedCase = id; selectedCards = cards;
+      frame.src = `/map?prototypeCase=${id}&prototypeCards=${cards}&placeId=1`;
+      document.querySelector('#case-select').value = id;
+      document.querySelector('#cards-select').value = cards;
+      const node = id.startsWith('none') ? '42-2727' : id.startsWith('single') ? '42-2654' : '42-2581';
+      document.querySelector('#design-link').href = `https://www.figma.com/design/Pe5ioISShzi7RDhKlaydiU?node-id=${node}`;
+      history.replaceState(null, '', `?case=${id}&cards=${cards}`);
+    }
+    for (const scenario of prototypeScenarios) {
+      const option = document.createElement('option'); option.value = scenario.id; option.textContent = scenario.label;
+      document.querySelector('#case-select').append(option);
+    }
+    for (const mode of prototypeCardModes) {
+      const option = document.createElement('option'); option.value = mode.id; option.textContent = mode.label;
+      document.querySelector('#cards-select').append(option);
+    }
+    document.querySelector('#cards-select').addEventListener('change', event => selectCase(selectedCase, event.target.value));
+    document.querySelector('#case-select').addEventListener('change', event => selectCase(event.target.value));
+    document.querySelector('#remote-toggle').addEventListener('click', event => {
+      const collapsed = remote.classList.toggle('collapsed'); event.currentTarget.setAttribute('aria-expanded', String(!collapsed));
+      event.currentTarget.textContent = collapsed ? 'QA 리모컨 ⌃' : 'QA 리모컨 ⌄';
+    });
+    document.querySelectorAll('[data-action]').forEach(button => { button.addEventListener('click', () => {
+      frame.contentWindow.postMessage({ type: 'nook:prototype-action', action: button.dataset.action }, location.origin);
+    }); });
+    document.querySelector('#reset').addEventListener('click', () => {
+      localStorage.removeItem(`nook.local-prototype.v1.${selectedCase}.${selectedCards}`); selectCase(selectedCase);
+    });
+    function fitStage() {
+      const scale = Math.max(.2, Math.min(1, (main.clientWidth - 24) / 375, (main.clientHeight - 24) / 812));
+      stage.style.width = `${375 * scale}px`; stage.style.height = `${812 * scale}px`;
+      device.style.transform = `scale(${scale})`;
+    }
+    new ResizeObserver(fitStage).observe(main);
+    const initial = new URLSearchParams(location.search).get('case');
+    const initialCards = new URLSearchParams(location.search).get('cards');
+    selectCase(
+      prototypeScenarios.some(item => item.id === initial) ? initial : selectedCase,
+      prototypeCardModes.some(item => item.id === initialCards) ? initialCards : selectedCards,
+    );
+    fitStage();
+  </script>
+</body>
+</html>
