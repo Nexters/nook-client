@@ -804,17 +804,26 @@ describe('게시물 상세', () => {
   it('본문은 접혀 있고 더보기로 펼친다', async () => {
     await renderPost(1);
 
-    fireEvent.click(screen.getByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByText('더보기'));
     expect(screen.getByRole('button', { name: '접기' })).toBeInTheDocument();
   });
 
   it('펼친 본문을 다시 누르면 접힌다', async () => {
     await renderPost(1);
 
-    fireEvent.click(screen.getByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByText('더보기'));
     fireEvent.click(screen.getByRole('button', { name: /초록뷰가 아름다운 카페 공간/ }));
 
-    expect(screen.getByRole('button', { name: '더보기' })).toBeInTheDocument();
+    expect(screen.getByText('더보기')).toBeInTheDocument();
+  });
+
+  it('헤더 오른쪽 더보기 메뉴로 지도 진입과 같은 게시물 이동·삭제를 연다', async () => {
+    await renderPost(1);
+
+    fireEvent.click(screen.getByRole('button', { name: '더보기', expanded: false }));
+
+    expect(screen.getByRole('menuitem', { name: '게시물 이동' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: '게시물 삭제' })).toBeInTheDocument();
   });
 
   it('메모하기에서 저장하면 postId 와 새 메모로 updatePostMemo 를 호출한다', async () => {
