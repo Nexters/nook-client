@@ -282,11 +282,13 @@ export async function localPrototypeRequest(
   if (path === '/posts' && method === 'GET')
     return success(page(db.posts.map(postSummary), params));
   const postMatch = path.match(
-    /^\/posts\/(\d+)(?:\/(memo|groups|place-parsing|places)(?:\/(\d+))?)?$/,
+    /^\/posts\/(\d+)(?:\/(memo|groups|place-parsing|places|share-links)(?:\/(\d+))?)?$/,
   );
   if (postMatch) {
     const post = db.posts.find((item) => item.postId === Number(postMatch[1]));
     if (!post) throw new Error('게시물을 찾을 수 없어요.');
+    if (method === 'POST' && postMatch[2] === 'share-links')
+      return success({ token: `local-post-${post.postId}` });
     if (method === 'POST' && postMatch[2] === 'places') {
       const place = db.places.find((item) => `local-${item.id}` === body.selectionToken);
       if (!place) throw new Error('장소를 찾을 수 없어요.');

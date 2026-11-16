@@ -6,6 +6,14 @@ export function buildShareUrl(token: string): string {
   return `${env.webOrigin}/shared/${token}`;
 }
 
+/**
+ * 게시물 공유 URL. 아직 받는 쪽 화면(공개 `post-shares/{token}` 조회)이 없어 경로는 임시다 —
+ * 프로토타입 참고용이며 실제 경로는 받는 화면을 만들 때 확정한다.
+ */
+export function buildPostShareUrl(token: string): string {
+  return `${env.webOrigin}/shared-post/${token}`;
+}
+
 /** 복사 성공 여부를 돌려준다 — 실패해도 throw 하지 않고 호출부가 토스트로 알린다. */
 export async function copyText(text: string): Promise<boolean> {
   try {
