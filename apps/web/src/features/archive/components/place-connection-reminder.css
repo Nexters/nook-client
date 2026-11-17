@@ -16,11 +16,12 @@
 }
 .reminder-card {
   opacity: 0;
-  transform: translate3d(0, -20px, 0) scale(0.98);
+  /* Airbnb 'Continue searching' 카드처럼 작게 흐린 상태에서 커지며 또렷해진다(스프링 느낌의 살짝 넘침). */
+  transform: scale(0.9);
   transform-origin: center top;
   transition:
     opacity 560ms ease-out 80ms,
-    transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform 900ms cubic-bezier(0.34, 1.18, 0.64, 1);
 }
 .reminder-reveal[data-revealed="true"] .reminder-card {
   opacity: 1;
@@ -36,7 +37,26 @@
 .reminder-reveal[data-revealed="true"] .reminder-photo {
   opacity: 1;
 }
+/* 스크롤에 붙은 축소 — 배너가 위로 밀려 나갈수록 작아지고 흐려지며, 다시 내리면 커진다.
+   진입 transform 과 겹치지 않게 바깥 래퍼에 건다. */
+@supports (animation-timeline: view()) {
+  .reminder-reveal[data-revealed="true"] .reminder-reveal-clip {
+    transform-origin: center bottom;
+    animation: reminder-scroll-shrink linear both;
+    animation-timeline: view();
+    animation-range: exit 0% exit 100%;
+  }
+}
+@keyframes reminder-scroll-shrink {
+  to {
+    opacity: 0.3;
+    transform: scale(0.92);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
+  .reminder-reveal-clip {
+    animation: none !important;
+  }
   .reminder-reveal {
     transition: none;
   }
