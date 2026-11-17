@@ -1,40 +1,48 @@
-/* The banner is one expanding object: photos, buttons and archive rows settle together. */
+/* 배너 하나가 한 번에 등장한다 — 자리가 열리며 아래 아카이브 목록을 한 번만 밀고,
+   카드가 떠오른 뒤 사진이 펼쳐진다. 목록이 두 번 밀리지 않도록 사진 자리는 처음부터 카드 안에 있다. */
 .reminder-reveal {
   display: grid;
   grid-template-rows: 0fr;
-  width: 100%;
-  transition: grid-template-rows 560ms cubic-bezier(0.77, 0, 0.175, 1);
+  transition: grid-template-rows 520ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 .reminder-reveal[data-revealed="true"] {
   grid-template-rows: 1fr;
 }
 .reminder-reveal-clip {
   min-height: 0;
-  overflow: hidden;
-}
-/* Bleed the shadow into the existing 16px button gap instead of cutting it at the photo edge. */
-.reminder-reveal-clip {
   overflow: clip;
+  /* 사진 그림자가 카드 밖으로 잘리지 않게 */
   overflow-clip-margin: 12px;
+}
+.reminder-card {
+  opacity: 0;
+  transform: translate3d(0, -12px, 0) scale(0.98);
+  transform-origin: center top;
+  transition:
+    opacity 320ms ease 80ms,
+    transform 520ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.reminder-reveal[data-revealed="true"] .reminder-card {
+  opacity: 1;
+  transform: none;
 }
 .reminder-photo {
   transform-origin: center bottom;
   opacity: 0;
   transition:
-    transform 480ms cubic-bezier(0.77, 0, 0.175, 1),
-    opacity 360ms ease;
+    transform 480ms cubic-bezier(0.34, 1.3, 0.64, 1),
+    opacity 280ms ease;
 }
 .reminder-reveal[data-revealed="true"] .reminder-photo {
   opacity: 1;
 }
 @media (prefers-reduced-motion: reduce) {
   .reminder-reveal {
-    grid-template-rows: 1fr;
     transition: none;
   }
+  .reminder-card,
   .reminder-photo {
-    opacity: 1;
+    transition: opacity 200ms ease;
     transform: none !important;
-    transition: none;
   }
 }

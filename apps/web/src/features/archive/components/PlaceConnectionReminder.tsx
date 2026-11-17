@@ -41,30 +41,26 @@ export function PlaceConnectionReminderCard({
       if (previous.has(src)) return previous;
       return new Set(previous).add(src);
     });
-  const hasImages = thumbnails.length > 0;
+  // 페이지가 자리 잡은 뒤 배너가 등장한다. 사진이 있으면 다 받은 뒤에 — 빈 사진 자리로 열리지 않게.
   useEffect(() => {
-    if (!hasImages) {
-      setDelayElapsed(false);
-      return;
-    }
     const timer = window.setTimeout(() => setDelayElapsed(true), 900);
     return () => window.clearTimeout(timer);
-  }, [hasImages]);
+  }, []);
   if (count < 1) return null;
   return (
-    <section
-      aria-label="장소 미연결 게시물 안내"
-      className="relative mb-2 flex flex-col items-center rounded bg-gray-0 p-4"
-    >
-      <div className="flex w-full flex-col gap-1 p-2">
-        <p className="font-semibold text-b1 text-gray-100">
-          장소 없는 게시물이 <span className="text-nook-blue">{count}개</span> 있어요!
-        </p>
-        <p className="text-b2 text-gray-70">게시물 확인하고 장소를 직접 추가해보세요.</p>
-      </div>
-      {visible.length > 0 ? (
-        <div className="reminder-reveal" data-revealed={revealed}>
-          <div className="reminder-reveal-clip">
+    <div className="reminder-reveal" data-revealed={revealed}>
+      <div className="reminder-reveal-clip">
+        <section
+          aria-label="장소 미연결 게시물 안내"
+          className="reminder-card relative mb-2 flex flex-col items-center rounded bg-gray-0 p-4"
+        >
+          <div className="flex w-full flex-col gap-1 p-2">
+            <p className="font-semibold text-b1 text-gray-100">
+              장소 없는 게시물이 <span className="text-nook-blue">{count}개</span> 있어요!
+            </p>
+            <p className="text-b2 text-gray-70">게시물 확인하고 장소를 직접 추가해보세요.</p>
+          </div>
+          {visible.length > 0 ? (
             <div className="flex items-start justify-center pt-4">
               {visible.map((src, index) => {
                 const angle =
@@ -91,7 +87,8 @@ export function PlaceConnectionReminderCard({
                         transform: revealed
                           ? `rotate(${angle}deg)`
                           : `translate3d(${((visible.length - 1) / 2 - index) * 16}px, 8px, 0) rotate(0deg) scale(.97)`,
-                        transitionDelay: `${[0, 45, 75][index]}ms`,
+                        // 카드가 거의 다 열린 뒤 펼친다.
+                        transitionDelay: `${260 + ([0, 45, 75][index] ?? 0)}ms`,
                       }}
                     >
                       <img
@@ -111,31 +108,31 @@ export function PlaceConnectionReminderCard({
                 );
               })}
             </div>
+          ) : null}
+          <div className="mt-4 flex w-full gap-2">
+            <Button
+              variant="secondary"
+              className="flex-1 bg-gray-20 text-gray-90 hover:bg-gray-30"
+              onClick={onDisable}
+              disabled={disabling}
+            >
+              다시 보지 않음
+            </Button>
+            <Button className="flex-1" onClick={onView}>
+              게시물 보기
+            </Button>
           </div>
-        </div>
-      ) : null}
-      <div className="mt-4 flex w-full gap-2">
-        <Button
-          variant="secondary"
-          className="flex-1 bg-gray-20 text-gray-90 hover:bg-gray-30"
-          onClick={onDisable}
-          disabled={disabling}
-        >
-          다시 보지 않음
-        </Button>
-        <Button className="flex-1" onClick={onView}>
-          게시물 보기
-        </Button>
+          <button
+            type="button"
+            aria-label="미연결 게시물 안내 닫기"
+            className="absolute top-3 right-3 rounded-full focus-visible:ring-2"
+            onClick={onDismiss}
+          >
+            <Icon32Delete />
+          </button>
+        </section>
       </div>
-      <button
-        type="button"
-        aria-label="미연결 게시물 안내 닫기"
-        className="absolute top-3 right-3 rounded-full focus-visible:ring-2"
-        onClick={onDismiss}
-      >
-        <Icon32Delete />
-      </button>
-    </section>
+    </div>
   );
 }
 
