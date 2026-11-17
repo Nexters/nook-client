@@ -88,7 +88,7 @@ export function PlaceConnectionReminderCard({
                           ? `rotate(${angle}deg)`
                           : `translate3d(${((visible.length - 1) / 2 - index) * 16}px, 8px, 0) rotate(0deg) scale(.97)`,
                         // 카드가 거의 다 열린 뒤 펼친다.
-                        transitionDelay: `${260 + ([0, 45, 75][index] ?? 0)}ms`,
+                        transitionDelay: `${420 + ([0, 70, 120][index] ?? 0)}ms`,
                       }}
                     >
                       <img
