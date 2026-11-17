@@ -99,7 +99,7 @@ export function PlaceConnectionReminderCard({
                         className="h-full w-full object-cover"
                       />
                       {count > 3 && index === 2 ? (
-                        <span className="absolute inset-0 flex items-center justify-center bg-black/30 font-medium text-b3 text-white">
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/50 font-mono text-e2 text-gray-0">
                           +{count - 3}
                         </span>
                       ) : null}
