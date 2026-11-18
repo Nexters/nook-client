@@ -13,9 +13,15 @@ export interface CardOrigin {
 
 /** 이만큼 넘게 끌어내리면 닫는다. 덜 끌면 다시 꽉 찬다. */
 const CLOSE_THRESHOLD_PX = 120;
-/** 플로팅 카드·지도 시트(vaul)와 같은 곡선·시간. */
+/** 커질 땐 플로팅 카드·지도 시트(vaul)와 같은 곡선·시간. */
 const DURATION_MS = 500;
 const EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+/**
+ * 줄어들 땐 짧고 꼬리 없이 — vaul 곡선은 거의 다 와서 오래 끌어, 카드 자리에 닿고도 한참 뒤에야
+ * 카드와 바뀌는 게 "늦게 자리를 찾는" 느낌이었다(QA).
+ */
+const CLOSE_DURATION_MS = 260;
+const CLOSE_EASE = 'cubic-bezier(0.2, 0, 0, 1)';
 const CARD_RADIUS_PX = 14;
 
 type Frame = { top: number; left: number; right: number; bottom: number; radius: number };
@@ -63,6 +69,7 @@ export function PlaceFullSheet({
   // 맨 위에서 끌어내린 거리 — 끄는 동안엔 전환 없이 손을 바로 따라간다.
   const [dragY, setDragY] = useState<number | null>(null);
   const closingRef = useRef(false);
+  const [closing, setClosing] = useState(false);
   // 카드 자리로 옮겨 앉는 첫 순간엔 전환을 끈다 — 켜 두면 처음 붙은 꽉 찬 모양에서 카드 자리로
   // 되돌아가는 전환이 먼저 시작돼 커지는 모습이 사라진다.
   const [instant, setInstant] = useState(Boolean(origin));
@@ -94,8 +101,9 @@ export function PlaceFullSheet({
       onClose();
       return;
     }
+    setClosing(true);
     setFrame(frameOf(origin.rest, container));
-    setTimeout(onClose, DURATION_MS);
+    setTimeout(onClose, CLOSE_DURATION_MS);
   };
   const closeRef = useRef(close);
   closeRef.current = close;
@@ -171,7 +179,11 @@ export function PlaceFullSheet({
     transition:
       dragY === null && !instant
         ? ['top', 'left', 'right', 'bottom', 'border-radius']
-            .map((prop) => `${prop} ${DURATION_MS}ms ${EASE}`)
+            .map((prop) =>
+              closing
+                ? `${prop} ${CLOSE_DURATION_MS}ms ${CLOSE_EASE}`
+                : `${prop} ${DURATION_MS}ms ${EASE}`,
+            )
             .join(', ')
         : 'none',
   };
