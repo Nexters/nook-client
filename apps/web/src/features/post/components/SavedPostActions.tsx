@@ -2,7 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useArchives } from '@/features/archive/api/queries';
 import { SavePostSheet } from '@/features/share/components/SavePostSheet';
-import { ShareSheet } from '@/features/share/components/ShareSheet';
+import { postSharePreview, ShareSheet } from '@/features/share/components/ShareSheet';
+import { shareErrorMessage } from '@/features/share/lib/shareError';
 import { buildPostShareUrl } from '@/features/share/lib/shareUrl';
 import { Icon16Move, Icon16Share, Icon16Trash } from '@/shared/icons/NookIcons';
 import { useToast } from '@/shared/toast';
@@ -123,8 +124,11 @@ export function SavedPostActions({ detail, onDeleted }: SavedPostActionsProps) {
             onSelect: () =>
               issueShare.mutate(postId, {
                 onSuccess: (token) => setShareUrl(buildPostShareUrl(token)),
-                onError: () =>
-                  showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
+                onError: (error) =>
+                  showToast({
+                    variant: 'simple',
+                    title: shareErrorMessage(error, '공유 링크를 만들지 못했어요'),
+                  }),
               }),
           },
           { label: '게시물 이동', icon: <Icon16Move />, onSelect: () => setMoveOpen(true) },
@@ -147,11 +151,7 @@ export function SavedPostActions({ detail, onDeleted }: SavedPostActionsProps) {
           onOpenChange={(open) => !open && setShareUrl(null)}
           url={shareUrl}
           title="게시물 공유"
-          preview={{
-            name: detail.title,
-            thumbnail: shareThumbnail(detail),
-            placeCount: detail.places.length,
-          }}
+          preview={postSharePreview(detail)}
         />
       ) : null}
 
@@ -189,11 +189,4 @@ export function SavedPostActions({ detail, onDeleted }: SavedPostActionsProps) {
       />
     </>
   );
-}
-
-/** 공유 프리뷰 커버 — 첫 미디어. 영상은 포스터가 있을 때만 쓴다(`<img>` 에 영상 URL 은 안 그려진다). */
-function shareThumbnail({ post }: PostDetail): string | undefined {
-  const first = post.media?.[0];
-  if (!first) return post.thumbnail;
-  return first.thumbnailUrl ?? (first.type === 'IMAGE' ? first.url : undefined);
 }

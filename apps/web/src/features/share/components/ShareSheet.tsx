@@ -1,5 +1,6 @@
 import type { Archive } from '@/features/archive/types';
 import { useMyProfile } from '@/features/my/api/queries';
+import type { PostDetail } from '@/features/post/types';
 import { copyText, shareViaSystem } from '@/features/share/lib/shareUrl';
 import { Icon24Link, Icon24More } from '@/shared/icons/NookIcons';
 import { useToast } from '@/shared/toast';
@@ -25,6 +26,18 @@ export interface SharePreview {
   /** 비우면 내 프로필 닉네임으로 채운다(내 아카이브·내 게시물). */
   ownerNickname?: string;
   placeCount: number;
+}
+
+/** 게시물 프리뷰 — 커버는 첫 미디어. 영상은 포스터가 있을 때만 쓴다(`<img>` 에 영상 URL 은 안 그려진다). */
+export function postSharePreview({ title, post, places }: PostDetail): SharePreview {
+  const first = post.media?.[0];
+  return {
+    name: title,
+    thumbnail: first
+      ? (first.thumbnailUrl ?? (first.type === 'IMAGE' ? first.url : undefined))
+      : post.thumbnail,
+    placeCount: places.length,
+  };
 }
 
 export function archiveSharePreview(archive: Archive): SharePreview {
