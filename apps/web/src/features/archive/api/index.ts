@@ -12,12 +12,12 @@ import {
   listPlaces as listArchivePlacesEndpoint,
   listPosts as listArchivePostsEndpoint,
   // 생성기가 `/groups` 의 `list` 와 이름이 겹쳐 붙인 `1` 접미사다 — 여기서만 풀어준다.
-  list1 as listArchiveSubscribersEndpoint,
+  list2 as listArchiveSubscribersEndpoint,
   list as listArchivesEndpoint,
   unsubscribe as unsubscribeEndpoint,
   unwrapApiResponse,
   // 생성기가 `/me/push-preferences` 의 `update` 와 이름이 겹쳐 붙인 `1` 접미사다 — 여기서만 풀어준다.
-  update1 as updateArchiveEndpoint,
+  update2 as updateArchiveEndpoint,
 } from '@/shared/api';
 import type { ArchiveColor } from '@/shared/ui';
 import type { Archive, ArchivePost, ArchiveSubscriberPage } from '../types';

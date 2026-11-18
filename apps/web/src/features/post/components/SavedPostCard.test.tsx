@@ -4,9 +4,9 @@ import type { Post, PostMedia } from '../types';
 import { SavedPostCard } from './SavedPostCard';
 
 /**
- * 미디어 줄이 장수와 종류에 따라 셋으로 갈린다(Figma 8월 21일 작업) — 단일 이미지는
- * 잘리지 않게 167:208 썸네일로, 단일 영상은 343:212 를 꽉 채워 잘리는 대로, 여러 개는
- * 140x175 캐러셀로. jsdom 은 레이아웃을 계산하지 않으므로 DOM 구조와 클래스까지만 본다.
+ * 미디어 줄이 장수에 따라 둘로 갈린다(Figma 8월 21일 작업) — 단일은 잘리지 않게 167:208
+ * 썸네일로(영상은 재생 표시를 얹어 구분, NOOK-325), 여러 개는 140x175 캐러셀로.
+ * jsdom 은 레이아웃을 계산하지 않으므로 DOM 구조와 클래스까지만 본다.
  */
 const IMAGE_URL = 'https://cdn.example.com/posts/1.jpg';
 const VIDEO_URL = 'https://cdn.example.com/posts/1.mp4?token=abc';
@@ -27,6 +27,10 @@ function mediaFrame(container: HTMLElement) {
   return container.querySelector('[class*="aspect-[343/212]"]');
 }
 
+function playBadge(container: HTMLElement) {
+  return container.querySelector('[data-slot="play-badge"]');
+}
+
 describe('SavedPostCard', () => {
   it('단일 이미지는 343:212 안에 167:208 썸네일로 앉힌다', () => {
     const { container } = render(
@@ -36,35 +40,32 @@ describe('SavedPostCard', () => {
     expect(mediaFrame(container)).not.toBeNull();
     expect(container.querySelector('[class*="aspect-[167/208]"]')).not.toBeNull();
     expect(container.querySelector('img')).toHaveAttribute('src', IMAGE_URL);
+    expect(playBadge(container)).toBeNull();
   });
 
-  it('포스터 없는 단일 영상은 같은 343:212 를 cover 로 채운다', () => {
+  it('포스터 없는 단일 영상도 167:208 틀에 앉히고 재생 표시를 얹는다', () => {
     const { container } = render(
       <SavedPostCard post={makePost([asVideo(VIDEO_URL)])} archives={[]} />,
     );
 
     expect(mediaFrame(container)).not.toBeNull();
-    // 이미지 쪽 썸네일 틀을 타지 않는다 — 잘리는 대로 두는 게 시안이다.
-    expect(container.querySelector('[class*="aspect-[167/208]"]')).toBeNull();
+    expect(container.querySelector('[class*="aspect-[167/208]"]')).not.toBeNull();
     // 포스터가 없으면 영상 URL 그대로 — `Media` 가 첫 프레임(`#t=0.001`)만 보여준다.
     const video = container.querySelector('video');
     expect(video?.getAttribute('src')).toContain(VIDEO_URL);
     expect(video).not.toHaveAttribute('controls');
+    expect(playBadge(container)).not.toBeNull();
   });
 
-  /**
-   * 이번 규칙의 핵심 — 그림은 포스터로 갈아끼우되 **레이아웃은 영상 것**을 유지한다.
-   * 포스터가 이미지라고 해서 167:208 틀로 넘어가 버리면 시안과 어긋난다.
-   */
-  it('포스터가 있는 영상은 포스터를 그리되 영상 레이아웃을 유지한다', () => {
+  it('포스터가 있는 영상은 포스터를 그리고 재생 표시로 영상임을 알린다', () => {
     const { container } = render(
       <SavedPostCard post={makePost([asVideo(VIDEO_URL, POSTER_URL)])} archives={[]} />,
     );
 
     expect(container.querySelector('video')).toBeNull();
     expect(container.querySelector('img')).toHaveAttribute('src', POSTER_URL);
-    expect(mediaFrame(container)).not.toBeNull();
-    expect(container.querySelector('[class*="aspect-[167/208]"]')).toBeNull();
+    expect(container.querySelector('[class*="aspect-[167/208]"]')).not.toBeNull();
+    expect(playBadge(container)).not.toBeNull();
   });
 
   it('여러 개면 단일 프레임 대신 캐러셀로 늘어놓고, 영상은 포스터를 먼저 쓴다', () => {

@@ -265,6 +265,15 @@ describe('fetchMapPins', () => {
     );
   });
 
+  it('같은 장소가 아카이브마다 한 줄씩 내려와도 핀은 하나만 만든다', async () => {
+    endpoints.getMapPlaces.mockResolvedValue(ok([MAP_PLACE, { ...MAP_PLACE, color: 'BLUE' }]));
+
+    const pins = await fetchMapPins(BOUNDS);
+
+    expect(pins.map((pin) => pin.id)).toEqual([5]);
+    expect(pins[0]?.color).toBe('yellow');
+  });
+
   // 운영 서버가 필드를 내리기 전 응답 — 타입은 필수지만 실제로는 빠져 올 수 있다.
   it('카테고리 그룹이 빠진 응답은 비워 둔다', async () => {
     const { categoryGroup: _, ...legacy } = MAP_PLACE;

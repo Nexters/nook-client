@@ -4,6 +4,7 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { GetRecentPlacesSort } from './getRecentPlacesSort.generated';
 
 export type GetRecentPlacesParams = {
   /**
@@ -20,4 +21,16 @@ export type GetRecentPlacesParams = {
    * 선택한 내·공유 아카이브 ID. 미지정 시 전체, 빈 값이면 전체 해제
    */
   groupIds?: number[];
+  /**
+   * 정렬: LATEST(기본), OLDEST, NEAREST. 변경 시 cursor 초기화
+   */
+  sort?: GetRecentPlacesSort;
+  /**
+   * NEAREST 필수: 사용자 GPS 위도. 페이지 조회 동안 고정
+   */
+  latitude?: number;
+  /**
+   * NEAREST 필수: 사용자 GPS 경도. 페이지 조회 동안 고정
+   */
+  longitude?: number;
 };
