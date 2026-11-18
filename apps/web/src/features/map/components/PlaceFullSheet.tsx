@@ -191,7 +191,7 @@ export function PlaceFullSheet({
           paddingBottom: 'max(env(safe-area-inset-bottom), 1.25rem)',
         }}
       >
-        <div aria-hidden="true" className="flex justify-center pt-3 pb-6">
+        <div aria-hidden="true" className="flex justify-center pt-3 pb-5">
           <span className="h-1 w-20 rounded-full bg-gray-20" />
         </div>
         <PlaceDetail
