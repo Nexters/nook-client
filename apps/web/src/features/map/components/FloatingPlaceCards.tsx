@@ -51,6 +51,7 @@ export function FloatingPlaceCards({
   onActiveIndexChange,
   onCollapsedChange,
   onExpandFull,
+  onCoverageChange,
   onClose,
   onSelectPlace,
 }: {
@@ -67,6 +68,12 @@ export function FloatingPlaceCards({
    * 풀업은 손을 놓은 자리에서 커지고 닫힐 땐 쉬는 자리로 줄어든다.
    */
   onExpandFull: (origin: CardOrigin) => void;
+  /**
+   * 카드가 쉬는 높이에서 화면 아래를 덮는 비율(0~1) — 지도 시트의 스냅처럼 쓴다. 선택 핀을 카드 위
+   * 남은 영역에 두고 현재 위치 버튼을 카드 위에 띄우는 데 쓴다. 카드 높이는 고정이지만 화면 높이가
+   * 기기마다 달라서 0.5 로 가정하면 작은 화면에서 버튼이 카드에 가린다(NOOK-431).
+   */
+  onCoverageChange?: (coverage: number) => void;
   /** 카드 닫기 — 검색 결과 지도는 그대로 남는다. */
   onClose: () => void;
   onSelectPlace: (placeId: number) => void;
@@ -77,6 +84,22 @@ export function FloatingPlaceCards({
   const mountedRef = useRef(false);
   // 세로로 끄는 중인 거리(아래가 +). 모든 카드가 함께 늘고 준다. 끄는 중이 아니면 null.
   const [dragDy, setDragDy] = useState<number | null>(null);
+  const coverageRef = useRef<number | null>(null);
+  // 끄는 중엔 재지 않는다 — 쉬는 높이 기준이라 손을 따라 늘고 주는 동안 지도가 흔들리면 안 된다.
+  useLayoutEffect(() => {
+    const card = scrollerRef.current?.children[activeIndex];
+    const container = scrollerRef.current?.parentElement?.parentElement;
+    if (!onCoverageChange || dragDy !== null || !(card instanceof HTMLElement) || !container)
+      return;
+    const restHeight = Number(collapsed ? card.dataset.collapsedHeight : card.dataset.restHeight);
+    const box = container.getBoundingClientRect();
+    if (!restHeight || box.height <= 0) return;
+    const coverage = (box.bottom - (card.getBoundingClientRect().bottom - restHeight)) / box.height;
+    if (coverageRef.current !== null && Math.abs(coverageRef.current - coverage) < 0.005) return;
+    coverageRef.current = coverage;
+    onCoverageChange(coverage);
+  });
+
   // 마우스로 끌고 놓으면 click 이 뒤따라 온다 — 끌기였다면 그 click 은 버튼에 닿지 않게 삼킨다.
   const suppressClickRef = useRef(false);
 
@@ -246,6 +269,7 @@ function FloatingPlaceCard({
     <section
       aria-label={place?.name ?? '장소'}
       data-rest-height={heights?.open}
+      data-collapsed-height={heights?.collapsed}
       style={{ height, transition: dragDy === null ? SETTLE_TRANSITION : 'none' }}
       // 접힌 카드를 누르면 기본 높이로 편다(시안 메모) — 안의 버튼·링크는 제 할 일을 한다.
       onClick={(event) => {

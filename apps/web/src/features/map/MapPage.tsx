@@ -130,7 +130,10 @@ export function MapPage() {
   const [placeFullOpen, openPlaceFull, closePlaceFull] = useHistoryBackedFlag('searchPlaceFull');
   // 풀업이 커져 나온 카드 자리 — 풀업은 여기서 커지고 닫힐 때 여기로 줄어든다.
   const [fullOrigin, setFullOrigin] = useState<CardOrigin | null>(null);
-  const cardsSnap = cardsCollapsed ? DETAIL_COMPACT_SNAP_POINT : DETAIL_PAGE_SNAP_POINT;
+  // 카드가 화면 아래를 덮는 실제 비율(FloatingPlaceCards 가 잰다). 재기 전엔 시트 스냅으로 어림한다.
+  const [cardsCoverage, setCardsCoverage] = useState<number | null>(null);
+  const cardsSnap =
+    cardsCoverage ?? (cardsCollapsed ? DETAIL_COMPACT_SNAP_POINT : DETAIL_PAGE_SNAP_POINT);
   // 지도에 노출할 아카이브 선택(NOOK-311). 같은 진입 동안만 유지하고 지도를 나갔다 오면
   // 전체로 초기화한다는 정책이라 URL 이 아니라 이 화면의 state 에 둔다(언마운트 = 초기화).
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>(null);
@@ -476,6 +479,7 @@ export function MapPage() {
             userCoords={location.coords}
             onCollapsedChange={setCardsCollapsed}
             fullOpen={placeFullOpen}
+            onCoverageChange={setCardsCoverage}
             onExpandFull={(origin) => {
               setFullOrigin(origin ?? null);
               openPlaceFull();
