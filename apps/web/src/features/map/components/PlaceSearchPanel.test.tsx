@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSearchSavedPlaces } from '@/features/map/api/queries';
@@ -142,22 +142,14 @@ describe('PlaceSearchPanel', () => {
     expect(scroller).toHaveStyle({ paddingBottom: '55dvh' });
   });
 
-  it('자동 포커스는 슬라이드 전환이 끝난 뒤 preventScroll 로 준다 — 전환 중(translate 상태) 포커스는 iOS Safari 가 뷰포트를 옆으로 팬해 화면이 밀린 채 남는다', () => {
-    vi.useFakeTimers();
+  it('열리자마자 기다림 없이 입력에 포커스한다 — 탭과 같은 동작 안이라 iOS 도 키보드를 올린다', () => {
     const focusSpy = vi.spyOn(HTMLInputElement.prototype, 'focus');
     try {
       renderPanel();
-
-      expect(focusSpy).not.toHaveBeenCalled();
-
-      act(() => {
-        vi.advanceTimersByTime(300);
-      });
-
       expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
+      expect(screen.getByPlaceholderText('장소명을 입력해주세요')).toHaveFocus();
     } finally {
       focusSpy.mockRestore();
-      vi.useRealTimers();
     }
   });
 
