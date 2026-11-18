@@ -403,7 +403,7 @@ export function MapPage() {
     setIsFilterOpen(true);
   }
 
-  /** 검색 패널의 슬라이드 아웃이 끝난 뒤 호출된다(PlaceSheet 의 useSlideScreen 계약). */
+  /** 검색 닫기 — 뒤로가기 버튼·Android 하드웨어 백(PlaceSheet 의 useCloseOnBack). */
   function handleExitSearch() {
     setIsSearchMode(false);
     setSearchQuery('');
