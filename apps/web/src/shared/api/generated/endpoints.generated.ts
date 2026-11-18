@@ -14,21 +14,27 @@ import type {
   ApiResponseGroupPostPageResponse,
   ApiResponseGroupResponse,
   ApiResponseGroupShareLinkResponse,
+  ApiResponseGroupSubscriberPageResponse,
+  ApiResponseLinkResponse,
   ApiResponseListGroupResponse,
   ApiResponseListMapPlaceResponse,
   ApiResponseMemberActionResponse,
   ApiResponseMemberProfileResponse,
   ApiResponsePlaceDetailResponse,
   ApiResponsePlacePostPageResponse,
+  ApiResponsePlaceReminderResponse,
   ApiResponsePlaceSearchSliceResponse,
   ApiResponsePostPlaceParsingResponse,
   ApiResponsePostResponse,
   ApiResponseProfileImageUploadResponse,
   ApiResponsePushPreferenceResponse,
   ApiResponseRecentPlaceSliceResponse,
+  ApiResponseRecoveryResponse,
+  ApiResponseResponse,
   ApiResponseSavedPlaceSearchPageResponse,
   ApiResponseSavedPostDetailResponse,
   ApiResponseSavedPostPageResponse,
+  ApiResponseSavePostShareResult,
   ApiResponseSaveSharedPostResponse,
   ApiResponseSocialAuthResponse,
   ApiResponseTokenResponse,
@@ -42,6 +48,8 @@ import type {
   GetMapPlacesParams,
   GetPostsParams,
   GetRecentPlacesParams,
+  List1Params,
+  List2Params,
   ListPlacesParams,
   ListPostsParams,
   ListSavedPostsParams,
@@ -53,14 +61,17 @@ import type {
   RegisterPushTokenRequest,
   ReplaceSavedPostGroupsRequest,
   ReplaceSavedPostsGroupsRequest,
+  SaveRequest,
   SaveSharedPostRequest,
   SearchPlacesParams,
   SearchSavedPlacesParams,
+  SharedParams,
   SocialAuthRequest,
   UpdateGroupRequest,
   UpdateMemberProfileRequest,
   UpdatePlaceBookmarkRequest,
   UpdatePlaceMemoRequest,
+  UpdatePlaceReminderRequest,
   UpdatePostMemoRequest,
   UpdatePushPreferenceRequest,
 } from './models';
@@ -80,18 +91,18 @@ export const getPolicy = async (
   });
 };
 
-export const getGet1Url = (token: string) => {
+export const getGet4Url = (token: string) => {
   return `/api/public/v1/groups/${token}`;
 };
 
 /**
  * @summary 공유 그룹 정보 조회
  */
-export const get1 = async (
+export const get4 = async (
   token: string,
   options?: Parameters<typeof orvalMutator>[1],
 ): Promise<ApiResponseGroupResponse> => {
-  return orvalMutator<ApiResponseGroupResponse>(getGet1Url(token), {
+  return orvalMutator<ApiResponseGroupResponse>(getGet4Url(token), {
     ...options,
     method: 'GET',
   });
@@ -206,6 +217,53 @@ export const postDetail = async (
   });
 };
 
+export const getSharedUrl = (token: string, params?: SharedParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/public/v1/groups/${token}/subscribers?${stringifiedParams}`
+    : `/api/public/v1/groups/${token}/subscribers`;
+};
+
+/**
+ * @summary 공유 아카이브를 추가한 사람 조회
+ */
+export const shared = async (
+  token: string,
+  params?: SharedParams,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseGroupSubscriberPageResponse> => {
+  return orvalMutator<ApiResponseGroupSubscriberPageResponse>(getSharedUrl(token, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGet3Url = (token: string) => {
+  return `/api/public/v1/post-shares/${token}`;
+};
+
+/**
+ * @summary 게시물 공유 스냅샷 공개 조회; 로그인 시 내 저장 여부도 반환
+ */
+export const get3 = async (
+  token: string,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseResponse> => {
+  return orvalMutator<ApiResponseResponse>(getGet3Url(token), {
+    ...options,
+    method: 'GET',
+  });
+};
+
 export const getLogoutUrl = () => {
   return `/api/v1/auth/logout`;
 };
@@ -312,19 +370,19 @@ export const delete1 = async (
   });
 };
 
-export const getUpdate1Url = (groupId: number) => {
+export const getUpdate2Url = (groupId: number) => {
   return `/api/v1/groups/${groupId}`;
 };
 
 /**
- * @summary 그룹명과 색상 수정
+ * @summary 그룹명, 색상과 소개글 수정
  */
-export const update1 = async (
+export const update2 = async (
   groupId: number,
   updateGroupRequest: UpdateGroupRequest,
   options?: Parameters<typeof orvalMutator>[1],
 ): Promise<ApiResponseGroupResponse> => {
-  return orvalMutator<ApiResponseGroupResponse>(getUpdate1Url(groupId), {
+  return orvalMutator<ApiResponseGroupResponse>(getUpdate2Url(groupId), {
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -426,6 +484,36 @@ export const issue = async (
   });
 };
 
+export const getList2Url = (groupId: number, params?: List2Params) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/groups/${groupId}/subscribers?${stringifiedParams}`
+    : `/api/v1/groups/${groupId}/subscribers`;
+};
+
+/**
+ * @summary 내가 열람 가능한 아카이브를 추가한 사람 조회
+ */
+export const list2 = async (
+  groupId: number,
+  params?: List2Params,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseGroupSubscriberPageResponse> => {
+  return orvalMutator<ApiResponseGroupSubscriberPageResponse>(getList2Url(groupId, params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
 export const getListOwnedUrl = () => {
   return `/api/v1/groups/owned`;
 };
@@ -442,17 +530,52 @@ export const listOwned = async (
   });
 };
 
-export const getGetUrl = () => {
+export const getGet2Url = () => {
+  return `/api/v1/me/place-connection-reminder`;
+};
+
+/**
+ * @summary 장소 연결 리마인드 설정 및 배너 대상 수 조회
+ */
+export const get2 = async (
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponsePlaceReminderResponse> => {
+  return orvalMutator<ApiResponsePlaceReminderResponse>(getGet2Url(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getUpdate1Url = () => {
+  return `/api/v1/me/place-connection-reminder`;
+};
+
+/**
+ * @summary 장소 연결 리마인드 설정 변경
+ */
+export const update1 = async (
+  updatePlaceReminderRequest: UpdatePlaceReminderRequest,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponsePlaceReminderResponse> => {
+  return orvalMutator<ApiResponsePlaceReminderResponse>(getUpdate1Url(), {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updatePlaceReminderRequest),
+  });
+};
+
+export const getGet1Url = () => {
   return `/api/v1/me/push-preferences`;
 };
 
 /**
  * @summary 내 푸시 알림 설정 조회
  */
-export const get = async (
+export const get1 = async (
   options?: Parameters<typeof orvalMutator>[1],
 ): Promise<ApiResponsePushPreferenceResponse> => {
-  return orvalMutator<ApiResponsePushPreferenceResponse>(getGetUrl(), {
+  return orvalMutator<ApiResponsePushPreferenceResponse>(getGet1Url(), {
     ...options,
     method: 'GET',
   });
@@ -708,6 +831,15 @@ export const getGetMapPlacesUrl = (params: GetMapPlacesParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['groupIds'];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value));
     }
@@ -737,6 +869,15 @@ export const getGetRecentPlacesUrl = (params?: GetRecentPlacesParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ['groupIds'];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value));
     }
@@ -817,6 +958,26 @@ export const searchPlaces = async (
   return orvalMutator<ApiResponsePlaceSearchSliceResponse>(getSearchPlacesUrl(params), {
     ...options,
     method: 'GET',
+  });
+};
+
+export const getSave1Url = (token: string) => {
+  return `/api/v1/post-shares/${token}/save`;
+};
+
+/**
+ * @summary 게시물 공유 스냅샷을 내 아카이브에 저장; 기존 저장 건의 장소와 메모는 유지
+ */
+export const save1 = async (
+  token: string,
+  saveRequest: SaveRequest,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseSavePostShareResult> => {
+  return orvalMutator<ApiResponseSavePostShareResult>(getSave1Url(token), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(saveRequest),
   });
 };
 
@@ -995,6 +1156,57 @@ export const disconnectPlace = async (
   });
 };
 
+export const getGetUrl = (postId: number) => {
+  return `/api/v1/posts/${postId}/recovery`;
+};
+
+/**
+ * @summary 내 저장 게시물의 복구 처리 상태 조회
+ */
+export const get = async (
+  postId: number,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseRecoveryResponse> => {
+  return orvalMutator<ApiResponseRecoveryResponse>(getGetUrl(postId), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getRequestUrl = (postId: number) => {
+  return `/api/v1/posts/${postId}/recovery`;
+};
+
+/**
+ * @summary 기존 URL과 아카이브로 실패 게시물 복구 요청; 진행 중이거나 완료된 작업은 중복 실행하지 않습니다
+ */
+export const request = async (
+  postId: number,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseRecoveryResponse> => {
+  return orvalMutator<ApiResponseRecoveryResponse>(getRequestUrl(postId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getIssue1Url = (postId: number) => {
+  return `/api/v1/posts/${postId}/share-links`;
+};
+
+/**
+ * @summary 내 저장 게시물의 현재 공개 콘텐츠와 장소 목록을 고정한 공유 토큰 발급
+ */
+export const issue1 = async (
+  postId: number,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseLinkResponse> => {
+  return orvalMutator<ApiResponseLinkResponse>(getIssue1Url(postId), {
+    ...options,
+    method: 'POST',
+  });
+};
+
 export const getReplaceGroupsBulkUrl = () => {
   return `/api/v1/posts/groups`;
 };
@@ -1011,6 +1223,35 @@ export const replaceGroupsBulk = async (
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(replaceSavedPostsGroupsRequest),
+  });
+};
+
+export const getList1Url = (params?: List1Params) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/v1/posts/unlinked-places?${stringifiedParams}`
+    : `/api/v1/posts/unlinked-places`;
+};
+
+/**
+ * @summary 내 아카이브의 장소 미연결 게시물 목록 조회
+ */
+export const list1 = async (
+  params?: List1Params,
+  options?: Parameters<typeof orvalMutator>[1],
+): Promise<ApiResponseSavedPostPageResponse> => {
+  return orvalMutator<ApiResponseSavedPostPageResponse>(getList1Url(params), {
+    ...options,
+    method: 'GET',
   });
 };
 

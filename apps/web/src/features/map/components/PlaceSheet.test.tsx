@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
@@ -53,9 +54,11 @@ function renderSheet(
   place: PlaceDetailModel | null = PLACE,
   {
     recentPlaces = [],
+    recentPlacesLoading = false,
     onSelectPlace = () => {},
   }: {
     recentPlaces?: RecentPlace[];
+    recentPlacesLoading?: boolean;
     onSelectPlace?: (id: number, shareToken?: string | null) => void;
   } = {},
 ) {
@@ -67,6 +70,7 @@ function renderSheet(
           <MemoryRouter initialEntries={['/map']}>
             <PlaceSheet
               recentPlaces={recentPlaces}
+              recentPlacesLoading={recentPlacesLoading}
               selectedPlace={place}
               isPlaceDetailPending={false}
               isPlaceDetailError={false}
@@ -78,6 +82,11 @@ function renderSheet(
               onEnterSearch={() => {}}
               onExitSearch={() => {}}
               onSearchInputFocus={() => {}}
+              onOpenFilter={() => {}}
+              searchQuery=""
+              searchPage={undefined}
+              onSearchQueryChange={() => {}}
+              onSelectSearchResult={() => {}}
             />
           </MemoryRouter>
         </BottomMenuVisibilityProvider>
@@ -284,6 +293,13 @@ describe('PlaceSheet 최근 저장한 공간 카드', () => {
     },
   ];
 
+  it('목록을 아직 못 받았으면 빈 상태 대신 스켈레톤을 그린다 — 필터를 바꿀 때 빈 화면이 튀지 않게', () => {
+    const { container } = renderSheet(PEEK_SNAP_POINT, null, { recentPlacesLoading: true });
+
+    expect(screen.queryByText('아직 저장한 공간이 없어요')).toBeNull();
+    expect(container.ownerDocument.querySelector('[data-slot="skeleton"]')).not.toBeNull();
+  });
+
   it('구독한 공유 아카이브의 장소는 공유 토큰과 함께 선택을 올린다', () => {
     const onSelectPlace = vi.fn();
     renderSheet(PEEK_SNAP_POINT, null, { recentPlaces: RECENT, onSelectPlace });
@@ -310,6 +326,32 @@ describe('PlaceSheet 검색 패널 — 상세가 열려도 살아남는다', () 
     mapApi.fetchSavedPlaceSearch.mockResolvedValue({ items: [], groups: [], totalCount: 0 });
   });
 
+  /** 검색어는 MapPage 가 갖는다 — 시트 바깥에서 들고 있는 것처럼 상태를 감싼다. */
+  function SearchingSheet({ place }: { place: PlaceDetailModel | null }) {
+    const [query, setQuery] = useState('');
+    return (
+      <PlaceSheet
+        recentPlaces={[]}
+        selectedPlace={place}
+        isPlaceDetailPending={false}
+        isPlaceDetailError={false}
+        snap={place ? DETAIL_PAGE_SNAP_POINT : PEEK_SNAP_POINT}
+        isSearchMode
+        onSnapChange={() => {}}
+        onSelectPlace={() => {}}
+        onClose={() => {}}
+        onEnterSearch={() => {}}
+        onExitSearch={() => {}}
+        onSearchInputFocus={() => {}}
+        onOpenFilter={() => {}}
+        searchQuery={query}
+        searchPage={undefined}
+        onSearchQueryChange={setQuery}
+        onSelectSearchResult={() => {}}
+      />
+    );
+  }
+
   /** 검색 모드로 띄운 시트 — 선택 장소만 갈아끼워 상세를 열고 닫는다. */
   function renderSearchingSheet() {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -318,20 +360,7 @@ describe('PlaceSheet 검색 패널 — 상세가 열려도 살아남는다', () 
         <ToastProvider>
           <BottomMenuVisibilityProvider value={{ hidden: true, setHidden: () => {} }}>
             <MemoryRouter initialEntries={['/map']}>
-              <PlaceSheet
-                recentPlaces={[]}
-                selectedPlace={place}
-                isPlaceDetailPending={false}
-                isPlaceDetailError={false}
-                snap={place ? DETAIL_PAGE_SNAP_POINT : PEEK_SNAP_POINT}
-                isSearchMode
-                onSnapChange={() => {}}
-                onSelectPlace={() => {}}
-                onClose={() => {}}
-                onEnterSearch={() => {}}
-                onExitSearch={() => {}}
-                onSearchInputFocus={() => {}}
-              />
+              <SearchingSheet place={place} />
             </MemoryRouter>
           </BottomMenuVisibilityProvider>
         </ToastProvider>
@@ -354,6 +383,43 @@ describe('PlaceSheet 검색 패널 — 상세가 열려도 살아남는다', () 
 
     expect(searchOverlay()).toHaveClass('hidden');
     expect(searchInput().value).toBe('아이소');
+  });
+
+  it('시트를 가려도(검색 결과 지도) 검색 패널은 display 를 유지해 결과 스크롤 위치를 지킨다', () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <ToastProvider>
+          <BottomMenuVisibilityProvider value={{ hidden: true, setHidden: () => {} }}>
+            <MemoryRouter initialEntries={['/map']}>
+              <PlaceSheet
+                recentPlaces={[]}
+                selectedPlace={null}
+                isPlaceDetailPending={false}
+                isPlaceDetailError={false}
+                snap={PEEK_SNAP_POINT}
+                isSearchMode
+                hidden
+                onSnapChange={() => {}}
+                onSelectPlace={() => {}}
+                onClose={() => {}}
+                onEnterSearch={() => {}}
+                onExitSearch={() => {}}
+                onSearchInputFocus={() => {}}
+                onOpenFilter={() => {}}
+                searchQuery="아이소"
+                searchPage={undefined}
+                onSearchQueryChange={() => {}}
+                onSelectSearchResult={() => {}}
+              />
+            </MemoryRouter>
+          </BottomMenuVisibilityProvider>
+        </ToastProvider>
+      </QueryClientProvider>,
+    );
+
+    expect(searchOverlay()).not.toHaveClass('hidden');
+    expect(searchInput().closest('[data-vaul-drawer]')).toHaveClass('invisible');
   });
 
   it('상세를 닫으면 치던 검색어 그대로 검색 화면이 다시 드러난다', () => {

@@ -6,12 +6,18 @@
  */
 import type { GroupOwnerResponse } from './groupOwnerResponse.generated';
 import type { GroupResponseAccessType } from './groupResponseAccessType.generated';
+import type { GroupSubscriberResponse } from './groupSubscriberResponse.generated';
 
 export interface GroupResponse {
   /** 그룹 접근 유형 */
   accessType: GroupResponseAccessType;
   /** 그룹 색상 코드 */
   color: string;
+  /**
+   * 아카이브 소개글. 미입력 시 null이며 줄바꿈을 포함한 전체 원문을 반환합니다
+   * @nullable
+   */
+  description?: string | null;
   /** 그룹 식별자 */
   id: number;
   /**
@@ -29,6 +35,10 @@ export interface GroupResponse {
    * @nullable
    */
   shareToken?: string | null;
+  /** 현재 아카이브를 참조형으로 추가한 사람 수. 소유자는 제외합니다. */
+  subscriberCount: number;
+  /** 추가한 사람 미리보기. 최근 추가순으로 최대 3명이며 0명이면 빈 배열입니다. */
+  subscriberPreview: GroupSubscriberResponse[];
   /** 이미지가 있는 최신 저장 게시물의 대표 이미지 URL 목록. 최신순으로 최대 3개입니다. */
   thumbnailUrls: string[];
 }

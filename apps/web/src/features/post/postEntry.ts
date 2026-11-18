@@ -8,3 +8,13 @@ export const POST_FROM_LIST_STATE = { postFromList: true } as const;
 export function isPostFromList(state: unknown): boolean {
   return (state as { postFromList?: unknown } | null)?.postFromList === true;
 }
+
+/**
+ * 게시물을 열 수 없어 아카이브 목록으로 돌려보낼 때의 안내 — 상세 404, 저장 게시물 ID 가 없는
+ * 구형·잘못된 푸시 공용. 사용자 잘못이 아니라 "못 찾았다" 는 사실만 알린다.
+ * TODO(NOOK-410): 시안에 없는 임시 문구 — 기획 확인 후 교체.
+ */
+export const POST_NOT_FOUND_TOAST = {
+  variant: 'simple',
+  title: '게시물을 찾을 수 없어요',
+} as const;

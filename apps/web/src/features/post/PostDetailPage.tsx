@@ -9,6 +9,7 @@ import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider'
 import { PushPrimingSheet } from '@/features/notifications/components/PushPrimingSheet';
 import { SavePostSheet } from '@/features/share/components/SavePostSheet';
 import { capturePostHogEvent } from '@/lib/posthog';
+import { ApiClientError } from '@/shared/api';
 import { Icon20ArrowUp } from '@/shared/icons/NookIcons';
 import { useBackInterceptor } from '@/shared/lib/backInterceptors';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
@@ -20,10 +21,12 @@ import {
   useDeletePost,
   usePostDetail,
   useRelatedPlaces,
+  useRequestPostRecovery,
   useUpdatePlaceBookmark,
   useUpdatePostArchives,
   useUpdatePostMemo,
 } from './api/queries';
+import { useSavedToArchivesToast } from './components/ArchiveJumpPopover';
 import { ExpandableCaption } from './components/ExpandableCaption';
 import { MemoSheet } from './components/MemoSheet';
 import { OriginalPostLink } from './components/OriginalPostLink';
@@ -36,7 +39,7 @@ import { PostInfo } from './components/PostInfo';
 import { GoHomeTooltip, PostParsingView } from './components/PostParsingView';
 import { PostVideoViewer } from './components/PostVideoViewer';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
-import { isPostFromList } from './postEntry';
+import { isPostFromList, POST_NOT_FOUND_TOAST } from './postEntry';
 import type { SearchedPlace } from './types';
 
 /** 이 값을 넘겨 스크롤된 것으로 본다 — PinnedHeaderLayout 의 +1px 최소 스크롤은 무시. */
@@ -93,6 +96,41 @@ export function PostDetailPage() {
 
   const isProcessing = postDetailState.status === 'processing';
 
+  // 삭제·계정 전환 등으로 없는 게시물 — 다시 시도할 거리가 없어 아카이브 목록으로 돌려보낸다.
+  const isNotFound = postDetailState.status === 'notFound';
+  useEffect(() => {
+    if (!isNotFound) return;
+    showToast(POST_NOT_FOUND_TOAST);
+    navigate('/archive', { replace: true });
+  }, [isNotFound, navigate, showToast]);
+
+  // 수집 실패 건의 `다시 시도` — 기존 URL·아카이브로 서버에 재처리를 요청한다(NOOK-410).
+  // 접수되면 상세 무효화로 처리 중 화면이 이어받으므로 화면 전환은 쿼리에 맡기고 안내만 띄운다.
+  // TODO(NOOK-410): 접수 토스트 외 문구는 시안에 없어 임시 문구다 — 기획 확인 후 교체.
+  const recoveryMutation = useRequestPostRecovery(postId);
+  function handleRequestRecovery() {
+    recoveryMutation.mutate(undefined, {
+      onSuccess: ({ requested, processingStatus }) => {
+        if (requested) {
+          showToast({ variant: 'simple', title: '다시 저장을 요청했어요. 완료되면 알려드릴게요.' });
+        } else if (processingStatus === 'PENDING' || processingStatus === 'PROCESSING') {
+          showToast({ variant: 'simple', title: '이미 다시 저장하고 있어요.' });
+        }
+        // COMPLETED 는 이미 저장된 건 — 상세가 다시 그려지는 것으로 충분하다.
+      },
+      onError: (error) => {
+        const code = error instanceof ApiClientError ? error.code : undefined;
+        const title =
+          code === 'GROUP_NOT_FOUND'
+            ? '저장했던 아카이브가 없어 다시 저장할 수 없어요'
+            : code === 'POST_PROCESSING_STATE_CONFLICT'
+              ? '다시 저장할 수 없는 게시물이에요'
+              : '다시 저장을 요청하지 못했어요';
+        showToast({ variant: 'simple', title });
+      },
+    });
+  }
+
   function handleBack() {
     // 파싱 중엔 돌아갈 완성 화면이 없다 — 툴팁 문구대로 홈(지도)으로 보낸다.
     if (isProcessing) {
@@ -135,6 +173,7 @@ export function PostDetailPage() {
   const updateArchivesMutation = useUpdatePostArchives(postId);
   const deletePostMutation = useDeletePost(postId);
   const { data: myArchives } = useArchives();
+  const showSavedToast = useSavedToArchivesToast();
 
   function handleArchivesSave(
     currentMemo: string | undefined,
@@ -149,17 +188,13 @@ export function PostDetailPage() {
       {
         onSuccess: () => {
           setArchivesSheetOpen(false);
-          const name =
-            groupIds.length === 1
-              ? myArchives?.find((archive) => archive.id === groupIds[0])?.name
-              : undefined;
-          // 보러가기는 붙이지 않는다 — 지금 보고 있는 이 게시물 상세로 가는 버튼이라 눌러도 제자리다(QA).
-          showToast({
-            variant: 'simple',
-            title: name
-              ? `"${name}"에 저장됐어요`
-              : `"${groupIds.length}개의 아카이브"에 저장됐어요`,
-          });
+          // 보러가기는 옮긴 아카이브 상세로 간다 — 여럿이면 목록 팝오버(장소 > 게시물 상세와 같다).
+          showSavedToast(
+            groupIds.flatMap((id) => {
+              const archive = myArchives?.find((candidate) => candidate.id === id);
+              return archive ? [{ id, name: archive.name, color: archive.color }] : [];
+            }),
+          );
         },
         onError: () => showToast({ variant: 'simple', title: '아카이브를 바꾸지 못했어요' }),
       },
@@ -250,10 +285,15 @@ export function PostDetailPage() {
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
           {isProcessing ? (
             <PostParsingView percent={postDetailState.percent} />
-          ) : postDetailState.status === 'loading' ? (
+          ) : postDetailState.status === 'loading' || isNotFound ? (
             <PostDetailLoadingView />
+          ) : postDetailState.status === 'failed' ? (
+            <PostDetailErrorView
+              onRetry={handleRequestRecovery}
+              retryDisabled={recoveryMutation.isPending}
+            />
           ) : (
-            <PostDetailErrorView />
+            <PostDetailErrorView onRetry={postDetailState.retry} />
           )}
         </div>
         {/* 오래 걸리는 저장(파싱 화면)에서만 — 권한이 미결정인 사용자에게 완료 알림을

@@ -4,6 +4,7 @@
  * Nook API
  * OpenAPI spec version: v1
  */
+import type { SearchSavedPlacesSort } from './searchSavedPlacesSort.generated';
 
 export type SearchSavedPlacesParams = {
   /**
@@ -28,4 +29,16 @@ export type SearchSavedPlacesParams = {
    * @maximum 100
    */
   size?: number;
+  /**
+   * 정렬: 미지정 시 기존 관련도순. LATEST, OLDEST, NEAREST
+   */
+  sort?: SearchSavedPlacesSort;
+  /**
+   * NEAREST 필수: 사용자 GPS 위도
+   */
+  latitude?: number;
+  /**
+   * NEAREST 필수: 사용자 GPS 경도
+   */
+  longitude?: number;
 };

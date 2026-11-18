@@ -1,14 +1,15 @@
 import type * as React from 'react';
-import { Icon16ArrowRight } from '@/shared/icons/NookIcons';
+import { Icon16ArrowDiagonal, Icon16ArrowRight } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 
 /**
  * Figma `List/My > Property 1=icon+text+arrow | icon+text+tag`.
  * 마이페이지 설정 목록의 한 줄 — 좌측 아이콘+라벨, 우측 값(+배지 또는 화살표).
  *
- * 두 variant 는 prop 조합에서 파생된다 —
+ * variant 는 prop 조합에서 파생된다 —
  *   icon+text+arrow → `onClick` 을 주면 화살표가 붙고 행이 버튼이 된다
  *   icon+text+tag   → `badge` 를 주면 값 앞에 알약 배지가 붙는다
+ *   외부 링크       → `external` 을 켜면 화살표가 대각선이 된다(앱 밖으로 나가는 행)
  *
  * 배지는 공용 `Badge` 와 형태가 다르다(gray-100 채움 / 28px / radius 20). 시안에서
  * 여기서만 쓰여 승격하지 않았다 — 다른 곳에도 나오면 Badge variant 로 올린다.
@@ -17,15 +18,29 @@ export interface MyMenuRowProps {
   /** 좌측 16px 아이콘 슬롯 */
   icon?: React.ReactNode;
   label: string;
+  /** 라벨 아래 보조 줄 (예: 웹 빌드 식별자). 영문/숫자 표기라 모노로 그린다. */
+  description?: string;
   /** 우측 값 (예: "kakao", "v1.0"). 영문/버전 표기라 모노로 그린다. */
   value?: string;
   /** 값 앞에 붙는 알약 배지 (예: "최신버전") */
   badge?: string;
   onClick?: () => void;
+  /** 앱 밖(다른 앱·브라우저)으로 나가는 행. 화살표를 대각선으로 바꿔 미리 알린다. */
+  external?: boolean;
   className?: string;
 }
 
-function MyMenuRow({ icon, label, value, badge, onClick, className }: MyMenuRowProps) {
+function MyMenuRow({
+  icon,
+  label,
+  description,
+  value,
+  badge,
+  onClick,
+  external = false,
+  className,
+}: MyMenuRowProps) {
+  const Arrow = external ? Icon16ArrowDiagonal : Icon16ArrowRight;
   const Comp = onClick ? 'button' : 'div';
 
   return (
@@ -40,7 +55,12 @@ function MyMenuRow({ icon, label, value, badge, onClick, className }: MyMenuRowP
     >
       <span className="flex min-w-0 items-center gap-2">
         {icon}
-        <span className="truncate text-b2 font-medium text-gray-100">{label}</span>
+        <span className="flex min-w-0 flex-col">
+          <span className="truncate text-b2 font-medium text-gray-100">{label}</span>
+          {description ? (
+            <span className="truncate font-mono text-e2 text-gray-40">{description}</span>
+          ) : null}
+        </span>
       </span>
 
       <span className="flex shrink-0 items-center gap-2">
@@ -50,7 +70,7 @@ function MyMenuRow({ icon, label, value, badge, onClick, className }: MyMenuRowP
           </span>
         ) : null}
         {value ? <span className="text-right font-mono text-e1 text-gray-50">{value}</span> : null}
-        {onClick ? <Icon16ArrowRight className="shrink-0" /> : null}
+        {onClick ? <Arrow className="shrink-0" /> : null}
       </span>
     </Comp>
   );

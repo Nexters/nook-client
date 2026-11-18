@@ -7,6 +7,7 @@ import {
   ArchiveSelectRow,
   CollectionCard,
 } from '@/features/archive';
+import { ArchiveDescription } from '@/features/archive/components/ArchiveDescription';
 import { MyMenuRow, MyMenuSection } from '@/features/my';
 import type { Place } from '@/features/place';
 import {
@@ -123,7 +124,7 @@ const SAMPLE_IMAGE =
 
 // `Media` 의 영상 분기 확인용. 오프라인에서 재생되는 샘플 영상은 없어서(외부 URL 금지,
 // data URI 로 넣기엔 크다) 태그가 video 로 갈리는지까지만 본다.
-const SAMPLE_VIDEO = 'https://cdn.example.com/sample.mp4';
+const SAMPLE_VIDEO = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
 
 /** 사진 태그(`n/6`)와 캐러셀을 확인하려면 여러 장이 필요하다 — 색만 다른 같은 도형. */
 const SAMPLE_PHOTOS = ['#38c8c4', '#a58af2', '#f2a58a', '#8af2a5', '#f28ac8', '#c8f28a'].map(
@@ -158,6 +159,30 @@ const MOCK_ARCHIVE_LONG: Archive = {
   accessType: 'OWNED',
 };
 const MOCK_ARCHIVES = [MOCK_ARCHIVE_FILLED, MOCK_ARCHIVE_EMPTY, MOCK_ARCHIVE_LONG];
+
+/** 아카이브 소개글 — 줄 수·줄바꿈·이모지별로 더보기 노출을 확인한다(최대 150자). */
+const MOCK_ARCHIVE_DESCRIPTIONS: { label: string; description: string }[] = [
+  { label: '1줄 — 더보기 없음', description: '주말에 가고 싶은 카페 모음 ☕' },
+  {
+    label: '정확히 3줄 근처 — 더보기 없음',
+    description:
+      '연말에 친구들이랑 모임하기 좋았던 곳들을 모아뒀어요. 단체석이 있거나 오래 앉아 있어도 눈치 안 보이는 곳 위주예요.',
+  },
+  {
+    label: '3줄 초과(긴 문장) — 더보기',
+    description: '최대3줄보여주자 '.repeat(16).trim(),
+  },
+  {
+    label: '줄바꿈으로 3줄 초과 — 더보기',
+    description:
+      '서울 카페\n성수 · 연남 · 망원\n\n커피 맛집 위주로 모았어요\n디저트 맛집은 따로 정리 중 🍰',
+  },
+  {
+    label: '이모지·결합 이모지 포함 150자 근처',
+    description:
+      '👨‍👩‍👧‍👦 가족이랑 가기 좋은 곳 🇰🇷 아이 동반 OK 👍🏽 주차 가능한 곳만 골랐어요. 유모차 들어가기 편하고 키즈 메뉴 있는 곳, 놀이 공간 있는 곳 위주로 계속 업데이트할게요! 주말 오전엔 사람이 많으니 평일 추천 🙌',
+  },
+];
 
 // 공개 아카이브(다른 사람이 만든 것) — CollectionCard 용
 const MOCK_COLLECTIONS: Archive[] = [
@@ -766,8 +791,8 @@ export function UiComponentsPage() {
       <Section title="Media (이미지/영상)">
         <p className="text-b3 text-gray-50">
           URL 확장자로 `&lt;img&gt;` / `&lt;video&gt;` 를 고릅니다. 영상은 `controls` 를 켤 때만
-          재생 컨트롤이 붙고, 끄면 첫 프레임만 보여주는 썸네일이 됩니다. 아래 영상 URL 은 실제
-          파일이 아니라 분기만 확인하는 값이라 재생되지는 않습니다.
+          재생 컨트롤이 붙고, 끄면 첫 프레임만 보여주는 썸네일이 됩니다. 아래 영상은 공개
+          샘플(CC0)이라 실제로 재생됩니다.
         </p>
         <Row label="이미지 URL — img">
           <Media src={SAMPLE_IMAGE} alt="샘플 사진" className="size-24 rounded-sm object-cover" />
@@ -799,8 +824,8 @@ export function UiComponentsPage() {
       <Section title="VideoPlayer">
         <p className="text-b3 text-gray-50">
           영상을 재생하는 자리 전용입니다. 가운데 재생/일시정지와 (넘겼을 때) 우하단 확대만 그리고,
-          재생 중에는 컨트롤이 2초 뒤 사라졌다가 화면을 누르면 돌아옵니다. 아래 URL 은 실제 파일이
-          아니라 재생은 시작되지 않고 멈춘 상태(재생 버튼)로 보입니다.
+          재생 중에는 컨트롤이 2초 뒤 사라졌다가 화면을 누르면 돌아옵니다. 아래는 공개 샘플
+          영상(CC0)이라 실제로 재생됩니다.
         </p>
         <Row label="확대 버튼 없음 / 있음 — 게시물 상세 프레임(343:429)">
           <div className="w-full max-w-[171px]">
@@ -1094,6 +1119,32 @@ export function UiComponentsPage() {
         </div>
         <p className="text-b3 text-gray-50">
           이미지 줄은 공용 Carousel(scroll-snap)이고, 본문은 2줄로 접힙니다. "더보기"로 펼칩니다.
+        </p>
+        <div className="mx-auto w-full max-w-[375px] rounded-lg border border-gray-20">
+          <SavedPostCard
+            post={{ ...MOCK_POST, media: [{ url: SAMPLE_VIDEO, type: 'VIDEO' }] }}
+            archives={[{ id: 1, name: '밥집', color: 'purple' }]}
+          />
+        </div>
+        <p className="text-b3 text-gray-50">
+          단일 영상은 단일 이미지와 같은 167:208 틀에 앉히고 재생 표시를 얹습니다.
+        </p>
+      </Section>
+
+      <Section title="archive — ArchiveDescription (아카이브 소개글)">
+        <div className="mx-auto flex w-full max-w-[343px] flex-col gap-6">
+          {MOCK_ARCHIVE_DESCRIPTIONS.map(({ label, description }) => (
+            <div key={label} className="flex flex-col gap-1">
+              <p className="text-b3 text-gray-50">
+                {label} ({description.length}/150)
+              </p>
+              <ArchiveDescription description={description} />
+            </div>
+          ))}
+        </div>
+        <p className="text-b3 text-gray-50">
+          실제 렌더링된 줄 수가 3줄을 넘을 때만 3줄 끝에 "더보기"가 붙고, 펼치면 아래에 "접기"가
+          나옵니다. 창 너비를 바꾸면 다시 잽니다.
         </p>
       </Section>
 

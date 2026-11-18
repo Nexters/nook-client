@@ -10,6 +10,7 @@ import { useLogout, useMyProfile, useSaveProfile, useWithdraw } from '@/features
 import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
 import { ProfileImageSheet } from '@/features/my/components/ProfileImageSheet';
+import { VersionInfoRow } from '@/features/my/components/VersionInfoRow';
 import { deleteRegisteredPushToken } from '@/features/notifications/api/pushTokens';
 import { nativeBridge } from '@/native-bridge';
 import { env } from '@/shared/config/env';
@@ -17,9 +18,9 @@ import {
   Icon16ArrowRight,
   Icon16Chat,
   Icon16Info,
+  Icon16Insta,
   Icon16Paper,
   Icon16User,
-  Icon16Version,
   Icon24Back,
 } from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
@@ -28,6 +29,12 @@ import { useToast } from '@/shared/toast';
 import { Avatar, Button, Header, Input, Popup, Skeleton } from '@/shared/ui';
 
 type Dialog = 'logout' | 'withdraw' | null;
+
+/**
+ * 누크 공식 인스타그램(NOOK-409). 온보딩과 같이 https 주소를 그대로 열어 앱이 있으면 앱으로,
+ * 없으면 브라우저로 간다.
+ */
+const NOOK_INSTAGRAM_URL = 'https://www.instagram.com/nook.archiving';
 
 export function MyPage() {
   const navigate = useNavigate();
@@ -62,8 +69,6 @@ export function MyPage() {
   const savedPlaceCount = archives?.reduce((sum, archive) => sum + archive.placeCount, 0) ?? 0;
   // 서버는 KAKAO/APPLE 처럼 대문자로 주지만 시안 표기는 소문자다.
   const providerLabel = profile ? profile.provider.toLowerCase() : undefined;
-  // 셸이 주입한 실제 앱 버전. 브라우저로 열면 알 수 없어 행에서 값만 빠진다.
-  const appVersion = nativeBridge.appVersion ? `v${nativeBridge.appVersion}` : undefined;
   // 공유 시트 즐겨찾기 안내는 iOS 시트 기준으로만 그려져 있다. dev 에서는 시안 확인용으로 늘 연다.
   // 저장은 계정이 있어야 하는 동작이라 게스트에게는 안내도 두지 않는다.
   const showSaveGuide = isAuthenticated && (nativeBridge.platform === 'ios' || env.enableDevRoutes);
@@ -302,14 +307,18 @@ export function MyPage() {
                 </MyMenuSection>
               ) : null}
 
+              {/* 행 순서는 Figma `My`(1541:35540)를 따른다. */}
               <MyMenuSection title="앱 정보">
-                {/* TODO: "최신버전" 배지는 아직 하드코딩이다 — 스토어 최신 버전을 알려주는
-                  API 가 생기기 전까지는 실제 최신 여부를 판단할 수 없다. */}
                 <MyMenuRow
-                  icon={<Icon16Version />}
-                  label="버전 정보"
-                  badge="최신버전"
-                  value={appVersion}
+                  icon={<Icon16Insta className="[&_path]:fill-gray-60" />}
+                  label="누크 인스타그램"
+                  external
+                  onClick={() => nativeBridge.openExternalUrl(NOOK_INSTAGRAM_URL)}
+                />
+                <MyMenuRow
+                  icon={<Icon16Chat />}
+                  label="문의하기"
+                  onClick={() => navigate('/support')}
                 />
                 <MyMenuRow
                   icon={<Icon16Info />}
@@ -321,11 +330,7 @@ export function MyPage() {
                   label="이용약관"
                   onClick={() => navigate('/terms')}
                 />
-                <MyMenuRow
-                  icon={<Icon16Chat />}
-                  label="문의하기"
-                  onClick={() => navigate('/support')}
-                />
+                <VersionInfoRow />
               </MyMenuSection>
             </div>
 

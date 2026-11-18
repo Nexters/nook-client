@@ -274,6 +274,9 @@ export function MapView({
       name={pin.name}
       color={pin.color}
       thumbnail={pin.thumbnail}
+      categoryGroup={pin.categoryGroup}
+      // 검색 결과 지도에서만 값이 있다 — 클러스터 규칙은 그대로라 버블에는 섞여 묶인다(NOOK-383).
+      compact={pin.outsideSearch}
       onClick={() => onPlaceClick?.(pin.id)}
     />
   );

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useHideBottomMenu } from '@/app/bottom-menu-visibility';
@@ -22,6 +22,38 @@ import { ArchiveDeletePopup } from './components/ArchiveDeletePopup';
 
 /** 시안의 카운터 표기(`0/20`) 기준. */
 const NAME_MAX_LENGTH = 20;
+/**
+ * 시안 카운터(`0/150`). 서버는 보이는 글자(grapheme) 기준 150자지만, 여기선 UTF-16 길이로
+ * 센다 — 이모지가 2~N자로 잡혀 항상 서버 기준보다 같거나 많게 세므로 400 이 날 일이 없다.
+ */
+const DESCRIPTION_MAX_LENGTH = 150;
+
+/**
+ * 키보드를 뺀 "지금 보이는 영역"(visualViewport)의 위치·높이.
+ *
+ * iOS WKWebView 는 키보드가 떠도 레이아웃 뷰포트를 줄이지 않고, 포커스된 입력이 보이게
+ * 화면 전체를 위로 민다 — `fixed inset-0` 인 이 폼은 헤더까지 같이 밀려 올라간다(QA).
+ * 폼을 보이는 영역에 맞춰 두면 헤더는 늘 맨 위에 붙고, 줄어든 안쪽 스크롤러만 입력을 따라간다.
+ * Android 는 WebView 가 키보드만큼 줄어들어 offsetTop 0·height = innerHeight 라 그대로다.
+ */
+function useVisibleViewport() {
+  const [box, setBox] = useState<{ top: number; height: number }>();
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => setBox({ top: viewport.offsetTop, height: viewport.height });
+    update();
+    viewport.addEventListener('resize', update);
+    viewport.addEventListener('scroll', update);
+    return () => {
+      viewport.removeEventListener('resize', update);
+      viewport.removeEventListener('scroll', update);
+    };
+  }, []);
+
+  return box;
+}
 
 export type ArchiveFormPageProps =
   | {
@@ -57,6 +89,7 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
   // 서버 값을 그대로 비추므로, 응답이 늦게 도착해도 폼이 빈 채로 굳지 않는다.
   const [editedName, setName] = useState<string>();
   const [editedColor, setColor] = useState<ArchiveColor>();
+  const [editedDescription, setDescription] = useState<string>();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   // 편집은 라우트라 탭바를 숨겨야 한다. 생성 오버레이는 탭바보다 위로 덮으므로 숨기지
@@ -75,6 +108,9 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
 
   const name = editedName ?? archive?.name ?? '';
   const color = editedColor ?? archive?.color ?? ARCHIVE_COLORS[0];
+  const description = editedDescription ?? archive?.description ?? '';
+
+  const visibleViewport = useVisibleViewport();
 
   const createArchive = useCreateArchive();
   const updateArchive = useUpdateArchive();
@@ -88,7 +124,7 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
       if (!archive) return;
 
       updateArchive.mutate(
-        { archiveId: archive.id, name: name.trim(), color },
+        { archiveId: archive.id, name: name.trim(), color, description: description.trim() },
         {
           onSuccess: () => {
             capturePostHogEvent('archive_updated', { archive_id: archive.id, color });
@@ -100,7 +136,7 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
     }
 
     createArchive.mutate(
-      { name: name.trim(), color },
+      { name: name.trim(), color, description: description.trim() },
       {
         onSuccess: () => {
           capturePostHogEvent('archive_created', { color });
@@ -130,7 +166,8 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
       data-slot="archive-form"
       // 슬라이드 동안 문서가 아래로 늘어나지 않도록 뷰포트에 고정한다(내용이 넘치면 안에서 스크롤).
       className={cn(
-        'fixed inset-0 flex flex-col overflow-hidden bg-gray-0',
+        // 높이·위치는 보이는 영역(useVisibleViewport)을 따른다 — 측정 전엔 화면 전체.
+        'fixed inset-x-0 top-0 flex h-dvh flex-col overflow-hidden bg-gray-0',
         // 생성 오버레이는 하단 탭바(z-[60]) 위로 덮는다.
         !editing && 'z-[70]',
         // duration 은 `useSlideScreen` 의 SLIDE_DURATION_MS 와 같은 값이어야 한다.
@@ -138,7 +175,10 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
         // 편집은 전환 없이 바로 뜬다 — 아래에서 올라오는 건 생성뿐이다.
         editing || slidIn ? 'translate-y-0' : 'translate-y-full',
       )}
-      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        ...(visibleViewport && { top: visibleViewport.top, height: visibleViewport.height }),
+      }}
     >
       <Header
         // 생성은 좌상단 뒤로가기 대신 우상단 닫기다(시안 273:10642) — 떠나는 길을 아래로
@@ -183,6 +223,26 @@ export function ArchiveFormPage({ mode, onClose }: ArchiveFormPageProps) {
             />
           ))}
         </fieldset>
+
+        {/* 시안 378:16091 — 이름 영역과 같은 라벨·여백. 카운터는 포커스와 상관없이 늘 보인다. */}
+        <div className="flex flex-col gap-2 px-4 py-3">
+          <label htmlFor="archive-description" className="text-b2 font-medium text-gray-70">
+            아카이브 소개
+          </label>
+          <div className="flex flex-col items-end rounded-lg border border-gray-30 bg-gray-0 px-4 py-3.5 transition-colors focus-within:border-gray-100">
+            <textarea
+              id="archive-description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              maxLength={DESCRIPTION_MAX_LENGTH}
+              placeholder="아카이브를 소개해주세요"
+              className="h-36 w-full resize-none bg-transparent text-b1 font-medium text-gray-100 outline-none placeholder:text-gray-50"
+            />
+            <span className="text-b3 font-medium text-gray-50 tabular-nums">
+              {description.length}/{DESCRIPTION_MAX_LENGTH}
+            </span>
+          </div>
+        </div>
 
         {/* 하단 고정 액션. 키보드가 올라오면 네이티브 WebView 가 뷰포트를 줄여 함께 올라온다. */}
         <div

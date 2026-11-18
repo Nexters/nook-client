@@ -14,8 +14,10 @@ private struct ApiEnvelope<T: Decodable>: Decodable {
 private struct ApiStatusEnvelope: Decodable { let resultType: String; let error: ApiFailure? }
 private struct TokenPair: Codable { let accessToken: String; let refreshToken: String }
 private struct SessionRecord: Codable { let schemaVersion: Int; let accessToken: String; let refreshToken: String?; let apiBaseUrl: String?; let revision: Int }
-private struct ServerGroup: Decodable { let id: Int64; let name: String; let color: String }
+// accessType: OWNED | SHARED. 생성 응답 등에서 빠져도 디코딩이 깨지지 않게 옵셔널로 둔다.
+private struct ServerGroup: Decodable { let id: Int64; let name: String; let color: String; let accessType: String? }
 private struct SavedPost: Decodable { let postId: Int64 }
+private struct OnboardingEvent: Codable { let eventId: String; let eventName: String; let occurredAt: String; let owner: String }
 
 enum ShareApiError: Error { case noSession, invalidResponse, http(Int), configuration, privatePost }
 
@@ -46,7 +48,10 @@ final class ShareApiClient {
     func groups() async throws -> [Group] {
         let data = try await protectedRequest(path: "/groups")
         let result = try unwrap(ApiEnvelope<[ServerGroup]>.self, data)
-        return result.map { Group(id: $0.id, name: $0.name, color: groupColor($0.color)) }
+        // /groups 는 공유받은 아카이브도 함께 준다 — 남의 아카이브에는 저장할 수 없으니 내 것만 남긴다.
+        return result
+            .filter { $0.accessType != "SHARED" }
+            .map { Group(id: $0.id, name: $0.name, color: groupColor($0.color)) }
     }
 
     func createGroup(name: String, colorIndex: Int) async throws -> Group {
@@ -67,6 +72,77 @@ final class ShareApiClient {
         ])
         let data = try await protectedRequest(path: "/posts", method: "POST", body: body)
         return try unwrap(ApiEnvelope<SavedPost>.self, data).postId
+    }
+
+    // MARK: 온보딩 전환 측정 (`POST /onboarding/events`)
+    //
+    // 확장이 열린 순간을 먼저 App Group 에 적고 보낸다 — 사용자가 바로 닫아 프로세스가 끝나도
+    // 기록이 남고, 다음에 확장이 열릴 때 다시 보낸다. 서버가 eventId 로 중복을 걸러 주므로 재전송은
+    // id·시각을 그대로 쓴다. 탭한 계정(JWT sub)을 함께 적어 두고 지금 계정의 것만 보낸다.
+    // 웹의 `features/onboarding/onboardingEvents.ts` 와 같은 규칙이다.
+
+    func recordShareExtensionOpen() async {
+        guard let owner = currentOwner() else { return }
+        let event = OnboardingEvent(
+            eventId: UUID().uuidString.lowercased(),
+            eventName: "SHARE_EXTENSION_OPEN",
+            occurredAt: ISO8601DateFormatter().string(from: Date()),
+            owner: owner
+        )
+        writeEvents(readEvents() + [event])
+        await flushOnboardingEvents(owner: owner)
+    }
+
+    private func flushOnboardingEvents(owner: String) async {
+        for event in readEvents() where event.owner == owner {
+            let body = try? JSONEncoder().encode([
+                "eventId": event.eventId, "eventName": event.eventName, "occurredAt": event.occurredAt,
+            ])
+            do {
+                _ = try await protectedRequest(path: "/onboarding/events", method: "POST", body: body)
+                removeEvent(event.eventId)
+            } catch ShareApiError.http(let status) where status == 400 {
+                // 종류·UUID·시각 오류(단말 시계가 서버보다 빠름 등). 다시 보내도 같다.
+                shareApiLogger.error("온보딩 이벤트 거절됨, 버림: \(event.eventId, privacy: .public)")
+                removeEvent(event.eventId)
+            } catch {
+                return // 네트워크·5xx·세션 없음: 남겨 두고 다음 실행 때 다시 보낸다.
+            }
+        }
+    }
+
+    private var eventDefaults: UserDefaults? {
+        (Bundle.main.object(forInfoDictionaryKey: "NookAppGroup") as? String).flatMap { UserDefaults(suiteName: $0) }
+    }
+
+    // 서버 허용 범위는 발생 후 7일. 경계에서 400 이 나지 않게 1시간 일찍 버린다.
+    private func readEvents() -> [OnboardingEvent] {
+        guard let data = eventDefaults?.data(forKey: "onboardingEvents"),
+              let events = try? JSONDecoder().decode([OnboardingEvent].self, from: data) else { return [] }
+        let minDate = Date().addingTimeInterval(-(7 * 24 - 1) * 3600)
+        let formatter = ISO8601DateFormatter()
+        return events.filter { (formatter.date(from: $0.occurredAt) ?? .distantPast) >= minDate }
+    }
+
+    private func writeEvents(_ events: [OnboardingEvent]) {
+        eventDefaults?.set(try? JSONEncoder().encode(events), forKey: "onboardingEvents")
+    }
+
+    private func removeEvent(_ eventId: String) {
+        writeEvents(readEvents().filter { $0.eventId != eventId })
+    }
+
+    /// 토큰의 `sub`. 서명은 확인하지 않는다 — 어느 계정 이벤트인지 가르는 데만 쓴다.
+    private func currentOwner() -> String? {
+        guard let token = (try? session.read())?.accessToken else { return nil }
+        let parts = token.split(separator: ".")
+        guard parts.count > 1 else { return nil }
+        var base64 = parts[1].replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+        base64 += String(repeating: "=", count: (4 - base64.count % 4) % 4)
+        guard let data = Data(base64Encoded: base64),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        if let sub = json["sub"] as? String { return sub }
+        return (json["sub"] as? NSNumber)?.stringValue
     }
 
     private func protectedRequest(path: String, method: String = "GET", body: Data? = nil) async throws -> Data {

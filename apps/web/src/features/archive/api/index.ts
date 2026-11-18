@@ -7,17 +7,20 @@ import {
   type GroupPlaceSummaryResponse,
   type GroupPostSummaryResponse,
   type GroupResponse,
+  type GroupSubscriberPageResponse,
   issue as issueShareLinkEndpoint,
   listPlaces as listArchivePlacesEndpoint,
   listPosts as listArchivePostsEndpoint,
+  // 생성기가 `/groups` 의 `list` 와 이름이 겹쳐 붙인 `1` 접미사다 — 여기서만 풀어준다.
+  list2 as listArchiveSubscribersEndpoint,
   list as listArchivesEndpoint,
   unsubscribe as unsubscribeEndpoint,
   unwrapApiResponse,
   // 생성기가 `/me/push-preferences` 의 `update` 와 이름이 겹쳐 붙인 `1` 접미사다 — 여기서만 풀어준다.
-  update1 as updateArchiveEndpoint,
+  update2 as updateArchiveEndpoint,
 } from '@/shared/api';
 import type { ArchiveColor } from '@/shared/ui';
-import type { Archive, ArchivePost } from '../types';
+import type { Archive, ArchivePost, ArchiveSubscriberPage } from '../types';
 
 /**
  * 서버 색상 코드 ↔ 디자인 토큰 색상.
@@ -44,6 +47,8 @@ export function toArchive(dto: GroupResponse): Archive {
     id: dto.id,
     name: dto.name,
     color: SERVER_TO_UI_COLOR[dto.color as CreateGroupRequestColor] ?? 'cement',
+    description: dto.description || undefined,
+    subscriberCount: dto.subscriberCount ?? 0,
     placeCount: dto.postCount,
     thumbnails: dto.thumbnailUrls,
     accessType: dto.accessType,
@@ -63,20 +68,26 @@ export async function fetchArchives(): Promise<Archive[]> {
 export interface ArchiveFormInput {
   name: string;
   color: ArchiveColor;
+  /** 수정 시 빈 문자열이면 서버가 소개글을 지운다(생략·null 은 유지라 항상 보낸다). */
+  description: string;
 }
 
-export async function createArchive({ name, color }: ArchiveFormInput): Promise<void> {
-  await createArchiveEndpoint({ name, color: UI_TO_SERVER_COLOR[color] }, { auth: 'required' });
+export async function createArchive({ name, color, description }: ArchiveFormInput): Promise<void> {
+  await createArchiveEndpoint(
+    { name, color: UI_TO_SERVER_COLOR[color], description },
+    { auth: 'required' },
+  );
 }
 
 export async function updateArchive({
   archiveId,
   name,
   color,
+  description,
 }: ArchiveFormInput & { archiveId: number }): Promise<void> {
   await updateArchiveEndpoint(
     archiveId,
-    { name, color: UI_TO_SERVER_COLOR[color] },
+    { name, color: UI_TO_SERVER_COLOR[color], description },
     { auth: 'required' },
   );
 }
@@ -135,6 +146,38 @@ export function toArchivePost(dto: GroupPostSummaryResponse): ArchivePost {
           ? 'failed'
           : undefined,
   };
+}
+
+/** 추가한 사람 목록 페이지 크기 — 서버 기본값과 같다. */
+const SUBSCRIBERS_PAGE_SIZE = 20;
+
+/** 내 아카이브·공유받은 아카이브·공유 링크의 추가한 사람 목록이 같은 응답 모양이라 함께 쓴다. */
+export function toArchiveSubscriberPage(
+  response: GroupSubscriberPageResponse | null | undefined,
+  page: number,
+): ArchiveSubscriberPage {
+  return {
+    subscribers: (response?.items ?? []).map((item) => ({
+      nickname: item.nickname,
+      profileImageUrl: item.profileImageUrl ?? undefined,
+    })),
+    nextPage: response?.hasNext ? page + 1 : undefined,
+  };
+}
+
+/** 추가한 사람 목록 — 소유자와 현재 구독자 모두 읽을 수 있다. */
+export async function fetchArchiveSubscribers(
+  archiveId: number,
+  page = 0,
+): Promise<ArchiveSubscriberPage> {
+  const response = unwrapApiResponse(
+    await listArchiveSubscribersEndpoint(
+      archiveId,
+      { page, size: SUBSCRIBERS_PAGE_SIZE },
+      { auth: 'required' },
+    ),
+  );
+  return toArchiveSubscriberPage(response, page);
 }
 
 /** 서버 기본값(20)에 기대지 않고 그리드 2열 기준으로 맞춘다. */

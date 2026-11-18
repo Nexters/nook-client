@@ -4,7 +4,7 @@ import type {
   GroupPostSummaryResponse,
   GroupResponse,
 } from '@/shared/api';
-import { toArchive, toArchivePlace, toArchivePost } from '.';
+import { toArchive, toArchivePlace, toArchivePost, toArchiveSubscriberPage } from '.';
 
 const BASE: GroupResponse = {
   id: 27,
@@ -13,6 +13,8 @@ const BASE: GroupResponse = {
   postCount: 12,
   thumbnailUrls: [],
   accessType: 'OWNED',
+  subscriberCount: 0,
+  subscriberPreview: [],
 };
 
 const PLACE_BASE: GroupPlaceSummaryResponse = {
@@ -49,6 +51,36 @@ describe('toArchive', () => {
       profileImageUrl: 'https://img.example/p.png',
     });
     expect(archive.shareToken).toBe('tok-123');
+  });
+});
+
+describe('toArchive description', () => {
+  it('소개글 필드가 없거나 null·빈 문자열이면 undefined 로, 있으면 원문 그대로 둔다', () => {
+    expect(toArchive(BASE).description).toBeUndefined();
+    expect(toArchive({ ...BASE, description: null }).description).toBeUndefined();
+    expect(toArchive({ ...BASE, description: '' }).description).toBeUndefined();
+    expect(toArchive({ ...BASE, description: '카페\n모음 ☕' }).description).toBe('카페\n모음 ☕');
+  });
+});
+
+describe('toArchiveSubscriberPage', () => {
+  it('프로필 이미지 null 은 undefined 로 바꾸고, hasNext 면 다음 페이지 번호를 넘긴다', () => {
+    const page = toArchiveSubscriberPage(
+      {
+        items: [{ nickname: 'ehoidi', profileImageUrl: null }],
+        page: 0,
+        size: 20,
+        totalElements: 21,
+        totalPages: 2,
+        hasNext: true,
+      },
+      0,
+    );
+    expect(page).toEqual({
+      subscribers: [{ nickname: 'ehoidi', profileImageUrl: undefined }],
+      nextPage: 1,
+    });
+    expect(toArchiveSubscriberPage(null, 1)).toEqual({ subscribers: [], nextPage: undefined });
   });
 });
 

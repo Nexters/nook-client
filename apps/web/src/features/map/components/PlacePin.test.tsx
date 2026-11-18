@@ -93,4 +93,34 @@ describe('PlacePin', () => {
     expect(container.querySelector('img')).toBeNull();
     expect(container.querySelectorAll('svg')).toHaveLength(2); // 물방울 + 글리프
   });
+
+  it('검색 결과 밖 장소(compact)는 사진 대신 작은 원형 핀으로 그린다(NOOK-383)', () => {
+    const { container } = render(
+      <PlacePin
+        lat={37}
+        lng={127}
+        name="프렌즈앤야드"
+        color="blue"
+        thumbnail="https://x/a.jpg"
+        categoryGroup="CAFE"
+        compact
+      />,
+    );
+
+    expect(container.querySelector('img')).not.toBeInTheDocument();
+    expect(container.querySelector('.bg-gray-60')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '프렌즈앤야드' })).toBeInTheDocument();
+  });
+
+  it('compact 핀도 선택되면 일반 선택 핀과 같다', () => {
+    const { container } = render(
+      <PlacePin lat={37} lng={127} name="프렌즈앤야드" color="blue" compact selected />,
+    );
+
+    expect(container.querySelector('.bg-gray-60')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '프렌즈앤야드' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
 });

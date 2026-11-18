@@ -13,6 +13,11 @@ export interface CreateGroupRequest {
    */
   color: CreateGroupRequestColor;
   /**
+   * 선택 소개글. 앞뒤 공백 제거 후 최대 150자이며 줄바꿈과 조합 이모지를 허용합니다.
+   * @nullable
+   */
+  description?: string | null;
+  /**
    * 그룹명
    * @minLength 0
    * @maxLength 20

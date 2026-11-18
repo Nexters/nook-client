@@ -8,6 +8,7 @@ import { AppUpdateGateHost } from '@/features/app-version/AppUpdateGateHost';
 import { ArchiveDetailPage } from '@/features/archive/ArchiveDetailPage';
 import { ArchiveFormPage } from '@/features/archive/ArchiveFormPage';
 import { ArchivePage } from '@/features/archive/ArchivePage';
+import { ArchiveSubscribersPage } from '@/features/archive/ArchiveSubscribersPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import {
   AuthEntryRedirect,
@@ -23,8 +24,10 @@ import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
 import { SaveGuidePage } from '@/features/my/SaveGuidePage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
+import { OnboardingEventSyncHost } from '@/features/onboarding/onboardingEvents';
 import { PostDetailPage } from '@/features/post/PostDetailPage';
 import { SharedArchivePage } from '@/features/share/SharedArchivePage';
+import { SharedArchiveSubscribersPage } from '@/features/share/SharedArchiveSubscribersPage';
 import { SharedPostDetailPage } from '@/features/share/SharedPostDetailPage';
 import { env } from '@/shared/config/env';
 
@@ -60,6 +63,7 @@ export const router = createBrowserRouter([
         <RootScrollReset />
         <NativeBackHost />
         <PushTokenSyncHost />
+        <OnboardingEventSyncHost />
         <NativePushHost />
         <AppUpdateGateHost />
       </>
@@ -106,6 +110,10 @@ export const router = createBrowserRouter([
             element: <ArchiveDetailPage />,
           },
           {
+            path: 'archive/:archiveId/subscribers',
+            element: <ArchiveSubscribersPage />,
+          },
+          {
             path: 'archive/:archiveId/edit',
             element: <ArchiveFormPage mode="edit" />,
           },
@@ -132,6 +140,14 @@ export const router = createBrowserRouter([
         element: (
           <AwaitSession>
             <SharedArchivePage />
+          </AwaitSession>
+        ),
+      },
+      {
+        path: 'shared/:token/subscribers',
+        element: (
+          <AwaitSession>
+            <SharedArchiveSubscribersPage />
           </AwaitSession>
         ),
       },

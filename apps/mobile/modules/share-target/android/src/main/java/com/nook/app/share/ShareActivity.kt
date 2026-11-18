@@ -64,7 +64,11 @@ class ShareActivity : ComponentActivity() {
             )
         }
 
-        if (api.hasSession()) loadGroups()
+        if (api.hasSession()) {
+            // 온보딩 전환 퍼널의 "확장 진입". 로그인 안 된 진입은 계정이 없어 기록하지 않는다.
+            lifecycleScope.launch { runCatching { api.recordShareExtensionOpen() } }
+            loadGroups()
+        }
     }
 
     private fun loadGroups() {

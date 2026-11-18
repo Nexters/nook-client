@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useArchives } from '@/features/archive/api/queries';
 import { ArchiveCreateRow } from '@/features/archive/components/ArchiveCreateRow';
 import { ArchiveSelectRow } from '@/features/archive/components/ArchiveSelectRow';
+import { cn } from '@/shared/lib/utils';
 import { Button, Drawer, DrawerContent, DrawerTitle, Input } from '@/shared/ui';
 
 /** 메모 최대 길이 — 게시물 메모(`MemoSheet`)와 동일. */
@@ -77,7 +78,13 @@ export function SavePostSheet({
       <DrawerContent className="z-[70]" overlayClassName="z-[70]">
         <DrawerTitle className="sr-only">{title}</DrawerTitle>
         <div className="flex flex-col gap-4 p-4 pb-8">
-          <div className="flex max-h-80 flex-col gap-1 overflow-y-auto">
+          {/* 스크롤바는 감춘다(QA) — PlaceRow·Carousel 과 같은 방식. */}
+          <div
+            className={cn(
+              'flex max-h-80 flex-col gap-1 overflow-y-auto',
+              '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+            )}
+          >
             {/* TODO(후속): 시트 안 인라인 생성 — v1 은 아카이브 목록으로 보내 그 위에 생성
                 오버레이를 띄운다(`?new`). 시트는 닫힌다. */}
             <ArchiveCreateRow onClick={() => navigate('/archive?new=1')} />

@@ -99,6 +99,7 @@ function renderDetail(
   onSelectPlace?: (id: number) => void,
   place: PlaceDetailModel = PLACE,
   shareToken?: string,
+  expanded = true,
 ) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
@@ -112,7 +113,7 @@ function renderDetail(
               element={
                 <PlaceDetail
                   place={place}
-                  expanded
+                  expanded={expanded}
                   shareToken={shareToken}
                   onClose={() => {}}
                   onSelectPlace={onSelectPlace}
@@ -351,6 +352,22 @@ describe('PlaceDetail 지도 링크', () => {
       `https://map.naver.com/p/search/${encodeURIComponent('서울 어딘가 아이소')}`,
     );
     expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('전체로 펼치지 않아도 주소 복사·지도가 보이고, 복사는 그 장소 주소를 담는다', async () => {
+    mocks.fetchPostDetail.mockResolvedValue(postDetail([]));
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    renderDetail(undefined, PLACE, undefined, false);
+
+    expect(screen.getByRole('link', { name: '지도' })).toHaveAttribute(
+      'href',
+      `https://map.naver.com/p/search/${encodeURIComponent('서울 어딘가 아이소')}`,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '주소 복사' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('서울 어딘가'));
+    expect(await screen.findByText('클립보드에 복사되었습니다.')).toBeInTheDocument();
   });
 });
 

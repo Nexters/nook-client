@@ -27,7 +27,7 @@ import { useHiddenPostIds } from '@/features/post/lib/pendingPostRemoval';
 import type { PostDetail } from '@/features/post/types';
 import { fetchSharedPostDetail } from '@/features/share/api';
 import { sharedQueryKeys } from '@/features/share/api/queries';
-import { Icon16ArrowRight } from '@/shared/icons/NookIcons';
+import { Icon16ArrowRight, Icon16Copy } from '@/shared/icons/NookIcons';
 import { type Coordinates, formatDistance } from '@/shared/lib/geolocation';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { cn } from '@/shared/lib/utils';
@@ -338,6 +338,7 @@ export function PlaceDetail({
   place,
   expanded,
   showPhotos = true,
+  keepEmptySlots = false,
   shareToken,
   userCoords,
   onClose,
@@ -351,6 +352,11 @@ export function PlaceDetail({
    * 사진이 아예 없는 장소는 이 값과 무관하게 `PlacePhotos` 가 알아서 아무것도 그리지 않는다.
    */
   showPhotos?: boolean;
+  /**
+   * 태그·사진이 비어도 그 자리를 지킨다 — 태그 줄은 높이만 비워 두고 사진은 고스트 프레임을
+   * 깐다. 높이가 고정이어야 하는 검색 결과 지도의 플로팅 카드용(NOOK-383).
+   */
+  keepEmptySlots?: boolean;
   /**
    * 공유 아카이브 딥링크로 들어온 경우의 토큰. 있으면 상세를 공유자 기준 읽기 전용으로
    * 그린다 — 저장 토글·메모 편집·게시물에 포함된 장소의 북마크/스와이프 삭제를 숨긴다.
@@ -374,6 +380,18 @@ export function PlaceDetail({
   const distance = userCoords
     ? formatDistance(userCoords, { lat: place.lat, lng: place.lng })
     : undefined;
+  const mapHref = buildNaverMapSearchUrl(place);
+  const showCopiedToast = () =>
+    showToast({ variant: 'simple', title: '클립보드에 복사되었습니다.' });
+
+  async function copyAddress() {
+    try {
+      await navigator.clipboard.writeText(place.address);
+      showCopiedToast();
+    } catch {
+      // 권한 거부·비보안 컨텍스트 — `PlaceInfo` 와 같이 실패 안내 없이 넘긴다.
+    }
+  }
 
   return (
     <div className="flex w-full flex-col gap-3">
@@ -392,13 +410,31 @@ export function PlaceDetail({
             readOnly={readOnly}
           />
         </div>
-        {/* 꽉 찬 스냅에서는 아래 `PlaceInfo` 가 같은 줄을 보여줘서 여기선 뺀다. */}
+        {/* 꽉 찬 스냅에서는 아래 `PlaceInfo` 가 같은 줄을 보여줘서 여기선 뺀다.
+            복사·지도는 전체 확장 없이도 쓸 수 있어야 해서 주소만 말줄임하고 둘은 남긴다(NOOK-408). */}
         {!expanded && (
-          <p className="text-b2 text-gray-70">
-            {distance ? `${distance} · ${place.address}` : place.address}
-          </p>
+          <div className="flex w-full items-center gap-2 text-b2 text-gray-70">
+            {distance ? (
+              <>
+                <span className="shrink-0 font-semibold">{distance}</span>
+                <span className="size-0.5 shrink-0 rounded-full bg-gray-70" aria-hidden="true" />
+              </>
+            ) : null}
+            <p className="min-w-0 truncate font-medium">{place.address}</p>
+            <button type="button" onClick={copyAddress} aria-label="주소 복사" className="shrink-0">
+              <Icon16Copy />
+            </button>
+            <a
+              href={mapHref}
+              target="_blank"
+              rel="noreferrer"
+              className="shrink-0 font-medium text-nook-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+            >
+              지도
+            </a>
+          </div>
         )}
-        {place.tags.length > 0 && (
+        {place.tags.length > 0 ? (
           <div className="flex flex-wrap items-center gap-1.5 py-2">
             {place.tags.map((tag) => (
               <Badge key={tag} variant="label">
@@ -406,12 +442,18 @@ export function PlaceDetail({
               </Badge>
             ))}
           </div>
-        )}
+        ) : keepEmptySlots ? (
+          // 배지 한 줄 높이만 비워 둔다 — 대신 넣을 동네 이름이 응답에 없다.
+          <div aria-hidden="true" className="invisible flex py-2">
+            <Badge variant="label">-</Badge>
+          </div>
+        ) : null}
       </div>
 
       {showPhotos ? (
         <PlacePhotos
           photos={place.photos}
+          keepFrameWhenEmpty={keepEmptySlots}
           onPhotoClick={place.photos.length > 0 ? openPhotos : undefined}
         />
       ) : null}
@@ -421,10 +463,8 @@ export function PlaceDetail({
           <PlaceInfo
             address={place.address}
             distance={distance}
-            onAddressCopied={() =>
-              showToast({ variant: 'simple', title: '클립보드에 복사되었습니다.' })
-            }
-            mapHref={buildNaverMapSearchUrl(place)}
+            onAddressCopied={showCopiedToast}
+            mapHref={mapHref}
             businessStatus={formatBusinessStatus(place.openNow)}
             businessHours={formatBusinessHours(place.openingHours)}
             memo={place.memo}

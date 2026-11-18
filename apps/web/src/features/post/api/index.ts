@@ -7,7 +7,9 @@ import {
   getSavedPostDetail,
   type PlaceResponse,
   type PlaceSearchResponse,
+  type RecoveryResponse,
   replaceGroups,
+  request as requestRecovery,
   type SavedPostDetailResponse,
   type SavedPostGroupResponse,
   searchPlaces,
@@ -230,6 +232,17 @@ export async function replacePostArchives(postId: number, archiveIds: number[]):
  */
 export async function deletePost(postId: number): Promise<void> {
   await deleteSavedPost(postId, { auth: 'required' });
+}
+
+/**
+ * `POST /api/v1/posts/{postId}/recovery` — 수집에 실패한 저장 건을 기존 URL·아카이브 그대로
+ * 다시 처리해 달라고 요청한다. 이미 처리 중이면 서버가 중복 실행하지 않고 `requested=false` 를 준다.
+ * 생성 함수명(`request`)이 서버 operationId 그대로라 import 에서만 별칭을 붙인다.
+ */
+export async function requestPostRecovery(postId: number): Promise<RecoveryResponse> {
+  const dto = unwrapApiResponse(await requestRecovery(postId, { auth: 'required' }));
+  if (!dto) throw new Error('복구 요청 응답이 비어 있습니다.');
+  return dto;
 }
 
 /**

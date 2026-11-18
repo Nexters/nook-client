@@ -50,6 +50,41 @@ const CATEGORY_GLYPHS: Record<PlaceCategoryGroup, { d: string; evenOdd?: boolean
   },
 };
 
+/**
+ * 카테고리 글리프 하나(24×24 좌표계). 크기·위치·색은 사용처가 className 으로 준다 —
+ * 선택 핀(28px)과 검색 결과 밖 작은 원형 핀(16px, NOOK-383)이 같은 글리프를 쓴다.
+ */
+export function CategoryGlyph({
+  categoryGroup,
+  size,
+  className,
+}: {
+  categoryGroup?: PlaceCategoryGroup;
+  size: number;
+  className?: string;
+}) {
+  const glyph =
+    categoryGroup && Object.hasOwn(CATEGORY_GLYPHS, categoryGroup)
+      ? CATEGORY_GLYPHS[categoryGroup]
+      : CATEGORY_GLYPHS.ETC;
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      className={className}
+      role="presentation"
+      aria-hidden="true"
+    >
+      <path
+        d={glyph.d}
+        fill="currentColor"
+        {...(glyph.evenOdd ? { fillRule: 'evenodd', clipRule: 'evenodd' } : {})}
+      />
+    </svg>
+  );
+}
+
 export function SelectedPinMarker({
   color,
   categoryGroup,
@@ -58,10 +93,6 @@ export function SelectedPinMarker({
   /** 없거나 모르는 값이면 기타 글리프를 그린다 — 서버가 필드를 내리기 전 응답도 여기로 온다. */
   categoryGroup?: PlaceCategoryGroup;
 }) {
-  const glyph =
-    categoryGroup && Object.hasOwn(CATEGORY_GLYPHS, categoryGroup)
-      ? CATEGORY_GLYPHS[categoryGroup]
-      : CATEGORY_GLYPHS.ETC;
   // Figma 326:14066 — 139:16888 의 물방울·글리프를 그대로 7/6 배(48→56px, 글리프 24→28px)
   // 키운 것이라 path 는 두고 viewBox 로만 늘린다. 그림자는 시안 SVG 필터(dy 2, blur 10, 20%).
   return (
@@ -77,20 +108,11 @@ export function SelectedPinMarker({
         <path d={PIN_SHAPE_PATH} fill="currentColor" />
       </svg>
       {/* 물방울 머리(원) 정중앙 — 시안의 28px 프레임 오프셋 (10.99, 11) 그대로. */}
-      <svg
-        viewBox="0 0 24 24"
-        width="28"
-        height="28"
+      <CategoryGlyph
+        categoryGroup={categoryGroup}
+        size={28}
         className="absolute top-[11px] left-[10.99px] block text-gray-0"
-        role="presentation"
-        aria-hidden="true"
-      >
-        <path
-          d={glyph.d}
-          fill="currentColor"
-          {...(glyph.evenOdd ? { fillRule: 'evenodd', clipRule: 'evenodd' } : {})}
-        />
-      </svg>
+      />
     </span>
   );
 }

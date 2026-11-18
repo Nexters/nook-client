@@ -96,6 +96,11 @@ function clearDevWebSession() {
 let currentSession: SessionState = anonymousSession;
 apiClient.setAccessTokenProvider(() => currentSession.accessToken);
 
+/** React 밖(이벤트 큐 등)에서 지금 세션의 토큰을 읽는다. */
+export function getSessionAccessToken(): string | null {
+  return currentSession.accessToken;
+}
+
 export function AuthSessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionState>(restoreDevWebSession);
   currentSession = session;
