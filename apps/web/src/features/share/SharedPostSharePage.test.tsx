@@ -96,14 +96,14 @@ describe('SharedPostSharePage', () => {
 
   it('비로그인 저장 칩은 로그인 월을 띄운다', async () => {
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: /아카이브 추가/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /아카이브에 저장/ }));
     expect(screen.getByText('로그인하시겠어요?')).toBeInTheDocument();
   });
 
   it('로그인 저장은 고른 아카이브로 스냅샷을 복사하고 내 게시물 상세로 전환한다', async () => {
     session.status = 'authenticated';
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: /아카이브 추가/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /아카이브에 저장/ }));
     fireEvent.click(await screen.findByText('카페'));
     fireEvent.click(screen.getByRole('button', { name: '저장하기' }));
 

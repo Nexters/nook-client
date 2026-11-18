@@ -130,7 +130,7 @@ export function SharedArchivePage() {
       <PinnedHeaderLayout
         header={
           <>
-            <OpenInAppBanner token={token} />
+            <OpenInAppBanner path={`shared/${token}`} />
             <Header left={<BackButton onClick={goBack} />} />
           </>
         }

@@ -52,6 +52,9 @@ export function SharedPostSharePage() {
       <SharedPostView
         detail={detail}
         onBack={goBack}
+        appPath={`shared-post/${token}`}
+        // 시안·기획: 게시물 공유는 "아카이브에 저장" — 아카이브 공유의 "아카이브 추가"와 다르다.
+        saveLabel="아카이브에 저장"
         // 시안: 공유받은 사람의 더보기는 "게시물 공유" 하나 — 받은 링크를 그대로 다시 건넨다.
         headerRight={
           <MoreMenu

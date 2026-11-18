@@ -14,6 +14,7 @@ import type { PostDetail } from '@/features/post/types';
 import { Icon16Archive, Icon16ArrowDown, Icon16Pen } from '@/shared/icons/NookIcons';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { BackButton, COLOR_BG_CLASS, EditableTextRow, Header } from '@/shared/ui';
+import { OpenInAppBanner } from './OpenInAppBanner';
 import { SavePostSheet } from './SavePostSheet';
 
 /** 공유 링크가 잘못됐거나 만료됐을 때 — 헤더(뒤로)와 안내 문구만. */
@@ -38,6 +39,10 @@ interface SharedPostViewProps {
   savePending: boolean;
   /** 장소 행 탭 — 없으면 행이 눌리지 않는다. 로그인 게이트는 이 뷰가 씌운다. */
   onPlaceClick?: (placeId: number) => void;
+  /** 브라우저로 연 공유 링크에 "nook 앱에서 보기" 배너를 띄울 웹 경로. 없으면 배너도 없다. */
+  appPath?: string;
+  /** 저장 칩 문구. */
+  saveLabel?: string;
 }
 
 /**
@@ -52,6 +57,8 @@ export function SharedPostView({
   onSave,
   savePending,
   onPlaceClick,
+  appPath,
+  saveLabel = '아카이브 추가',
 }: SharedPostViewProps) {
   const { gate, wall: loginWall } = useLoginGate();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -81,11 +88,14 @@ export function SharedPostView({
   return (
     <PinnedHeaderLayout
       header={
-        <Header
-          left={<BackButton onClick={onBack} />}
-          title={<PinnedHeaderTitle target={titleRef}>{title}</PinnedHeaderTitle>}
-          right={headerRight}
-        />
+        <>
+          {appPath ? <OpenInAppBanner path={appPath} /> : null}
+          <Header
+            left={<BackButton onClick={onBack} />}
+            title={<PinnedHeaderTitle target={titleRef}>{title}</PinnedHeaderTitle>}
+            right={headerRight}
+          />
+        </>
       }
       contentStyle={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
     >
@@ -125,7 +135,7 @@ export function SharedPostView({
                 onClick={handleSaveChip}
                 className="inline-flex h-[26px] w-fit items-center gap-1 rounded-md border border-gray-20 py-0 pr-1.5 pl-2.5 text-b3 font-semibold text-gray-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
               >
-                아카이브 추가
+                {saveLabel}
                 <Icon16ArrowDown className="size-4" />
               </button>
             )}
