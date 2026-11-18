@@ -15,8 +15,11 @@ const SCROLL_SETTLE_MS = 120;
 const DRAG_THRESHOLD_PX = 40;
 /** 손이 이만큼 움직이면 가로(카드 넘기기)인지 세로(높이 끌기)인지 정한다. */
 const AXIS_LOCK_PX = 8;
-/** 카드 아래 여백(pb-5)과 사진 위 간격(gap-3) — 접힌 높이 = 사진 시작점 - 간격 + 아래 여백. */
-const CARD_BOTTOM_PADDING_PX = 20;
+/**
+ * 접힌 카드의 아래 여백과 사진 위 간격(gap-3) — 접힌 높이 = 사진 시작점 - 간격 + 아래 여백.
+ * 펼친 카드는 따로 여백이 없다 — 사진 아래 인디케이터 줄(28px)이 곧 바닥이다(시안 405:18473).
+ */
+const COLLAPSED_BOTTOM_PADDING_PX = 20;
 const PHOTO_GAP_PX = 12;
 /** 펼친 카드를 끌어올릴 때 늘어날 수 있는 최대치(화면 높이 비율). 놓으면 풀업이 이어받는다. */
 const MAX_STRETCH_RATIO = 0.85;
@@ -177,7 +180,8 @@ export function FloatingPlaceCards({
   return (
     <div
       className="pointer-events-none absolute inset-x-0 z-10"
-      style={{ bottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
+      // 시안은 홈 인디케이터 영역(아래 20px) 바로 위에 카드가 앉는다 — safe-area(34px)까지 띄우면 너무 뜬다.
+      style={{ bottom: '1.25rem' }}
     >
       <div
         ref={scrollerRef}
@@ -249,8 +253,8 @@ function FloatingPlaceCard({
     const photos = content?.querySelector<HTMLElement>('[data-slot=place-photos]');
     if (!content || !photos) return;
     const next = {
-      open: content.offsetHeight + CARD_BOTTOM_PADDING_PX,
-      collapsed: photos.offsetTop - PHOTO_GAP_PX + CARD_BOTTOM_PADDING_PX,
+      open: content.offsetHeight,
+      collapsed: photos.offsetTop - PHOTO_GAP_PX + COLLAPSED_BOTTOM_PADDING_PX,
     };
     setHeights((prev) =>
       prev?.open === next.open && prev.collapsed === next.collapsed ? prev : next,
@@ -281,7 +285,7 @@ function FloatingPlaceCard({
         // 스크롤러 좌우 패딩(12px)을 뺀 폭이 곧 카드 폭이라 다음 카드가 간격(4px) 뒤로 8px 만 비친다.
         // 세로 끌기는 브라우저가 스크롤로 가져가지 않게 막는다 — 가져가면 pointercancel 로 끊긴다.
         // 가로(카드·사진 넘기기)는 그대로 둔다.
-        'w-full shrink-0 touch-pan-x snap-start overflow-hidden rounded-[14px] bg-gray-0 px-4 pb-5',
+        'w-full shrink-0 touch-pan-x snap-start overflow-hidden rounded-[14px] bg-gray-0 px-4',
         hidden && 'invisible',
         'drop-shadow-[2px_2px_24.4px_rgba(0,0,0,0.1)]',
         // 카드 안 사진 캐러셀이 끝에 닿아도 바깥 카드 스와이프로 이어지지 않게 끊는다 —
@@ -291,7 +295,7 @@ function FloatingPlaceCard({
     >
       <div ref={contentRef} className="relative">
         {/* 드래그 핸들 — 카드 어디를 끌어도 되지만 끌 수 있다는 표시다. */}
-        <div aria-hidden="true" className="flex justify-center pt-3 pb-6">
+        <div aria-hidden="true" className="flex justify-center pt-3 pb-5">
           <span className="h-1 w-20 rounded-full bg-gray-20" />
         </div>
         {place ? (
@@ -322,7 +326,7 @@ function FloatingPlaceCard({
               </div>
             </div>
             <div data-slot="place-photos">
-              <div className="h-[212px] w-full rounded bg-gray-10" />
+              <div className="h-[198px] w-full rounded bg-gray-10" />
               <CarouselIndicator count={2} activeIndex={0} className="invisible py-3" />
             </div>
           </div>

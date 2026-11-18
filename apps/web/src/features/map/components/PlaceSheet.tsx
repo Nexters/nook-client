@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { useAppOverlayContainer } from '@/app/providers';
-import { useSlideScreen } from '@/app/slide-screen';
 import { EmptySavedPlaces } from '@/features/map/components/EmptySavedPlaces';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
@@ -33,6 +32,7 @@ import {
   Icon24MagnifyingGlass,
 } from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
+import { useCloseOnBack } from '@/shared/lib/backInterceptors';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
@@ -108,7 +108,7 @@ export function PlaceSheet({
   instantOpen?: boolean;
   /** 현재 위치 — 장소까지의 거리 표기에 쓴다. 없으면 거리를 보여주지 않는다. */
   userCoords?: Coordinates | null;
-  /** 저장한 공간 검색 모드 — 탐색 콘텐츠 위로 검색 패널이 슬라이드되어 덮는다. */
+  /** 저장한 공간 검색 모드 — 탐색 콘텐츠 위를 검색 패널이 제자리에서 바로 덮는다. */
   isSearchMode: boolean;
   /** 검색어·결과 — 검색 결과 지도와 같은 값을 써야 해서 `MapPage` 가 갖는다. */
   searchQuery: string;
@@ -170,28 +170,16 @@ export function PlaceSheet({
   // 콘텐츠를 가린다. isScrolled 를 함께 보므로 스크롤이 없는 짧은 상세에서는 뜨지 않는다.
   const showScrollToTop = showStickyHeader && isAtBottom;
   const layoutClassNames = getPlaceSheetLayoutClassNames(bottomMenuHidden, snap, showStickyHeader);
-  // 검색 패널의 오른쪽→왼쪽 슬라이드 — 전체화면 전환(slide-screen)과 같은 전환/뒤로가기
-  // 계약을 그대로 쓴다(Android 하드웨어 백도 검색 닫기로 수렴). 패널이 탐색 콘텐츠 위를
-  // 덮는 오버레이라, 닫힘은 슬라이드가 끝난 뒤(onExitSearch)에 실제로 일어난다.
+  // 검색은 같은 시트 안에서 제자리에 바로 뜨고 입력에 포커스한다 — 옆에서 밀려 들어오지 않는다.
+  // Android 하드웨어 백은 검색 닫기로 수렴한다.
   // 검색 패널은 상세가 열려 있는 동안 마운트된 채로 가려만 둔다 — 검색 결과에서 연 상세를
   // 닫으면 치던 검색어·결과·칩 필터가 그대로 있는 검색 화면으로 돌아와야 한다(MapPage 가
   // 검색 모드를 끄지 않는 이유). 가려진 동안은 존재하지 않는 것처럼 굴어야 한다 —
-  // 뒤로가기 인터셉터(아래 open)도, 상세 위로 덮는 오버레이도 함께 빠진다.
+  // 뒤로가기 인터셉터도, 상세 위로 덮는 오버레이도 함께 빠진다.
   // 시트를 가린 동안(검색 결과 지도)도 패널은 "덮인" 것으로 친다 — 뒤로가기 인터셉터가 빠져야
   // Android 백이 검색 닫기가 아니라 결과 목록 복귀(히스토리 되감기)로 간다.
   const searchVisible = isSearchMode && !hasSelection && !hidden;
-  // 검색 결과 지도에서 결과 목록으로 돌아오는 건 "뒤로" 라 패널이 다시 옆에서 들어오면 안 된다 —
-  // 가려 두었던 그 자리에 그대로 서 있어야 한다(보던 스크롤 포함).
-  const wasHiddenRef = useRef(hidden);
-  const returningFromHidden = wasHiddenRef.current && !hidden;
-  useEffect(() => {
-    wasHiddenRef.current = hidden;
-  });
-  const { slidIn: searchSlidIn, slideOut: slideOutSearch } = useSlideScreen({
-    open: searchVisible,
-    close: onExitSearch,
-    enter: !returningFromHidden,
-  });
+  useCloseOnBack(searchVisible, onExitSearch);
   // 스크롤 영역과 검색 오버레이가 같은 높이를 공유해야 해서, 높이만 래퍼로 올린다.
   const { height: contentHeight, ...layoutScrollerStyle } = layoutClassNames.scroller.style ?? {};
   // full 에선 스냅 보정(0dvh)이 없어 레이아웃 패딩을 버튼 여백으로 통째로 갈아끼워도 된다.
@@ -474,18 +462,14 @@ export function PlaceSheet({
             )}
           </div>
 
-          {/* 검색 패널 — 탐색 콘텐츠 위를 오른쪽에서 슬라이드해 덮는다(Figma `검색 추가`). */}
+          {/* 검색 패널 — 탐색 콘텐츠 위를 제자리에서 바로 덮는다(Figma `검색 추가`). */}
           {isSearchMode ? (
             <div
               className={cn(
                 // 목록 헤더가 sticky z-10 이라 그보다 위에 쌓아야 검색 필드를 가리지 않는다.
                 'absolute inset-0 z-20 bg-gray-0',
-                'transition-transform duration-300 ease-out motion-reduce:transition-none',
-                searchSlidIn || hidden || returningFromHidden
-                  ? 'translate-x-0'
-                  : 'translate-x-full',
                 // 상세가 떠 있는 동안만 숨긴다. 언마운트가 아니라 display:none 이라 검색어와
-                // 결과가 살아 있고, 상세를 닫으면 그대로 다시 슬라이드해 들어온다. 시트째 가린
+                // 결과가 살아 있고, 상세를 닫으면 같은 자리에 그대로 다시 드러난다. 시트째 가린
                 // 동안(hidden)은 display 를 살려 둔다 — display:none 이면 결과 스크롤 위치가 날아간다.
                 !searchVisible && !hidden && 'hidden',
               )}
@@ -498,7 +482,7 @@ export function PlaceSheet({
                 // 오버레이는 탐색 스크롤러와 같은 높이 래퍼를 쓰지만 스크롤 영역은 제 것이라,
                 // 스냅 보정 패딩(scrollerStyle)을 직접 넘겨야 mid 스냅에서도 목록 끝에 닿는다.
                 scrollPaddingBottom={scrollerStyle.paddingBottom}
-                onExit={slideOutSearch}
+                onExit={onExitSearch}
                 onSelectPlace={onSelectSearchResult}
                 onInputFocus={() => {
                   setSearchInputFocused(true);
