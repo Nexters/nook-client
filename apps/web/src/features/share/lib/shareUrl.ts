@@ -6,6 +6,11 @@ export function buildShareUrl(token: string): string {
   return `${env.webOrigin}/shared/${token}`;
 }
 
+/** 게시물 단위 공유 링크 — 아카이브 공유(`/shared/:token`)와 토큰 공간이 달라 경로를 나눈다. */
+export function buildPostShareUrl(token: string): string {
+  return `${env.webOrigin}/shared-post/${token}`;
+}
+
 /** 복사 성공 여부를 돌려준다 — 실패해도 throw 하지 않고 호출부가 토스트로 알린다. */
 export async function copyText(text: string): Promise<boolean> {
   try {

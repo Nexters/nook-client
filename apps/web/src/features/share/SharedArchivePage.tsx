@@ -19,7 +19,7 @@ import {
   useSubscribeSharedArchive,
 } from './api/queries';
 import { OpenInAppBanner } from './components/OpenInAppBanner';
-import { ShareSheet } from './components/ShareSheet';
+import { archiveSharePreview, ShareSheet } from './components/ShareSheet';
 import { shareErrorMessage } from './lib/shareError';
 import { buildShareUrl } from './lib/shareUrl';
 
@@ -269,7 +269,7 @@ export function SharedArchivePage() {
         open={shareSheetOpen}
         onOpenChange={setShareSheetOpen}
         url={buildShareUrl(token)}
-        archive={archive}
+        preview={archiveSharePreview(archive)}
       />
     </>
   );

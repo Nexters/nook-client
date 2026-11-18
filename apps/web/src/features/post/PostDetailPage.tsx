@@ -39,6 +39,7 @@ import { PostInfo } from './components/PostInfo';
 import { GoHomeTooltip, PostParsingView } from './components/PostParsingView';
 import { PostVideoViewer } from './components/PostVideoViewer';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
+import { SavedPostActions } from './components/SavedPostActions';
 import { isPostFromList, POST_NOT_FOUND_TOAST } from './postEntry';
 import type { SearchedPlace } from './types';
 
@@ -313,6 +314,17 @@ export function PostDetailPage() {
         <Header
           left={<BackButton onClick={handleBack} />}
           title={<PinnedHeaderTitle target={titleRef}>{title}</PinnedHeaderTitle>}
+          right={
+            <SavedPostActions
+              detail={postDetailState.detail}
+              // 게시물 자체를 지웠을 때만 떠난다 — 일부 아카이브에서만 뺐으면 이 화면에 남는다.
+              onDeleted={(removed) => {
+                if (!removed) return;
+                if (enteredFromList) navigate(-1);
+                else navigate('/map', { replace: true });
+              }}
+            />
+          }
         />
       }
       // 맨 아래에서 뜨는 "위로가기"(바닥 2.5rem + 48px)에 마지막 콘텐츠가 가리지 않도록
