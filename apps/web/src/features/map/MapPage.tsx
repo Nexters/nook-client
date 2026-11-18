@@ -117,7 +117,8 @@ export function MapPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebouncedValue(searchQuery, SEARCH_DEBOUNCE_MS);
   // ponytail: 지도 아카이브 필터는 아직 검색에 안 걸린다 — 서버 검색 API 가 groupIds 를 받게 되면 넘긴다.
-  const searchPage = useSearchSavedPlaces(debouncedSearchQuery, null);
+  // 지운 건 기다리지 않는다 — 디바운스 동안 지우기 전 결과가 남아 x 를 누른 뒤 잠깐 비친다(QA).
+  const searchPage = useSearchSavedPlaces(searchQuery.trim() ? debouncedSearchQuery : '', null);
   // 검색 결과 지도. 검색 모드는 히스토리에 없어서, 새로고침으로 검색 상태가 날아가면 같은
   // 엔트리라도 일반 상세로 떨어진다. 결과 유무는 조건에 넣지 않는다 — 헤더의 검색어 지우기처럼
   // 결과가 먼저 비고 엔트리가 뒤늦게 되감기는 사이에 시트 상세가 한 프레임 비치면 안 된다.
