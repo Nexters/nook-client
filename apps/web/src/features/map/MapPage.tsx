@@ -153,7 +153,16 @@ export function MapPage() {
   const pinsQuery = useMapPins(effectiveBounds, archiveFilter);
   // 도착 경계가 없으면 위와 같은 키라 요청이 따로 나가지 않는다.
   const destinationPinsQuery = useMapPins(destinationBounds ?? effectiveBounds, archiveFilter);
-  const recentPlacesQuery = useRecentPlaces(archiveFilter);
+  const [placeSort, setPlaceSort] = useState<'LATEST' | 'OLDEST' | 'NEAREST'>('LATEST');
+  const [sortCoords, setSortCoords] = useState<
+    { latitude: number; longitude: number } | undefined
+  >();
+  const recentPlacesQuery = useRecentPlaces(
+    archiveFilter,
+    placeSort === 'LATEST'
+      ? undefined
+      : { sort: placeSort, ...(placeSort === 'NEAREST' ? sortCoords : {}) },
+  );
   const hasSaveHistory = useHasSaveHistory();
   const placeDetailQuery = usePlaceDetail(selectedPlaceId, shareToken);
 
@@ -585,6 +594,13 @@ export function MapPage() {
           recentPlacesTotal={recentPlacesQuery.data?.totalCount}
           recentPlacesLoading={recentPlacesQuery.isLoading}
           recentPlacesPaging={recentPlacesQuery}
+          sort={placeSort}
+          onSortChange={(next) => {
+            if (next === 'NEAREST' && !location.coords) return;
+            if (next === 'NEAREST' && location.coords)
+              setSortCoords({ latitude: location.coords.lat, longitude: location.coords.lng });
+            setPlaceSort(next);
+          }}
           firstSave={hasSaveHistory === false}
           // 검색 결과는 플로팅 카드로 시작하고, 위로 당기면 같은 장소를 전체 상세 시트로 확장한다.
           selectedPlace={

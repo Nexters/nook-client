@@ -141,3 +141,56 @@ it('collapsed cards keep place information and actions but hide photos and indic
   ).toBeNull();
   expect(screen.queryByText('1/2')).not.toBeInTheDocument();
 });
+
+it('derives card depth from live scroll and flattens the incoming card at its snap', () => {
+  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
+  renderCards();
+  const scroller = screen.getByRole('region', { name: '검색 결과 장소' });
+  const surfaces = scroller.querySelectorAll<HTMLElement>('[data-place-card-surface]');
+  expect(surfaces[0]?.style.transform).toContain('rotateY(0deg) scale(1)');
+  fireEvent.scroll(scroller, { target: { scrollLeft: 177.5 } });
+  expect(surfaces[0]?.style.transform).toContain('rotateY(7deg)');
+  expect(surfaces[1]?.style.transform).toContain('rotateY(-7deg)');
+  fireEvent.scroll(scroller, { target: { scrollLeft: 355 } });
+  expect(surfaces[1]?.style.transform).toContain('rotateY(0deg) scale(1)');
+});
+
+it('keeps the last card flat at the right-aligned end of the scroller', () => {
+  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
+  vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(1077);
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(375);
+  renderCards();
+  const scroller = screen.getByRole('region', { name: '검색 결과 장소' });
+  fireEvent.scroll(scroller, { target: { scrollLeft: 702 } });
+  const surfaces = scroller.querySelectorAll<HTMLElement>('[data-place-card-surface]');
+  expect(surfaces[2]?.style.transform).toContain('rotateY(0deg) scale(1)');
+  expect(surfaces[2]).toHaveClass('touch-pan-x');
+});
+
+it('keeps scrolling but removes decorative depth for reduced motion', () => {
+  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
+  vi.spyOn(window, 'matchMedia').mockReturnValue({
+    matches: true,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  } as unknown as MediaQueryList);
+  renderCards();
+  const scroller = screen.getByRole('region', { name: '검색 결과 장소' });
+  fireEvent.scroll(scroller, { target: { scrollLeft: 177.5 } });
+  for (const surface of scroller.querySelectorAll<HTMLElement>('[data-place-card-surface]')) {
+    expect(surface.style.transform).toBe('');
+  }
+});
+
+it('anchors neighboring card depth to the exposed edge so its peek stays visible', () => {
+  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
+  renderCards();
+  const scroller = screen.getByRole('region', { name: '검색 결과 장소' });
+  const surfaces = scroller.querySelectorAll<HTMLElement>('[data-place-card-surface]');
+  expect(surfaces[1]?.style.transformOrigin).toBe('left bottom');
+  fireEvent.scroll(scroller, { target: { scrollLeft: 177.5 } });
+  expect(surfaces[0]?.style.transformOrigin).toBe('right bottom');
+  expect(surfaces[1]?.style.transformOrigin).toBe('left bottom');
+  fireEvent.scroll(scroller, { target: { scrollLeft: 355 } });
+  expect(surfaces[1]?.style.transformOrigin).toBe('center bottom');
+});

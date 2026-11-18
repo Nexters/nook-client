@@ -16,7 +16,15 @@ export interface MoreMenuItem {
  * Radix DropdownMenu 대신 컨트롤드 상태로 직접 그린다 — 항목이 몇 개뿐인 단발 메뉴라
  * 포지셔닝/포털이 필요 없고, jsdom 테스트에서도 클릭만으로 동작해야 해서다.
  */
-function MoreMenu({ items }: { items: MoreMenuItem[] }) {
+function MoreMenu({
+  items,
+  triggerClassName,
+  menuClassName,
+}: {
+  items: MoreMenuItem[];
+  triggerClassName?: string;
+  menuClassName?: string;
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -47,7 +55,10 @@ function MoreMenu({ items }: { items: MoreMenuItem[] }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
-        className="block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+        className={cn(
+          'block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100',
+          triggerClassName,
+        )}
       >
         <Icon24More />
       </button>
@@ -55,7 +66,10 @@ function MoreMenu({ items }: { items: MoreMenuItem[] }) {
       {open ? (
         <div
           role="menu"
-          className="absolute top-full right-0 z-50 mt-1 rounded-xl bg-gray-0 py-2.5 shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]"
+          className={cn(
+            'absolute top-full right-0 z-50 mt-1 rounded-xl bg-gray-0 py-2.5 shadow-[0_4px_20px_0_rgba(0,0,0,0.1)]',
+            menuClassName,
+          )}
         >
           {items.map((item) => (
             <button

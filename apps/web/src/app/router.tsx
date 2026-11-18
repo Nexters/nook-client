@@ -152,6 +152,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'shared-post/:token',
+        element: (
+          <AwaitSession>
+            <SharedPostDetailPage singlePost />
+          </AwaitSession>
+        ),
+      },
+      {
         path: 'shared/:token/post/:postId',
         element: (
           <AwaitSession>

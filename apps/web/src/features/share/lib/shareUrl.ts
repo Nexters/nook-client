@@ -7,8 +7,7 @@ export function buildShareUrl(token: string): string {
 }
 
 /**
- * 게시물 공유 URL. 아직 받는 쪽 화면(공개 `post-shares/{token}` 조회)이 없어 경로는 임시다 —
- * 프로토타입 참고용이며 실제 경로는 받는 화면을 만들 때 확정한다.
+ * NOOK-369 게시물 단독 공유. 공개 스냅샷을 보여주는 수신 화면과 같은 경로다.
  */
 export function buildPostShareUrl(token: string): string {
   return `${env.webOrigin}/shared-post/${token}`;

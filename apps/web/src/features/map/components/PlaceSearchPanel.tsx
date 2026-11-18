@@ -136,6 +136,7 @@ export function PlaceSearchPanel({
                     thumbnail: place.thumbnail,
                   }}
                   mediaBadge
+                  variant="map"
                   onClick={() => onSelectPlace(place.id)}
                 />
               ))}

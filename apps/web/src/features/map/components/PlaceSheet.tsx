@@ -7,6 +7,7 @@ import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { PlaceSearchPanel } from '@/features/map/components/PlaceSearchPanel';
 import {
   getPlaceSheetLayoutClassNames,
+  getSheetReleaseDuration,
   getSnapTransitionDurationSeconds,
   SNAP_DURATION_VAR,
 } from '@/features/map/components/place-sheet-layout';
@@ -26,10 +27,11 @@ import type {
 import { FirstSaveEmpty } from '@/features/onboarding/FirstSaveEmpty';
 import { PlaceCard } from '@/features/place';
 import {
+  Icon16ArrowDown,
   Icon20ArrowUp,
-  Icon24AdjustmentsVertical,
+  Icon20MagnifyingGlass,
   Icon24Back,
-  Icon24MagnifyingGlass,
+  Icon24Filter,
 } from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
 import { useCloseOnBack } from '@/shared/lib/backInterceptors';
@@ -62,6 +64,8 @@ export function PlaceSheet({
   recentPlacesTotal,
   recentPlacesLoading = false,
   recentPlacesPaging,
+  sort = 'LATEST',
+  onSortChange,
   firstSave = false,
   selectedPlace,
   shareToken,
@@ -87,6 +91,8 @@ export function PlaceSheet({
   onOpenFilter,
 }: {
   recentPlaces: RecentPlace[];
+  sort?: 'LATEST' | 'OLDEST' | 'NEAREST';
+  onSortChange?: (sort: 'LATEST' | 'OLDEST' | 'NEAREST') => void;
   /** 지금 필터 조건의 전체 장소 수 — 헤더의 `N곳`. 첫 응답 전엔 없어서 숫자를 비워둔다. */
   recentPlacesTotal?: number;
   /** 지금 필터 조건의 목록을 아직 한 번도 못 받았는지 — 빈 상태 대신 스켈레톤을 그린다. */
@@ -201,9 +207,25 @@ export function PlaceSheet({
   // 넣고, 화면이 스냅을 직접 바꾸는 경우(장소 선택 등)는 이 레이아웃 이펙트가 맡는다.
   // useEffect 가 아니라 useLayoutEffect 인 이유: vaul 의 스냅 이펙트는 passive 라
   // 자식이어도 모든 layout effect 뒤에 돈다 — 여기서 넣어야 이번 전환에 반영된다.
+  const releaseRef = useRef<{ y: number; velocity: number } | null>(null);
+  const pointerSample = useRef<{ y: number; time: number; velocity: number } | null>(null);
+  const applyReleaseDuration = (target: number | string | null) => {
+    const release = releaseRef.current;
+    if (!release || typeof target !== 'number') return;
+    const height = overlayContainer?.getBoundingClientRect().height || window.innerHeight;
+    const remaining = (1 - target) * height - release.y;
+    const duration = getSheetReleaseDuration(
+      remaining,
+      release.velocity,
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
+    );
+    contentRef.current?.style.setProperty(SNAP_DURATION_VAR, `${duration}s`);
+  };
   const prevSnapRef = useRef(snap);
   const applySnapDuration = (from: number | string | null, to: number | string | null) => {
-    const duration = getSnapTransitionDurationSeconds(from, to);
+    const duration = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      ? 0.12
+      : getSnapTransitionDurationSeconds(from, to);
     if (duration === null) contentRef.current?.style.removeProperty(SNAP_DURATION_VAR);
     else contentRef.current?.style.setProperty(SNAP_DURATION_VAR, `${duration}s`);
   };
@@ -268,13 +290,51 @@ export function PlaceSheet({
       }
       activeSnapPoint={snap}
       setActiveSnapPoint={(next) => {
-        applySnapDuration(prevSnapRef.current, next);
+        if (releaseRef.current) applyReleaseDuration(next);
+        else applySnapDuration(prevSnapRef.current, next);
+        prevSnapRef.current = next;
         onSnapChange(next);
+      }}
+      onRelease={() => {
+        // Also runs when a small drag returns to the same snap (no state change).
+        applyReleaseDuration(prevSnapRef.current);
+        releaseRef.current = null;
+        pointerSample.current = null;
       }}
       container={overlayContainer}
     >
       <DrawerContent
         ref={contentRef}
+        onPointerDownCapture={(event) => {
+          releaseRef.current = null;
+          pointerSample.current = { y: event.clientY, time: event.timeStamp, velocity: 0 };
+        }}
+        onPointerMoveCapture={(event) => {
+          const previous = pointerSample.current;
+          if (!previous) return;
+          const elapsed = event.timeStamp - previous.time;
+          if (elapsed > 0)
+            pointerSample.current = {
+              y: event.clientY,
+              time: event.timeStamp,
+              velocity: (event.clientY - previous.y) / elapsed,
+            };
+        }}
+        onPointerUpCapture={(event) => {
+          const element = contentRef.current;
+          const sample = pointerSample.current;
+          if (!element || !sample || !element.classList.contains('vaul-dragging')) return;
+          const transform = getComputedStyle(element).transform;
+          const y = transform && transform !== 'none' ? new DOMMatrixReadOnly(transform).m42 : 0;
+          releaseRef.current = {
+            y,
+            velocity: event.timeStamp - sample.time > 100 ? 0 : sample.velocity,
+          };
+        }}
+        onPointerCancelCapture={() => {
+          releaseRef.current = null;
+          pointerSample.current = null;
+        }}
         overlay={false}
         // 핸들은 상세의 스티키 헤더가 대신할 때만 숨긴다. 목록 모드에선 어느 스크롤 위치에서든
         // 남겨 둬야 시트를 다시 내려 지도로 돌아갈 수 있다(NOOK-387).
@@ -346,7 +406,8 @@ export function PlaceSheet({
             // 카드 클릭으로 오인되면 handlePlaceClick 이 검색모드를 강제 종료해 버림, QA).
             inert={searchVisible || undefined}
             className={cn(
-              'flex h-full flex-col gap-3 px-4',
+              'flex h-full flex-col px-4',
+              hasSelection ? 'gap-3' : 'gap-2',
               // overflow-y 만 주면 x 도 auto 가 돼 -mx-4 sticky 헤더 때문에 좌우로 밀린다(NOOK-422 QA).
               canScroll
                 ? 'overflow-y-auto overflow-x-hidden overscroll-contain'
@@ -386,37 +447,57 @@ export function PlaceSheet({
                   <button
                     type="button"
                     onClick={onEnterSearch}
-                    className="flex h-11 w-full items-center gap-2 rounded-lg border border-gray-30 px-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                    className="flex h-11 w-full items-center gap-2 rounded-xl border border-gray-20 px-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
                   >
-                    <Icon24MagnifyingGlass />
-                    <span className="text-b2 font-medium text-gray-50">
+                    <Icon20MagnifyingGlass />
+                    <span className="text-b2 font-normal text-gray-60">
                       저장한 공간을 검색해보세요
                     </span>
                   </button>
                   <div className="flex items-center justify-between py-1">
-                    <p className="text-b2 font-medium text-gray-80">
+                    <p className="text-b2 font-normal text-gray-80">
                       {recentPlacesTotal === undefined ? null : (
                         <>
                           {/* 필터를 걸기 전엔 숫자에 색을 넣지 않는다(NOOK-422 QA). */}
                           <span className={cn(filterActive && 'text-nook-blue')}>
                             {recentPlacesTotal}
-                          </span>{' '}
+                          </span>
                           곳
                         </>
                       )}
                     </p>
-                    <button
-                      type="button"
-                      aria-label={filterActive ? '아카이브 필터 (적용 중)' : '아카이브 필터'}
-                      onClick={onOpenFilter}
-                      className="relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-                    >
-                      <Icon24AdjustmentsVertical />
-                      {/* 필터가 걸려 있을 때만 우상단 점 배지. */}
-                      {filterActive ? (
-                        <span className="absolute top-0 right-0 size-1 rounded-full bg-nook-blue" />
-                      ) : null}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <label className="relative flex items-center text-b2 font-normal text-gray-70">
+                        <select
+                          aria-label="장소 정렬"
+                          value={sort}
+                          onChange={(event) =>
+                            onSortChange?.(event.target.value as 'LATEST' | 'OLDEST' | 'NEAREST')
+                          }
+                          className="appearance-none bg-transparent pr-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                        >
+                          <option value="LATEST">최신순</option>
+                          <option value="OLDEST">오래된순</option>
+                          <option value="NEAREST" disabled={!userCoords}>
+                            가까운순
+                          </option>
+                        </select>
+                        <Icon16ArrowDown className="pointer-events-none absolute right-0" />
+                      </label>
+                      <span aria-hidden="true" className="h-4 w-px bg-gray-10" />
+                      <button
+                        type="button"
+                        aria-label={filterActive ? '아카이브 필터 (적용 중)' : '아카이브 필터'}
+                        onClick={onOpenFilter}
+                        className="relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                      >
+                        <Icon24Filter />
+                        {/* 필터가 걸려 있을 때만 우상단 점 배지. */}
+                        {filterActive ? (
+                          <span className="absolute top-0 right-0 size-1 rounded-full bg-nook-blue" />
+                        ) : null}
+                      </button>
+                    </div>
                   </div>
                 </div>
                 {recentPlacesLoading ? (
@@ -445,6 +526,7 @@ export function PlaceSheet({
                             thumbnailState: place.thumbnailState,
                           }}
                           mediaBadge
+                          variant="map"
                           // 구독한 공유 아카이브의 장소는 내 API 로는 게시물이 비어 오므로
                           // 토큰을 함께 넘겨 공유 공개 API 로 조회하게 한다.
                           onClick={() => onSelectPlace(place.id, place.shareToken)}
@@ -516,9 +598,9 @@ function RecentPlacesSkeleton() {
     <div aria-hidden className="grid grid-cols-2 gap-2">
       {Array.from({ length: 4 }, (_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: 순서가 바뀌지 않는 고정 자리표시
-        <div key={i} className="flex flex-col gap-1 pb-2">
-          <Skeleton className="aspect-[167/208] w-full rounded-sm" />
-          <div className="flex flex-col gap-1.5 p-1">
+        <div key={i} className="flex flex-col gap-2 pb-1.5">
+          <Skeleton className="aspect-[167/134] w-full rounded-sm" />
+          <div className="flex flex-col gap-1">
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-3.5 w-1/2" />
           </div>

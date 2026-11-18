@@ -12,10 +12,12 @@ import type { PostDetail } from '@/features/post/types';
 import {
   // 생성기가 다른 `get` 들과 이름이 겹쳐 붙인 접미사다 — 여기서만 풀어준다.
   get4 as getSharedArchiveEndpoint,
+  get3 as getSinglePostShareEndpoint,
   places as listSharedPlacesEndpoint,
   posts as listSharedPostsEndpoint,
   shared as listSharedSubscribersEndpoint,
   save as saveSharedPostEndpoint,
+  save1 as saveSinglePostShareEndpoint,
   postDetail as sharedPostDetailEndpoint,
   subscribe as subscribeEndpoint,
   unwrapApiResponse,
@@ -95,7 +97,27 @@ export async function saveSharedPost(input: {
   sharedPostId: number;
   groupIds: number[];
   memo?: string;
+  singlePost?: boolean;
 }): Promise<number> {
+  if (input.singlePost) {
+    const result = unwrapApiResponse(
+      await saveSinglePostShareEndpoint(
+        input.shareToken,
+        { groupIds: input.groupIds },
+        { auth: 'required' },
+      ),
+    );
+    if (!result?.postId) throw new Error('게시물을 저장하지 못했어요');
+    // Existing saves retain their own places and memo, as promised by the endpoint.
+    if (!result.alreadySaved && input.memo?.trim()) {
+      try {
+        await updatePostMemo(result.postId, input.memo.trim());
+      } catch {
+        /* The post is already saved. */
+      }
+    }
+    return result.postId;
+  }
   const response = unwrapApiResponse(
     await saveSharedPostEndpoint(
       input.shareToken,
@@ -118,4 +140,21 @@ export async function saveSharedPost(input: {
     }
   }
   return response.postId;
+}
+
+/** NOOK-369: use the server snapshot, never reconstruct sharing from an archive. */
+export async function fetchSinglePostShare(token: string): Promise<PostDetail> {
+  const response = unwrapApiResponse(await getSinglePostShareEndpoint(token, { auth: 'optional' }));
+  if (!response) throw new Error('공유 게시물을 불러오지 못했어요');
+  const detail = toPostDetail({
+    ...response.post,
+    postId: response.viewerSavedPostId ?? 0,
+    groups: [],
+    places: response.post.places.map((place) => ({ ...place, bookmarked: false })),
+    processingStatus: 'COMPLETED',
+    processingPercent: 100,
+    placeParsingStatus: 'COMPLETED',
+    savedAt: response.sharedAt,
+  });
+  return { ...detail, viewerSavedPostId: response.viewerSavedPostId ?? undefined };
 }

@@ -61,7 +61,7 @@
     </div></div>
     <aside id="remote" class="collapsed" aria-label="프로토타입 리모컨">
       <button id="remote-toggle" type="button" aria-expanded="false" aria-controls="remote-body">QA 리모컨 ⌃</button>
-      <div id="remote-body"><div data-page="archive" hidden><h2>장소 미연결 게시물</h2><select id="reminder-select" aria-label="미연결 게시물 개수"></select><button id="replay-reminder" type="button">등장 애니메이션 다시 보기 ↻</button></div><div data-page="map"><h2>플로팅 카드</h2><select id="cards-select" aria-label="카드 장수 선택"></select>
+      <div id="remote-body"><div data-page="archive" hidden><button id="archive-view-demo" type="button">아카이브 보기·정렬 옵션</button><h2>장소 미연결 게시물</h2><select id="reminder-select" aria-label="미연결 게시물 개수"></select><button id="post-share-demo" type="button">게시물 공유받기 목업</button><button id="place-context-demo" type="button">장소 롱프레스 메뉴 목업</button><button id="replay-reminder" type="button">등장 애니메이션 다시 보기 ↻</button></div><div data-page="map"><button id="map-grid-demo" type="button">지도 장소 목록 규격 보기</button><h2>플로팅 카드</h2><select id="cards-select" aria-label="카드 장수 선택"></select>
       <h2>사진 · 해시태그</h2><select id="case-select" aria-label="시나리오 선택"></select>
       <h2>인터랙션</h2><div class="actions"><button type="button" data-action="previous">← 이전 장소</button><button type="button" data-action="next">다음 장소 →</button><button type="button" data-action="expand">전체로 당기기 ↑</button><button type="button" data-action="collapse">카드로 접기 ↓</button><button type="button" data-action="compact">접힌 카드</button><button type="button" data-action="search">검색 · 키보드</button></div>
       <p class="hint">사진 영역은 사진 넘기기, 제목·여백은 장소 넘기기. 케이스는 첫 장소에 적용됩니다.</p>
@@ -87,7 +87,7 @@
     attachPrototypeRemote(frame, remote, page => {
       currentPage = page;
       if (page === 'archive') {
-        if (sessionStorage.getItem('nook.prototype.reminder') !== selectedReminder) { selectReminder(selectedReminder); return; }
+        if (frame.contentWindow.location.pathname === '/archive' && sessionStorage.getItem('nook.prototype.reminder') !== selectedReminder) { selectReminder(selectedReminder); return; }
         document.querySelector('#reminder-select').value = selectedReminder;
         updateReminderLink(selectedReminder);
       } else if (page === 'map') {
@@ -149,6 +149,20 @@
       if (currentPage === 'archive') { selectReminder(selectedReminder); return; }
       localStorage.removeItem(`nook.local-prototype.v1.${selectedCase}.${selectedCards}`); selectCase(selectedCase);
     });
+    function openArchiveView() { sessionStorage.removeItem('nook.prototype.reminder'); frame.src = '/archive/1'; history.replaceState(null, '', '?demo=archive-view'); }
+    document.querySelector('#archive-view-demo').addEventListener('click', openArchiveView);
+    function openMapGrid() { sessionStorage.removeItem('nook.prototype.reminder'); frame.src = '/map'; history.replaceState(null, '', '?demo=map-grid'); }
+    document.querySelector('#map-grid-demo').addEventListener('click', openMapGrid);
+    async function openPostShare() {
+      sessionStorage.removeItem('nook.prototype.reminder');
+      const { localPrototypeRequest } = await import('/src/dev/local-prototype.ts');
+      const result = await localPrototypeRequest('/api/v1/posts/1/share-links', { method: 'POST' });
+      frame.src = `/shared-post/${result.success.token}`;
+      history.replaceState(null, '', '?demo=post-share');
+    }
+    document.querySelector('#post-share-demo').addEventListener('click', openPostShare);
+    function openPlaceMenu() { sessionStorage.removeItem('nook.prototype.reminder'); frame.src = '/archive/1?tab=places'; history.replaceState(null, '', '?demo=place-menu'); }
+    document.querySelector('#place-context-demo').addEventListener('click', openPlaceMenu);
     document.querySelector('#replay-reminder').addEventListener('click', () => frame.contentWindow.location.reload());
     document.querySelector('header a[href="/archive"]').addEventListener('click', event => { event.preventDefault(); selectReminder(selectedReminder); });
     document.querySelector('header a[href="/map"]').addEventListener('click', event => { event.preventDefault(); selectCase(selectedCase); });
@@ -158,6 +172,7 @@
       device.style.transform = `scale(${scale})`;
     }
     new ResizeObserver(fitStage).observe(main);
+    const initialDemo = new URLSearchParams(location.search).get('demo');
     const initialReminder = new URLSearchParams(location.search).get('reminder');
     const initial = new URLSearchParams(location.search).get('case');
     const initialCards = new URLSearchParams(location.search).get('cards');
@@ -166,6 +181,10 @@
       prototypeCardModes.some(item => item.id === initialCards) ? initialCards : selectedCards,
     );
     if (prototypeReminderCases.some(item => item.id === initialReminder)) selectReminder(initialReminder);
+    if (initialDemo === 'place-menu') openPlaceMenu();
+    if (initialDemo === 'post-share') openPostShare();
+    if (initialDemo === 'map-grid') openMapGrid();
+    if (initialDemo === 'archive-view') openArchiveView();
     fitStage();
   </script>
 </body>

@@ -119,12 +119,13 @@ export function toRecentPlace(dto: RecentPlaceResponse): RecentPlace {
 export async function fetchRecentPlaces(
   cursor?: string,
   filter: ArchiveFilter = null,
+  order?: { sort: 'LATEST' | 'OLDEST' | 'NEAREST'; latitude?: number; longitude?: number },
 ): Promise<RecentPlacePage> {
   // 전체 해제 — `fetchMapPins` 와 같은 이유로 요청 없이 빈 페이지.
   if (filter?.length === 0) return { places: [], totalCount: 0 };
   const response = unwrapApiResponse(
     await getRecentPlacesEndpoint(
-      { cursor: cursor || undefined, groupIds: filter ?? undefined },
+      { cursor: cursor || undefined, groupIds: filter ?? undefined, ...order },
       { auth: 'required' },
     ),
   );

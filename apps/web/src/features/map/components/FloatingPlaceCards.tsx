@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { usePlaceDetail } from '@/features/map/api/queries';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import type { Coordinates } from '@/shared/lib/geolocation';
 import { usePointerDragScroll } from '@/shared/lib/usePointerDragScroll';
 import { cn } from '@/shared/lib/utils';
 import { useExpandCardGesture } from './useExpandCardGesture';
+import { usePlaceCarouselDepth } from './usePlaceCarouselDepth';
 
 /** 카드 사이 간격(px) — 시안 `홈_지도` 403:18114 와 옆 카드(403:18099) 사이 4px. */
 const CARD_GAP_PX = 4;
@@ -59,13 +60,7 @@ export function FloatingPlaceCards({
   const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // 처음 그릴 땐 고른 카드에 바로 서 있어야 한다 — 첫 카드에서 미끄러져 오면 어색하다.
   const mountedRef = useRef(false);
-  // 왼쪽 끝에 걸쳐 보이는 첫 카드 — 이보다 앞 카드는 숨긴다. 스크롤 위치에서 바로 계산해서
-  // 넘기는 순간 사라지고(잔상 없음), 되돌려 넘기기 시작하면 바로 나타난다. 마지막 장은 스크롤
-  // 끝이 한 칸에 못 미쳐(오른쪽 8px 정렬) 자연히 이전 카드까지 보인다.
-  const lastIndex = placeIds.length - 1;
-  const [firstVisible, setFirstVisible] = useState(
-    activeIndex === lastIndex ? activeIndex - 1 : activeIndex,
-  );
+  usePlaceCarouselDepth(scrollerRef, placeIds.length, CARD_GAP_PX);
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -73,7 +68,10 @@ export function FloatingPlaceCards({
     if (scroller && step > 0 && Math.round(scroller.scrollLeft / step) !== activeIndex) {
       scroller.scrollTo({
         left: step * activeIndex,
-        behavior: mountedRef.current ? 'smooth' : 'instant',
+        behavior:
+          mountedRef.current && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+            ? 'smooth'
+            : 'instant',
       });
     }
     mountedRef.current = true;
@@ -94,9 +92,6 @@ export function FloatingPlaceCards({
   }, [onHeightChange, activeIndex]);
 
   const handleScroll = () => {
-    const live = scrollerRef.current;
-    const liveStep = live ? stepOf(live) : 0;
-    if (live && liveStep > 0) setFirstVisible(Math.floor(live.scrollLeft / liveStep + 0.01));
     clearTimeout(settleTimer.current);
     settleTimer.current = setTimeout(() => {
       const scroller = scrollerRef.current;
@@ -142,7 +137,6 @@ export function FloatingPlaceCards({
             // 기본: 오른쪽에 다음 카드만 비치고 왼쪽 이전 카드는 숨긴다.
             // 마지막 장: 다음 카드가 없으니 오른쪽은 비우고 왼쪽 이전 카드를 비춘다.
             multi={placeIds.length > 1}
-            peekHidden={index < firstVisible}
             userCoords={userCoords}
             onClose={onClose}
             onSelectPlace={onSelectPlace}
@@ -165,12 +159,10 @@ function FloatingPlaceCard({
   onExpand,
   onCollapse,
   compact,
-  peekHidden = false,
   multi = false,
 }: {
   multi?: boolean;
   placeId: number;
-  peekHidden?: boolean;
   onExpand?: () => void;
   onCollapse?: () => void;
   compact: boolean;
@@ -186,48 +178,53 @@ function FloatingPlaceCard({
     <section
       {...expandGesture}
       aria-label={place?.name ?? '장소'}
-      aria-hidden={peekHidden || undefined}
       className={cn(
-        peekHidden && 'invisible',
         // 카드 폭은 화면 - 24px 로 고정한다. 단일 카드는 좌우 12px 가운데, 여러 장은 스크롤러
         // 좌우 패딩(8px)에서 8px 를 더 빼 다음 카드가 간격(4px) 뒤로 12px 비친다.
         onExpand && 'touch-pan-x',
         multi ? 'w-[calc(100%-8px)] last:snap-end' : 'w-full',
-        'max-h-[calc(100dvh-8rem)] shrink-0 snap-start overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-[14px] bg-gray-0 px-4',
-        'drop-shadow-[2px_2px_24.4px_rgba(0,0,0,0.1)]',
+        'shrink-0 snap-start',
         // 카드 안 사진 캐러셀이 끝에 닿아도 바깥 카드 스와이프로 이어지지 않게 끊는다 —
         // 사진을 넘기다 다음 장소로 넘어가 버리면 안 된다(NOOK-383).
         '[&_[data-slot=carousel]>div]:overscroll-x-contain',
       )}
     >
-      <button
-        type="button"
-        data-expand-handle
-        aria-label="장소 상세 전체 화면으로 확장"
-        onClick={onExpand}
-        className="relative flex h-9 w-full touch-none after:absolute after:inset-x-0 after:-inset-y-1 items-start justify-center pt-3 pb-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+      <div
+        data-place-card-surface
+        className={cn(
+          onExpand && 'touch-pan-x',
+          'max-h-[calc(100dvh-8rem)] origin-bottom overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-[14px] bg-gray-0 px-4 shadow-[2px_2px_24.4px_rgba(0,0,0,0.1)] [backface-visibility:hidden]',
+        )}
       >
-        <span aria-hidden="true" className="h-1 w-20 rounded-full bg-gray-20" />
-      </button>
-      {place ? (
-        <PlaceDetail
-          place={place}
-          expanded={false}
-          variant="floating"
-          showPhotos={!compact}
-          userCoords={userCoords}
-          onClose={onClose}
-          onSelectPlace={onSelectPlace}
-        />
-      ) : (
-        // 상세가 오기 전 자리 — 카드 높이가 튀지 않게 제목·사진 자리만 깐다.
-        // 접힌 상태에선 사진 자리도 접어 다른 카드와 함께 낮아진다.
-        <div aria-hidden="true" className={cn('flex flex-col gap-3', compact ? 'pb-5' : 'pb-7')}>
-          <div className="h-7 w-1/2 rounded bg-gray-10" />
-          <div className="h-5 w-3/4 rounded bg-gray-10" />
-          {compact ? null : <div className="aspect-[319/198] w-full rounded bg-gray-10" />}
-        </div>
-      )}
+        <button
+          type="button"
+          data-expand-handle
+          aria-label="장소 상세 전체 화면으로 확장"
+          onClick={onExpand}
+          className="relative flex h-9 w-full touch-none after:absolute after:inset-x-0 after:-inset-y-1 items-start justify-center pt-3 pb-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+        >
+          <span aria-hidden="true" className="h-1 w-20 rounded-full bg-gray-20" />
+        </button>
+        {place ? (
+          <PlaceDetail
+            place={place}
+            expanded={false}
+            variant="floating"
+            showPhotos={!compact}
+            userCoords={userCoords}
+            onClose={onClose}
+            onSelectPlace={onSelectPlace}
+          />
+        ) : (
+          // 상세가 오기 전 자리 — 카드 높이가 튀지 않게 제목·사진 자리만 깐다.
+          // 접힌 상태에선 사진 자리도 접어 다른 카드와 함께 낮아진다.
+          <div aria-hidden="true" className={cn('flex flex-col gap-3', compact ? 'pb-5' : 'pb-7')}>
+            <div className="h-7 w-1/2 rounded bg-gray-10" />
+            <div className="h-5 w-3/4 rounded bg-gray-10" />
+            {compact ? null : <div className="aspect-[319/198] w-full rounded bg-gray-10" />}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

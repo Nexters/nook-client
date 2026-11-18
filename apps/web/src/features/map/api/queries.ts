@@ -63,13 +63,16 @@ export function useMapPins(bounds: MapBounds, filter: ArchiveFilter = null) {
  * 저장 직후엔 BE 가 썸네일을 비동기로 파싱한다 — 처리 중(`thumbnailState === 'processing'`)인
  * 장소가 하나라도 있으면 끝날 때까지 폴링해 카드를 실시간으로 채운다.
  */
-export function useRecentPlaces(filter: ArchiveFilter = null) {
+export function useRecentPlaces(
+  filter: ArchiveFilter = null,
+  order?: { sort: 'LATEST' | 'OLDEST' | 'NEAREST'; latitude?: number; longitude?: number },
+) {
   const isAuthenticated = useIsAuthenticated();
 
   return useInfiniteQuery({
     // 선택이 바뀌면 키가 바뀌어 목록과 커서가 처음부터 다시 시작한다.
-    queryKey: mapQueryKeys.recentList(filter),
-    queryFn: ({ pageParam }) => fetchRecentPlaces(pageParam, filter),
+    queryKey: order ? [...mapQueryKeys.recentList(filter), order] : mapQueryKeys.recentList(filter),
+    queryFn: ({ pageParam }) => fetchRecentPlaces(pageParam, filter, order),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     select: (data) => ({

@@ -9,6 +9,53 @@ import {
 } from './prototype-scenarios';
 
 const STORAGE_KEY = 'nook.local-prototype.v1';
+function publicSharePlace(place: PrototypeData['posts'][number]['places'][number]) {
+  const {
+    id,
+    provider,
+    externalPlaceId,
+    name,
+    address,
+    latitude,
+    longitude,
+    category,
+    phoneNumber,
+    sequence,
+    tags,
+    thumbnailParsingStatus,
+    thumbnailUrl,
+  } = place;
+  return {
+    id,
+    provider,
+    externalPlaceId,
+    name,
+    address,
+    latitude,
+    longitude,
+    category,
+    phoneNumber,
+    sequence,
+    tags,
+    thumbnailParsingStatus,
+    thumbnailUrl,
+  };
+}
+const POST_SHARES_KEY = 'nook.local-post-shares.v1';
+type LocalPostShare = {
+  sourceKey: string;
+  sourcePostId: number;
+  post: PrototypeData['posts'][number];
+  sharedAt: string;
+  savedPostId?: number;
+};
+function readPostShares(): Record<string, LocalPostShare> {
+  try {
+    return JSON.parse(localStorage.getItem(POST_SHARES_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
 const storageKey = () => {
   const reminder = getPrototypeReminderCase();
   if (reminder) return `${STORAGE_KEY}.reminder.${reminder.id}`;
@@ -117,6 +164,66 @@ export async function localPrototypeRequest(
     if (method !== 'GET') localStorage.setItem(storageKey(), JSON.stringify(db));
     return { resultType: 'SUCCESS' as const, success: value };
   };
+  const singleShare = path.match(/^(?:\/api\/public\/v1|)\/post-shares\/([^/]+)(?:\/(save))?$/);
+  if (singleShare) {
+    const shares = readPostShares();
+    const share = shares[singleShare[1] ?? ''];
+    if (!share) throw new Error('유효하지 않은 게시물 공유 링크예요.');
+    const source =
+      share.sourceKey === storageKey()
+        ? db
+        : (JSON.parse(localStorage.getItem(share.sourceKey) ?? '{}') as PrototypeData);
+    if (!source.posts?.some((post) => post.postId === share.sourcePostId))
+      throw new Error('원본이 삭제되어 공유 링크가 만료됐어요.');
+    if (method === 'GET') {
+      const { title, authorIdentifier, body, canonicalUrl, hashtags, media, places, publishedAt } =
+        share.post;
+      return success({
+        post: {
+          title,
+          authorIdentifier,
+          body,
+          canonicalUrl,
+          hashtags,
+          media,
+          places: places.map(publicSharePlace),
+          publishedAt,
+        },
+        sharedAt: share.sharedAt,
+        viewerSavedPostId: db.posts.some((post) => post.postId === share.savedPostId)
+          ? share.savedPostId
+          : null,
+      });
+    }
+    if (method === 'POST' && singleShare[2] === 'save') {
+      if (
+        !Array.isArray(body.groupIds) ||
+        body.groupIds.length === 0 ||
+        body.groupIds.some(
+          (id: number) =>
+            !db.groups.some((group) => group.id === id && group.accessType === 'OWNED'),
+        )
+      )
+        throw new Error('내 아카이브를 선택해주세요.');
+      const existing = db.posts.find((post) => post.postId === share.savedPostId);
+      if (existing) return success({ postId: existing.postId, alreadySaved: true });
+      const copy = structuredClone(share.post);
+      copy.postId = Math.max(0, ...db.posts.map((post) => post.postId)) + 1;
+      copy.groups = db.groups
+        .filter((group) => body.groupIds.includes(group.id))
+        .map(({ id, name, color }) => ({ id, name, color }));
+      copy.memo = null;
+      copy.places = copy.places.map((place) => ({
+        ...publicSharePlace(place),
+        bookmarked: false,
+        memo: null,
+      }));
+      db.posts.push(copy);
+      share.savedPostId = copy.postId;
+      localStorage.setItem(POST_SHARES_KEY, JSON.stringify(shares));
+      return success({ postId: copy.postId, alreadySaved: false });
+    }
+  }
   const summaries = () =>
     db.groups.map((group) => {
       const posts = db.posts.filter((post) => post.groups.some((item) => item.id === group.id));
@@ -324,8 +431,26 @@ export async function localPrototypeRequest(
   if (postMatch) {
     const post = db.posts.find((item) => item.postId === Number(postMatch[1]));
     if (!post) throw new Error('게시물을 찾을 수 없어요.');
-    if (method === 'POST' && postMatch[2] === 'share-links')
-      return success({ token: `local-post-${post.postId}` });
+    if (method === 'POST' && postMatch[2] === 'share-links') {
+      const shares = readPostShares();
+      const token = `local-post-${post.postId}-${Object.keys(shares).length + 1}`;
+      const snapshot = structuredClone(post);
+      snapshot.groups = [];
+      snapshot.memo = null;
+      snapshot.places = snapshot.places.map((place) => ({
+        ...publicSharePlace(place),
+        bookmarked: false,
+        memo: null,
+      }));
+      shares[token] = {
+        sourceKey: storageKey(),
+        sourcePostId: post.postId,
+        post: snapshot,
+        sharedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(POST_SHARES_KEY, JSON.stringify(shares));
+      return success({ token });
+    }
     if (method === 'POST' && postMatch[2] === 'places') {
       const place = db.places.find((item) => `local-${item.id}` === body.selectionToken);
       if (!place) throw new Error('장소를 찾을 수 없어요.');

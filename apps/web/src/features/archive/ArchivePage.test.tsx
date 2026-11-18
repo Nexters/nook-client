@@ -306,7 +306,9 @@ describe('아카이브 화면', () => {
 
     expect(await screen.findByText('을지다락')).toBeInTheDocument();
     // 장소 카드는 게시물 카드와 같은 그리드에 놓이는 세로형(PlaceCard) — 지역·업종을 보여준다.
-    expect(screen.getByText('서울 · 카페')).toBeInTheDocument();
+    const placeCard = screen.getByRole('button', { name: /을지다락/ });
+    expect(within(placeCard).getByText('서울')).toBeInTheDocument();
+    expect(within(placeCard).getByText('카페')).toBeInTheDocument();
     expect(mocks.fetchArchivePlaces.mock.calls[0]?.[0]).toBe(1);
   });
 
@@ -392,7 +394,7 @@ describe('아카이브 화면', () => {
     expect(await screen.findByText('초록뷰 카페')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '더보기' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: '선택 삭제' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '선택 편집' }));
 
     // 아무것도 고르지 않은 동안은 삭제 버튼이 비활성이다.
     expect(screen.getByRole('button', { name: '삭제하기' })).toBeDisabled();
@@ -425,14 +427,14 @@ describe('아카이브 화면', () => {
 
     // 게시물 탭에서는 있다.
     fireEvent.click(await screen.findByRole('button', { name: '더보기' }));
-    expect(screen.getByRole('menuitem', { name: '선택 삭제' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: '선택 편집' })).toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
 
     fireEvent.click(screen.getByRole('tab', { name: /장소/ }));
     expect(await screen.findByText('을지다락')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '더보기' }));
-    expect(screen.queryByRole('menuitem', { name: '선택 삭제' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: '선택 편집' })).not.toBeInTheDocument();
     // 아카이브 편집·삭제는 그대로 있다.
     expect(screen.getByRole('menuitem', { name: '아카이브 삭제' })).toBeInTheDocument();
   });
@@ -449,7 +451,7 @@ describe('아카이브 화면', () => {
     expect(await screen.findByText('초록뷰 카페')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '더보기' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: '선택 삭제' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '선택 편집' }));
     expect(screen.getByRole('button', { name: '삭제하기' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('tab', { name: /장소/ }));
@@ -471,7 +473,7 @@ describe('아카이브 화면', () => {
     expect(await screen.findByText('초록뷰 카페')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '더보기' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: '선택 삭제' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '선택 편집' }));
     expect(screen.getByRole('button', { name: '삭제하기' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '뒤로 가기' }));
@@ -495,7 +497,7 @@ describe('아카이브 화면', () => {
     expect(await screen.findByText('초록뷰 카페')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '더보기' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: '선택 삭제' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '선택 편집' }));
     fireEvent.click(screen.getByRole('button', { name: /초록뷰 카페/ }));
     expect(screen.getByRole('button', { name: '1개 삭제하기' })).toBeInTheDocument();
 
@@ -507,7 +509,7 @@ describe('아카이브 화면', () => {
 
     // 다시 들어가도 지난 선택은 남아 있지 않다.
     fireEvent.click(screen.getByRole('button', { name: '더보기' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: '선택 삭제' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '선택 편집' }));
     expect(screen.getByRole('button', { name: '삭제하기' })).toBeInTheDocument();
   });
 

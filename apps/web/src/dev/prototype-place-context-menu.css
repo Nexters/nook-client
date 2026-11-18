@@ -1,0 +1,58 @@
+.prototype-context-trigger {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+.prototype-context-dim {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  pointer-events: none;
+  background: rgb(40 44 52 / 12%);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.prototype-context-menu {
+  z-index: 80;
+  width: 250px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: rgb(248 248 250 / 92%);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow: 0 12px 36px rgb(0 0 0 / 14%);
+  transform-origin: var(--radix-context-menu-content-transform-origin);
+  animation: prototype-menu-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.prototype-context-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: 12px 16px;
+  border-top: 0.5px solid rgb(60 60 67 / 20%);
+  outline: none;
+  font-size: 16px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.prototype-context-action:first-child {
+  border-top: 0;
+}
+.prototype-context-action[data-highlighted] {
+  background: #e4e6e9;
+}
+@keyframes prototype-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prototype-context-menu {
+    animation: none;
+  }
+  .prototype-context-dim {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

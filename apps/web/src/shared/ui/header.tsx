@@ -28,7 +28,7 @@ const headerVariants = cva('flex w-full items-center justify-between gap-2 px-4'
       transparent: 'bg-transparent',
     },
     size: {
-      /** Header/54 — 고정 높이 54px, 제목 H2(18) */
+      /** Header/54 — 고정 높이 54px, 제목 최대 B1(16) */
       default: 'h-[54px]',
       /** Property 1=bottom — 높이 없이 하단 여백만, 제목 B1(16) */
       bottom: 'pb-5',
@@ -65,14 +65,7 @@ function Header({ variant, size, left, title, right, className, ...props }: Head
       {/* 제목이 있을 때만 균형을 맞춘다 — 로고 단독 헤더는 좌측 정렬이 맞다. */}
       {left ?? (title ? balance : null)}
       {title ? (
-        <p
-          className={cn(
-            'min-w-0 truncate font-semibold text-gray-100',
-            size === 'bottom' ? 'text-b1' : 'text-h2',
-          )}
-        >
-          {title}
-        </p>
+        <p className={cn('min-w-0 truncate font-semibold text-gray-100', 'text-b1')}>{title}</p>
       ) : null}
       {right ?? (title ? balance : null)}
     </header>

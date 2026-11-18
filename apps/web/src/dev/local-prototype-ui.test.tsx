@@ -6,7 +6,9 @@ import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import { ArchiveDetailPage } from '@/features/archive/ArchiveDetailPage';
 import { ArchivePage } from '@/features/archive/ArchivePage';
 import { AuthSessionProvider } from '@/features/auth/session/AuthSessionProvider';
+import { SharedPostDetailPage } from '@/features/share/SharedPostDetailPage';
 import { ToastProvider } from '@/shared/toast';
+import { localPrototypeRequest } from './local-prototype';
 
 vi.mock('@/shared/config/env', async (original) => {
   const actual = await original<typeof import('@/shared/config/env')>();
@@ -98,4 +100,31 @@ it('offers the existing action toast and restores reminder settings on cancel', 
   expect(
     await screen.findByRole('region', { name: '장소 미연결 게시물 안내' }),
   ).toBeInTheDocument();
+});
+
+it('opens a single-post share and saves its places into an owned archive', async () => {
+  const result = await localPrototypeRequest('/api/v1/posts/1/share-links', { method: 'POST' });
+  const token = (result.success as { token: string }).token;
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <AuthSessionProvider>
+        <ToastProvider>
+          <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
+            <MemoryRouter initialEntries={[`/shared-post/${token}`]}>
+              <Routes>
+                <Route path="/shared-post/:token" element={<SharedPostDetailPage singlePost />} />
+                <Route path="/post/:postId" element={<p>내 게시물 상세</p>} />
+              </Routes>
+            </MemoryRouter>
+          </BottomMenuVisibilityProvider>
+        </ToastProvider>
+      </AuthSessionProvider>
+    </QueryClientProvider>,
+  );
+  fireEvent.click(await screen.findByRole('button', { name: '내 아카이브에 저장' }));
+  fireEvent.click(await screen.findByRole('checkbox', { name: '다음에 같이 가요' }));
+  fireEvent.click(screen.getByRole('button', { name: '저장하기' }));
+  expect(await screen.findByText('내 게시물 상세')).toBeInTheDocument();
 });

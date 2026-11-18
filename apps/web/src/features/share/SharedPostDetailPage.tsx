@@ -24,7 +24,7 @@ import { shareErrorMessage } from './lib/shareError';
  * 마음에 들면 내 아카이브에 단건 저장한다. 저장하면 그 순간부터 내 게시물이므로
  * 기존 게시물 상세(`/post/{postId}`)로 전환한다 — 이 화면에는 "저장 후 편집 모드"가 없다.
  */
-export function SharedPostDetailPage() {
+export function SharedPostDetailPage({ singlePost = false }: { singlePost?: boolean }) {
   const { token = '', postId: postIdParam } = useParams();
   const sharedPostId = Number(postIdParam);
   const navigate = useNavigate();
@@ -47,7 +47,7 @@ export function SharedPostDetailPage() {
   // 게시물 상세와 같은 계약 — 제목이 헤더 뒤로 숨으면 헤더가 이어받는다.
   const titleRef = useRef<HTMLHeadingElement>(null);
 
-  const detailQuery = useSharedPostDetail(token, sharedPostId);
+  const detailQuery = useSharedPostDetail(token, sharedPostId, singlePost);
   const savePost = useSaveSharedPost();
 
   // 공유 게시물 상세는 북마크·공유 장소 시트의 게시물 타일 등으로 콜드 스타트 진입이
@@ -65,7 +65,13 @@ export function SharedPostDetailPage() {
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <Header left={<BackButton onClick={goBack} />} />
-        <ArchiveEmpty message={shareErrorMessage(detailQuery.error)} />
+        <ArchiveEmpty
+          message={
+            singlePost
+              ? '더 이상 볼 수 없는 게시물 공유 링크예요.'
+              : shareErrorMessage(detailQuery.error)
+          }
+        />
       </main>
     );
   }
@@ -81,7 +87,7 @@ export function SharedPostDetailPage() {
 
   const handleSave = (input: { groupIds: number[]; memo?: string }) =>
     savePost.mutate(
-      { shareToken: token, sharedPostId, ...input },
+      { shareToken: token, sharedPostId, ...input, ...(singlePost ? { singlePost: true } : {}) },
       {
         onSuccess: (myPostId) => {
           setSheetOpen(false);
@@ -120,7 +126,15 @@ export function SharedPostDetailPage() {
           {/* Figma `게시물 정보 > 공유받은화면` — 아카이브 칩과 메모 줄. */}
           <div className="flex min-h-6 items-center gap-2 pt-2">
             <Icon16Archive className="size-4 shrink-0" />
-            {firstSavedArchive ? (
+            {singlePost && detail.viewerSavedPostId ? (
+              <button
+                type="button"
+                className="inline-flex h-[26px] items-center rounded-md border border-gray-20 px-2.5 text-b3 font-semibold text-gray-80"
+                onClick={() => navigate(`/post/${detail.viewerSavedPostId}`)}
+              >
+                내 게시물 보기
+              </button>
+            ) : firstSavedArchive ? (
               <>
                 {/* Figma `게시물 정보 > 그룹여러개` — 칩엔 실제 저장 색이 실린다. 재저장
                     시트를 열 postId 가 이 응답엔 없어(§13) 칩은 표시만 하고 탭은 없다. */}
@@ -143,7 +157,7 @@ export function SharedPostDetailPage() {
                 onClick={handleSaveChip}
                 className="inline-flex h-[26px] w-fit items-center gap-1 rounded-md border border-gray-20 py-0 pr-1.5 pl-2.5 text-b3 font-semibold text-gray-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
               >
-                아카이브 추가
+                {singlePost ? '내 아카이브에 저장' : '아카이브 추가'}
                 <Icon16ArrowDown className="size-4" />
               </button>
             )}
@@ -172,12 +186,15 @@ export function SharedPostDetailPage() {
                   <PlaceRow
                     key={place.id}
                     place={toPlace(place)}
-                    onClick={() =>
-                      // 장소 상세는 지도 화면이 소유한다 — 아카이브 상세의 장소 탭과 같은
-                      // 딥링크. 저장 안 한 장소의 404 우회용 공유 토큰을 함께 실어 보낸다.
-                      gate('장소를 확인하려면 로그인이 필요해요', () =>
-                        navigate(`/map?placeId=${place.id}&shareToken=${token}`),
-                      )
+                    onClick={
+                      singlePost
+                        ? undefined
+                        : () =>
+                            // 장소 상세는 지도 화면이 소유한다 — 아카이브 상세의 장소 탭과 같은
+                            // 딥링크. 저장 안 한 장소의 404 우회용 공유 토큰을 함께 실어 보낸다.
+                            gate('장소를 확인하려면 로그인이 필요해요', () =>
+                              navigate(`/map?placeId=${place.id}&shareToken=${token}`),
+                            )
                     }
                   />
                 ))}

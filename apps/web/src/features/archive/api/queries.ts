@@ -6,7 +6,9 @@ import {
   deleteArchive,
   deleteArchivePosts,
   fetchArchivePlaces,
+  fetchArchivePlacesInOrder,
   fetchArchivePosts,
+  fetchArchivePostsInOrder,
   fetchArchiveSubscribers,
   fetchArchives,
   issueShareLink,
@@ -56,12 +58,21 @@ export function useHasSaveHistory(): boolean | undefined {
  * 저장 직후엔 BE 가 본문/장소를 비동기로 처리해 카드가 로딩 상태로 내려올 수 있다 —
  * 처리 중인 게시물이 하나라도 있으면 끝날 때까지 폴링해 카드를 실시간으로 채운다.
  */
-export function useArchivePosts(archiveId: number | undefined) {
+export function useArchivePosts(
+  archiveId: number | undefined,
+  sort: 'LATEST' | 'OLDEST' = 'LATEST',
+) {
   const isAuthenticated = useIsAuthenticated();
 
   return useInfiniteQuery({
-    queryKey: archiveQueryKeys.posts(archiveId ?? -1),
-    queryFn: ({ pageParam }) => fetchArchivePosts(archiveId as number, pageParam),
+    queryKey:
+      sort === 'LATEST'
+        ? archiveQueryKeys.posts(archiveId ?? -1)
+        : [...archiveQueryKeys.posts(archiveId ?? -1), sort],
+    queryFn: ({ pageParam }) =>
+      sort === 'OLDEST'
+        ? fetchArchivePostsInOrder(archiveId as number, pageParam, true)
+        : fetchArchivePosts(archiveId as number, pageParam),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,
     select: (data) => ({
@@ -87,12 +98,21 @@ export function useArchivePosts(archiveId: number | undefined) {
  * 저장 직후엔 BE 가 썸네일을 비동기로 파싱한다 — 처리 중(`thumbnailState === 'processing'`)인
  * 장소가 하나라도 있으면 끝날 때까지 폴링해 카드를 실시간으로 채운다.
  */
-export function useArchivePlaces(archiveId: number | undefined) {
+export function useArchivePlaces(
+  archiveId: number | undefined,
+  sort: 'LATEST' | 'OLDEST' = 'LATEST',
+) {
   const isAuthenticated = useIsAuthenticated();
 
   return useInfiniteQuery({
-    queryKey: archiveQueryKeys.places(archiveId ?? -1),
-    queryFn: ({ pageParam }) => fetchArchivePlaces(archiveId as number, pageParam),
+    queryKey:
+      sort === 'LATEST'
+        ? archiveQueryKeys.places(archiveId ?? -1)
+        : [...archiveQueryKeys.places(archiveId ?? -1), sort],
+    queryFn: ({ pageParam }) =>
+      sort === 'OLDEST'
+        ? fetchArchivePlacesInOrder(archiveId as number, pageParam, true)
+        : fetchArchivePlaces(archiveId as number, pageParam),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,
     select: (data) => ({
