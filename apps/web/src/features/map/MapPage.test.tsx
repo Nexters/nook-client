@@ -24,11 +24,13 @@ vi.mock('@/features/map/components/MapView', () => ({
   MapView: ({
     pins,
     onPlaceClick,
+    onEmptyMapClick,
     onBoundsChanged,
     onDestinationBounds,
   }: {
     pins: { id: number; color: string; outsideSearch?: boolean }[];
     onPlaceClick: (id: number) => void;
+    onEmptyMapClick?: () => void;
     onBoundsChanged: (bounds: { north: number; south: number; east: number; west: number }) => void;
     onDestinationBounds: (bounds: {
       north: number;
@@ -40,6 +42,9 @@ vi.mock('@/features/map/components/MapView', () => ({
     <>
       <button type="button" onClick={() => onPlaceClick(7)}>
         핀 7 클릭
+      </button>
+      <button type="button" onClick={() => onEmptyMapClick?.()}>
+        빈 지도 탭
       </button>
       {/* 지도 이동이 끝나 idle 로 경계가 올라온 순간 — 전국을 덮는 경계로 흉내 낸다. */}
       <button
@@ -162,21 +167,46 @@ vi.mock('@/features/map/components/FloatingPlaceCards', () => ({
   FloatingPlaceCards: ({
     placeIds,
     activeIndex,
+    collapsed,
     onActiveIndexChange,
+    onCollapsedChange,
+    onExpandFull,
     onClose,
   }: {
     placeIds: number[];
     activeIndex: number;
+    collapsed: boolean;
     onActiveIndexChange: (index: number) => void;
+    onCollapsedChange: (collapsed: boolean) => void;
+    onExpandFull: (origin?: unknown) => void;
     onClose: () => void;
   }) => (
     <div>
       <output data-testid="cards">{`${placeIds.join(',')}@${activeIndex}`}</output>
+      <p>카드 접힘: {String(collapsed)}</p>
+      <button type="button" onClick={() => onCollapsedChange(false)}>
+        접힌 카드 탭
+      </button>
+      <button type="button" onClick={() => onExpandFull()}>
+        카드 끌어올리기
+      </button>
       <button type="button" onClick={() => onActiveIndexChange(activeIndex + 1)}>
         다음 카드로 넘기기
       </button>
       <button type="button" onClick={onClose}>
         카드 닫기
+      </button>
+    </div>
+  ),
+}));
+
+// 풀업 상세는 이름과 닫기만 본다 — 상세 본문은 PlaceDetail.test 가 검증한다.
+vi.mock('@/features/map/components/PlaceDetail', () => ({
+  PlaceDetail: ({ place, onClose }: { place: { name: string }; onClose: () => void }) => (
+    <div>
+      <p>풀업: {place.name}</p>
+      <button type="button" onClick={onClose}>
+        풀업 닫기
       </button>
     </div>
   ),
@@ -792,6 +822,41 @@ describe('MapPage — 검색 결과 지도(NOOK-383)', () => {
 
     await screen.findByText('시트 가림: false');
     expect(screen.getByText('검색모드: true')).toBeInTheDocument();
+  });
+
+  it('지도를 누르면 카드를 닫지 않고 접고, 접힌 카드를 누르거나 핀을 고르면 다시 편다', async () => {
+    await openSearchMap();
+    expect(screen.getByText('카드 접힘: false')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '빈 지도 탭' }));
+    expect(screen.getByText('카드 접힘: true')).toBeInTheDocument();
+    expect(screen.getByTestId('search-params').textContent).toBe('?placeId=1');
+
+    fireEvent.click(screen.getByRole('button', { name: '접힌 카드 탭' }));
+    expect(screen.getByText('카드 접힘: false')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '빈 지도 탭' }));
+    fireEvent.click(screen.getByRole('button', { name: '핀 7 클릭' }));
+    await waitFor(() => expect(screen.getByTestId('cards').textContent).toBe('7@0'));
+    expect(screen.getByText('카드 접힘: false')).toBeInTheDocument();
+  });
+
+  it('카드를 끌어올리면 전체 화면 상세가 뜨고, X 와 뒤로가기는 보던 카드로 돌아온다', async () => {
+    await openSearchMap();
+
+    fireEvent.click(screen.getByRole('button', { name: '카드 끌어올리기' }));
+    await screen.findByText('풀업: 장소 1');
+
+    fireEvent.click(screen.getByRole('button', { name: '풀업 닫기' }));
+    await waitFor(() => expect(screen.queryByText('풀업: 장소 1')).not.toBeInTheDocument());
+    expect(screen.getByTestId('cards').textContent).toBe('1,2@0');
+    expect(screen.getByText('시트 가림: true')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '카드 끌어올리기' }));
+    await screen.findByText('풀업: 장소 1');
+    fireEvent.click(screen.getByRole('button', { name: '뒤로가기' }));
+    await waitFor(() => expect(screen.queryByText('풀업: 장소 1')).not.toBeInTheDocument());
+    expect(screen.getByTestId('cards').textContent).toBe('1,2@0');
   });
 
   it('검색어 지우기는 결과 목록으로 돌아가며 검색어를 비운다', async () => {

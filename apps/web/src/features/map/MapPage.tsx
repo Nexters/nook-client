@@ -8,6 +8,7 @@ import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { ArchiveFilterSheet } from '@/features/map/components/ArchiveFilterSheet';
 import { FloatingPlaceCards } from '@/features/map/components/FloatingPlaceCards';
 import { getLastMapCamera, MapView, type MapViewHandle } from '@/features/map/components/MapView';
+import { type CardOrigin, PlaceFullSheet } from '@/features/map/components/PlaceFullSheet';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
 import { SearchMapHeader } from '@/features/map/components/SearchMapHeader';
@@ -22,6 +23,7 @@ import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
 import { toInitialBounds } from '@/features/map/initial-bounds';
 import type { ArchiveFilter, MapBounds } from '@/features/map/types';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
+import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { useMapPins, usePlaceDetail, useRecentPlaces, useSearchSavedPlaces } from './api/queries';
 
 /**
@@ -121,6 +123,17 @@ export function MapPage() {
   // 결과가 먼저 비고 엔트리가 뒤늦게 되감기는 사이에 시트 상세가 한 프레임 비치면 안 된다.
   const searchMapActive = isSearchMode && historyState?.[SEARCH_MAP_STATE_KEY] === true;
   const searchResultIds = searchMapActive ? (searchPage?.items.map((item) => item.id) ?? []) : [];
+  // 검색 결과 지도의 플로팅 카드 높이(NOOK-383). 접힘은 지도 탭·끌어내리기로, 모든 카드가 함께
+  // 접힌다. 전체 화면은 화면을 다 덮으니 히스토리로 승격한다 — 뒤로가기·스와이프·X 가 모두
+  // 보던 카드로 돌아온다.
+  const [cardsCollapsed, setCardsCollapsed] = useState(false);
+  const [placeFullOpen, openPlaceFull, closePlaceFull] = useHistoryBackedFlag('searchPlaceFull');
+  // 풀업이 커져 나온 카드 자리 — 풀업은 여기서 커지고 닫힐 때 여기로 줄어든다.
+  const [fullOrigin, setFullOrigin] = useState<CardOrigin | null>(null);
+  // 카드가 화면 아래를 덮는 실제 비율(FloatingPlaceCards 가 잰다). 재기 전엔 시트 스냅으로 어림한다.
+  const [cardsCoverage, setCardsCoverage] = useState<number | null>(null);
+  const cardsSnap =
+    cardsCoverage ?? (cardsCollapsed ? DETAIL_COMPACT_SNAP_POINT : DETAIL_PAGE_SNAP_POINT);
   // 지도에 노출할 아카이브 선택(NOOK-311). 같은 진입 동안만 유지하고 지도를 나갔다 오면
   // 전체로 초기화한다는 정책이라 URL 이 아니라 이 화면의 state 에 둔다(언마운트 = 초기화).
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>(null);
@@ -287,6 +300,8 @@ export function MapPage() {
    */
   function handlePlaceClick(id: number, placeShareToken?: string | null) {
     setSelectedPlaceId(id, placeShareToken);
+    // 핀을 새로 고르면 접혀 있던 카드도 기본 높이로 다시 보여준다.
+    setCardsCollapsed(false);
     // 검색 결과 지도에선 시트를 쓰지 않아 높이를 건드리지 않는다 — 결과 목록으로 돌아갔을 때
     // 보던 높이(mid)가 그대로여야 한다.
     if (!searchMapActive) setSnap(DETAIL_PAGE_SNAP_POINT); // detailPage 스냅으로 열어 상세를 보여준다
@@ -345,6 +360,7 @@ export function MapPage() {
 
   /** 검색 결과 카드 선택 — 시트 상세 대신 검색 결과 지도로 들어간다(NOOK-383). */
   function handleSearchResultClick(id: number) {
+    setCardsCollapsed(false);
     setSelectedPlaceId(id, null, { entersSearchMap: true });
   }
 
@@ -415,12 +431,17 @@ export function MapPage() {
           // 준비되는 시점에 이동한다. 선택이 풀리면 undefined 가 되어 이동하지 않는다.
           panTarget={selectedPlace ? { lat: selectedPlace.lat, lng: selectedPlace.lng } : undefined}
           // 검색 결과 지도는 시트 대신 플로팅 카드가 화면 아래 절반쯤을 덮는다.
-          sheetSnap={
-            searchMapActive ? DETAIL_PAGE_SNAP_POINT : typeof snap === 'number' ? snap : undefined
-          }
+          sheetSnap={searchMapActive ? cardsSnap : typeof snap === 'number' ? snap : undefined}
           onPlaceClick={handlePlaceClick}
           // 빈 지도 탭 = 상세 헤더 닫기와 같은 길(NOOK-327). 선택이 없으면 할 일이 없다.
-          onEmptyMapClick={selectedPlaceId !== null ? handleCloseDetail : undefined}
+          // 검색 결과 지도에선 카드를 닫지 않고 접는다 — 닫기는 카드의 X 뿐이다(NOOK-383).
+          onEmptyMapClick={
+            selectedPlaceId === null
+              ? undefined
+              : searchMapActive
+                ? () => setCardsCollapsed(true)
+                : handleCloseDetail
+          }
           onBoundsChanged={setBounds}
           onDestinationBounds={setDestinationBounds}
         />
@@ -429,7 +450,7 @@ export function MapPage() {
         {searchMapActive ? (
           // 카드가 떠 있으면 카드 위로, 닫혀 있으면 화면 아래쪽에 둔다.
           <RecenterButton
-            snapPoint={selectedPlaceId !== null ? DETAIL_PAGE_SNAP_POINT : 0}
+            snapPoint={selectedPlaceId !== null ? cardsSnap : 0}
             onClick={() => mapRef.current?.recenter()}
           />
         ) : (
@@ -454,12 +475,29 @@ export function MapPage() {
             key={searchResultIndex >= 0 ? 'results' : 'single'}
             placeIds={searchResultIndex >= 0 ? searchResultIds : [selectedPlaceId]}
             activeIndex={Math.max(searchResultIndex, 0)}
+            collapsed={cardsCollapsed}
             userCoords={location.coords}
+            onCollapsedChange={setCardsCollapsed}
+            fullOpen={placeFullOpen}
+            onCoverageChange={setCardsCoverage}
+            onExpandFull={(origin) => {
+              setFullOrigin(origin ?? null);
+              openPlaceFull();
+            }}
             onActiveIndexChange={(index) => {
               const id = searchResultIds[index];
               if (id !== undefined) setSelectedPlaceId(id);
             }}
             onClose={handleCloseDetail}
+            onSelectPlace={handlePlaceClick}
+          />
+        ) : null}
+        {searchMapActive && placeFullOpen && selectedPlace ? (
+          <PlaceFullSheet
+            place={selectedPlace}
+            origin={fullOrigin}
+            userCoords={location.coords}
+            onClose={closePlaceFull}
             onSelectPlace={handlePlaceClick}
           />
         ) : null}
