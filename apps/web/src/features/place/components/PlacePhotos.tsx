@@ -31,10 +31,12 @@ export interface PlacePhotosProps {
   className?: string;
 }
 
-const FRAME_CLASS = 'h-[212px] w-full overflow-hidden rounded-sm border border-gray-20 bg-gray-10';
+const FRAME_CLASS = 'w-full overflow-hidden rounded-sm border border-gray-20 bg-gray-10';
 
 function PlacePhotos({ photos, onPhotoClick, keepFrameWhenEmpty, className }: PlacePhotosProps) {
   const [active, setActive] = useState(0);
+  // 플로팅 카드(자리 고정 모드)는 시트보다 좁아(319 vs 343) 같은 비율로 198px 이다(시안 405:18473).
+  const frameClass = cn(FRAME_CLASS, keepFrameWhenEmpty ? 'h-[198px]' : 'h-[212px]');
 
   // 여러 장일 때만 붙는 점 인디케이터 몫 — 높이를 고정할 땐 한 장·없음에서도 비워 둔다.
   const indicatorSpace = keepFrameWhenEmpty ? (
@@ -44,7 +46,7 @@ function PlacePhotos({ photos, onPhotoClick, keepFrameWhenEmpty, className }: Pl
   if (photos.length === 0 && keepFrameWhenEmpty) {
     return (
       <div data-slot="place-photos" className={cn('w-full', className)}>
-        <div className={cn('flex items-center justify-center', FRAME_CLASS)}>
+        <div className={cn('flex items-center justify-center', frameClass)}>
           <img src={emptyPhoto} alt="" className="size-[98px]" />
         </div>
         {indicatorSpace}
@@ -71,7 +73,7 @@ function PlacePhotos({ photos, onPhotoClick, keepFrameWhenEmpty, className }: Pl
               'aria-label': `${index + 1}번째 사진 크게 보기`,
             }
           : {})}
-        className={cn('block', FRAME_CLASS)}
+        className={cn('block', frameClass)}
       >
         <img src={src} alt="" className="size-full object-cover" />
       </Comp>
