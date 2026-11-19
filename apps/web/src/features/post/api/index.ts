@@ -5,6 +5,7 @@ import {
   disconnectPlace as disconnectPlaceEndpoint,
   findPlaceParsing,
   getSavedPostDetail,
+  issue1 as issuePostShareLinkEndpoint,
   type PlaceResponse,
   type PlaceSearchResponse,
   type RecoveryResponse,
@@ -261,4 +262,14 @@ export async function updatePlaceBookmark(placeId: number, bookmarked: boolean):
  */
 export async function disconnectPostPlace(postId: number, placeId: number): Promise<void> {
   await disconnectPlaceEndpoint(postId, placeId, { auth: 'required' });
+}
+
+/**
+ * `POST /api/v1/posts/{postId}/share-links` — 지금 게시물 콘텐츠와 연결된 장소를 고정한(스냅샷)
+ * 공유 토큰을 발급한다. 이후 원본이 바뀌어도 링크로 보이는 내용은 그대로다.
+ */
+export async function issuePostShareLink(postId: number): Promise<string> {
+  const dto = unwrapApiResponse(await issuePostShareLinkEndpoint(postId, { auth: 'required' }));
+  if (!dto?.token) throw new Error('공유 링크를 발급하지 못했어요');
+  return dto.token;
 }

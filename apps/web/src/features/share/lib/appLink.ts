@@ -6,7 +6,8 @@ const DEV_APP_SCHEME = 'kr.co.everynook.app.dev';
 // dev 앱(미설치)으로 가는 일이 없게, prod 쪽을 나열하지 않고 dev 호스트만 명시한다.
 const DEV_HOSTS = new Set(['app-dev.everynook.co.kr', 'localhost', '127.0.0.1']);
 
-export function buildAppSharedLink(token: string, hostname = window.location.hostname): string {
+/** `path` 는 웹 공유 경로 그대로(`shared/{token}`·`shared-post/{token}`) — 앱이 같은 웹 경로로 연다. */
+export function buildAppSharedLink(path: string, hostname = window.location.hostname): string {
   const scheme = DEV_HOSTS.has(hostname) ? DEV_APP_SCHEME : APP_SCHEME;
-  return `${scheme}://shared/${token}`;
+  return `${scheme}://${path}`;
 }

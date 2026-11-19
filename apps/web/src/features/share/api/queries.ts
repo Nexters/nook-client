@@ -1,11 +1,13 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { archiveQueryKeys } from '@/features/archive/api/queries';
 import {
+  fetchPostShare,
   fetchSharedArchive,
   fetchSharedArchivePlaces,
   fetchSharedArchivePosts,
   fetchSharedArchiveSubscribers,
   fetchSharedPostDetail,
+  savePostShare,
   saveSharedPost,
   subscribeSharedArchive,
 } from '.';
@@ -16,6 +18,7 @@ export const sharedQueryKeys = {
   places: (token: string) => ['shared', token, 'places'] as const,
   subscribers: (token: string) => ['shared', token, 'subscribers'] as const,
   postDetail: (token: string, postId: number) => ['shared', token, 'posts', postId] as const,
+  postShare: (token: string) => ['post-share', token] as const,
 };
 
 /** 공유 아카이브 메타 — 잘못된/해제된 토큰이면 에러로 떨어진다(화면이 코드별 안내를 그린다). */
@@ -92,6 +95,26 @@ export function useSaveSharedPost() {
       queryClient.invalidateQueries({
         queryKey: sharedQueryKeys.postDetail(variables.shareToken, variables.sharedPostId),
       });
+    },
+  });
+}
+
+export function usePostShare(token: string) {
+  return useQuery({
+    queryKey: sharedQueryKeys.postShare(token),
+    queryFn: () => fetchPostShare(token),
+    // 만료·없는 링크는 재시도해도 결과가 같다.
+    retry: false,
+  });
+}
+
+export function useSavePostShare() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: savePostShare,
+    onSuccess: (_postId, { token }) => {
+      queryClient.invalidateQueries({ queryKey: archiveQueryKeys.list });
+      queryClient.invalidateQueries({ queryKey: sharedQueryKeys.postShare(token) });
     },
   });
 }

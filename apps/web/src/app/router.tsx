@@ -29,6 +29,7 @@ import { PostDetailPage } from '@/features/post/PostDetailPage';
 import { SharedArchivePage } from '@/features/share/SharedArchivePage';
 import { SharedArchiveSubscribersPage } from '@/features/share/SharedArchiveSubscribersPage';
 import { SharedPostDetailPage } from '@/features/share/SharedPostDetailPage';
+import { SharedPostSharePage } from '@/features/share/SharedPostSharePage';
 import { env } from '@/shared/config/env';
 
 // 셸 WebView 에서 딥링크/새로고침 시 BrowserRouter 경로 문제가 확인되면
@@ -156,6 +157,14 @@ export const router = createBrowserRouter([
         element: (
           <AwaitSession>
             <SharedPostDetailPage />
+          </AwaitSession>
+        ),
+      },
+      {
+        path: 'shared-post/:token',
+        element: (
+          <AwaitSession>
+            <SharedPostSharePage />
           </AwaitSession>
         ),
       },

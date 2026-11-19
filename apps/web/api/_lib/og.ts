@@ -39,23 +39,46 @@ function toDescription(archive: SharedArchiveMeta): string {
   return `${owner}${archive.postCount} Places`;
 }
 
+/** OG 태그로 다시 쓸 값 — 공유 종류(아카이브·게시물)마다 조회 결과에서 만든다. */
+export interface OgMeta {
+  title: string;
+  description: string;
+  imageUrl?: string;
+}
+
+export function archiveOgMeta(archive: SharedArchiveMeta): OgMeta {
+  return {
+    title: archive.name,
+    description: toDescription(archive),
+    imageUrl: archive.thumbnailUrl,
+  };
+}
+
 /**
- * 빌드된 `index.html`(전역 기본 og:* 를 담고 있다)을 받아, 공유 아카이브 기준으로
- * 제목·설명·이미지·url 을 다시 쓴다. archive 가 null(무효 토큰·조회 실패)이면 제목·설명은
+ * 빌드된 `index.html`(전역 기본 og:* 를 담고 있다)을 받아, 공유 대상 기준으로
+ * 제목·설명·이미지·url 을 다시 쓴다. meta 가 null(무효 토큰·조회 실패)이면 제목·설명은
  * 기본값을 그대로 두고, 이미지·url 만 채운다 — 실패해도 og:image·og:url 은 항상 이
  * 공유 링크에 맞는 절대 URL이어야 하기 때문이다.
  */
-export function renderSharedArchiveHtml(html: string, options: RenderOptions): string {
-  const { archive, shareUrl, fallbackImageUrl } = options;
+export function renderShareOgHtml(
+  html: string,
+  options: { meta: OgMeta | null; shareUrl: string; fallbackImageUrl: string },
+): string {
+  const { meta, shareUrl, fallbackImageUrl } = options;
 
   let result = html;
-  if (archive) {
-    result = setTitle(result, `${archive.name} - Nook`);
-    result = setMetaContent(result, 'og:title', `${archive.name} - Nook`);
-    result = setMetaContent(result, 'og:description', toDescription(archive));
+  if (meta) {
+    result = setTitle(result, `${meta.title} - Nook`);
+    result = setMetaContent(result, 'og:title', `${meta.title} - Nook`);
+    result = setMetaContent(result, 'og:description', meta.description);
   }
-  result = setMetaContent(result, 'og:image', archive?.thumbnailUrl ?? fallbackImageUrl);
+  result = setMetaContent(result, 'og:image', meta?.imageUrl ?? fallbackImageUrl);
   result = setMetaContent(result, 'og:url', shareUrl);
 
   return result;
+}
+
+export function renderSharedArchiveHtml(html: string, options: RenderOptions): string {
+  const { archive, ...rest } = options;
+  return renderShareOgHtml(html, { meta: archive ? archiveOgMeta(archive) : null, ...rest });
 }

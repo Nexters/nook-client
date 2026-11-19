@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/shared/:token", "destination": "/api/shared?token=:token" },
+    { "source": "/shared-post/:token", "destination": "/api/shared-post?token=:token" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

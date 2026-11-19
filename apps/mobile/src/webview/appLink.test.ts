@@ -29,6 +29,12 @@ describe('resolveAppLinkWebUrl', () => {
     );
   });
 
+  it('게시물 공유 딥링크를 웹 게시물 공유 화면으로 변환한다', () => {
+    expect(resolveAppLinkWebUrl('kr.co.everynook.app://shared-post/ptok_1', WEB_URL)).toBe(
+      `${WEB_URL}/shared-post/ptok_1`,
+    );
+  });
+
   it.each([
     'kr.co.everynook.app://shared/tok/extra',
     'kr.co.everynook.app://shared/한글토큰',
