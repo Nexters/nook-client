@@ -764,6 +764,24 @@ describe('MapPage — 검색 결과 지도(NOOK-383)', () => {
     await screen.findByTestId('cards');
   }
 
+  it('검색 결과 목록에서 빈 지도를 누르면 검색어를 유지하며 시트를 접는다', async () => {
+    const { MID_SNAP_POINT, PEEK_SNAP_POINT } = await import('@/features/map/constants');
+    renderMapAt('/map');
+    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
+    fireEvent.click(screen.getByRole('button', { name: '검색 진입' }));
+    fireEvent.click(screen.getByRole('button', { name: '검색 입력 포커스' }));
+    const input = screen.getByLabelText('검색어');
+    fireEvent.change(input, { target: { value: '성수' } });
+    await waitFor(() => expect(mocks.fetchSavedPlaceSearch).toHaveBeenCalledWith('성수', null));
+    expect(screen.getByText(`스냅: ${MID_SNAP_POINT}`)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '빈 지도 탭' }));
+
+    expect(screen.getByText(`스냅: ${PEEK_SNAP_POINT}`)).toBeInTheDocument();
+    expect(input).toHaveValue('성수');
+    expect(screen.getByText('검색모드: true')).toBeInTheDocument();
+  });
+
   it('결과 카드를 고르면 시트를 가리고 검색 헤더와 결과 순서의 플로팅 카드를 띄운다', async () => {
     await openSearchMap();
 

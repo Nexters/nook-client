@@ -478,6 +478,15 @@ export function MapPage() {
     setSnap((current) => (current === PEEK_SNAP_POINT ? MID_SNAP_POINT : current));
   }
 
+  function collapseSearchSheet() {
+    // Keep focus inside the drawer without letting its focus scope reopen the search keyboard.
+    const focused = document.activeElement;
+    if (focused instanceof HTMLInputElement) {
+      focused.closest<HTMLElement>('[data-slot="drawer-content"]')?.focus({ preventScroll: true });
+    }
+    setSnap(PEEK_SNAP_POINT);
+  }
+
   // 리모컨은 로컬 목 모드에서만 활성화한다. 실제 검색·선택·확장 핸들러를 재사용한다.
   useEffect(() => {
     if (!prototypeCase || historyState?.prototypeScenario === prototypeCase) return;
@@ -572,12 +581,14 @@ export function MapPage() {
           // 검색 결과 지도는 시트 대신 플로팅 카드가 화면 아래 절반쯤을 덮는다.
           sheetSnap={searchMapActive ? cardsSnap : typeof snap === 'number' ? snap : undefined}
           onPlaceClick={handleMapPinClick}
-          // 빈 지도 탭 = 상세 헤더 닫기와 같은 길(NOOK-327). 선택이 없으면 할 일이 없다.
+          // 검색 결과 목록은 검색어를 유지한 채 최저 스냅으로 접는다.
           // 검색 결과 플로팅 카드가 떠 있으면 닫지 않고 접힌 카드로 내린다 — 결과를 둘러보던
           // 맥락(검색 헤더·카드 위치)은 그대로 두고 지도만 넓게 보여준다.
           onEmptyMapClick={
             selectedPlaceId === null
-              ? undefined
+              ? isSearchMode
+                ? collapseSearchSheet
+                : undefined
               : searchMapActive && !placeFullOpen
                 ? () => setCardsCollapsed(true)
                 : handleCloseDetail
