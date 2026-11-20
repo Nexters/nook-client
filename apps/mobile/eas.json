@@ -19,6 +19,18 @@
         "APP_VARIANT": "development"
       }
     },
+    "dev-store": {
+      "extends": "base",
+      "distribution": "store",
+      "environment": "development",
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "development"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
+      }
+    },
     "prod-store": {
       "extends": "base",
       "distribution": "store",
@@ -33,6 +45,12 @@
     }
   },
   "submit": {
+    "dev-store": {
+      "ios": {
+        "ascAppId": "6803065807",
+        "appleTeamId": "TDTGJZTB57"
+      }
+    },
     "prod-store": {
       "ios": {
         "ascAppId": "6798223287",

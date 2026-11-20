@@ -2,6 +2,7 @@ import { useState } from 'react';
 import emptyPhoto from '@/assets/images/place-photo-empty.svg';
 import { cn } from '@/shared/lib/utils';
 import { Badge, Carousel } from '@/shared/ui';
+import { CarouselIndicator } from '@/shared/ui/carousel-indicator';
 
 /**
  * Figma `업체 정보 > 장소 카드`(126:13548) — 장소 사진 캐러셀.
@@ -24,13 +25,49 @@ export interface PlacePhotosProps {
   variant?: 'default' | 'floating';
   /** 넘기면 사진이 버튼이 된다 — 전체보기(사진 그리드)로 열 때 쓴다. */
   onPhotoClick?: () => void;
+  /**
+   * 사진이 없을 때 빠지는 대신 고스트 프레임으로 자리를 지킨다 — 높이가 고정이어야 하는
+   * 검색 결과 지도의 플로팅 카드용(Figma `이미지 없음`, NOOK-383).
+   */
+  keepFrameWhenEmpty?: boolean;
   className?: string;
 }
 
 const FRAME_CLASS = 'w-full overflow-hidden rounded-sm border border-gray-20 bg-gray-10';
 
-function PlacePhotos({ photos, onPhotoClick, className, variant = 'default' }: PlacePhotosProps) {
+function PlacePhotos({
+  photos,
+  onPhotoClick,
+  className,
+  variant = 'default',
+  keepFrameWhenEmpty,
+}: PlacePhotosProps) {
   const [active, setActive] = useState(0);
+  // 플로팅 카드(자리 고정 모드)는 시트보다 좁아(319 vs 343) 같은 비율로 198px 이다(시안 405:18473).
+  const frameClass = cn(
+    FRAME_CLASS,
+    keepFrameWhenEmpty
+      ? 'h-[198px]'
+      : variant === 'floating'
+        ? 'aspect-[319/198] h-auto'
+        : 'h-[212px]',
+  );
+
+  // 여러 장일 때만 붙는 점 인디케이터 몫 — 높이를 고정할 땐 한 장·없음에서도 비워 둔다.
+  const indicatorSpace = keepFrameWhenEmpty ? (
+    <CarouselIndicator aria-hidden="true" count={2} activeIndex={0} className="invisible py-3" />
+  ) : null;
+
+  if (photos.length === 0 && keepFrameWhenEmpty) {
+    return (
+      <div data-slot="place-photos" className={cn('w-full', className)}>
+        <div className={cn('flex items-center justify-center', frameClass)}>
+          <img src={emptyPhoto} alt="" className="size-[98px]" />
+        </div>
+        {indicatorSpace}
+      </div>
+    );
+  }
 
   // 사진이 하나도 없으면 아무것도 그리지 않는다 — 빈 프레임으로 자리를 잡아두면 시트에
   // 회색 상자만 덩그러니 남는다(QA). 사라진 만큼 시트가 낮아져야 콘텐츠가 꽉 차는데,
@@ -59,11 +96,7 @@ function PlacePhotos({ photos, onPhotoClick, className, variant = 'default' }: P
               'aria-label': `${index + 1}번째 사진 크게 보기`,
             }
           : {})}
-        className={cn(
-          'block',
-          FRAME_CLASS,
-          variant === 'floating' ? 'aspect-[319/198] h-auto' : 'h-[212px]',
-        )}
+        className={cn('block', frameClass)}
       >
         <img src={src} alt="" className="size-full object-cover" />
       </Comp>
@@ -74,9 +107,15 @@ function PlacePhotos({ photos, onPhotoClick, className, variant = 'default' }: P
     return (
       <div
         data-slot="place-photos"
-        className={cn('w-full', variant === 'floating' && 'touch-none pb-7', className)}
+        className={cn(
+          'w-full',
+          variant === 'floating' && 'touch-none',
+          variant === 'floating' && !keepFrameWhenEmpty && 'pb-7',
+          className,
+        )}
       >
         {slides[0]}
+        {indicatorSpace}
       </div>
     );
   }

@@ -115,7 +115,7 @@ export function PlaceSheet({
   instantOpen?: boolean;
   /** 현재 위치 — 장소까지의 거리 표기에 쓴다. 없으면 거리를 보여주지 않는다. */
   userCoords?: Coordinates | null;
-  /** 저장한 공간 검색 모드 — 탐색 콘텐츠 위로 검색 패널이 슬라이드되어 덮는다. */
+  /** 저장한 공간 검색 모드 — 탐색 콘텐츠 위를 검색 패널이 제자리에서 바로 덮는다. */
   isSearchMode: boolean;
   /** 검색어·결과 — 검색 결과 지도와 같은 값을 써야 해서 `MapPage` 가 갖는다. */
   searchQuery: string;

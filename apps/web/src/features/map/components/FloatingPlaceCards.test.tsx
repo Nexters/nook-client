@@ -1,196 +1,122 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { afterEach, expect, it, vi } from 'vitest';
-import { ToastProvider } from '@/shared/toast';
-import { FloatingPlaceCards } from './FloatingPlaceCards';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
-const fixture = vi.hoisted(() => ({ photos: ['/a.jpg', '/b.jpg'] }));
+// 상세가 오기 전 자리(스켈레톤)만 그려도 제스처 판정엔 충분하다.
+vi.mock('@/features/map/api/queries', () => ({ usePlaceDetail: () => ({ data: undefined }) }));
 
-vi.mock('@/features/map/api/queries', async (original) => ({
-  ...(await original<typeof import('@/features/map/api/queries')>()),
-  usePlaceDetail: (id: number | null) => ({
-    data:
-      id === null
-        ? undefined
-        : {
-            id,
-            name: `장소 ${id}`,
-            category: '카페',
-            address: '서울 성동구 서울숲길',
-            lat: 37.54,
-            lng: 127.04,
-            bookmarked: true,
-            photos: fixture.photos,
-            tags: ['조용한', '정갈한'],
-            posts: [],
-            postsTotal: 0,
-          },
-  }),
-}));
-afterEach(() => {
-  fixture.photos = ['/a.jpg', '/b.jpg'];
-  vi.restoreAllMocks();
-  vi.useRealTimers();
-});
-
-function renderCards(
-  onActiveIndexChange = vi.fn(),
-  onHeightChange = vi.fn(),
-  onExpand = vi.fn(),
-  compact = false,
-) {
-  render(
-    <QueryClientProvider client={new QueryClient()}>
-      <ToastProvider>
-        <MemoryRouter>
-          <FloatingPlaceCards
-            placeIds={[1, 2, 3]}
-            activeIndex={0}
-            onActiveIndexChange={onActiveIndexChange}
-            onHeightChange={onHeightChange}
-            onExpand={onExpand}
-            compact={compact}
-            onClose={() => {}}
-            onSelectPlace={() => {}}
-          />
-        </MemoryRouter>
-      </ToastProvider>
-    </QueryClientProvider>,
-  );
+// jsdom 엔 PointerEvent 가 없어 좌표가 빠진다 — 좌표를 싣는 MouseEvent 로 채운다.
+if (!('PointerEvent' in globalThis)) {
+  (globalThis as { PointerEvent?: unknown }).PointerEvent = class extends MouseEvent {};
 }
 
-it('reports card height so the location button stays above the resized card', () => {
-  vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(365);
-  const onHeightChange = vi.fn();
-  renderCards(vi.fn(), onHeightChange);
-  expect(onHeightChange).toHaveBeenCalledWith(365);
+const { FloatingPlaceCards } = await import('./FloatingPlaceCards');
+
+function setup(collapsed: boolean) {
+  const onCollapsedChange = vi.fn();
+  const onExpandFull = vi.fn();
+  render(
+    <FloatingPlaceCards
+      placeIds={[1]}
+      activeIndex={0}
+      collapsed={collapsed}
+      onActiveIndexChange={vi.fn()}
+      onCollapsedChange={onCollapsedChange}
+      onExpandFull={onExpandFull}
+      onClose={vi.fn()}
+      onSelectPlace={vi.fn()}
+    />,
+  );
+  const card = screen.getByRole('region', { name: '장소' });
+  const drag = (dx: number, dy: number) => {
+    fireEvent.pointerDown(card, { clientX: 100, clientY: 400, button: 0 });
+    // 손은 카드 밖으로 나갈 수 있다 — 이동·떼기는 window 에서 받는다.
+    fireEvent.pointerMove(window, { clientX: 100 + dx, clientY: 400 + dy });
+    fireEvent.pointerUp(window, { clientX: 100 + dx, clientY: 400 + dy });
+  };
+  return { card, drag, onCollapsedChange, onExpandFull };
+}
+
+describe('FloatingPlaceCards 높이 제스처(NOOK-383)', () => {
+  it('펼친 카드를 끌어올리면 전체 화면, 끌어내리면 접기', () => {
+    const { drag, onCollapsedChange, onExpandFull } = setup(false);
+    drag(0, -80);
+    expect(onExpandFull).toHaveBeenCalledTimes(1);
+    drag(0, 80);
+    expect(onCollapsedChange).toHaveBeenCalledWith(true);
+  });
+
+  it('접힌 카드는 끌어올리거나 누르면 펴진다 — 전체 화면으로 건너뛰지 않는다', () => {
+    const { card, drag, onCollapsedChange, onExpandFull } = setup(true);
+    drag(0, -80);
+    expect(onCollapsedChange).toHaveBeenLastCalledWith(false);
+    // 끌기 뒤에 따라오는 click 은 삼킨다 — 새로 누른 탭(pointerdown 부터)만 펼치기로 받는다.
+    fireEvent.click(card);
+    expect(onCollapsedChange).toHaveBeenCalledTimes(1);
+    fireEvent.pointerDown(card, { clientX: 100, clientY: 400, button: 0 });
+    fireEvent.pointerUp(window, { clientX: 100, clientY: 400 });
+    fireEvent.click(card);
+    expect(onCollapsedChange).toHaveBeenCalledTimes(2);
+    expect(onExpandFull).not.toHaveBeenCalled();
+  });
+
+  it('짧은 흔들림이나 가로 넘기기는 높이를 바꾸지 않는다', () => {
+    const { drag, onCollapsedChange, onExpandFull } = setup(false);
+    drag(0, -20);
+    drag(-120, -60);
+    expect(onCollapsedChange).not.toHaveBeenCalled();
+    expect(onExpandFull).not.toHaveBeenCalled();
+  });
 });
 
-it('keeps photo swipes inside the card and advances places only on the outer scroller', () => {
-  vi.useFakeTimers();
-  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
-  const onActiveIndexChange = vi.fn();
-  renderCards(onActiveIndexChange);
-  const placeScroller = screen.getByRole('region', { name: '검색 결과 장소' });
-  const photoScroller = placeScroller.querySelector('[data-slot="carousel"] > div');
-  if (!photoScroller) throw new Error('Missing photo scroller');
-  fireEvent.scroll(photoScroller, { target: { scrollLeft: 359 } });
-  act(() => vi.advanceTimersByTime(120));
-  expect(onActiveIndexChange).not.toHaveBeenCalled();
-  fireEvent.scroll(placeScroller, { target: { scrollLeft: 355 } });
-  act(() => vi.advanceTimersByTime(120));
-  expect(onActiveIndexChange).toHaveBeenCalledWith(1);
-});
-
-it('tracks upward drag directly and expands on release while horizontal photo swipes stay local', () => {
-  vi.stubGlobal('PointerEvent', MouseEvent);
-  try {
-    const onExpand = vi.fn();
-    renderCards(vi.fn(), vi.fn(), onExpand);
-    const handle = screen.getAllByRole('button', { name: '장소 상세 전체 화면으로 확장' })[0];
-    if (!handle) throw new Error('Missing handle');
-    const card = handle.closest('section');
-    if (!card) throw new Error('Missing card');
-    fireEvent.pointerDown(handle, { button: 0, clientX: 100, clientY: 500 });
-    fireEvent.pointerMove(card, { clientX: 102, clientY: 440 });
-    expect(card.style.transform).toBe('translate3d(0, -60px, 0)');
-    fireEvent.pointerUp(card, { clientX: 102, clientY: 440 });
-    expect(onExpand).toHaveBeenCalledTimes(1);
-    const photo = card.querySelector('[data-slot="carousel"] button');
-    if (!photo) throw new Error('Missing photo');
-    fireEvent.pointerDown(photo, { button: 0, clientX: 100, clientY: 500 });
-    fireEvent.pointerMove(card, { clientX: 180, clientY: 495 });
-    fireEvent.pointerUp(card, { clientX: 180, clientY: 495 });
-    expect(onExpand).toHaveBeenCalledTimes(1);
-    expect(card.style.transform).toBe('');
-  } finally {
-    vi.unstubAllGlobals();
+describe('프로토타입 캐러셀 깊이', () => {
+  function renderMultiple() {
+    render(
+      <FloatingPlaceCards
+        placeIds={[1, 2, 3]}
+        activeIndex={0}
+        collapsed={false}
+        onActiveIndexChange={vi.fn()}
+        onCollapsedChange={vi.fn()}
+        onExpandFull={vi.fn()}
+        onClose={vi.fn()}
+        onSelectPlace={vi.fn()}
+      />,
+    );
+    return screen.getByRole('region', { name: '검색 결과 장소' });
   }
-});
 
-it('also expands when dragging a single photo rather than its handle', () => {
-  vi.stubGlobal('PointerEvent', MouseEvent);
-  fixture.photos = ['/single.jpg'];
-  try {
-    const onExpand = vi.fn();
-    renderCards(vi.fn(), vi.fn(), onExpand);
-    const photo = screen
-      .getByRole('region', { name: '검색 결과 장소' })
-      .querySelector('img[src="/single.jpg"]')
-      ?.closest('button');
-    const card = photo?.closest('section');
-    if (!photo || !card) throw new Error('Missing single photo');
-    fireEvent.pointerDown(photo, { button: 0, clientX: 100, clientY: 500 });
-    fireEvent.pointerMove(card, { clientX: 102, clientY: 430 });
-    fireEvent.pointerUp(card, { clientX: 102, clientY: 430 });
-    expect(onExpand).toHaveBeenCalledTimes(1);
-  } finally {
-    vi.unstubAllGlobals();
-  }
-});
+  it('main의 높이 제스처와 함께 스크롤 위치에 맞춰 회전하며 다음 카드 가장자리를 유지한다', () => {
+    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
+    try {
+      const scroller = renderMultiple();
+      const surfaces = scroller.querySelectorAll<HTMLElement>('[data-place-card-surface]');
+      expect(surfaces[1]?.style.transformOrigin).toBe('left bottom');
+      fireEvent.scroll(scroller, { target: { scrollLeft: 177.5 } });
+      expect(surfaces[0]?.style.transform).toContain('rotateY(7deg)');
+      expect(surfaces[1]?.style.transform).toContain('rotateY(-7deg)');
+      fireEvent.scroll(scroller, { target: { scrollLeft: 355 } });
+      expect(surfaces[1]?.style.transform).toContain('rotateY(0deg) scale(1)');
+    } finally {
+      width.mockRestore();
+    }
+  });
 
-it('collapsed cards keep place information and actions but hide photos and indicators', () => {
-  renderCards(vi.fn(), vi.fn(), vi.fn(), true);
-  expect(screen.getByText('장소 1')).toBeInTheDocument();
-  expect(screen.getAllByRole('button', { name: '주소 복사' }).length).toBeGreaterThan(0);
-  expect(
-    screen
-      .getByRole('region', { name: '검색 결과 장소' })
-      .querySelector('[data-slot="place-photos"]'),
-  ).toBeNull();
-  expect(screen.queryByText('1/2')).not.toBeInTheDocument();
-});
-
-it('derives card depth from live scroll and flattens the incoming card at its snap', () => {
-  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
-  renderCards();
-  const scroller = screen.getByRole('region', { name: '검색 결과 장소' });
-  const surfaces = scroller.querySelectorAll<HTMLElement>('[data-place-card-surface]');
-  expect(surfaces[0]?.style.transform).toContain('rotateY(0deg) scale(1)');
-  fireEvent.scroll(scroller, { target: { scrollLeft: 177.5 } });
-  expect(surfaces[0]?.style.transform).toContain('rotateY(7deg)');
-  expect(surfaces[1]?.style.transform).toContain('rotateY(-7deg)');
-  fireEvent.scroll(scroller, { target: { scrollLeft: 355 } });
-  expect(surfaces[1]?.style.transform).toContain('rotateY(0deg) scale(1)');
-});
-
-it('keeps the last card flat at the right-aligned end of the scroller', () => {
-  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
-  vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(1077);
-  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(375);
-  renderCards();
-  const scroller = screen.getByRole('region', { name: '검색 결과 장소' });
-  fireEvent.scroll(scroller, { target: { scrollLeft: 702 } });
-  const surfaces = scroller.querySelectorAll<HTMLElement>('[data-place-card-surface]');
-  expect(surfaces[2]?.style.transform).toContain('rotateY(0deg) scale(1)');
-  expect(surfaces[2]).toHaveClass('touch-pan-x');
-});
-
-it('keeps scrolling but removes decorative depth for reduced motion', () => {
-  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
-  vi.spyOn(window, 'matchMedia').mockReturnValue({
-    matches: true,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  } as unknown as MediaQueryList);
-  renderCards();
-  const scroller = screen.getByRole('region', { name: '검색 결과 장소' });
-  fireEvent.scroll(scroller, { target: { scrollLeft: 177.5 } });
-  for (const surface of scroller.querySelectorAll<HTMLElement>('[data-place-card-surface]')) {
-    expect(surface.style.transform).toBe('');
-  }
-});
-
-it('anchors neighboring card depth to the exposed edge so its peek stays visible', () => {
-  vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
-  renderCards();
-  const scroller = screen.getByRole('region', { name: '검색 결과 장소' });
-  const surfaces = scroller.querySelectorAll<HTMLElement>('[data-place-card-surface]');
-  expect(surfaces[1]?.style.transformOrigin).toBe('left bottom');
-  fireEvent.scroll(scroller, { target: { scrollLeft: 177.5 } });
-  expect(surfaces[0]?.style.transformOrigin).toBe('right bottom');
-  expect(surfaces[1]?.style.transformOrigin).toBe('left bottom');
-  fireEvent.scroll(scroller, { target: { scrollLeft: 355 } });
-  expect(surfaces[1]?.style.transformOrigin).toBe('center bottom');
+  it('모션 줄이기에서는 깊이 효과 없이 넘긴다', () => {
+    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
+    const preference = vi.spyOn(window, 'matchMedia').mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList);
+    try {
+      const scroller = renderMultiple();
+      fireEvent.scroll(scroller, { target: { scrollLeft: 177.5 } });
+      for (const surface of scroller.querySelectorAll<HTMLElement>('[data-place-card-surface]')) {
+        expect(surface.style.transform).toBe('');
+      }
+    } finally {
+      preference.mockRestore();
+      width.mockRestore();
+    }
+  });
 });

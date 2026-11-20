@@ -54,6 +54,32 @@ describe('VideoPlayer', () => {
     expect(container.querySelector('video')).toHaveProperty('muted', false);
   });
 
+  it('상시 보이는 음량 버튼으로 재생을 유지하며 소리를 켜고 끈다', () => {
+    const { container } = render(<VideoPlayer src={VIDEO_URL} />);
+    const video = container.querySelector('video');
+    const initialPlayCalls = vi.mocked(HTMLMediaElement.prototype.play).mock.calls.length;
+
+    act(() => vi.advanceTimersByTime(5000));
+    const unmute = screen.getByRole('button', { name: '소리 켜기' });
+    expect(unmute.className).toContain('top-3 right-3');
+    expect(unmute.className).not.toContain('opacity-0');
+    act(() => unmute.click());
+    expect(video).toHaveProperty('muted', false);
+    expect(screen.getByRole('button', { name: '소리 끄기' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    act(() => screen.getByRole('button', { name: '소리 끄기' }).click());
+    expect(video).toHaveProperty('muted', true);
+    expect(screen.getByRole('button', { name: '소리 켜기' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(vi.mocked(HTMLMediaElement.prototype.play).mock.calls.length).toBe(initialPlayCalls);
+    expect(HTMLMediaElement.prototype.pause).not.toHaveBeenCalled();
+  });
+
   it('누르면 일시정지되고 다시 누르면 재생된다', () => {
     render(<VideoPlayer src={VIDEO_URL} />);
 
@@ -63,6 +89,29 @@ describe('VideoPlayer', () => {
 
     act(() => screen.getByRole('button', { name: '재생' }).click());
     expect(HTMLMediaElement.prototype.play).toHaveBeenCalled();
+  });
+
+  it('한 번 재생한 뒤 끝나면 재생 버튼을 유지하고 누르면 처음부터 다시 재생한다', () => {
+    const { container } = render(<VideoPlayer src={VIDEO_URL} />);
+    const video = container.querySelector('video') as HTMLVideoElement;
+    const icon = container.querySelector('[data-slot="video-player-icon"]');
+    let ended = true;
+    Object.defineProperty(video, 'ended', { configurable: true, get: () => ended });
+    video.currentTime = 5;
+
+    expect(video).not.toHaveAttribute('loop');
+    act(() => video.dispatchEvent(new Event('ended')));
+    act(() => vi.advanceTimersByTime(5000));
+    expect(icon?.className).toContain('opacity-100');
+    expect(screen.getByRole('button', { name: '재생' })).toBeInTheDocument();
+
+    const previousPlayCalls = vi.mocked(HTMLMediaElement.prototype.play).mock.calls.length;
+    act(() => screen.getByRole('button', { name: '재생' }).click());
+    ended = false;
+    expect(video.currentTime).toBe(0);
+    expect(vi.mocked(HTMLMediaElement.prototype.play).mock.calls.length).toBe(
+      previousPlayCalls + 1,
+    );
   });
 
   it('onExpand 를 넘겼을 때만 확대 버튼이 생긴다', () => {
