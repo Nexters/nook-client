@@ -39,6 +39,7 @@ import { PostInfo } from './components/PostInfo';
 import { GoHomeTooltip, PostParsingView } from './components/PostParsingView';
 import { PostVideoViewer } from './components/PostVideoViewer';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
+import { SavedPostActions } from './components/SavedPostActions';
 import { isPostFromList, POST_NOT_FOUND_TOAST } from './postEntry';
 import type { SearchedPlace } from './types';
 
@@ -313,6 +314,16 @@ export function PostDetailPage() {
         <Header
           left={<BackButton onClick={handleBack} />}
           title={<PinnedHeaderTitle target={titleRef}>{title}</PinnedHeaderTitle>}
+          // 지도(장소 상세)에서 여는 게시물 확대뷰와 같은 더보기 메뉴 — 게시물 이동/삭제.
+          // 게시물 자체를 지웠으면 머물 화면이 없어 직전 화면으로 돌아간다.
+          right={
+            <SavedPostActions
+              detail={postDetailState.detail}
+              onDeleted={(removed) => {
+                if (removed) handleBack();
+              }}
+            />
+          }
         />
       }
       // 맨 아래에서 뜨는 "위로가기"(바닥 2.5rem + 48px)에 마지막 콘텐츠가 가리지 않도록

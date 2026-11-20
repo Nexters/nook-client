@@ -31,12 +31,12 @@ const PINNED_HEADER_HEIGHT_VAR = '--pinned-header-height';
  */
 // Tailwind 는 소스를 정적으로 훑어 클래스를 만든다 — 변수명을 끼워 넣어 조립하면
 // 그 클래스가 소스에 없는 것이 되어 CSS 가 생성되지 않는다. 그래서 통째로 적는다.
-// top 전환: 헤더가 접히고 펴질 때(`collapseAfter`) 탭 줄이 헤더를 따라 미끄러지게 한다.
 export const PINNED_HEADER_STICKY =
-  'sticky top-[var(--pinned-header-height)] z-30 transition-[top] duration-200 ease-out motion-reduce:transition-none';
+  'sticky top-[var(--pinned-header-visible-height,var(--pinned-header-height))] z-30';
 
 /** 이만큼(px) 이상 한 방향으로 움직여야 스크롤 방향이 바뀐 것으로 본다 — 손 떨림 무시. */
 const SCROLL_DIRECTION_THRESHOLD_PX = 8;
+const HEADER_TRANSITION_MS = 200;
 
 interface PinnedHeaderLayoutProps {
   /** 상단에 고정할 영역. 보통 `<Header />` 하나지만, 아카이브 상세처럼 정보 블록까지 함께 붙기도 한다. */
@@ -82,11 +82,14 @@ export function PinnedHeaderLayout({
 
   const pinnedRef = useRef<HTMLDivElement>(null);
   const [pinnedHeight, setPinnedHeight] = useState(0);
+  const safeAreaRef = useRef<HTMLDivElement>(null);
+  const [safeAreaHeight, setSafeAreaHeight] = useState(0);
 
   // 데이터가 늦게 도착해 헤더가 길어지는 경우(아카이브 상세의 작성자 줄)는 렌더마다 다시 재서
   // 첫 페인트 전에 맞춘다. 같은 값이면 React 가 리렌더 없이 넘긴다.
   useLayoutEffect(() => {
     if (pinnedRef.current) setPinnedHeight(pinnedRef.current.offsetHeight);
+    if (safeAreaRef.current) setSafeAreaHeight(safeAreaRef.current.offsetHeight);
   });
 
   // 폰트 로드처럼 렌더 밖에서 생기는 높이 변화는 관찰로 따라간다.
@@ -94,14 +97,25 @@ export function PinnedHeaderLayout({
     const pinned = pinnedRef.current;
     if (!pinned) return;
 
-    const observer = new ResizeObserver(() => setPinnedHeight(pinned.offsetHeight));
+    const safeArea = collapseAfter ? safeAreaRef.current : null;
+    const observer = new ResizeObserver(() => {
+      setPinnedHeight(pinned.offsetHeight);
+      if (safeArea) setSafeAreaHeight(safeArea.offsetHeight);
+    });
     observer.observe(pinned);
+    if (safeArea) observer.observe(safeArea);
     return () => observer.disconnect();
-  }, []);
+  }, [collapseAfter]);
 
-  const collapseTargetBehind = useScrolledBehind(collapseAfter, pinnedHeight);
-  const scrollingDown = useScrollingDown(collapseAfter !== undefined);
-  const collapsed = collapseTargetBehind && scrollingDown;
+  const headerBodyRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const collapsed = useHeaderScroll(
+    collapseAfter,
+    headerBodyRef,
+    contentRef,
+    pinnedHeight,
+    safeAreaHeight,
+  );
 
   return (
     <PinnedHeightContext.Provider value={pinnedHeight}>
@@ -115,6 +129,7 @@ export function PinnedHeaderLayout({
                 아랫부분이 노치 옆에 걸쳐 보인다. 펴진 동안엔 헤더 배경과 같아 티가 안 난다. */}
             {collapseAfter ? (
               <div
+                ref={safeAreaRef}
                 aria-hidden="true"
                 className={cn(
                   'absolute inset-x-0 top-0 z-10 mx-auto h-[env(safe-area-inset-top)] max-w-[450px]',
@@ -125,14 +140,9 @@ export function PinnedHeaderLayout({
             {/* 포탈 뒤 fixed 기준은 뷰포트 전체 폭이라, 데스크톱에서도 셸 폭(providers.tsx)을
               넘지 않게 안쪽에서 다시 묶는다. 노치와 겹치지 않도록 safe area 만큼 내린다. */}
             <div
+              ref={headerBodyRef}
               inert={collapsed}
-              className={cn(
-                'mx-auto w-full max-w-[450px]',
-                backgroundClass,
-                collapseAfter &&
-                  'transition-transform duration-200 ease-out motion-reduce:transition-none',
-                collapsed && '-translate-y-[calc(100%-env(safe-area-inset-top))]',
-              )}
+              className={cn('mx-auto w-full max-w-[450px]', backgroundClass)}
               style={{ paddingTop: 'env(safe-area-inset-top)' }}
             >
               {header}
@@ -142,12 +152,11 @@ export function PinnedHeaderLayout({
         )}
 
         <div
+          ref={contentRef}
           style={
             {
               paddingTop: pinnedHeight,
-              [PINNED_HEADER_HEIGHT_VAR]: collapsed
-                ? 'env(safe-area-inset-top)'
-                : `${pinnedHeight}px`,
+              [PINNED_HEADER_HEIGHT_VAR]: `${pinnedHeight}px`,
               ...contentStyle,
             } as CSSProperties
           }
@@ -160,33 +169,31 @@ export function PinnedHeaderLayout({
 }
 
 /**
- * `target` 이 고정 영역 뒤로 완전히 숨었는가.
- *
- * 콘텐츠는 고정 영역 높이만큼 내려 시작하므로, 그 높이가 곧 화면에서 콘텐츠가 처음
- * 보이는 y 좌표다 — 요소의 아래변이 그 선을 넘어가면 더는 보이지 않는다. 스크롤마다
- * 좌표를 재는 대신 그 선을 root 로 삼은 IntersectionObserver 에 맡긴다(위/아래 어느
- * 쪽으로 벗어났는지는 콜백이 준 좌표로 가린다 — 아직 아래에 있는 요소는 숨은 게 아니다).
+ * 대상의 아래변이 지정된 뷰포트 위치를 지났는지 관찰한다.
  */
 function useScrolledBehind(
   target: RefObject<HTMLElement | null> | undefined,
-  pinnedHeight: number,
+  boundary: number | undefined,
 ): boolean {
   const [behind, setBehind] = useState(false);
 
   useEffect(() => {
     const element = target?.current;
-    if (!element || pinnedHeight <= 0) return;
+    if (!element || boundary === undefined) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries.at(-1);
-        if (entry) setBehind(entry.boundingClientRect.bottom <= pinnedHeight);
+        if (entry) setBehind(entry.boundingClientRect.bottom <= boundary);
       },
-      { rootMargin: `-${Math.round(pinnedHeight)}px 0px 0px 0px` },
+      {
+        root: document.getElementById('root'),
+        rootMargin: `-${Math.round(boundary)}px 0px 0px 0px`,
+      },
     );
     observer.observe(element);
     return () => observer.disconnect();
-  }, [target, pinnedHeight]);
+  }, [target, boundary]);
 
   return behind;
 }
@@ -205,7 +212,8 @@ export function PinnedHeaderTitle({
   target: RefObject<HTMLElement | null>;
   children: ReactNode;
 }) {
-  const behind = useScrolledBehind(target, useContext(PinnedHeightContext));
+  const pinnedHeight = useContext(PinnedHeightContext);
+  const behind = useScrolledBehind(target, pinnedHeight || undefined);
 
   return (
     <span
@@ -220,31 +228,87 @@ export function PinnedHeaderTitle({
   );
 }
 
-/**
- * 앱 스크롤러(#root)가 마지막으로 아래로 움직였는가. 헤더를 접고 펴는 판정용이라
- * `enabled` 가 false 면 구독하지 않는다.
- */
-function useScrollingDown(enabled: boolean): boolean {
-  const [down, setDown] = useState(false);
+/** Apply one edge position to the portaled header and sticky tabs in the same frame. */
+function useHeaderScroll(
+  target: RefObject<HTMLElement | null> | undefined,
+  headerRef: RefObject<HTMLDivElement | null>,
+  contentRef: RefObject<HTMLDivElement | null>,
+  expandedTop: number,
+  safeTop: number,
+) {
+  const [collapsed, setCollapsed] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = document.getElementById('root');
-    if (!enabled || !root) return;
+    const header = headerRef.current;
+    const content = contentRef.current;
+    if (!target || !root || !header || !content || expandedTop <= safeTop) return;
 
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    let frame = 0;
     let last = root.scrollTop;
-    const onScroll = () => {
-      const top = root.scrollTop;
-      // 러버밴드(맨 위보다 위·맨 끝보다 아래로 당겨진 구간)의 되튐은 방향 전환이 아니다 —
-      // 끝에서 튕길 때마다 헤더가 튀어나오면 안 된다.
-      if (top < 0 || top > root.scrollHeight - root.clientHeight) return;
-      const delta = top - last;
-      if (Math.abs(delta) < SCROLL_DIRECTION_THRESHOLD_PX) return;
-      last = top;
-      setDown(delta > 0);
+    let down = false;
+    let visibleTop = expandedTop;
+    let destination = expandedTop;
+    const handoffEdge = () =>
+      Math.max(
+        safeTop,
+        Math.min(expandedTop, target.current?.getBoundingClientRect().bottom ?? expandedTop),
+      );
+    const apply = (top: number, edge: number) => {
+      const nextTop = Math.max(top, edge);
+      if (nextTop === visibleTop) return;
+      visibleTop = nextTop;
+      header.style.translate = `0 ${visibleTop - expandedTop}px`;
+      content.style.setProperty('--pinned-header-visible-height', `${visibleTop}px`);
     };
-    root.addEventListener('scroll', onScroll, { passive: true });
-    return () => root.removeEventListener('scroll', onScroll);
-  }, [enabled]);
+    const animateTo = (top: number) => {
+      cancelAnimationFrame(frame);
+      destination = top;
+      const from = visibleTop;
+      const start = performance.now();
+      const tick = (now: number) => {
+        const progress = Math.max(0, Math.min(1, (now - start) / HEADER_TRANSITION_MS));
+        apply(from + (top - from) * (1 - (1 - progress) ** 3), handoffEdge());
+        if (progress < 1) frame = requestAnimationFrame(tick);
+      };
+      frame = requestAnimationFrame(tick);
+    };
 
-  return down;
+    const onScroll = () => {
+      const scrollTop = root.scrollTop;
+      if (scrollTop < 0 || scrollTop > root.scrollHeight - root.clientHeight) return;
+      const delta = scrollTop - last;
+      if (Math.abs(delta) >= SCROLL_DIRECTION_THRESHOLD_PX) {
+        last = scrollTop;
+        down = delta > 0;
+      }
+
+      const edge = handoffEdge();
+      const next = down ? edge : expandedTop;
+      setCollapsed(down && edge <= safeTop);
+      if (
+        reducedMotion?.matches ||
+        (down && edge > safeTop) ||
+        (down && destination > safeTop && visibleTop - safeTop <= SCROLL_DIRECTION_THRESHOLD_PX)
+      ) {
+        cancelAnimationFrame(frame);
+        destination = next;
+        apply(next, edge);
+      } else {
+        if (visibleTop < edge) apply(edge, edge);
+        if (next !== destination) animateTo(next);
+      }
+    };
+
+    root.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      root.removeEventListener('scroll', onScroll);
+      header.style.removeProperty('translate');
+      content.style.removeProperty('--pinned-header-visible-height');
+    };
+  }, [target, headerRef, contentRef, expandedTop, safeTop]);
+
+  return target !== undefined && collapsed;
 }

@@ -14,7 +14,7 @@ const PLACEHOLDER_CARDS = 4;
  */
 function CollectionGridSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4" aria-hidden="true">
+    <div className="grid grid-cols-2 gap-2 px-4 pt-4" aria-hidden="true">
       {Array.from({ length: PLACEHOLDER_CARDS }, (_, index) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: 고정 길이 자리표시자
         <div key={index} className="flex w-full flex-col items-start gap-2">

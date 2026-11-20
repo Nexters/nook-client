@@ -67,3 +67,36 @@ describe('FloatingPlaceCards 높이 제스처(NOOK-383)', () => {
     expect(onExpandFull).not.toHaveBeenCalled();
   });
 });
+
+describe('검색 결과 캐러셀', () => {
+  function renderMultiple() {
+    render(
+      <FloatingPlaceCards
+        placeIds={[1, 2, 3]}
+        activeIndex={0}
+        collapsed={false}
+        onActiveIndexChange={vi.fn()}
+        onCollapsedChange={vi.fn()}
+        onExpandFull={vi.fn()}
+        onClose={vi.fn()}
+        onSelectPlace={vi.fn()}
+      />,
+    );
+    return screen.getByRole('region', { name: '검색 결과 장소' });
+  }
+
+  it('가로로 넘기는 동안 카드에 회전이나 축소를 적용하지 않는다', () => {
+    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
+    try {
+      const scroller = renderMultiple();
+      fireEvent.scroll(scroller, { target: { scrollLeft: 177.5 } });
+      const cards = Array.from(scroller.children) as HTMLElement[];
+      expect(cards).toHaveLength(3);
+      for (const card of cards) {
+        expect(card.style.transform).toBe('');
+      }
+    } finally {
+      width.mockRestore();
+    }
+  });
+});

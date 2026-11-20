@@ -60,6 +60,8 @@ export interface PostArchive {
  * 게시물이 여러 아카이브에 저장될 수 있어 `archives`는 배열이다.
  */
 export interface PostDetail {
+  /** 게시물 단독 공유를 이미 저장한 열람자의 내 게시물 ID. */
+  viewerSavedPostId?: number;
   post: Post;
   processingStatus: PostProcessingStatus;
   /** 본문 처리(크롤링·장소 파싱) 진행률 0~100. PENDING/PROCESSING 동안 폴링으로 갱신된다. */

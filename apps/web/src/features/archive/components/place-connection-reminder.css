@@ -1,0 +1,68 @@
+/* 배너 하나가 한 번에 등장한다 — 자리가 열리며 아래 아카이브 목록을 한 번만 밀고,
+   카드가 떠오른 뒤 사진이 펼쳐진다. 목록이 두 번 밀리지 않도록 사진 자리는 처음부터 카드 안에 있다. */
+.reminder-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reminder-reveal[data-revealed="true"] {
+  grid-template-rows: 1fr;
+}
+.reminder-reveal-clip {
+  min-height: 0;
+  overflow: clip;
+  /* 사진 그림자가 카드 밖으로 잘리지 않게 */
+  overflow-clip-margin: 12px;
+}
+.reminder-card {
+  opacity: 0;
+  /* Airbnb 'Continue searching' 카드처럼 작게 흐린 상태에서 커지며 또렷해진다(스프링 느낌의 살짝 넘침). */
+  transform: scale(0.9);
+  transform-origin: center top;
+  transition:
+    opacity 560ms ease-out 80ms,
+    transform 900ms cubic-bezier(0.34, 1.18, 0.64, 1);
+}
+.reminder-reveal[data-revealed="true"] .reminder-card {
+  opacity: 1;
+  transform: none;
+}
+.reminder-photo {
+  transform-origin: center bottom;
+  opacity: 0;
+  transition:
+    transform 720ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 480ms ease-out;
+}
+.reminder-reveal[data-revealed="true"] .reminder-photo {
+  opacity: 1;
+}
+/* 스크롤에 붙은 축소 — 배너가 위로 밀려 나갈수록 작아지고 흐려지며, 다시 내리면 커진다.
+   진입 transform 과 겹치지 않게 바깥 래퍼에 건다. */
+@supports (animation-timeline: view()) {
+  .reminder-reveal[data-revealed="true"] .reminder-reveal-clip {
+    transform-origin: center bottom;
+    animation: reminder-scroll-shrink linear both;
+    animation-timeline: view();
+    animation-range: exit 0% exit 100%;
+  }
+}
+@keyframes reminder-scroll-shrink {
+  to {
+    opacity: 0.3;
+    transform: scale(0.92);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reminder-reveal-clip {
+    animation: none !important;
+  }
+  .reminder-reveal {
+    transition: none;
+  }
+  .reminder-card,
+  .reminder-photo {
+    transition: opacity 200ms ease;
+    transform: none !important;
+  }
+}

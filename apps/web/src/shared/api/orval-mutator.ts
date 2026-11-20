@@ -22,5 +22,10 @@ function getApiClientPath(value: string): string {
 }
 
 export function orvalMutator<T>(url: string, options: ApiRequestInit): Promise<T> {
+  if (import.meta.env.DEV && env.localPrototype) {
+    return import('@/dev/local-prototype').then(
+      ({ localPrototypeRequest }) => localPrototypeRequest(url, options) as Promise<T>,
+    );
+  }
   return apiFetch<T>(getApiClientPath(url), options);
 }

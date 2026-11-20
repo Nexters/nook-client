@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import placeMetaDot from '@/assets/images/place-meta-dot.svg';
 import { Icon14Processing } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { MediaBadge, Thumbnail } from '@/shared/ui';
@@ -30,10 +31,18 @@ export interface PlaceCardProps {
    * 사진 아이콘으로 고정한다 — 구분 필드가 생기면 타입을 받게 바꾼다.
    */
   mediaBadge?: boolean;
+  /** 지도 탭: Figma 56:3703의 167×134 가로형 썸네일·12px 텍스트. */
+  variant?: 'default' | 'map' | 'feed' | 'list';
   className?: string;
 }
 
-function PlaceCard({ place, onClick, mediaBadge = false, className }: PlaceCardProps) {
+function PlaceCard({
+  place,
+  onClick,
+  mediaBadge = false,
+  variant = 'default',
+  className,
+}: PlaceCardProps) {
   const Comp = onClick ? 'button' : 'div';
   const isProcessing = place.thumbnailState === 'processing';
   // 파싱 실패는 장소 "사진" 크롤링만 실패한 것이다 — 이름·지역·카테고리는 응답에 그대로
@@ -62,25 +71,41 @@ function PlaceCard({ place, onClick, mediaBadge = false, className }: PlaceCardP
           }
         : {})}
       className={cn(
-        'flex w-full flex-col items-start gap-1 bg-gray-0 pb-2 text-left',
+        'flex w-full min-w-0 bg-gray-0 text-left',
+        variant === 'list' ? 'flex-row items-center gap-3' : 'flex-col items-start',
+        variant === 'map' ? 'gap-2' : 'gap-1 pb-2',
         onClick &&
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-2',
         className,
       )}
     >
       {/* 시안 167x208. 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
-      <div className="relative w-full">
+      <div className={cn('relative', variant === 'list' ? 'w-16 shrink-0' : 'w-full')}>
         <Thumbnail
           src={place.thumbnail}
           alt=""
           loading={isProcessing}
           failed={isFailed}
-          className="aspect-[167/208] h-auto w-full"
+          className={cn(
+            'h-auto w-full',
+            variant === 'map'
+              ? 'aspect-[167/134]'
+              : variant === 'feed'
+                ? 'aspect-[343/212]'
+                : variant === 'list'
+                  ? 'aspect-square'
+                  : 'aspect-[167/208]',
+          )}
         />
         {/* 게시물 카드(CollectionCard)처럼 사진이 아직 없는 처리 중·실패 카드엔 붙이지 않는다. */}
         {mediaBadge && !isProcessing && !isFailed ? <MediaBadge type="IMAGE" /> : null}
       </div>
-      <div className="flex w-full flex-col gap-0.5 p-1">
+      <div
+        className={cn(
+          'flex w-full min-w-0 flex-col',
+          variant === 'map' ? 'gap-0 pb-1.5' : 'gap-0.5 p-1',
+        )}
+      >
         {isProcessing ? (
           <div className="flex items-center gap-1">
             {/* 게시물 카드(CollectionCard)와 같다 — 처리 중 표시는 정지 아이콘이 아니라
@@ -90,10 +115,27 @@ function PlaceCard({ place, onClick, mediaBadge = false, className }: PlaceCardP
           </div>
         ) : (
           <>
-            <p className="line-clamp-2 text-b2 font-semibold text-gray-90">{place.name}</p>
-            <p className="truncate text-b3 font-medium text-gray-60">
-              {[place.region, place.category].filter(Boolean).join(' · ')}
+            <p
+              className={cn(
+                'line-clamp-2 font-semibold text-gray-90',
+                variant === 'map' ? 'text-b3' : 'text-b2',
+              )}
+            >
+              {place.name}
             </p>
+            {variant === 'map' ? (
+              <div className="flex min-w-0 items-center gap-1 text-b3 font-medium text-gray-60">
+                {place.region ? <span className="truncate">{place.region}</span> : null}
+                {place.region && place.category ? (
+                  <img src={placeMetaDot} width={2} height={2} alt="" className="shrink-0" />
+                ) : null}
+                {place.category ? <span className="truncate">{place.category}</span> : null}
+              </div>
+            ) : (
+              <p className="truncate text-b3 font-medium text-gray-60">
+                {[place.region, place.category].filter(Boolean).join(' · ')}
+              </p>
+            )}
           </>
         )}
       </div>

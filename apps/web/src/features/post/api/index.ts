@@ -5,6 +5,7 @@ import {
   disconnectPlace as disconnectPlaceEndpoint,
   findPlaceParsing,
   getSavedPostDetail,
+  issue1 as issuePostShareLinkEndpoint,
   type PlaceResponse,
   type PlaceSearchResponse,
   type RecoveryResponse,
@@ -232,6 +233,18 @@ export async function replacePostArchives(postId: number, archiveIds: number[]):
  */
 export async function deletePost(postId: number): Promise<void> {
   await deleteSavedPost(postId, { auth: 'required' });
+}
+
+/**
+ * `POST /api/v1/posts/{postId}/share-links` — 지금 게시물의 공개 콘텐츠·장소 목록을 고정한
+ * 공유 토큰 발급. 생성 함수명(`issue1`)이 아카이브 공유와 겹쳐 import 에서 별칭을 붙인다.
+ */
+export async function issuePostShareLink(postId: number): Promise<string> {
+  const response = unwrapApiResponse(
+    await issuePostShareLinkEndpoint(postId, { auth: 'required' }),
+  );
+  if (!response?.token) throw new Error('공유 링크를 발급하지 못했어요');
+  return response.token;
 }
 
 /**

@@ -142,15 +142,30 @@ describe('PlaceSearchPanel', () => {
     expect(scroller).toHaveStyle({ paddingBottom: '55dvh' });
   });
 
-  it('열리자마자 기다림 없이 입력에 포커스한다 — 탭과 같은 동작 안이라 iOS 도 키보드를 올린다', () => {
-    const focusSpy = vi.spyOn(HTMLInputElement.prototype, 'focus');
-    try {
-      renderPanel();
-      expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
-      expect(screen.getByPlaceholderText('장소명을 입력해주세요')).toHaveFocus();
-    } finally {
-      focusSpy.mockRestore();
-    }
+  it('검색 입력이 같은 자리에서 즉시 포커스된다 — 화면 전환 지연 없이 입력을 시작한다', () => {
+    const onInputFocus = vi.fn();
+    renderPanel({ onInputFocus });
+    expect(screen.getByPlaceholderText('장소명을 입력해주세요')).toHaveFocus();
+    expect(onInputFocus).toHaveBeenCalledTimes(1);
+  });
+
+  it('리모컨이 포커스를 다시 요청하면 이미 열린 입력창에도 포커스를 돌려준다', () => {
+    const props = {
+      query: '',
+      page: undefined,
+      onQueryChange: () => {},
+      canScroll: true,
+      onExit: () => {},
+      onSelectPlace: () => {},
+      onInputFocus: () => {},
+      onInputBlur: () => {},
+    };
+    const { rerender } = render(<PlaceSearchPanel {...props} focusRequest={0} />);
+    const input = screen.getByPlaceholderText('장소명을 입력해주세요');
+    input.blur();
+    expect(input).not.toHaveFocus();
+    rerender(<PlaceSearchPanel {...props} focusRequest={1} />);
+    expect(input).toHaveFocus();
   });
 
   it('뒤로가기를 누르면 onExit 을 호출한다', () => {

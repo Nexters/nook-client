@@ -60,22 +60,15 @@ describe('PinnedHeaderLayout', () => {
     });
   });
 
-  it('collapseAfter 가 헤더 뒤로 숨은 뒤 아래로 스크롤하면 헤더를 접고, 위로 스크롤하면 편다', () => {
+  it('collapseAfter 가 안전 영역을 지나야 헤더를 접고, 위로 스크롤하면 편다', () => {
     const restore = stubOffsetHeight(100);
-    // 대상이 이미 고정 영역 뒤로 숨어 있다고 보고한다.
-    vi.stubGlobal(
-      'IntersectionObserver',
-      class {
-        constructor(private callback: IntersectionObserverCallback) {}
-        observe() {
-          this.callback(
-            [{ boundingClientRect: { bottom: 0 } } as IntersectionObserverEntry],
-            this as unknown as IntersectionObserver,
-          );
-        }
-        disconnect() {}
-      },
-    );
+    let boundary = 25;
+    const preference = vi.spyOn(window, 'matchMedia').mockReturnValue({
+      matches: true,
+    } as MediaQueryList);
+    const geometry = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockImplementation(() => ({ bottom: boundary }) as DOMRect);
     const root = document.createElement('div');
     root.id = 'root';
     document.body.append(root);
@@ -103,16 +96,20 @@ describe('PinnedHeaderLayout', () => {
       const headerBox = screen.getByText('헤더').parentElement;
       const content = screen.getByText('정보').parentElement;
 
+      scrollTo(280);
+      expect(headerBox).not.toHaveAttribute('inert');
+
+      boundary = 0;
       scrollTo(300);
       expect(headerBox).toHaveAttribute('inert');
       // 접힌 동안 탭 줄은 safe area 바로 밑에 붙는다.
-      expect(content?.style.getPropertyValue('--pinned-header-height')).toBe(
-        'env(safe-area-inset-top)',
-      );
+      expect(content?.style.getPropertyValue('--pinned-header-visible-height')).toBe('0px');
+      expect(headerBox?.style.translate).toBe('0 -100px');
 
       scrollTo(200);
       expect(headerBox).not.toHaveAttribute('inert');
-      expect(content?.style.getPropertyValue('--pinned-header-height')).toBe('100px');
+      expect(content?.style.getPropertyValue('--pinned-header-visible-height')).toBe('100px');
+      expect(headerBox?.style.translate).toBe('0 0px');
 
       // 끝에서 러버밴드로 당겨졌다 되튀는 건 방향 전환이 아니다.
       scrollTo(1200);
@@ -122,7 +119,8 @@ describe('PinnedHeaderLayout', () => {
     } finally {
       restore();
       root.remove();
-      vi.unstubAllGlobals();
+      geometry.mockRestore();
+      preference.mockRestore();
     }
   });
 });

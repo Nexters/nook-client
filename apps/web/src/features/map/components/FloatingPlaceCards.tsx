@@ -3,6 +3,7 @@ import { usePlaceDetail } from '@/features/map/api/queries';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import type { CardOrigin } from '@/features/map/components/PlaceFullSheet';
 import type { Coordinates } from '@/shared/lib/geolocation';
+import { usePointerDragScroll } from '@/shared/lib/usePointerDragScroll';
 import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui';
 import { CarouselIndicator } from '@/shared/ui/carousel-indicator';
@@ -27,7 +28,7 @@ const MAX_STRETCH_RATIO = 0.85;
 const SETTLE_TRANSITION = 'height 0.5s cubic-bezier(0.32, 0.72, 0, 1)';
 
 /** 카드 한 칸의 폭(카드 + 간격). 카드 폭은 모두 같다. */
-function stepOf(scroller: HTMLDivElement) {
+function stepOf(scroller: HTMLElement) {
   const first = scroller.firstElementChild;
   return first instanceof HTMLElement ? first.offsetWidth + CARD_GAP_PX : 0;
 }
@@ -81,7 +82,12 @@ export function FloatingPlaceCards({
   onClose: () => void;
   onSelectPlace: (placeId: number) => void;
 }) {
-  const scrollerRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<HTMLElement>(null);
+  const pointerDrag = usePointerDragScroll(scrollerRef, {
+    count: placeIds.length,
+    gap: CARD_GAP_PX,
+    onIndexChange: onActiveIndexChange,
+  });
   const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // 처음 그릴 땐 고른 카드에 바로 서 있어야 한다 — 첫 카드에서 미끄러져 오면 어색하다.
   const mountedRef = useRef(false);
@@ -148,7 +154,7 @@ export function FloatingPlaceCards({
     window.addEventListener('pointercancel', handleEnd);
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const scroller = scrollerRef.current;
     const step = scroller ? stepOf(scroller) : 0;
     if (scroller && step > 0 && Math.round(scroller.scrollLeft / step) !== activeIndex) {
@@ -183,10 +189,17 @@ export function FloatingPlaceCards({
       // 시안은 홈 인디케이터 영역(아래 20px) 바로 위에 카드가 앉는다 — safe-area(34px)까지 띄우면 너무 뜬다.
       style={{ bottom: '1.25rem' }}
     >
-      <div
+      <section
+        {...pointerDrag}
         ref={scrollerRef}
-        onPointerDown={handlePointerDown}
+        aria-label="검색 결과 장소"
+        aria-roledescription="캐러셀"
+        onPointerDown={(event) => {
+          pointerDrag.onPointerDown(event);
+          handlePointerDown(event);
+        }}
         onClickCapture={(event) => {
+          pointerDrag.onClickCapture(event);
           if (!suppressClickRef.current) return;
           suppressClickRef.current = false;
           event.stopPropagation();
@@ -217,7 +230,7 @@ export function FloatingPlaceCards({
             onSelectPlace={onSelectPlace}
           />
         ))}
-      </div>
+      </section>
     </div>
   );
 }

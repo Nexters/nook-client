@@ -48,6 +48,10 @@ function PlaceRow({
   const pressOrigin = useRef<{ x: number; y: number } | null>(null);
   // 롱프레스로 열었으면 손을 뗄 때 따라오는 click(행 본문 이동)을 삼킨다.
   const longPressed = useRef(false);
+  // 마우스·펜으로 끌어 미는 제스처 — 네이티브 가로 스크롤은 터치에서만 손가락을 따라와서
+  // 데스크톱(프로토타입 미리보기)에선 같은 동작을 직접 흉내 낸다.
+  const mouseDrag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
+  const suppressClick = useRef(false);
 
   useEffect(() => () => clearTimeout(pressTimer.current), []);
 
@@ -110,7 +114,9 @@ function PlaceRow({
     <div
       ref={swipeRef}
       className={cn(
-        'flex snap-x snap-mandatory select-none overflow-x-auto overscroll-x-contain',
+        // overscroll-x-none: iOS 는 contain 이어도 행 자체가 고무줄처럼 튕겨, 닫힌 행을 오른쪽으로
+        // 밀면 왼쪽에 빈틈이 생기며 끌려 나간다(헐거운 느낌). none 은 그 튕김까지 막는다.
+        'flex snap-x snap-mandatory select-none overflow-x-auto overscroll-x-none',
         '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
         className,
       )}
@@ -140,7 +146,49 @@ function PlaceRow({
       }}
       onTouchEnd={() => clearTimeout(pressTimer.current)}
       onTouchCancel={() => clearTimeout(pressTimer.current)}
+      onPointerDown={(event) => {
+        if (event.pointerType === 'touch' || event.button !== 0) return;
+        suppressClick.current = false;
+        mouseDrag.current = {
+          x: event.clientX,
+          left: event.currentTarget.scrollLeft,
+          moved: false,
+        };
+      }}
+      onPointerMove={(event) => {
+        const drag = mouseDrag.current;
+        if (!drag) return;
+        const dx = event.clientX - drag.x;
+        if (!drag.moved) {
+          if (Math.abs(dx) < LONG_PRESS_TOLERANCE_PX) return;
+          drag.moved = true;
+          event.currentTarget.setPointerCapture?.(event.pointerId);
+          event.currentTarget.style.scrollSnapType = 'none';
+        }
+        event.currentTarget.scrollLeft = drag.left - dx;
+      }}
+      onPointerUp={(event) => {
+        const drag = mouseDrag.current;
+        mouseDrag.current = null;
+        if (!drag?.moved) return;
+        const scroller = event.currentTarget;
+        const max = scroller.scrollWidth - scroller.clientWidth;
+        scroller.style.scrollSnapType = '';
+        // 삭제 버튼이 절반 넘게 나왔으면 끝까지 열고, 아니면 닫는다(스냅과 같은 기준).
+        scroller.scrollTo({ left: scroller.scrollLeft > max / 2 ? max : 0, behavior: 'smooth' });
+        suppressClick.current = true;
+      }}
+      onPointerCancel={(event) => {
+        mouseDrag.current = null;
+        event.currentTarget.style.scrollSnapType = '';
+      }}
       onClickCapture={(event) => {
+        if (suppressClick.current) {
+          suppressClick.current = false;
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
         if (!longPressed.current) return;
         longPressed.current = false;
         event.preventDefault();

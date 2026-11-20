@@ -6,6 +6,7 @@ import {
   fetchSharedArchivePosts,
   fetchSharedArchiveSubscribers,
   fetchSharedPostDetail,
+  fetchSinglePostShare,
   saveSharedPost,
   subscribeSharedArchive,
 } from '.';
@@ -74,10 +75,11 @@ export function useSubscribeSharedArchive() {
   });
 }
 
-export function useSharedPostDetail(token: string, postId: number) {
+export function useSharedPostDetail(token: string, postId: number, singlePost = false) {
   return useQuery({
-    queryKey: sharedQueryKeys.postDetail(token, postId),
-    queryFn: () => fetchSharedPostDetail(token, postId),
+    queryKey: singlePost ? ['post-share', token] : sharedQueryKeys.postDetail(token, postId),
+    queryFn: () =>
+      singlePost ? fetchSinglePostShare(token) : fetchSharedPostDetail(token, postId),
     retry: false,
   });
 }
@@ -89,6 +91,7 @@ export function useSaveSharedPost() {
     // 내 아카이브에 게시물이 늘었고, 공유 상세의 groups(저장 상태)도 달라졌다.
     onSuccess: (_postId, variables) => {
       queryClient.invalidateQueries({ queryKey: archiveQueryKeys.list });
+      queryClient.invalidateQueries({ queryKey: ['post-share', variables.shareToken] });
       queryClient.invalidateQueries({
         queryKey: sharedQueryKeys.postDetail(variables.shareToken, variables.sharedPostId),
       });

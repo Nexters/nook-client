@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Icon24Back, Icon24Share } from '@/shared/icons/NookIcons';
+import { Icon16Share, Icon24Back } from '@/shared/icons/NookIcons';
 import { useAllowBackGesture } from '@/shared/lib/backGesture';
 import { cn } from '@/shared/lib/utils';
 
@@ -37,9 +37,9 @@ function ShareButton({ onClick, className }: { onClick?: () => void; className?:
       type="button"
       aria-label="공유하기"
       onClick={onClick}
-      className={cn(iconButtonClass, className)}
+      className={cn(iconButtonClass, 'grid size-6 place-items-center', className)}
     >
-      <Icon24Share />
+      <Icon16Share />
     </button>
   );
 }

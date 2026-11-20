@@ -6,6 +6,13 @@ export function buildShareUrl(token: string): string {
   return `${env.webOrigin}/shared/${token}`;
 }
 
+/**
+ * NOOK-369 게시물 단독 공유. 공개 스냅샷을 보여주는 수신 화면과 같은 경로다.
+ */
+export function buildPostShareUrl(token: string): string {
+  return `${env.webOrigin}/shared-post/${token}`;
+}
+
 /** 복사 성공 여부를 돌려준다 — 실패해도 throw 하지 않고 호출부가 토스트로 알린다. */
 export async function copyText(text: string): Promise<boolean> {
   try {
