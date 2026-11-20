@@ -149,7 +149,7 @@
       if (currentPage === 'archive') { selectReminder(selectedReminder); return; }
       localStorage.removeItem(`nook.local-prototype.v1.${selectedCase}.${selectedCards}`); selectCase(selectedCase);
     });
-    function openArchiveView() { sessionStorage.removeItem('nook.prototype.reminder'); frame.src = '/archive/1'; history.replaceState(null, '', '?demo=archive-view'); }
+    function openArchiveView() { sessionStorage.removeItem('nook.prototype.reminder'); frame.src = '/archive/1?prototypeLongArchive=1'; history.replaceState(null, '', '?demo=archive-view'); }
     document.querySelector('#archive-view-demo').addEventListener('click', openArchiveView);
     function openMapGrid() { sessionStorage.removeItem('nook.prototype.reminder'); frame.src = '/map'; history.replaceState(null, '', '?demo=map-grid'); }
     document.querySelector('#map-grid-demo').addEventListener('click', openMapGrid);

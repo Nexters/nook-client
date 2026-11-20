@@ -56,7 +56,11 @@ function readPostShares(): Record<string, LocalPostShare> {
     return {};
   }
 }
+const isLongArchivePreview = () =>
+  new URLSearchParams(window.location.search).get('prototypeLongArchive') === '1';
+
 const storageKey = () => {
+  if (isLongArchivePreview()) return `${STORAGE_KEY}.archive-scroll`;
   const reminder = getPrototypeReminderCase();
   if (reminder) return `${STORAGE_KEY}.reminder.${reminder.id}`;
   const scenario = getPrototypeScenario();
@@ -118,6 +122,18 @@ function read(): PrototypeData {
     }
   } catch {
     /* 잘못된 로컬 데이터는 새 샘플로 복구한다. */
+  }
+  if (isLongArchivePreview()) {
+    const data = createPrototypeData();
+    const group = data.groups[0];
+    if (group) {
+      for (const post of data.posts) {
+        if (!post.groups.some((item) => item.id === group.id)) {
+          post.groups = [...post.groups, group];
+        }
+      }
+    }
+    return data;
   }
   const reminder = getPrototypeReminderCase();
   if (reminder) return createReminderData(reminder.count);

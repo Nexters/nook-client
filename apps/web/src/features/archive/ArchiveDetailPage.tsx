@@ -79,6 +79,7 @@ export function ArchiveDetailPage() {
   // 스크롤에 실려 올라가는 아카이브 정보 블록 — 헤더 뒤로 숨으면 헤더 제목이 뜨고,
   // 그 뒤로는 아래로 스크롤할 때 헤더까지 접혀 탭만 남는다.
   const infoRef = useRef<HTMLDivElement>(null);
+  const beforeTabsRef = useRef<HTMLDivElement>(null);
 
   // 선택 삭제(Figma `게시글 편집`) — 더보기 메뉴로 켜고, 뒤로가기/장소 탭 전환으로 끈다.
   // 뒤로가기 세 경로(좌상단 버튼·Android 하드웨어 백·iOS 엣지 스와이프)가 모두 "모드 종료"로
@@ -229,7 +230,7 @@ export function ArchiveDetailPage() {
 
   return (
     <PinnedHeaderLayout
-      collapseAfter={isEmpty ? undefined : infoRef}
+      collapseAfter={isEmpty ? undefined : beforeTabsRef}
       header={
         <Header
           title={<PinnedHeaderTitle target={infoRef}>{archive.name}</PinnedHeaderTitle>}
@@ -244,72 +245,77 @@ export function ArchiveDetailPage() {
           : `calc(1.25rem + ${BOTTOM_MENU_HEIGHT})`,
       }}
     >
-      {/* 고정 영역에서 내려온 아카이브 정보 — 스크롤하면 탭만 남기고 헤더 뒤로 사라진다. */}
-      <div
-        ref={infoRef}
-        className={cn(
-          'flex flex-col gap-1 px-4 pt-2 pb-4',
-          // 빈 아카이브는 탭도 액션 칩도 없어(아래 참고) 이 블록이 화면 위쪽의 끝이다 —
-          // 경계선을 직접 긋는다.
-          isEmpty && 'border-gray-20 border-b',
-        )}
-      >
-        <div className="flex items-center gap-2">
-          <span className={`size-3 shrink-0 ${COLOR_BG_CLASS[archive.color]}`} aria-hidden="true" />
-          <h1 className="min-w-0 truncate text-h1 font-semibold text-gray-100">{archive.name}</h1>
+      <div ref={beforeTabsRef}>
+        {/* 고정 영역에서 내려온 아카이브 정보 — 스크롤하면 탭만 남기고 헤더 뒤로 사라진다. */}
+        <div
+          ref={infoRef}
+          className={cn(
+            'flex flex-col gap-1 px-4 pt-2 pb-4',
+            // 빈 아카이브는 탭도 액션 칩도 없어(아래 참고) 이 블록이 화면 위쪽의 끝이다 —
+            // 경계선을 직접 긋는다.
+            isEmpty && 'border-gray-20 border-b',
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <span
+              className={`size-3 shrink-0 ${COLOR_BG_CLASS[archive.color]}`}
+              aria-hidden="true"
+            />
+            <h1 className="min-w-0 truncate text-h1 font-semibold text-gray-100">{archive.name}</h1>
+          </div>
+          {postsQuery.data?.ownerNickname ? (
+            <p className="font-mono text-e2 text-gray-60">by {postsQuery.data.ownerNickname}</p>
+          ) : null}
+          {/* 시안: 이름·작성자 묶음과 소개글 사이 12 (부모 gap-1 + mt-2). */}
+          {archive.description ? (
+            <ArchiveDescription description={archive.description} className="mt-2" />
+          ) : null}
+          {archive.subscriberCount ? (
+            // 시안: 소개글(또는 이름 묶음) 아래 8 — 부모 gap-1 + mt-1. 0명이면 진입도 없다.
+            <Link
+              to={`/archive/${archive.id}/subscribers`}
+              className="mt-1 self-start text-b3 font-medium text-gray-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+            >
+              {archive.subscriberCount}명이 추가함
+            </Link>
+          ) : null}
         </div>
-        {postsQuery.data?.ownerNickname ? (
-          <p className="font-mono text-e2 text-gray-60">by {postsQuery.data.ownerNickname}</p>
-        ) : null}
-        {/* 시안: 이름·작성자 묶음과 소개글 사이 12 (부모 gap-1 + mt-2). */}
-        {archive.description ? (
-          <ArchiveDescription description={archive.description} className="mt-2" />
-        ) : null}
-        {archive.subscriberCount ? (
-          // 시안: 소개글(또는 이름 묶음) 아래 8 — 부모 gap-1 + mt-1. 0명이면 진입도 없다.
-          <Link
-            to={`/archive/${archive.id}/subscribers`}
-            className="mt-1 self-start text-b3 font-medium text-gray-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-          >
-            {archive.subscriberCount}명이 추가함
-          </Link>
+
+        {/* 편집·공유 칩 — 더보기 메뉴 안에도 같은 액션이 있지만(삭제 등과 함께),
+              자주 쓰는 두 액션은 시안대로 바로 누를 수 있게 앞으로 뺀다. 공유 아카이브는
+              내 소유가 아니라(더보기 메뉴처럼) 노출하지 않는다. 빈 아카이브도 시안대로
+              내린다 — 아직 공유할 것이 없는 상태다. 두 액션 모두 더보기 메뉴에는 남는다. */}
+        {isAuthenticated ? (
+          <div className="flex items-center justify-between px-4 pb-2">
+            {!isShared && !isEmpty ? (
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/archive/${archive.id}/edit`)}
+                  className={ARCHIVE_ACTION_CHIP}
+                >
+                  아카이브 편집
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    issueShare.mutate(archive.id, {
+                      onSuccess: (token) => setShareUrl(buildShareUrl(token)),
+                      onError: () =>
+                        showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
+                    })
+                  }
+                  className={ARCHIVE_ACTION_CHIP}
+                >
+                  공유
+                  <Icon16Share />
+                </button>
+              </div>
+            ) : null}
+            <div className="ml-auto">{archiveMenu}</div>
+          </div>
         ) : null}
       </div>
-
-      {/* 편집·공유 칩 — 더보기 메뉴 안에도 같은 액션이 있지만(삭제 등과 함께),
-            자주 쓰는 두 액션은 시안대로 바로 누를 수 있게 앞으로 뺀다. 공유 아카이브는
-            내 소유가 아니라(더보기 메뉴처럼) 노출하지 않는다. 빈 아카이브도 시안대로
-            내린다 — 아직 공유할 것이 없는 상태다. 두 액션 모두 더보기 메뉴에는 남는다. */}
-      {isAuthenticated ? (
-        <div className="flex items-center justify-between px-4 pb-2">
-          {!isShared && !isEmpty ? (
-            <div className="flex gap-1.5">
-              <button
-                type="button"
-                onClick={() => navigate(`/archive/${archive.id}/edit`)}
-                className={ARCHIVE_ACTION_CHIP}
-              >
-                아카이브 편집
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  issueShare.mutate(archive.id, {
-                    onSuccess: (token) => setShareUrl(buildShareUrl(token)),
-                    onError: () =>
-                      showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
-                  })
-                }
-                className={ARCHIVE_ACTION_CHIP}
-              >
-                공유
-                <Icon16Share />
-              </button>
-            </div>
-          ) : null}
-          <div className="ml-auto">{archiveMenu}</div>
-        </div>
-      ) : null}
 
       {/* 게시물/장소 탭 — 흐름상 아카이브 정보 아래에 있다가, 스크롤이 여기까지 오면
           헤더 바로 밑에 멈춰 선다. 카운트는 각 목록 응답의 totalElements 가 채운다. */}
