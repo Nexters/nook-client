@@ -68,7 +68,7 @@ describe('FloatingPlaceCards 높이 제스처(NOOK-383)', () => {
   });
 });
 
-describe('프로토타입 캐러셀 깊이', () => {
+describe('검색 결과 캐러셀', () => {
   function renderMultiple() {
     render(
       <FloatingPlaceCards
@@ -85,37 +85,17 @@ describe('프로토타입 캐러셀 깊이', () => {
     return screen.getByRole('region', { name: '검색 결과 장소' });
   }
 
-  it('main의 높이 제스처와 함께 스크롤 위치에 맞춰 회전하며 다음 카드 가장자리를 유지한다', () => {
+  it('가로로 넘기는 동안 카드에 회전이나 축소를 적용하지 않는다', () => {
     const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
     try {
       const scroller = renderMultiple();
-      const surfaces = scroller.querySelectorAll<HTMLElement>('[data-place-card-surface]');
-      expect(surfaces[1]?.style.transformOrigin).toBe('left bottom');
       fireEvent.scroll(scroller, { target: { scrollLeft: 177.5 } });
-      expect(surfaces[0]?.style.transform).toContain('rotateY(7deg)');
-      expect(surfaces[1]?.style.transform).toContain('rotateY(-7deg)');
-      fireEvent.scroll(scroller, { target: { scrollLeft: 355 } });
-      expect(surfaces[1]?.style.transform).toContain('rotateY(0deg) scale(1)');
-    } finally {
-      width.mockRestore();
-    }
-  });
-
-  it('모션 줄이기에서는 깊이 효과 없이 넘긴다', () => {
-    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
-    const preference = vi.spyOn(window, 'matchMedia').mockReturnValue({
-      matches: true,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    } as unknown as MediaQueryList);
-    try {
-      const scroller = renderMultiple();
-      fireEvent.scroll(scroller, { target: { scrollLeft: 177.5 } });
-      for (const surface of scroller.querySelectorAll<HTMLElement>('[data-place-card-surface]')) {
-        expect(surface.style.transform).toBe('');
+      const cards = Array.from(scroller.children) as HTMLElement[];
+      expect(cards).toHaveLength(3);
+      for (const card of cards) {
+        expect(card.style.transform).toBe('');
       }
     } finally {
-      preference.mockRestore();
       width.mockRestore();
     }
   });

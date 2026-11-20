@@ -21,7 +21,7 @@ import {
 } from '@/features/map/constants';
 import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
 import { toInitialBounds } from '@/features/map/initial-bounds';
-import type { ArchiveFilter, MapBounds } from '@/features/map/types';
+import type { ArchiveFilter, MapBounds, SavedPlaceSearchResult } from '@/features/map/types';
 import { env } from '@/shared/config/env';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
@@ -44,6 +44,34 @@ const SEARCH_DEBOUNCE_MS = 300;
 const FALLBACK_CENTER = { lat: 37.5729, lng: 126.9762 }; // 위치 못 가져왔을 때 광화문 인근 폴백
 
 /** `/map?placeId=123` 의 placeId 파라미터를 파싱한다. 없거나 숫자가 아니면 null. */
+// Start at the first search result and walk to the nearest unvisited result.
+// Keep this order independent of the selected pin so a swipe can always be reversed.
+function getPrototypeCardOrder(items: SavedPlaceSearchResult[]): SavedPlaceSearchResult[] {
+  const remaining = [...items];
+  const ordered: SavedPlaceSearchResult[] = [];
+  while (remaining.length > 0) {
+    const origin = ordered.at(-1)?.prototypeCoords;
+    let nextIndex = 0;
+    let nearest = Infinity;
+    if (origin) {
+      const longitudeScale = Math.cos((origin.lat * Math.PI) / 180);
+      for (const [index, { prototypeCoords }] of remaining.entries()) {
+        if (!prototypeCoords) continue;
+        const distance =
+          (prototypeCoords.lat - origin.lat) ** 2 +
+          ((prototypeCoords.lng - origin.lng) * longitudeScale) ** 2;
+        if (distance < nearest) {
+          nearest = distance;
+          nextIndex = index;
+        }
+      }
+    }
+    const [next] = remaining.splice(nextIndex, 1);
+    if (next) ordered.push(next);
+  }
+  return ordered;
+}
+
 function parsePlaceIdParam(raw: string | null): number | null {
   if (!raw) return null;
   const parsed = Number(raw);
@@ -126,7 +154,11 @@ export function MapPage() {
   // 엔트리라도 일반 상세로 떨어진다. 결과 유무는 조건에 넣지 않는다 — 헤더의 검색어 지우기처럼
   // 결과가 먼저 비고 엔트리가 뒤늦게 되감기는 사이에 시트 상세가 한 프레임 비치면 안 된다.
   const searchMapActive = isSearchMode && historyState?.[SEARCH_MAP_STATE_KEY] === true;
-  const searchResultIds = searchMapActive ? (searchPage?.items.map((item) => item.id) ?? []) : [];
+  const searchItems = searchPage?.items ?? [];
+  const cardItems =
+    env.localPrototype && searchMapActive ? getPrototypeCardOrder(searchItems) : searchItems;
+  const searchResultIds = searchMapActive ? cardItems.map((item) => item.id) : [];
+  const pinSelectionRevision = Number(historyState?.prototypePinSelectionRevision ?? 0);
   // 검색 결과 지도의 플로팅 카드 높이(NOOK-383). 접힘은 지도 탭·끌어내리기로, 모든 카드가 함께
   // 접힌다. 전체 화면은 화면을 다 덮으니 히스토리로 승격한다 — 뒤로가기·스와이프·X 가 모두
   // 보던 카드로 돌아온다.
@@ -272,7 +304,10 @@ export function MapPage() {
   function setSelectedPlaceId(
     id: number | null,
     nextShareToken?: string | null,
-    { entersSearchMap = false }: { entersSearchMap?: boolean } = {},
+    {
+      entersSearchMap = false,
+      jumpToPin = false,
+    }: { entersSearchMap?: boolean; jumpToPin?: boolean } = {},
   ) {
     // 검색 결과 지도 안에서의 선택·카드 닫기는 엔트리를 더 쌓지 않는다 — 상단 뒤로가기 한 번에
     // 결과 목록으로 돌아가야 한다.
@@ -300,7 +335,9 @@ export function MapPage() {
               [DETAIL_ENTRY_STATE_KEY]: true,
               ...(entersSearchMap && { [SEARCH_MAP_STATE_KEY]: true }),
             }
-          : historyState,
+          : jumpToPin
+            ? { ...historyState, prototypePinSelectionRevision: pinSelectionRevision + 1 }
+            : historyState,
       },
     );
   }
@@ -310,8 +347,8 @@ export function MapPage() {
    * `placeShareToken` 은 고르는 쪽이 "이건 구독한 공유 아카이브의 장소"라고 알고 있을 때만
    * 실린다(현재는 최근 저장한 공간 목록뿐 — `/places/recent` 만 accessType 을 내려준다).
    */
-  function handlePlaceClick(id: number, placeShareToken?: string | null) {
-    setSelectedPlaceId(id, placeShareToken);
+  function handlePlaceClick(id: number, placeShareToken?: string | null, jumpToPin = false) {
+    setSelectedPlaceId(id, placeShareToken, { jumpToPin });
     // 핀을 새로 고르면 접혀 있던 카드도 기본 높이로 다시 보여준다.
     setCardsCollapsed(false);
     // 검색 결과 지도에선 시트를 쓰지 않아 높이를 건드리지 않는다 — 결과 목록으로 돌아갔을 때
@@ -321,6 +358,14 @@ export function MapPage() {
     // 치던 검색어와 결과가 그대로 있는 검색 화면으로 돌아온다. 검색 상태는 히스토리에 없어서
     // (검색 패널은 엔트리를 쌓지 않는다) 여기서 닫아버리면 되감을 방법이 아예 없다.
     // 가리는 건 PlaceSheet 가 한다 — 패널은 마운트된 채라 검색어·결과·칩 필터가 살아 있다.
+  }
+
+  function handleMapPinClick(id: number) {
+    handlePlaceClick(
+      id,
+      undefined,
+      env.localPrototype && searchMapActive && id !== selectedPlaceId,
+    );
   }
 
   function handleSnapChange(next: number | string | null) {
@@ -471,6 +516,12 @@ export function MapPage() {
       );
       const id = searchResultIds[next];
       if (id !== undefined) setSelectedPlaceId(id);
+    } else if (action === 'jump-pin' && searchMapActive) {
+      const id =
+        searchResultIds[
+          searchResultIndex < searchResultIds.length / 2 ? searchResultIds.length - 1 : 0
+        ];
+      if (id !== undefined) handleMapPinClick(id);
     } else if (action === 'search') {
       setSearchFocusRequest((current) => current + 1);
       setSearchQuery('');
@@ -520,7 +571,7 @@ export function MapPage() {
           panTarget={selectedPlace ? { lat: selectedPlace.lat, lng: selectedPlace.lng } : undefined}
           // 검색 결과 지도는 시트 대신 플로팅 카드가 화면 아래 절반쯤을 덮는다.
           sheetSnap={searchMapActive ? cardsSnap : typeof snap === 'number' ? snap : undefined}
-          onPlaceClick={handlePlaceClick}
+          onPlaceClick={handleMapPinClick}
           // 빈 지도 탭 = 상세 헤더 닫기와 같은 길(NOOK-327). 선택이 없으면 할 일이 없다.
           // 검색 결과 플로팅 카드가 떠 있으면 닫지 않고 접힌 카드로 내린다 — 결과를 둘러보던
           // 맥락(검색 헤더·카드 위치)은 그대로 두고 지도만 넓게 보여준다.
@@ -561,7 +612,7 @@ export function MapPage() {
         {searchMapActive && selectedPlaceId !== null ? (
           <FloatingPlaceCards
             // 결과 넘기기 ↔ 결과 밖 단일 카드 전환은 다시 마운트해 그 카드에 바로 서게 한다.
-            key={searchResultIndex >= 0 ? 'results' : 'single'}
+            key={searchResultIndex >= 0 ? `results-${pinSelectionRevision}` : 'single'}
             placeIds={searchResultIndex >= 0 ? searchResultIds : [selectedPlaceId]}
             activeIndex={Math.max(searchResultIndex, 0)}
             collapsed={cardsCollapsed}

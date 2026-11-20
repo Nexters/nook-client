@@ -7,7 +7,6 @@ import { usePointerDragScroll } from '@/shared/lib/usePointerDragScroll';
 import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui';
 import { CarouselIndicator } from '@/shared/ui/carousel-indicator';
-import { usePlaceCarouselDepth } from './usePlaceCarouselDepth';
 
 /** 카드 사이 간격(px) — 시안 `홈_지도` 403:18114 와 옆 카드(403:18099) 사이 4px. */
 const CARD_GAP_PX = 4;
@@ -84,7 +83,6 @@ export function FloatingPlaceCards({
   onSelectPlace: (placeId: number) => void;
 }) {
   const scrollerRef = useRef<HTMLElement>(null);
-  usePlaceCarouselDepth(scrollerRef, placeIds.length, CARD_GAP_PX);
   const pointerDrag = usePointerDragScroll(scrollerRef, {
     count: placeIds.length,
     gap: CARD_GAP_PX,
@@ -156,16 +154,13 @@ export function FloatingPlaceCards({
     window.addEventListener('pointercancel', handleEnd);
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const scroller = scrollerRef.current;
     const step = scroller ? stepOf(scroller) : 0;
     if (scroller && step > 0 && Math.round(scroller.scrollLeft / step) !== activeIndex) {
       scroller.scrollTo({
         left: step * activeIndex,
-        behavior:
-          mountedRef.current && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-            ? 'smooth'
-            : 'instant',
+        behavior: mountedRef.current ? 'smooth' : 'instant',
       });
     }
     mountedRef.current = true;
@@ -213,10 +208,10 @@ export function FloatingPlaceCards({
         onScroll={placeIds.length > 1 ? handleScroll : undefined}
         style={{ gap: CARD_GAP_PX }}
         className={cn(
-          'pointer-events-auto flex items-end',
+          'pointer-events-auto flex items-end px-3',
           placeIds.length > 1
-            ? 'snap-x snap-mandatory scroll-px-2 px-2 overflow-x-auto overscroll-x-contain'
-            : 'overflow-hidden px-3',
+            ? 'snap-x snap-mandatory scroll-px-3 overflow-x-auto overscroll-x-contain'
+            : 'overflow-hidden',
           '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
         )}
       >
@@ -227,7 +222,6 @@ export function FloatingPlaceCards({
             // 보이는 카드와 양옆만 상세를 받는다 — 결과가 많아도 한꺼번에 다 부르지 않는다.
             enabled={Math.abs(index - activeIndex) <= 1}
             collapsed={collapsed}
-            multi={placeIds.length > 1}
             hidden={fullOpen && index === activeIndex}
             dragDy={dragDy}
             userCoords={userCoords}
@@ -245,7 +239,6 @@ function FloatingPlaceCard({
   placeId,
   enabled,
   collapsed,
-  multi,
   hidden,
   dragDy,
   userCoords,
@@ -256,7 +249,6 @@ function FloatingPlaceCard({
   placeId: number;
   enabled: boolean;
   collapsed: boolean;
-  multi: boolean;
   hidden: boolean;
   dragDy: number | null;
   userCoords?: Coordinates | null;
@@ -306,59 +298,52 @@ function FloatingPlaceCard({
         // 스크롤러 좌우 패딩(12px)을 뺀 폭이 곧 카드 폭이라 다음 카드가 간격(4px) 뒤로 8px 만 비친다.
         // 세로 끌기는 브라우저가 스크롤로 가져가지 않게 막는다 — 가져가면 pointercancel 로 끊긴다.
         // 가로(카드·사진 넘기기)는 그대로 둔다.
-        multi ? 'w-[calc(100%-8px)] last:snap-end' : 'w-full',
-        'shrink-0 touch-pan-x snap-start',
+        'w-full shrink-0 touch-pan-x snap-start overflow-hidden rounded-[14px] bg-gray-0 px-4',
         hidden && 'invisible',
-
+        'drop-shadow-[2px_2px_24.4px_rgba(0,0,0,0.1)]',
         // 카드 안 사진 캐러셀이 끝에 닿아도 바깥 카드 스와이프로 이어지지 않게 끊는다 —
         // 사진을 넘기다 다음 장소로 넘어가 버리면 안 된다(NOOK-383).
         '[&_[data-slot=carousel]>div]:overscroll-x-contain',
       )}
     >
-      <div
-        data-place-card-surface
-        className="h-full overflow-hidden rounded-[14px] bg-gray-0 px-4 shadow-[2px_2px_24.4px_rgba(0,0,0,0.1)] touch-pan-x"
-      >
-        <div ref={contentRef} className="relative">
-          {/* 드래그 핸들 — 카드 어디를 끌어도 되지만 끌 수 있다는 표시다. */}
-          <div aria-hidden="true" className="flex justify-center pt-3 pb-5">
-            <span className="h-1 w-20 rounded-full bg-gray-20" />
-          </div>
-          {place ? (
-            <PlaceDetail
-              place={place}
-              expanded={false}
-              // 내용이 비어도 카드 높이가 장소마다 달라지지 않게 자리를 지킨다(NOOK-383).
-              keepEmptySlots
-              variant="floating"
-              userCoords={userCoords}
-              onClose={onClose}
-              onSelectPlace={onSelectPlace}
-            />
-          ) : (
-            // 상세가 오기 전 자리 — 실제 카드와 같은 줄 구성(이름·주소·태그·사진·인디케이터)으로 깔아
-            // 상세가 와도 카드 높이가 그대로다. 높이는 숫자가 아니라 같은 글자·배지·인디케이터가 정한다.
-            <div aria-hidden="true" className="flex flex-col gap-3">
-              <div className="flex flex-col gap-1">
-                {/* 이름 줄 높이는 오른쪽 저장·닫기 버튼(32px)이 정한다. */}
-                <div className="flex h-8 items-center">
-                  <div className="h-7 w-1/2 rounded bg-gray-10" />
-                </div>
-                <div className="relative">
-                  <p className="invisible text-b2">-</p>
-                  <div className="absolute inset-y-0 left-0 w-3/4 rounded bg-gray-10" />
-                </div>
-                <div className="invisible flex py-2">
-                  <Badge variant="label">-</Badge>
-                </div>
+      <div ref={contentRef} className="relative">
+        {/* 드래그 핸들 — 카드 어디를 끌어도 되지만 끌 수 있다는 표시다. */}
+        <div aria-hidden="true" className="flex justify-center pt-3 pb-5">
+          <span className="h-1 w-20 rounded-full bg-gray-20" />
+        </div>
+        {place ? (
+          <PlaceDetail
+            place={place}
+            expanded={false}
+            // 내용이 비어도 카드 높이가 장소마다 달라지지 않게 자리를 지킨다(NOOK-383).
+            keepEmptySlots
+            userCoords={userCoords}
+            onClose={onClose}
+            onSelectPlace={onSelectPlace}
+          />
+        ) : (
+          // 상세가 오기 전 자리 — 실제 카드와 같은 줄 구성(이름·주소·태그·사진·인디케이터)으로 깔아
+          // 상세가 와도 카드 높이가 그대로다. 높이는 숫자가 아니라 같은 글자·배지·인디케이터가 정한다.
+          <div aria-hidden="true" className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              {/* 이름 줄 높이는 오른쪽 저장·닫기 버튼(32px)이 정한다. */}
+              <div className="flex h-8 items-center">
+                <div className="h-7 w-1/2 rounded bg-gray-10" />
               </div>
-              <div data-slot="place-photos">
-                <div className="h-[198px] w-full rounded bg-gray-10" />
-                <CarouselIndicator count={2} activeIndex={0} className="invisible py-3" />
+              <div className="relative">
+                <p className="invisible text-b2">-</p>
+                <div className="absolute inset-y-0 left-0 w-3/4 rounded bg-gray-10" />
+              </div>
+              <div className="invisible flex py-2">
+                <Badge variant="label">-</Badge>
               </div>
             </div>
-          )}
-        </div>
+            <div data-slot="place-photos">
+              <div className="h-[198px] w-full rounded bg-gray-10" />
+              <CarouselIndicator count={2} activeIndex={0} className="invisible py-3" />
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -136,7 +136,9 @@ export async function fetchRecentPlaces(
   };
 }
 
-function toSavedPlaceSearchResult(dto: SavedPlaceSearchItemResponse): SavedPlaceSearchResult {
+function toSavedPlaceSearchResult(
+  dto: SavedPlaceSearchItemResponse & { latitude?: number; longitude?: number },
+): SavedPlaceSearchResult {
   const [region] = dto.address.split(' ');
   return {
     id: dto.id,
@@ -144,6 +146,9 @@ function toSavedPlaceSearchResult(dto: SavedPlaceSearchItemResponse): SavedPlace
     category: dto.category ?? undefined,
     region: region || undefined,
     thumbnail: dto.thumbnailUrl ?? undefined,
+    ...(typeof dto.latitude === 'number' && typeof dto.longitude === 'number'
+      ? { prototypeCoords: { lat: dto.latitude, lng: dto.longitude } }
+      : {}),
   };
 }
 

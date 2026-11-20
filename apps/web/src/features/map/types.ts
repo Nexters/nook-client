@@ -83,6 +83,7 @@ export interface SavedPlaceSearchResult {
   /** 카드의 지역 표기(예: "서울") — 주소의 첫 토큰. */
   region?: string;
   thumbnail?: string;
+  prototypeCoords?: { lat: number; lng: number };
 }
 
 /** 검색어와 일치하는 장소가 담긴 그룹 한 건 — 그룹 칩 필터가 그리는 형태. */
