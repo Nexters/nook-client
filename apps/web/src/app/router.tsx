@@ -3,6 +3,7 @@ import { ProtectedAppLayout } from '@/app/layouts/ProtectedAppLayout';
 import { NativeBackHost } from '@/app/native-back';
 import { NativePushHost } from '@/app/native-push';
 import { PushTokenSyncHost } from '@/app/push-token-sync';
+import { RouteErrorFallback } from '@/app/route-error';
 import { RootScrollReset } from '@/app/scroll-reset';
 import { AppUpdateGateHost } from '@/features/app-version/AppUpdateGateHost';
 import { ArchiveDetailPage } from '@/features/archive/ArchiveDetailPage';
@@ -58,6 +59,7 @@ const devRoutes = env.enableDevRoutes
 export const router = createBrowserRouter([
   {
     path: '/',
+    errorElement: <RouteErrorFallback />,
     element: (
       <>
         <RootScrollReset />
@@ -91,6 +93,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        errorElement: <RouteErrorFallback />,
         element: (
           <AwaitSession>
             <ProtectedAppLayout />

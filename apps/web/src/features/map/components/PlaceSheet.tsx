@@ -249,6 +249,37 @@ export function PlaceSheet({
     setIsAtBottom(false);
   }, [canScroll, selectedPlace?.id]);
 
+  // 목록이 맨 위(scrollTop 0)인 상태에서 아래로 끌면 iOS Safari 는 그 제스처를 스크롤
+  // 바운스로 가져가고 pointercancel 을 보낸다 — vaul 은 move 이벤트를 더 못 받아 시트가
+  // 안 접힌다(핸들을 잡을 때만 접히던 원인). 이 경우에만 기본 스크롤을 막아 제스처를
+  // vaul 의 시트 드래그로 넘긴다. 목록이 내려가 있을 땐(scrollTop > 0) 그대로 스크롤되고,
+  // 가로 스와이프(사진 캐러셀 등)는 건드리지 않는다.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !canScroll) return;
+    let startX = 0;
+    let startY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      startX = touch.clientX;
+      startY = touch.clientY;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch || !e.cancelable) return;
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+      if (el.scrollTop <= 0 && dy > 0 && Math.abs(dy) > Math.abs(dx)) e.preventDefault();
+    };
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+    };
+  }, [canScroll]);
+
   return (
     <Drawer
       open
@@ -266,12 +297,14 @@ export function PlaceSheet({
       // 시트가 손을 안 따라오다 손 뗀 순간 스냅으로 튀는 원인(QA: 핸들 말고는 안 끌린다).
       // 0 으로 고정해 페이드 대상 스냅을 최저점으로 밀어두면 그 분기에 걸리지 않는다.
       fadeFromIndex={0}
-      // vaul 은 스크롤 때문에 드래그를 한 번 거절하면 그 뒤 500ms 동안 드래그를 계속
-      // 거절하고, 거절할 때마다 타이머를 다시 찍는다 — 손을 떼지 않는 한 영영 안 풀린다.
-      // 그래서 목록을 내리다 맨 위에 닿아 이어서 끌면 시트가 반응하지 않는다(실측). 0 으로
-      // 두면 스크롤이 맨 위(scrollTop 0)에 닿는 순간 같은 제스처가 그대로 시트 드래그로
-      // 넘어간다 — 스크롤 중에는 어차피 scrollTop 조건이 막아주므로 오작동하지 않는다.
-      scrollLockTimeout={0}
+      // 모바일에선 목록을 빠르게 쓸어 올리다 맨 위를 지나쳐 그대로 시트를 끌어내리는 일이
+      // 잦다 — 속도가 붙은 채라 시트가 의도치 않게 한 단계 내려간다. 스크롤이 맨 위에
+      // 닿은 뒤 100ms 동안은 드래그를 막아 그 관성 제스처를 걸러낸다(vaul 기본값 500ms 는
+      // 너무 길어 일부러 끌 때도 안 먹는 느낌이라 줄였다).
+      // 주의: vaul 은 막는 동안 들어온 move 이벤트마다 타이머를 다시 찍으므로, 손을 떼지
+      // 않고 계속 움직이면 같은 제스처 안에서는 시트 드래그로 넘어가지 않는다 — 손을 떼고
+      // 다시 끌어야 한다(이전엔 0 으로 두어 바로 넘어가게 했었다).
+      scrollLockTimeout={100}
       // 키보드가 뜨면 vaul 이 드로어의 인라인 height 를 직접 덮어쓴다 —
       // `visualViewportHeight - rect.top` 으로 다시 계산하는데, 이 시트는 늘 컨테이너를
       // 꽉 채우는 높이라(place-sheet-layout) mid 스냅에서 밀려난 몫까지 한 번 더 빠져

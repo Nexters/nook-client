@@ -1,6 +1,7 @@
 import { Dialog } from 'radix-ui';
 import { Suspense, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { MapErrorBoundary } from '@/features/map/components/MapErrorBoundary';
 import { PlacePreviewMap } from '@/features/map/components/PlacePreviewMap';
 import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
 import type { Post } from '@/features/post';
@@ -106,17 +107,19 @@ function PlaceDirectInputDrawer({
         ? createPortal(
             <div className="fixed inset-x-0 top-0 bottom-0 z-40 mx-auto max-w-[450px] bg-gray-10">
               {/* 네이버 지도 스크립트 로드까지(useNavermaps suspend) 회색 배경만 보인다. */}
-              <Suspense fallback={null}>
-                <PlacePreviewMap
-                  place={{
-                    name: selectedPlace.name,
-                    lat: selectedPlace.latitude,
-                    lng: selectedPlace.longitude,
-                    categoryGroup: selectedPlace.categoryGroup,
-                  }}
-                  sheetSnapPoint={PLACE_DETAIL_SNAP_POINTS[0]}
-                />
-              </Suspense>
+              <MapErrorBoundary>
+                <Suspense fallback={null}>
+                  <PlacePreviewMap
+                    place={{
+                      name: selectedPlace.name,
+                      lat: selectedPlace.latitude,
+                      lng: selectedPlace.longitude,
+                      categoryGroup: selectedPlace.categoryGroup,
+                    }}
+                    sheetSnapPoint={PLACE_DETAIL_SNAP_POINTS[0]}
+                  />
+                </Suspense>
+              </MapErrorBoundary>
             </div>,
             document.body,
           )

@@ -7,6 +7,7 @@ import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider'
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { ArchiveFilterSheet } from '@/features/map/components/ArchiveFilterSheet';
 import { FloatingPlaceCards } from '@/features/map/components/FloatingPlaceCards';
+import { MapErrorBoundary } from '@/features/map/components/MapErrorBoundary';
 import { getLastMapCamera, MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { type CardOrigin, PlaceFullSheet } from '@/features/map/components/PlaceFullSheet';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
@@ -566,36 +567,40 @@ export function MapPage() {
   return (
     <MainTabPageLayout variant="transparent">
       <div className="relative h-full w-full overflow-hidden">
-        <MapView
-          ref={mapRef}
-          pins={pins}
-          currentLocation={location.coords}
-          initialCenter={
-            env.localPrototype ? { lat: 37.547, lng: 127.042 } : (location.coords ?? undefined)
-          }
-          selectedPlaceId={selectedPlaceId}
-          // 선택 장소로의 이동은 명령이 아니라 선언 — 상세 응답의 좌표를 그대로 내려주면
-          // 지도가 늦게 마운트되든(스크립트 Suspense) 상세가 늦게 오든 MapView 가 알아서
-          // 준비되는 시점에 이동한다. 선택이 풀리면 undefined 가 되어 이동하지 않는다.
-          panTarget={selectedPlace ? { lat: selectedPlace.lat, lng: selectedPlace.lng } : undefined}
-          // 검색 결과 지도는 시트 대신 플로팅 카드가 화면 아래 절반쯤을 덮는다.
-          sheetSnap={searchMapActive ? cardsSnap : typeof snap === 'number' ? snap : undefined}
-          onPlaceClick={handleMapPinClick}
-          // 검색 결과 목록은 검색어를 유지한 채 최저 스냅으로 접는다.
-          // 검색 결과 플로팅 카드가 떠 있으면 닫지 않고 접힌 카드로 내린다 — 결과를 둘러보던
-          // 맥락(검색 헤더·카드 위치)은 그대로 두고 지도만 넓게 보여준다.
-          onEmptyMapClick={
-            selectedPlaceId === null
-              ? isSearchMode
-                ? collapseSearchSheet
-                : undefined
-              : searchMapActive && !placeFullOpen
-                ? () => setCardsCollapsed(true)
-                : handleCloseDetail
-          }
-          onBoundsChanged={setBounds}
-          onDestinationBounds={setDestinationBounds}
-        />
+        <MapErrorBoundary>
+          <MapView
+            ref={mapRef}
+            pins={pins}
+            currentLocation={location.coords}
+            initialCenter={
+              env.localPrototype ? { lat: 37.547, lng: 127.042 } : (location.coords ?? undefined)
+            }
+            selectedPlaceId={selectedPlaceId}
+            // 선택 장소로의 이동은 명령이 아니라 선언 — 상세 응답의 좌표를 그대로 내려주면
+            // 지도가 늦게 마운트되든(스크립트 Suspense) 상세가 늦게 오든 MapView 가 알아서
+            // 준비되는 시점에 이동한다. 선택이 풀리면 undefined 가 되어 이동하지 않는다.
+            panTarget={
+              selectedPlace ? { lat: selectedPlace.lat, lng: selectedPlace.lng } : undefined
+            }
+            // 검색 결과 지도는 시트 대신 플로팅 카드가 화면 아래 절반쯤을 덮는다.
+            sheetSnap={searchMapActive ? cardsSnap : typeof snap === 'number' ? snap : undefined}
+            onPlaceClick={handleMapPinClick}
+            // 검색 결과 목록은 검색어를 유지한 채 최저 스냅으로 접는다.
+            // 검색 결과 플로팅 카드가 떠 있으면 닫지 않고 접힌 카드로 내린다 — 결과를 둘러보던
+            // 맥락(검색 헤더·카드 위치)은 그대로 두고 지도만 넓게 보여준다.
+            onEmptyMapClick={
+              selectedPlaceId === null
+                ? isSearchMode
+                  ? collapseSearchSheet
+                  : undefined
+                : searchMapActive && !placeFullOpen
+                  ? () => setCardsCollapsed(true)
+                  : handleCloseDetail
+            }
+            onBoundsChanged={setBounds}
+            onDestinationBounds={setDestinationBounds}
+          />
+        </MapErrorBoundary>
         {/* 핀을 눌러 상세(detailPage)까지 올라오는 동안은 드로어를 따라 함께 올라온다.
             그보다 더 펼친 스냅(mid/full)에서는 드로어가 자리를 덮으므로 렌더하지 않는다. */}
         {searchMapActive ? (

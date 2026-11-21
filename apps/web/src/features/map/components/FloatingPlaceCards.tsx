@@ -17,6 +17,12 @@ const DRAG_THRESHOLD_PX = 40;
 /** 손이 이만큼 움직이면 가로(카드 넘기기)인지 세로(높이 끌기)인지 정한다. */
 const AXIS_LOCK_PX = 8;
 /**
+ * 짧게 툭 튕긴 제스처도 접기·펼치기로 본다 — 거리가 `DRAG_THRESHOLD_PX` 에 못 미쳐도 이 속도
+ * (px/ms)를 넘고 `FLICK_MIN_PX` 이상 움직였으면 넘긴다. vaul 의 "가볍게 툭 = 다음 단계"와 같은 감각.
+ */
+const FLICK_VELOCITY = 0.35;
+const FLICK_MIN_PX = 12;
+/**
  * 접힌 카드의 아래 여백과 사진 위 간격(gap-3) — 접힌 높이 = 사진 시작점 - 간격 + 아래 여백.
  * 펼친 카드는 따로 여백이 없다 — 사진 아래 인디케이터 줄(28px)이 곧 바닥이다(시안 405:18473).
  */
@@ -112,31 +118,75 @@ export function FloatingPlaceCards({
   // 마우스로 끌고 놓으면 click 이 뒤따라 온다 — 끌기였다면 그 click 은 버튼에 닿지 않게 삼킨다.
   const suppressClickRef = useRef(false);
 
+  // 한 제스처의 축 — 포인터 핸들러와 터치 리스너(아래)가 같은 판정을 공유한다.
+  const gestureRef = useRef<{ x: number; y: number; axis: 'x' | 'y' | null } | null>(null);
+  const decideAxis = (dx: number, dy: number) => {
+    const gesture = gestureRef.current;
+    if (!gesture) return null;
+    if (gesture.axis === null && Math.hypot(dx, dy) >= AXIS_LOCK_PX) {
+      // 가로가 더 길면 카드 넘기기다 — 브라우저 스크롤에 맡기고 높이는 건드리지 않는다.
+      gesture.axis = Math.abs(dy) > Math.abs(dx) ? 'y' : 'x';
+      // 세로로 정해지면 가로 스크롤을 잠근다 — 비스듬히 끌 때 카드가 옆으로 같이 밀리지 않게.
+      const scroller = scrollerRef.current;
+      if (gesture.axis === 'y' && scroller) {
+        lockedLeftRef.current = scroller.scrollLeft;
+        scroller.style.overflowX = 'hidden';
+      }
+    }
+    return gesture.axis;
+  };
+  const lockedLeftRef = useRef<number | null>(null);
+  const unlockHorizontal = () => {
+    const scroller = scrollerRef.current;
+    if (scroller && lockedLeftRef.current !== null) {
+      scroller.style.overflowX = '';
+      scroller.scrollLeft = lockedLeftRef.current;
+    }
+    lockedLeftRef.current = null;
+  };
+
+  // iOS 는 세로가 주인 제스처에서도 손이 살짝 비스듬하면 가로 스크롤을 시작하고, 그대로
+  // 터치를 가져가 pointercancel 을 보낸다(열다가 툭 끊겨 들썩이는 원인). 세로로 정해진 뒤의
+  // touchmove 는 기본 동작을 막아 제스처를 끝까지 우리 것으로 둔다. passive:false 라 React
+  // 이벤트가 아니라 직접 붙인다.
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const onTouchMove = (e: TouchEvent) => {
+      const gesture = gestureRef.current;
+      const touch = e.touches[0];
+      if (!gesture || !touch) return;
+      const axis = decideAxis(touch.clientX - gesture.x, touch.clientY - gesture.y);
+      if (axis === 'y' && e.cancelable) e.preventDefault();
+    };
+    scroller.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => scroller.removeEventListener('touchmove', onTouchMove);
+  });
+
   // 포인터라 터치·마우스 둘 다 받는다. 카드 밖으로 나가도 놓치지 않게 이동·떼기는 window 에서 받는다.
   const handlePointerDown = (event: PointerEvent) => {
     if (event.button !== 0) return;
     suppressClickRef.current = false;
-    const start = { x: event.clientX, y: event.clientY };
-    let axis: 'x' | 'y' | null = null;
+    const start = { x: event.clientX, y: event.clientY, time: performance.now() };
+    gestureRef.current = { x: start.x, y: start.y, axis: null };
     const handleMove = (move: globalThis.PointerEvent) => {
-      const dx = move.clientX - start.x;
-      const dy = move.clientY - start.y;
-      if (axis === null) {
-        if (Math.hypot(dx, dy) < AXIS_LOCK_PX) return;
-        // 가로가 더 길면 카드 넘기기다 — 브라우저 스크롤에 맡기고 높이는 건드리지 않는다.
-        axis = Math.abs(dy) > Math.abs(dx) ? 'y' : 'x';
-      }
-      if (axis === 'y') setDragDy(dy);
+      const axis = decideAxis(move.clientX - start.x, move.clientY - start.y);
+      if (axis === 'y') setDragDy(move.clientY - start.y);
     };
     const handleEnd = (end: globalThis.PointerEvent) => {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleEnd);
       window.removeEventListener('pointercancel', handleEnd);
+      const axis = gestureRef.current?.axis ?? null;
+      gestureRef.current = null;
+      unlockHorizontal();
       setDragDy(null);
       if (axis !== 'y' || end.type === 'pointercancel') return;
       suppressClickRef.current = true;
       const dy = end.clientY - start.y;
-      if (Math.abs(dy) < DRAG_THRESHOLD_PX) return;
+      const elapsed = Math.max(performance.now() - start.time, 1);
+      const flicked = Math.abs(dy) >= FLICK_MIN_PX && Math.abs(dy) / elapsed >= FLICK_VELOCITY;
+      if (Math.abs(dy) < DRAG_THRESHOLD_PX && !flicked) return;
       if (dy > 0) onCollapsedChange(true);
       else if (collapsed) onCollapsedChange(false);
       else {

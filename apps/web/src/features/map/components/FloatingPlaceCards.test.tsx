@@ -27,11 +27,15 @@ function setup(collapsed: boolean) {
     />,
   );
   const card = screen.getByRole('region', { name: '장소' });
-  const drag = (dx: number, dy: number) => {
+  /** `durationMs` — 누른 순간부터 뗄 때까지 걸린 시간. 짧은 거리라도 빠르면 튕기기로 본다. */
+  const drag = (dx: number, dy: number, durationMs = 400) => {
+    const now = vi.spyOn(performance, 'now').mockReturnValue(1000);
     fireEvent.pointerDown(card, { clientX: 100, clientY: 400, button: 0 });
     // 손은 카드 밖으로 나갈 수 있다 — 이동·떼기는 window 에서 받는다.
     fireEvent.pointerMove(window, { clientX: 100 + dx, clientY: 400 + dy });
+    now.mockReturnValue(1000 + durationMs);
     fireEvent.pointerUp(window, { clientX: 100 + dx, clientY: 400 + dy });
+    now.mockRestore();
   };
   return { card, drag, onCollapsedChange, onExpandFull };
 }
@@ -65,6 +69,14 @@ describe('FloatingPlaceCards 높이 제스처(NOOK-383)', () => {
     drag(-120, -60);
     expect(onCollapsedChange).not.toHaveBeenCalled();
     expect(onExpandFull).not.toHaveBeenCalled();
+  });
+
+  it('짧아도 빠르게 툭 튕기면 다음 높이로 간다', () => {
+    const { drag, onCollapsedChange, onExpandFull } = setup(false);
+    drag(0, -25, 50);
+    expect(onExpandFull).toHaveBeenCalledTimes(1);
+    drag(0, 25, 50);
+    expect(onCollapsedChange).toHaveBeenCalledWith(true);
   });
 });
 
