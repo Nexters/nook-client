@@ -32,7 +32,7 @@ export function ArchiveSubscriberList({
         <p className="pt-10 text-center text-b2 text-gray-60">목록을 불러오지 못했어요</p>
       ) : (
         <ul
-          className="flex flex-col gap-2 px-4 pt-6.5"
+          className="flex flex-col gap-2 px-4 pt-2"
           // 아카이브 쪽은 하단 탭바가 fixed 로 떠 있어 그만큼 비켜준다. 탭바 밖(공유 링크)은
           // 변수가 없어 safe area 만 남는다.
           style={{

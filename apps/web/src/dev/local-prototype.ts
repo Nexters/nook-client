@@ -312,7 +312,18 @@ export async function localPrototypeRequest(
       return success(page(posts.map(postSummary), params));
     if (groupMatch[2] === 'places' && method === 'GET')
       return success(page(db.places.filter((place) => placeIds.has(place.id)).map(recent), params));
-    if (groupMatch[2] === 'subscribers' && method === 'GET') return success(page([], params));
+    if (groupMatch[2] === 'subscribers' && method === 'GET')
+      return success(
+        page(
+          [
+            { nickname: 'purr', profileImageUrl: null },
+            { nickname: 'nookmate', profileImageUrl: null },
+            { nickname: 'seoul.walk', profileImageUrl: null },
+            { nickname: 'coffee.note', profileImageUrl: null },
+          ],
+          params,
+        ),
+      );
     if (groupMatch[2] === 'share-link') return success({ token: `local-${id}` });
     if (!groupMatch[2]) {
       if (method === 'GET') return success(summaries().find((item) => item.id === id));
