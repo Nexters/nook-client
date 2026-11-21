@@ -27,6 +27,7 @@ import { env } from '@/shared/config/env';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { useMapPins, usePlaceDetail, useRecentPlaces, useSearchSavedPlaces } from './api/queries';
+import { NearbyToastStack } from './components/NearbyToastStack';
 
 /**
  * 상세를 이 화면 안에서 열어(핀·카드 클릭) 히스토리 엔트리를 하나 쌓았다는 표시.
@@ -142,6 +143,7 @@ export function MapPage() {
   // 반응해야 하고(제품 결정), 이 패널은 시트 안에서 탐색 콘텐츠만 덮어 화면 높이를 채우지
   // 않는다. 그래서 스와이프는 여기서도 "지도를 떠난다"가 맞다. 좌상단 뒤로가기는 버튼이
   // 직접, Android 하드웨어 백은 useSlideScreen 의 인터셉터가 받는다.
+  const densePinsPreview = env.localPrototype && searchParams.has('densePins');
   const prototypeCase = env.localPrototype ? searchParams.get('prototypeCase') : null;
   const [isSearchMode, setIsSearchMode] = useState(Boolean(prototypeCase));
   // 검색어·결과는 여기서 갖는다 — 결과 목록(검색 패널)과 검색 결과 지도가 같은 결과를 쓴다.
@@ -573,7 +575,11 @@ export function MapPage() {
             pins={pins}
             currentLocation={location.coords}
             initialCenter={
-              env.localPrototype ? { lat: 37.547, lng: 127.042 } : (location.coords ?? undefined)
+              densePinsPreview
+                ? { lat: 37.5676, lng: 126.9295 }
+                : env.localPrototype
+                  ? { lat: 37.547, lng: 127.042 }
+                  : (location.coords ?? undefined)
             }
             selectedPlaceId={selectedPlaceId}
             // 선택 장소로의 이동은 명령이 아니라 선언 — 상세 응답의 좌표를 그대로 내려주면
@@ -585,6 +591,7 @@ export function MapPage() {
             // 검색 결과 지도는 시트 대신 플로팅 카드가 화면 아래 절반쯤을 덮는다.
             sheetSnap={searchMapActive ? cardsSnap : typeof snap === 'number' ? snap : undefined}
             onPlaceClick={handleMapPinClick}
+            expandDenseClusters={densePinsPreview}
             // 검색 결과 목록은 검색어를 유지한 채 최저 스냅으로 접는다.
             // 검색 결과 플로팅 카드가 떠 있으면 닫지 않고 접힌 카드로 내린다 — 결과를 둘러보던
             // 맥락(검색 헤더·카드 위치)은 그대로 두고 지도만 넓게 보여준다.
@@ -615,6 +622,17 @@ export function MapPage() {
             <RecenterButton snapPoint={snap} onClick={() => mapRef.current?.recenter()} />
           )
         )}
+        {/* 프로토타입(VOC): 걸어서 10분 안의 저장 장소 토스트 스택 — `?nearby=1`. */}
+        {env.localPrototype &&
+        searchParams.get('nearby') === '1' &&
+        !isSearchMode &&
+        selectedPlaceId === null ? (
+          <NearbyToastStack
+            pins={pins}
+            userCoords={location.coords ?? { lat: 37.547, lng: 127.042 }}
+            onSelectPlace={handleMapPinClick}
+          />
+        ) : null}
         {searchMapActive && !placeFullOpen ? (
           <SearchMapHeader
             query={searchQuery}

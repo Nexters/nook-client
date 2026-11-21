@@ -32,8 +32,8 @@ function setup(collapsed: boolean) {
     const now = vi.spyOn(performance, 'now').mockReturnValue(1000);
     fireEvent.pointerDown(card, { clientX: 100, clientY: 400, button: 0 });
     // 손은 카드 밖으로 나갈 수 있다 — 이동·떼기는 window 에서 받는다.
-    fireEvent.pointerMove(window, { clientX: 100 + dx, clientY: 400 + dy });
     now.mockReturnValue(1000 + durationMs);
+    fireEvent.pointerMove(window, { clientX: 100 + dx, clientY: 400 + dy });
     fireEvent.pointerUp(window, { clientX: 100 + dx, clientY: 400 + dy });
     now.mockRestore();
   };

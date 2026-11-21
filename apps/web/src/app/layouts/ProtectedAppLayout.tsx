@@ -4,11 +4,31 @@ import { Outlet } from 'react-router-dom';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import { markTabRootNavigation } from '@/app/layouts/MainTabPageLayout';
 import { bottomMenuItems } from '@/app/navigation';
+import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
+import { useMyProfile } from '@/features/my/api/queries';
 import { ArchiveJumpHost } from '@/features/post/components/ArchiveJumpPopover';
 import { BOTTOM_INSET_VAR, BOTTOM_MENU_HEIGHT, BottomMenu } from '@/shared/ui';
 
 export function ProtectedAppLayout() {
   const [bottomMenuHidden, setBottomMenuHidden] = useState(false);
+  const isAuthenticated = useIsAuthenticated();
+  const { data: profile } = useMyProfile();
+  const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
+  const photo = isAuthenticated ? profile?.profileImageUrl : null;
+  const profileIcon =
+    photo && photo !== failedPhoto ? (
+      <img
+        src={photo}
+        alt=""
+        className="size-8 rounded-full object-cover"
+        onError={() => setFailedPhoto(photo)}
+      />
+    ) : null;
+  const menuItems = profileIcon
+    ? bottomMenuItems.map((item) =>
+        item.to === '/my' ? { ...item, icon: profileIcon, activeIcon: profileIcon } : item,
+      )
+    : bottomMenuItems;
 
   // 하단에 떠 있는 요소(토스트)가 탭바를 비켜 앉도록 지금 가려진 높이를 :root 에 심는다.
   // 컨텍스트 대신 CSS 변수인 이유: 토스트는 shared 레이어라 app 의 탭바 상태를 몰라야 한다.
@@ -37,7 +57,7 @@ export function ProtectedAppLayout() {
           항상 화면 하단에 있어야 하니 body 로 포탈한다(ToastProvider 와 같은 이유). */}
       {createPortal(
         <BottomMenu
-          items={bottomMenuItems}
+          items={menuItems}
           hidden={bottomMenuHidden}
           onNavigate={markTabRootNavigation}
         />,

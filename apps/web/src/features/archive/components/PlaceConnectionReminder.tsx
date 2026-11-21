@@ -24,7 +24,10 @@ export function PlaceConnectionReminderCard({
   onDisable,
   onView,
   disabling = false,
+  revealDelay = 900,
 }: {
+  /** 등장 전 기다리는 시간(ms). 업데이트 안내 미리보기처럼 이미 화면이 떠 있으면 줄인다. */
+  revealDelay?: number;
   count: number;
   thumbnails: string[];
   onDismiss: () => void;
@@ -43,9 +46,9 @@ export function PlaceConnectionReminderCard({
     });
   // 페이지가 자리 잡은 뒤 배너가 등장한다. 사진이 있으면 다 받은 뒤에 — 빈 사진 자리로 열리지 않게.
   useEffect(() => {
-    const timer = window.setTimeout(() => setDelayElapsed(true), 900);
+    const timer = window.setTimeout(() => setDelayElapsed(true), revealDelay);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [revealDelay]);
   if (count < 1) return null;
   return (
     <div className="reminder-reveal" data-revealed={revealed}>

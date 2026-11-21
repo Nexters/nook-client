@@ -1,6 +1,7 @@
 import type { ApiRequestInit } from '@/shared/api/http';
 import { createPrototypeData, type PrototypeData } from './local-prototype-data';
 import {
+  createDenseMapData,
   createPrototypeScenarioData,
   createReminderData,
   getPrototypeCardMode,
@@ -59,7 +60,10 @@ function readPostShares(): Record<string, LocalPostShare> {
 const isLongArchivePreview = () =>
   new URLSearchParams(window.location.search).get('prototypeLongArchive') === '1';
 
+const isDenseMapPreview = () => new URLSearchParams(window.location.search).has('densePins');
+
 const storageKey = () => {
+  if (isDenseMapPreview()) return `${STORAGE_KEY}.dense-pins`;
   if (isLongArchivePreview()) return `${STORAGE_KEY}.archive-scroll`;
   const reminder = getPrototypeReminderCase();
   if (reminder) return `${STORAGE_KEY}.reminder.${reminder.id}`;
@@ -123,6 +127,7 @@ function read(): PrototypeData {
   } catch {
     /* 잘못된 로컬 데이터는 새 샘플로 복구한다. */
   }
+  if (isDenseMapPreview()) return createDenseMapData();
   if (isLongArchivePreview()) {
     const data = createPrototypeData();
     const group = data.groups[0];

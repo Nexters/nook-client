@@ -7,6 +7,7 @@ import { SlideScreen, useSlideScreen } from '@/app/slide-screen';
 import { useArchives } from '@/features/archive/api/queries';
 import { useAuthSession, useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { useLogout, useMyProfile, useSaveProfile, useWithdraw } from '@/features/my/api/queries';
+import { FeedbackSheet } from '@/features/my/components/FeedbackSheet';
 import { MyMenuRow } from '@/features/my/components/MyMenuRow';
 import { MyMenuSection } from '@/features/my/components/MyMenuSection';
 import { ProfileImageSheet } from '@/features/my/components/ProfileImageSheet';
@@ -20,6 +21,7 @@ import {
   Icon16Info,
   Icon16Insta,
   Icon16Paper,
+  Icon16Pen,
   Icon16User,
   Icon24Back,
 } from '@/shared/icons/NookIcons';
@@ -45,6 +47,7 @@ export function MyPage() {
   const [draftNickname, setDraftNickname] = useState<string>('');
   const [dialog, setDialog] = useState<Dialog>(null);
   const [imageSheetOpen, setImageSheetOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   // 픽커로 고른 원본. 저장할 때 업로드해야 해서 data URI 가 아니라 그대로 들고 있는다.
   const [pickedImage, setPickedImage] = useState<PickedImage | null>(null);
   const { setHidden: setBottomMenuHidden } = useBottomMenuVisibility();
@@ -320,6 +323,14 @@ export function MyPage() {
                   label="문의하기"
                   onClick={() => navigate('/support')}
                 />
+                {/* 프로토타입: 메일까지 가지 않는 가벼운 피드백 창구(받는 API 없음). */}
+                {env.localPrototype ? (
+                  <MyMenuRow
+                    icon={<Icon16Pen />}
+                    label="피드백 보내기"
+                    onClick={() => setFeedbackOpen(true)}
+                  />
+                ) : null}
                 <MyMenuRow
                   icon={<Icon16Info />}
                   label="개인정보 처리방침"
@@ -384,6 +395,20 @@ export function MyPage() {
       />
 
       {profileEditScreen}
+      <FeedbackSheet
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
+        onSubmit={(feedback) => {
+          try {
+            const key = 'nook.prototype.feedback';
+            const list = JSON.parse(localStorage.getItem(key) ?? '[]');
+            list.push({ ...feedback, at: new Date().toISOString() });
+            localStorage.setItem(key, JSON.stringify(list));
+          } catch {
+            /* 프로토타입 기록 — 저장 실패해도 흐름은 그대로 */
+          }
+        }}
+      />
     </>
   );
 }

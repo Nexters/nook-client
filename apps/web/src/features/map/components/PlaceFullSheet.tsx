@@ -1,7 +1,14 @@
+import { animate, useReducedMotion } from 'framer-motion';
 import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import type { PlaceDetail as PlaceDetailModel } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
+import {
+  type GestureSample,
+  releaseVelocity,
+  sampleGesture,
+  shouldAdvanceSheet,
+} from './sheet-gesture';
 
 /** 끌어올린 카드가 있던 자리(뷰포트 기준). 풀업은 여기서 커지고, 닫힐 땐 `rest` 로 줄어든다. */
 export interface CardOrigin {
@@ -67,12 +74,55 @@ export function PlaceFullSheet({
   // 지금 앉아 있을 자리. 처음엔 카드 자리에서 시작해 다음 프레임에 화면 전체로 옮겨 가며 전환된다.
   const [frame, setFrame] = useState<Frame>(FULL);
   // 맨 위에서 끌어내린 거리 — 끄는 동안엔 전환 없이 손을 바로 따라간다.
-  const [dragY, setDragY] = useState<number | null>(null);
+  const dragY = useRef(0);
+  const settling = useRef<{ stop: () => void } | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reducedMotion = useReducedMotion();
+  const interruptedClose = useRef(false);
+  const resetDrag = (velocity = 0) => {
+    if (interruptedClose.current) {
+      interruptedClose.current = false;
+      setInstant(false);
+      setFrame(FULL);
+    }
+    settling.current?.stop();
+    const panel = panelRef.current;
+    if (!panel) return;
+    panel.style.transition = 'none';
+    settling.current = animate(dragY.current, 0, {
+      type: 'spring',
+      duration: reducedMotion ? 0.12 : 0.4,
+      bounce: 0,
+      velocity: velocity * 1000,
+      onUpdate: (y) => {
+        dragY.current = y;
+        panel.style.transform = `translate3d(0, ${y}px, 0)`;
+      },
+      onComplete: () => {
+        settling.current = null;
+        panel.style.transition = '';
+        panel.style.borderRadius = '';
+      },
+    });
+  };
+  const resetDragRef = useRef(resetDrag);
+  resetDragRef.current = resetDrag;
+  useEffect(
+    () => () => {
+      settling.current?.stop();
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    [],
+  );
   const closingRef = useRef(false);
   const [closing, setClosing] = useState(false);
   // 카드 자리로 옮겨 앉는 첫 순간엔 전환을 끈다 — 켜 두면 처음 붙은 꽉 찬 모양에서 카드 자리로
   // 되돌아가는 전환이 먼저 시작돼 커지는 모습이 사라진다.
   const [instant, setInstant] = useState(Boolean(origin));
+
+  useLayoutEffect(() => {
+    if (settling.current && panelRef.current) panelRef.current.style.transition = 'none';
+  });
 
   const containerRect = () => panelRef.current?.parentElement?.getBoundingClientRect() ?? null;
 
@@ -95,15 +145,16 @@ export function PlaceFullSheet({
   const close = () => {
     if (closingRef.current) return;
     closingRef.current = true;
-    setDragY(null);
+    settling.current?.stop();
     const container = containerRect();
     if (!origin || !container) {
       onClose();
       return;
     }
+    setInstant(false);
     setClosing(true);
     setFrame(frameOf(origin.rest, container));
-    setTimeout(onClose, CLOSE_DURATION_MS);
+    closeTimer.current = setTimeout(onClose, reducedMotion ? 120 : CLOSE_DURATION_MS);
   };
   const closeRef = useRef(close);
   closeRef.current = close;
@@ -114,78 +165,161 @@ export function PlaceFullSheet({
     const scroller = scrollRef.current;
     const panel = panelRef.current;
     if (!scroller || !panel) return;
-    let startY: number | null = null;
-    let lastDy = 0;
+    let startY = 0;
+    let startX = 0;
+    let lastY = 0;
+    let started = false;
+    let dragging = false;
+    let startOffset = 0;
+    let distance = 0;
+    let horizontal = false;
+    let samples: GestureSample[] = [];
+    let mouseCleanup: (() => void) | undefined;
 
-    const begin = (y: number) => {
-      startY = scroller.scrollTop <= 0 ? y : null;
-      lastDy = 0;
-    };
-    const move = (y: number) => {
-      if (startY === null) return false;
-      const dy = y - startY;
-      if (dy <= 0 && lastDy <= 0) {
-        startY = null; // 위로 밀면 그냥 스크롤이다.
-        return false;
+    const begin = (x: number, y: number, target: EventTarget | null) => {
+      if (
+        target instanceof Element &&
+        target.closest('button, input, textarea, a, [data-vaul-no-drag]')
+      )
+        return;
+      settling.current?.stop();
+      if (closeTimer.current) {
+        clearTimeout(closeTimer.current);
+        closeTimer.current = null;
+        closingRef.current = false;
+        interruptedClose.current = true;
+        const panelBox = panel.getBoundingClientRect();
+        const container = panel.parentElement?.getBoundingClientRect();
+        if (container) {
+          setInstant(true);
+          setClosing(false);
+          setFrame(frameOf(panelBox, container));
+          panel.style.transform = '';
+          dragY.current = 0;
+        }
       }
-      lastDy = Math.max(dy, 0);
-      setDragY(lastDy);
+      startY = lastY = y;
+      startX = x;
+      startOffset = dragY.current;
+      distance = 0;
+      started = true;
+      dragging = horizontal = false;
+      samples = [{ position: y, time: performance.now() }];
+    };
+    const move = (x: number, y: number) => {
+      if (!started || horizontal) return false;
+      const dy = y - startY;
+      const dx = x - startX;
+      sampleGesture(samples, y, performance.now());
+      if (!dragging) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return false;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          horizontal = true;
+          return false;
+        }
+        if (scroller.scrollTop > 0 || y <= lastY) {
+          startY = lastY = y;
+          return false;
+        }
+        dragging = true;
+        // Start from where scrolling handed off, rather than the original touch-down position.
+        startY = lastY;
+        panel.style.transition = 'none';
+      }
+      distance = Math.max(0, startOffset + y - startY);
+      dragY.current = distance;
+      panel.style.transform = `translate3d(0, ${distance}px, 0)`;
+      panel.style.borderRadius = `${CARD_RADIUS_PX}px`;
+      lastY = y;
       return true;
     };
-    const end = () => {
-      if (startY === null) return;
-      startY = null;
-      if (lastDy > CLOSE_THRESHOLD_PX) closeRef.current();
-      else setDragY(null);
+    const end = (cancelled = false) => {
+      if (!started) return;
+      started = false;
+      if (!dragging) {
+        if (interruptedClose.current || dragY.current !== 0) resetDragRef.current();
+        return;
+      }
+      dragging = false;
+      const velocity = releaseVelocity(samples, performance.now());
+      if (!cancelled && shouldAdvanceSheet(distance, velocity, CLOSE_THRESHOLD_PX)) {
+        // Restore the morph's transition before it heads back to its source card.
+        panel.style.transition = '';
+        closeRef.current();
+      } else resetDragRef.current(cancelled ? 0 : velocity);
     };
-
-    const onTouchStart = (e: TouchEvent) => begin(e.touches[0]?.clientY ?? 0);
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (t && e.touches.length === 1) begin(t.clientX, t.clientY, e.target);
+      else end(true);
+    };
     const onTouchMove = (e: TouchEvent) => {
-      if (move(e.touches[0]?.clientY ?? 0)) e.preventDefault();
+      const t = e.touches[0];
+      if (e.touches.length !== 1) {
+        end(true);
+        return;
+      }
+      if (t && move(t.clientX, t.clientY) && e.cancelable) e.preventDefault();
     };
+    const onTouchEnd = () => end();
+    const onCancel = () => end(true);
     const onPointerDown = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse' || e.button !== 0) return;
-      begin(e.clientY);
-      const onMove = (m: PointerEvent) => move(m.clientY);
-      const onUp = () => {
+      mouseCleanup?.();
+      begin(e.clientX, e.clientY, e.target);
+      const onMove = (m: PointerEvent) => move(m.clientX, m.clientY);
+      const finish = (cancelled: boolean) => {
+        mouseCleanup?.();
+        end(cancelled);
+      };
+      const onUp = () => finish(false);
+      const onPointerCancel = () => finish(true);
+      mouseCleanup = () => {
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', onUp);
-        end();
+        window.removeEventListener('pointercancel', onPointerCancel);
       };
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onPointerCancel);
     };
-
     panel.addEventListener('touchstart', onTouchStart, { passive: true });
     panel.addEventListener('touchmove', onTouchMove, { passive: false });
-    panel.addEventListener('touchend', end);
-    panel.addEventListener('touchcancel', end);
+    panel.addEventListener('touchend', onTouchEnd);
+    panel.addEventListener('touchcancel', onCancel);
     panel.addEventListener('pointerdown', onPointerDown);
     return () => {
+      mouseCleanup?.();
       panel.removeEventListener('touchstart', onTouchStart);
       panel.removeEventListener('touchmove', onTouchMove);
-      panel.removeEventListener('touchend', end);
-      panel.removeEventListener('touchcancel', end);
+      panel.removeEventListener('touchend', onTouchEnd);
+      panel.removeEventListener('touchcancel', onCancel);
       panel.removeEventListener('pointerdown', onPointerDown);
     };
   }, []);
 
+  useLayoutEffect(() => {
+    if (closing && panelRef.current) {
+      panelRef.current.style.transform = 'translate3d(0, 0, 0)';
+      dragY.current = 0;
+    }
+  }, [closing]);
+
   const style: CSSProperties = {
-    top: frame.top + (dragY ?? 0),
+    top: frame.top,
     left: frame.left,
     right: frame.right,
     bottom: frame.bottom,
-    borderRadius: dragY === null ? frame.radius : CARD_RADIUS_PX,
-    transition:
-      dragY === null && !instant
-        ? ['top', 'left', 'right', 'bottom', 'border-radius']
-            .map((prop) =>
-              closing
-                ? `${prop} ${CLOSE_DURATION_MS}ms ${CLOSE_EASE}`
-                : `${prop} ${DURATION_MS}ms ${EASE}`,
-            )
-            .join(', ')
-        : 'none',
+    borderRadius: frame.radius,
+    transition: !instant
+      ? ['top', 'left', 'right', 'bottom', 'border-radius', 'transform']
+          .map((prop) =>
+            closing
+              ? `${prop} ${reducedMotion ? 120 : CLOSE_DURATION_MS}ms ${CLOSE_EASE}`
+              : `${prop} ${reducedMotion ? 120 : DURATION_MS}ms ${EASE}`,
+          )
+          .join(', ')
+      : 'none',
   };
 
   return (

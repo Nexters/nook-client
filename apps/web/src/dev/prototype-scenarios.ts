@@ -71,3 +71,31 @@ export function createReminderData(count: number) {
   });
   return data;
 }
+
+// Sample layout around Yeonhui, with several pins sharing one building.
+export function createDenseMapData() {
+  const data = createPrototypeData();
+  const positions = [
+    ['킷사카라수', 37.5676, 126.9295],
+    ['낭만한도초과', 37.56808, 126.92918],
+    ['카사베르데 연희점', 37.56808, 126.92918],
+    ['연희 커피', 37.56808, 126.92918],
+    ['느린 오후', 37.56808, 126.92918],
+    ['센티멘트', 37.56812, 126.92922],
+    ['파파연희', 37.5688, 126.93045],
+    ['에치스', 37.56935, 126.92965],
+    ['아마도', 37.56745, 126.93075],
+  ] as const;
+  for (const [index, [name, latitude, longitude]] of positions.entries()) {
+    const place = data.places[index];
+    if (!place) continue;
+    Object.assign(place, { name, latitude, longitude, address: '서울 서대문구 연희동' });
+  }
+  for (const post of data.posts) {
+    post.places = post.places.map((place) => ({
+      ...place,
+      ...data.places.find((sample) => sample.id === place.id),
+    }));
+  }
+  return data;
+}

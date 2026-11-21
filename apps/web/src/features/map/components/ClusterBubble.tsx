@@ -11,21 +11,26 @@ export function ClusterBubble({
   lng,
   count,
   onClick,
+  expandsOnMap = false,
+  offsetX = 0,
 }: {
   lat: number;
   lng: number;
   count: number;
   onClick?: () => void;
+  expandsOnMap?: boolean;
+  offsetX?: number;
 }) {
   return (
     <CustomOverlay position={{ lat, lng }}>
       <button
         type="button"
         onClick={onClick}
-        aria-label={`이 근처에 저장한 장소 ${count}곳 — 확대해서 보기`}
+        style={offsetX ? { translate: `${offsetX}px` } : undefined}
+        aria-label={`이 근처에 저장한 장소 ${count}곳 — ${expandsOnMap ? '지도에 펼치기' : '확대해서 보기'}`}
         className="flex size-11 items-center justify-center rounded-full bg-gray-90/85 font-medium text-b2 text-gray-0"
       >
-        {count}
+        {expandsOnMap ? `+${count}` : count}
       </button>
     </CustomOverlay>
   );

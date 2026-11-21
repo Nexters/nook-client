@@ -7,6 +7,12 @@ import { usePointerDragScroll } from '@/shared/lib/usePointerDragScroll';
 import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui';
 import { CarouselIndicator } from '@/shared/ui/carousel-indicator';
+import {
+  type GestureSample,
+  releaseVelocity,
+  sampleGesture,
+  shouldAdvanceSheet,
+} from './sheet-gesture';
 
 /** 카드 사이 간격(px) — 시안 `홈_지도` 403:18114 와 옆 카드(403:18099) 사이 4px. */
 const CARD_GAP_PX = 4;
@@ -16,12 +22,6 @@ const SCROLL_SETTLE_MS = 120;
 const DRAG_THRESHOLD_PX = 40;
 /** 손이 이만큼 움직이면 가로(카드 넘기기)인지 세로(높이 끌기)인지 정한다. */
 const AXIS_LOCK_PX = 8;
-/**
- * 짧게 툭 튕긴 제스처도 접기·펼치기로 본다 — 거리가 `DRAG_THRESHOLD_PX` 에 못 미쳐도 이 속도
- * (px/ms)를 넘고 `FLICK_MIN_PX` 이상 움직였으면 넘긴다. vaul 의 "가볍게 툭 = 다음 단계"와 같은 감각.
- */
-const FLICK_VELOCITY = 0.35;
-const FLICK_MIN_PX = 12;
 /**
  * 접힌 카드의 아래 여백과 사진 위 간격(gap-3) — 접힌 높이 = 사진 시작점 - 간격 + 아래 여백.
  * 펼친 카드는 따로 여백이 없다 — 사진 아래 인디케이터 줄(28px)이 곧 바닥이다(시안 405:18473).
@@ -168,10 +168,15 @@ export function FloatingPlaceCards({
     if (event.button !== 0) return;
     suppressClickRef.current = false;
     const start = { x: event.clientX, y: event.clientY, time: performance.now() };
+    const samples: GestureSample[] = [{ position: 0, time: start.time }];
     gestureRef.current = { x: start.x, y: start.y, axis: null };
     const handleMove = (move: globalThis.PointerEvent) => {
       const axis = decideAxis(move.clientX - start.x, move.clientY - start.y);
-      if (axis === 'y') setDragDy(move.clientY - start.y);
+      if (axis === 'y') {
+        const dy = move.clientY - start.y;
+        sampleGesture(samples, dy, performance.now());
+        setDragDy(dy);
+      }
     };
     const handleEnd = (end: globalThis.PointerEvent) => {
       window.removeEventListener('pointermove', handleMove);
@@ -184,9 +189,8 @@ export function FloatingPlaceCards({
       if (axis !== 'y' || end.type === 'pointercancel') return;
       suppressClickRef.current = true;
       const dy = end.clientY - start.y;
-      const elapsed = Math.max(performance.now() - start.time, 1);
-      const flicked = Math.abs(dy) >= FLICK_MIN_PX && Math.abs(dy) / elapsed >= FLICK_VELOCITY;
-      if (Math.abs(dy) < DRAG_THRESHOLD_PX && !flicked) return;
+      const velocity = releaseVelocity(samples, performance.now());
+      if (!shouldAdvanceSheet(dy, velocity, DRAG_THRESHOLD_PX)) return;
       if (dy > 0) onCollapsedChange(true);
       else if (collapsed) onCollapsedChange(false);
       else {
