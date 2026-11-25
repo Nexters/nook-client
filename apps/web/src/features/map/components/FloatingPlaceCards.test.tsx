@@ -59,6 +59,34 @@ describe('FloatingPlaceCards 높이 제스처(NOOK-383)', () => {
     expect(onExpandFull).not.toHaveBeenCalled();
   });
 
+  it('세로로 정해진 끌기는 손을 뗄 때까지 가로 스크롤을 막는다 — 옆 카드로 넘어가지 않게(NOOK-440)', () => {
+    const { card, onExpandFull } = setup(false);
+    const touchMove = () => {
+      const event = new Event('touchmove', { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    fireEvent.pointerDown(card, { clientX: 100, clientY: 400, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 102, clientY: 380 });
+    expect(touchMove()).toBe(true);
+    // 위로 끄는 중 손가락이 옆으로 흘러도 세로 그대로다.
+    fireEvent.pointerMove(window, { clientX: 160, clientY: 340 });
+    expect(touchMove()).toBe(true);
+    fireEvent.pointerUp(window, { clientX: 160, clientY: 320 });
+    expect(onExpandFull).toHaveBeenCalledTimes(1);
+    expect(touchMove()).toBe(false);
+  });
+
+  it('가로로 정해진 끌기는 브라우저 스크롤에 맡긴다', () => {
+    const { card } = setup(false);
+    fireEvent.pointerDown(card, { clientX: 100, clientY: 400, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 70, clientY: 396 });
+    const event = new Event('touchmove', { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    fireEvent.pointerUp(window, { clientX: 40, clientY: 396 });
+  });
+
   it('짧은 흔들림이나 가로 넘기기는 높이를 바꾸지 않는다', () => {
     const { drag, onCollapsedChange, onExpandFull } = setup(false);
     drag(0, -20);
