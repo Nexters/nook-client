@@ -1863,6 +1863,14 @@
       },
       "MapPlaceResponse": {
         "properties": {
+          "accessType": {
+            "description": "장소 접근 유형. 공유 그룹 구독으로만 접근하는 장소는 SHARED입니다.",
+            "enum": [
+              "OWNED",
+              "SHARED"
+            ],
+            "type": "string"
+          },
           "category": {
             "description": "장소 카테고리",
             "type": [
@@ -1914,6 +1922,13 @@
             "description": "장소명",
             "type": "string"
           },
+          "shareToken": {
+            "description": "공유 그룹 접근 토큰. accessType이 SHARED일 때만 내려가고 내 장소면 null입니다.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "tags": {
             "description": "장소 대표 태그 목록(최대 4개)",
             "items": {
@@ -1940,6 +1955,7 @@
           }
         },
         "required": [
+          "accessType",
           "categoryGroup",
           "color",
           "id",
@@ -3143,6 +3159,14 @@
       },
       "SavedPlaceSearchItemResponse": {
         "properties": {
+          "accessType": {
+            "description": "장소 접근 유형. 공유 그룹 구독으로만 접근하는 장소는 SHARED입니다.",
+            "enum": [
+              "OWNED",
+              "SHARED"
+            ],
+            "type": "string"
+          },
           "address": {
             "description": "장소 주소",
             "type": "string"
@@ -3177,6 +3201,13 @@
             "description": "장소명",
             "type": "string"
           },
+          "shareToken": {
+            "description": "공유 그룹 접근 토큰. accessType이 SHARED일 때만 내려가고 내 장소면 null입니다.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "thumbnailUrl": {
             "description": "장소 대표 썸네일 URL",
             "type": [
@@ -3186,6 +3217,7 @@
           }
         },
         "required": [
+          "accessType",
           "address",
           "categoryGroup",
           "id",
