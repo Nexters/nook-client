@@ -439,6 +439,7 @@ export function PlaceSheet({
                     <div className="grid grid-cols-2 justify-items-center gap-2">
                       {recentPlaces.map((place) => (
                         <PlaceCard
+                          variant="map"
                           key={place.id}
                           place={{
                             id: String(place.id),
@@ -519,9 +520,9 @@ function RecentPlacesSkeleton() {
     <div aria-hidden className="grid grid-cols-2 gap-2">
       {Array.from({ length: 4 }, (_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: 순서가 바뀌지 않는 고정 자리표시
-        <div key={i} className="flex flex-col gap-1 pb-2">
-          <Skeleton className="aspect-[167/208] w-full rounded-sm" />
-          <div className="flex flex-col gap-1.5 p-1">
+        <div key={i} className="flex flex-col gap-2 pb-1.5">
+          <Skeleton className="aspect-[167/134] w-full rounded-sm" />
+          <div className="flex flex-col gap-1">
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-3.5 w-1/2" />
           </div>

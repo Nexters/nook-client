@@ -31,9 +31,29 @@ export interface PlaceCardProps {
    */
   mediaBadge?: boolean;
   className?: string;
+  /**
+   * 카드 모양.
+   * - `default`: 167:208 세로 카드 — 아카이브 상세 기본형·공유 아카이브.
+   * - `map`: 지도 목록·검색 결과(Figma 56:3703) — 167:134 가로형 썸네일, 12px 이름·메타.
+   * - `feed` / `list`: 아카이브 상세 보기 형식(NOOK-376) — 1열 343:212 / 64 정사각 가로 행.
+   */
+  variant?: 'default' | 'map' | 'feed' | 'list';
 }
 
-function PlaceCard({ place, onClick, mediaBadge = false, className }: PlaceCardProps) {
+const THUMBNAIL_ASPECT: Record<NonNullable<PlaceCardProps['variant']>, string> = {
+  default: 'aspect-[167/208]',
+  map: 'aspect-[167/134]',
+  feed: 'aspect-[343/212]',
+  list: 'aspect-square',
+};
+
+function PlaceCard({
+  place,
+  onClick,
+  mediaBadge = false,
+  className,
+  variant = 'default',
+}: PlaceCardProps) {
   const Comp = onClick ? 'button' : 'div';
   const isProcessing = place.thumbnailState === 'processing';
   // 파싱 실패는 장소 "사진" 크롤링만 실패한 것이다 — 이름·지역·카테고리는 응답에 그대로
@@ -62,25 +82,32 @@ function PlaceCard({ place, onClick, mediaBadge = false, className }: PlaceCardP
           }
         : {})}
       className={cn(
-        'flex w-full flex-col items-start gap-1 bg-gray-0 pb-2 text-left',
+        'flex w-full min-w-0 bg-gray-0 text-left',
+        variant === 'list'
+          ? 'flex-row items-center gap-3'
+          : variant === 'map'
+            ? 'flex-col items-start gap-2'
+            : 'flex-col items-start gap-1 pb-2',
         onClick &&
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-2',
         className,
       )}
     >
-      {/* 시안 167x208. 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
-      <div className="relative w-full">
+      {/* 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
+      <div className={cn('relative', variant === 'list' ? 'w-16 shrink-0' : 'w-full')}>
         <Thumbnail
           src={place.thumbnail}
           alt=""
           loading={isProcessing}
           failed={isFailed}
-          className="aspect-[167/208] h-auto w-full"
+          className={cn('h-auto w-full', THUMBNAIL_ASPECT[variant])}
         />
         {/* 게시물 카드(CollectionCard)처럼 사진이 아직 없는 처리 중·실패 카드엔 붙이지 않는다. */}
         {mediaBadge && !isProcessing && !isFailed ? <MediaBadge type="IMAGE" /> : null}
       </div>
-      <div className="flex w-full flex-col gap-0.5 p-1">
+      <div
+        className={cn('flex w-full min-w-0 flex-col', variant === 'map' ? 'pb-1.5' : 'gap-0.5 p-1')}
+      >
         {isProcessing ? (
           <div className="flex items-center gap-1">
             {/* 게시물 카드(CollectionCard)와 같다 — 처리 중 표시는 정지 아이콘이 아니라
@@ -90,10 +117,28 @@ function PlaceCard({ place, onClick, mediaBadge = false, className }: PlaceCardP
           </div>
         ) : (
           <>
-            <p className="line-clamp-2 text-b2 font-semibold text-gray-90">{place.name}</p>
-            <p className="truncate text-b3 font-medium text-gray-60">
-              {[place.region, place.category].filter(Boolean).join(' · ')}
+            <p
+              className={cn(
+                'line-clamp-2 font-semibold text-gray-90',
+                variant === 'map' ? 'text-b3' : 'text-b2',
+              )}
+            >
+              {place.name}
             </p>
+            {variant === 'map' ? (
+              // 시안은 글자 `·` 대신 2px 점 — 게시물 카드(CollectionCard) 메타 줄과 같은 모양.
+              <div className="flex min-w-0 items-center gap-1 text-b3 font-medium text-gray-60">
+                {place.region ? <span className="truncate">{place.region}</span> : null}
+                {place.region && place.category ? (
+                  <span className="size-0.5 shrink-0 rounded-full bg-gray-60" aria-hidden="true" />
+                ) : null}
+                {place.category ? <span className="truncate">{place.category}</span> : null}
+              </div>
+            ) : (
+              <p className="truncate text-b3 font-medium text-gray-60">
+                {[place.region, place.category].filter(Boolean).join(' · ')}
+              </p>
+            )}
           </>
         )}
       </div>

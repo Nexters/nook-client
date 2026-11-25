@@ -101,6 +101,8 @@ function renderArchiveRoutes(initialPath: string) {
 
 describe('아카이브 화면', () => {
   beforeEach(() => {
+    // 보기·정렬 설정(아카이브별 localStorage)이 다음 테스트로 새지 않게 한다.
+    localStorage.clear();
     mocks.fetchArchives.mockReset().mockResolvedValue(ARCHIVES);
     mocks.fetchArchivePosts
       .mockReset()
@@ -308,6 +310,32 @@ describe('아카이브 화면', () => {
     // 장소 카드는 게시물 카드와 같은 그리드에 놓이는 세로형(PlaceCard) — 지역·업종을 보여준다.
     expect(screen.getByText('서울 · 카페')).toBeInTheDocument();
     expect(mocks.fetchArchivePlaces.mock.calls[0]?.[0]).toBe(1);
+  });
+
+  it('필터에서 오래된순을 적용하면 전 페이지를 받아 뒤집어 그리고, 아카이브별로 기억한다', async () => {
+    const post = (id: number) => ({ id, name: `게시물${id}`, placeCount: 0, thumbnails: [] });
+    mocks.fetchArchivePosts.mockImplementation(async (_id: number, page = 0) =>
+      page === 0
+        ? { posts: [post(4), post(3)], nextPage: 1, totalElements: 4 }
+        : { posts: [post(2), post(1)], nextPage: undefined, totalElements: 4 },
+    );
+
+    renderArchiveRoutes('/archive/1');
+
+    fireEvent.click(await screen.findByRole('button', { name: '더보기' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '아카이브 필터' }));
+    fireEvent.click(screen.getByRole('radio', { name: '오래된순' }));
+    fireEvent.click(screen.getByRole('radio', { name: '리스트형' }));
+    fireEvent.click(screen.getByRole('button', { name: '적용하기' }));
+
+    await screen.findByText('게시물1');
+    const names = screen.getAllByText(/^게시물\d$/).map((node) => node.textContent);
+    expect(names).toEqual(['게시물1', '게시물2', '게시물3', '게시물4']);
+    expect(JSON.parse(localStorage.getItem('nook.archive-view.v1.1') ?? '{}')).toEqual({
+      view: 'list',
+      sort: 'OLDEST',
+    });
+    expect(localStorage.getItem('nook.archive-view.v1.2')).toBeNull();
   });
 
   it('아카이브 상세에 게시물이 없으면 탭 없이 빈 상태를 보여준다', async () => {

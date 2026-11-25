@@ -6,6 +6,7 @@ import {
 } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { MediaBadge, Thumbnail } from '@/shared/ui';
+import type { ArchiveView } from '../lib/viewPreferences';
 import type { CollectionSummary } from '../types';
 
 /**
@@ -30,9 +31,24 @@ export interface CollectionCardProps {
    */
   selected?: boolean;
   className?: string;
+  /** 아카이브 상세 보기 형식(NOOK-376). 기본은 2열 그리드 카드. */
+  view?: ArchiveView;
 }
 
-function CollectionCard({ archive, onClick, selected, className }: CollectionCardProps) {
+/** 보기 형식별 썸네일 비율(시안) — 기본형 167:208(기존 세로형), 피드형 343:212, 리스트형 정사각 64. */
+const THUMBNAIL_ASPECT: Record<ArchiveView, string> = {
+  grid: 'aspect-[167/208]',
+  feed: 'aspect-[343/212]',
+  list: 'aspect-square',
+};
+
+function CollectionCard({
+  archive,
+  onClick,
+  selected,
+  className,
+  view = 'grid',
+}: CollectionCardProps) {
   const Comp = onClick ? 'button' : 'div';
   const cover = archive.thumbnails?.[0];
   const isProcessing = archive.processingState === 'processing';
@@ -43,20 +59,21 @@ function CollectionCard({ archive, onClick, selected, className }: CollectionCar
       {...(onClick ? { type: 'button' as const, onClick } : {})}
       {...(selected !== undefined ? { 'aria-pressed': selected } : {})}
       className={cn(
-        'flex w-full flex-col items-start gap-2 text-left',
+        'flex w-full min-w-0 gap-2 text-left',
+        view === 'list' ? 'flex-row items-center gap-3' : 'flex-col items-start',
         onClick &&
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-2',
         className,
       )}
     >
-      {/* 시안 167x208. 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
-      <span className="relative w-full">
+      {/* 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
+      <span className={cn('relative', view === 'list' ? 'w-16 shrink-0' : 'w-full')}>
         <Thumbnail
           src={cover}
           alt=""
           loading={isProcessing}
           failed={isFailed}
-          className="aspect-[167/208] h-auto w-full"
+          className={cn('h-auto w-full', THUMBNAIL_ASPECT[view])}
         />
         {/* 선택 삭제 모드에서는 같은 자리를 체크가 쓰므로 양보하고, 커버가 아직 없는
             처리 중·실패 카드에도 붙이지 않는다. */}
@@ -75,7 +92,7 @@ function CollectionCard({ archive, onClick, selected, className }: CollectionCar
           </>
         ) : null}
       </span>
-      <div className="flex w-full flex-col">
+      <div className="flex w-full min-w-0 flex-col">
         {isProcessing || isFailed ? (
           <div className="flex items-center gap-1">
             {/* 처리 중 표시는 정지 아이콘이 아니라 실제로 도는 스피너여야 한다(QA) —

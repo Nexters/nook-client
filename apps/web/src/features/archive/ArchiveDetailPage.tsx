@@ -42,8 +42,10 @@ import { ArchiveDescription } from './components/ArchiveDescription';
 import { ArchiveDetailMenu } from './components/ArchiveDetailMenu';
 import { ArchiveDetailSkeleton, CollectionGridSkeleton } from './components/ArchiveDetailSkeleton';
 import { ArchiveEmpty } from './components/ArchiveEmpty';
+import { ArchiveViewFilterSheet } from './components/ArchiveViewFilterSheet';
 import { CollectionCard } from './components/CollectionCard';
 import { GUEST_ARCHIVE } from './guest';
+import { useArchiveView } from './lib/viewPreferences';
 
 type DetailTab = 'posts' | 'places';
 
@@ -66,6 +68,9 @@ export function ArchiveDetailPage() {
   const { archiveId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  // 보기·정렬은 아카이브별 기기 로컬 설정이다(NOOK-376) — 공유받은 아카이브도 내 설정만 바뀐다.
+  const [viewPreferences, applyViewPreferences] = useArchiveView(archiveId ?? '');
+  const [viewFilterOpen, setViewFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>('posts');
   const [deletePopupOpen, setDeletePopupOpen] = useState(false);
   // 스크롤에 실려 올라가는 아카이브 정보 블록 — 헤더 뒤로 숨으면 헤더 제목이 뜨고,
@@ -101,9 +106,9 @@ export function ArchiveDetailPage() {
       );
   const hasSaveHistory = useHasSaveHistory();
 
-  const postsQuery = useArchivePosts(archive?.id);
+  const postsQuery = useArchivePosts(archive?.id, viewPreferences.sort);
   const posts = postsQuery.data?.posts;
-  const placesQuery = useArchivePlaces(archive?.id);
+  const placesQuery = useArchivePlaces(archive?.id, viewPreferences.sort);
   const places = placesQuery.data?.places;
 
   const deleteArchivePosts = useDeleteArchivePosts();
@@ -184,6 +189,41 @@ export function ArchiveDetailPage() {
     { key: 'places', label: '장소', count: placesQuery.data?.totalElements },
   ];
 
+  // 기본형만 2열, 피드형·리스트형은 1열. 카드 간격은 보기 형식과 무관하게 8px(시안).
+  const listGridClass = cn(
+    'grid gap-2 px-4 pt-4',
+    viewPreferences.view === 'grid' ? 'grid-cols-2' : 'grid-cols-1',
+  );
+
+  const shareArchive = () =>
+    issueShare.mutate(archive.id, {
+      onSuccess: (token) => setShareUrl(buildShareUrl(token)),
+      onError: () => showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
+    });
+
+  // 게스트에게는 더보기 자체를 내린다 — 편집·삭제·선택 삭제가 전부 계정
+  // 동작이라, 열어봐야 누르는 족족 월이 뜨는 메뉴가 된다.
+  // 보기·정렬 필터는 게시물이 있을 때만 — 빈 아카이브엔 고를 목록이 없다.
+  const openViewFilter = isEmpty ? undefined : () => setViewFilterOpen(true);
+  const archiveMenu = !isAuthenticated ? null : isShared ? (
+    <ArchiveDetailMenu
+      kind="shared"
+      onFilter={openViewFilter}
+      onRemove={() => setRemovePopupOpen(true)}
+    />
+  ) : (
+    <ArchiveDetailMenu
+      kind="owned"
+      onFilter={openViewFilter}
+      onEdit={() => navigate(`/archive/${archive.id}/edit`)}
+      onShare={shareArchive}
+      // 선택 삭제는 게시물 전용이다 — 장소 탭에서는 항목 자체를 내리고,
+      // 탭을 바꿔서 억지로 되돌리지도 않는다(아카이브에서 장소를 빼는 API 가 없다).
+      onSelectDelete={activeTab === 'posts' ? openSelecting : undefined}
+      onDelete={() => setDeletePopupOpen(true)}
+    />
+  );
+
   // 화면에 붙어 있는 건 헤더뿐이다. 아카이브 정보(이름·색·소유자)와 액션 칩은
   // 스크롤에 실려 올라가 사라지고, 게시물/장소 탭만 헤더 밑에 멈춰 선다 — 고정 영역이
   // 화면을 절반 가까이 먹던 문제를 여기서 푼다. 정보가 다 가려진 뒤로는 내릴 때 헤더도
@@ -198,31 +238,6 @@ export function ArchiveDetailPage() {
           title={<PinnedHeaderTitle target={infoRef}>{archive.name}</PinnedHeaderTitle>}
           // 선택 모드의 뒤로가기는 페이지 이탈이 아니라 모드 종료다.
           left={<BackButton onClick={selecting ? exitSelecting : undefined} />}
-          right={
-            // 게스트에게는 더보기 자체를 내린다 — 편집·삭제·선택 삭제가 전부 계정
-            // 동작이라, 열어봐야 누르는 족족 월이 뜨는 메뉴가 된다.
-            isAuthenticated ? (
-              isShared ? (
-                <ArchiveDetailMenu kind="shared" onRemove={() => setRemovePopupOpen(true)} />
-              ) : (
-                <ArchiveDetailMenu
-                  kind="owned"
-                  onEdit={() => navigate(`/archive/${archive.id}/edit`)}
-                  onShare={() =>
-                    issueShare.mutate(archive.id, {
-                      onSuccess: (token) => setShareUrl(buildShareUrl(token)),
-                      onError: () =>
-                        showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
-                    })
-                  }
-                  // 선택 삭제는 게시물 전용이다 — 장소 탭에서는 항목 자체를 내리고,
-                  // 탭을 바꿔서 억지로 되돌리지도 않는다(아카이브에서 장소를 빼는 API 가 없다).
-                  onSelectDelete={activeTab === 'posts' ? openSelecting : undefined}
-                  onDelete={() => setDeletePopupOpen(true)}
-                />
-              )
-            ) : null
-          }
         />
       }
       contentStyle={{
@@ -239,7 +254,8 @@ export function ArchiveDetailPage() {
           'flex flex-col gap-1 px-4 pt-2 pb-4',
           // 빈 아카이브는 탭도 액션 칩도 없어(아래 참고) 이 블록이 화면 위쪽의 끝이다 —
           // 경계선을 직접 긋는다.
-          isEmpty && 'border-gray-20 border-b',
+          // 더보기 행이 있으면 그 행이 끝이라 선은 그쪽이 긋는다.
+          isEmpty && !archiveMenu && 'border-gray-20 border-b',
         )}
       >
         <div className="flex items-center gap-2">
@@ -264,33 +280,34 @@ export function ArchiveDetailPage() {
         ) : null}
       </div>
 
-      {/* 편집·공유 칩 — 더보기 메뉴 안에도 같은 액션이 있지만(삭제 등과 함께),
+      {/* 편집·공유 칩 + 더보기 — 더보기 메뉴 안에도 같은 액션이 있지만(삭제 등과 함께),
             자주 쓰는 두 액션은 시안대로 바로 누를 수 있게 앞으로 뺀다. 공유 아카이브는
             내 소유가 아니라(더보기 메뉴처럼) 노출하지 않는다. 빈 아카이브도 시안대로
-            내린다 — 아직 공유할 것이 없는 상태다. 두 액션 모두 더보기 메뉴에는 남는다. */}
-      {isAuthenticated && !isShared && !isEmpty ? (
-        <div className="flex gap-2 px-4 pb-4">
-          <button
-            type="button"
-            onClick={() => navigate(`/archive/${archive.id}/edit`)}
-            className={ARCHIVE_ACTION_CHIP}
-          >
-            아카이브 편집
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              issueShare.mutate(archive.id, {
-                onSuccess: (token) => setShareUrl(buildShareUrl(token)),
-                onError: () =>
-                  showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' }),
-              })
-            }
-            className={ARCHIVE_ACTION_CHIP}
-          >
-            공유
-            <Icon16ArrowUpTray />
-          </button>
+            내린다 — 아직 공유할 것이 없는 상태다. 더보기는 헤더가 아니라 이 행 오른쪽에
+            붙는다(NOOK-376 시안). */}
+      {archiveMenu ? (
+        <div
+          className={cn(
+            'flex items-center gap-1.5 px-4 pb-4',
+            isEmpty && 'border-gray-20 border-b',
+          )}
+        >
+          {!isShared && !isEmpty ? (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate(`/archive/${archive.id}/edit`)}
+                className={ARCHIVE_ACTION_CHIP}
+              >
+                아카이브 편집
+              </button>
+              <button type="button" onClick={shareArchive} className={ARCHIVE_ACTION_CHIP}>
+                공유
+                <Icon16ArrowUpTray />
+              </button>
+            </>
+          ) : null}
+          <div className="ml-auto">{archiveMenu}</div>
         </div>
       ) : null}
 
@@ -345,11 +362,12 @@ export function ArchiveDetailPage() {
             {posts === undefined ? (
               <CollectionGridSkeleton />
             ) : (
-              <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
+              <div className={listGridClass}>
                 {posts?.map((post) => (
                   <CollectionCard
                     key={post.id}
                     archive={post}
+                    view={viewPreferences.view}
                     selected={selecting ? selectedPostIds.has(post.id) : undefined}
                     onClick={
                       isShared
@@ -372,11 +390,12 @@ export function ArchiveDetailPage() {
             ) : places.length === 0 ? (
               <ArchiveEmpty message="저장한 장소가 없어요" />
             ) : (
-              // 게시물 탭과 같은 2열 그리드 — 카드도 최근 저장한 공간 바텀시트와 같은
-              // 세로형 장소 카드(PlaceCard)를 쓴다.
-              <div className="grid grid-cols-2 gap-x-2 gap-y-5 px-4 pt-4">
+              // 게시물 탭과 같은 보기 형식 — 카드도 최근 저장한 공간 바텀시트와 같은
+              // 장소 카드(PlaceCard)를 쓴다.
+              <div className={listGridClass}>
                 {places.map((place) => (
                   <PlaceCard
+                    variant={viewPreferences.view === 'grid' ? 'default' : viewPreferences.view}
                     key={place.id}
                     place={place}
                     // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
@@ -398,6 +417,13 @@ export function ArchiveDetailPage() {
         {/* 다음 페이지 트리거. 마지막 페이지면 관찰 대상이 없어 아무 일도 하지 않는다. */}
         <div ref={sentinelRef} aria-hidden="true" className="h-1" />
       </main>
+
+      <ArchiveViewFilterSheet
+        open={viewFilterOpen}
+        onOpenChange={setViewFilterOpen}
+        value={viewPreferences}
+        onApply={applyViewPreferences}
+      />
 
       {/* 선택 모드 CTA — 숨긴 하단 탭바처럼 body 포탈 + fixed 로 화면에 붙인다
           (Figma `Button_Primary_52`). */}
