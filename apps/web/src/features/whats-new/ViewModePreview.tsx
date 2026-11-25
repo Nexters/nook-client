@@ -22,7 +22,7 @@ const LIST_GAP_Y = 12;
 const LIST_TEXT_X = LIST_THUMB + 12;
 
 const CARDS = [
-  { src: '/whats-new/view-1.jpg', name: '성수 브런치 카페', places: 3 },
+  { src: '/whats-new/view-1.jpg', name: '대흥 LP 바', places: 3 },
   { src: '/whats-new/pangyo-cafe.jpg', name: '판교 카페', places: 1 },
   { src: '/whats-new/view-3.jpg', name: '연남 베이커리', places: 2 },
   { src: '/whats-new/view-1.jpg', name: '서촌 서점', places: 4 },
