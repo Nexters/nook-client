@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
-import { PrototypeWhatsNew } from '@/dev/PrototypeWhatsNew';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { FirstSaveModal } from '@/features/onboarding/FirstSaveModal';
@@ -54,7 +53,6 @@ export function ArchivePage() {
         style={{ paddingBottom: 'calc(7.5rem + env(safe-area-inset-bottom))' }}
       >
         <PlaceConnectionReminder />
-        <PrototypeWhatsNew />
         {/* 로딩 중에는 빈 상태 문구가 잠깐 스쳐 지나가지 않도록 카드 자리만 스켈레톤으로 채운다.
             게스트는 쿼리를 돌리지 않아 계속 pending 이라, 먼저 갈라 기본 아카이브를 그린다. */}
         {isAuthenticated && isPending ? (

@@ -1,9 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useArchives } from '@/features/archive/api/queries';
 import { SavePostSheet } from '@/features/share/components/SavePostSheet';
 import { buildPostShareUrl, copyText, shareViaSystem } from '@/features/share/lib/shareUrl';
-import { Icon16Move, Icon16Share, Icon16Trash } from '@/shared/icons/NookIcons';
+import { Icon16Move, Icon16Share } from '@/shared/icons/NookIcons';
 import { useToast } from '@/shared/toast';
 import { MoreMenu, Popup } from '@/shared/ui';
 import { deletePost, issuePostShareLink, replacePostArchives } from '../api';
@@ -131,7 +132,9 @@ export function SavedPostActions({ detail, onDeleted }: SavedPostActionsProps) {
           { label: '게시물 이동', icon: <Icon16Move />, onSelect: () => setMoveOpen(true) },
           {
             label: '게시물 삭제',
-            icon: <Icon16Trash />,
+            icon: (
+              <Trash2 size={16} strokeWidth={1.5} className="text-[#FA5947]" aria-hidden="true" />
+            ),
             destructive: true,
             // 한 아카이브에만 있으면 고를 게 없다 — 바로 확인 팝업.
             onSelect: () =>

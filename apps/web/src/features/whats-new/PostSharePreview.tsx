@@ -1,8 +1,8 @@
+import { Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
   Icon16Move,
   Icon16Share,
-  Icon16Trash,
   Icon24Back,
   Icon24Link,
   Icon24More,
@@ -18,7 +18,10 @@ const STEP_MS = [1000, 380, 900, 380, 2300] as const;
 const MENU = [
   { icon: <Icon16Share />, label: '게시물 공유' },
   { icon: <Icon16Move />, label: '게시물 이동' },
-  { icon: <Icon16Trash />, label: '게시물 삭제' },
+  {
+    icon: <Trash2 size={16} strokeWidth={1.5} className="text-[#FA5947]" aria-hidden="true" />,
+    label: '게시물 삭제',
+  },
 ];
 
 /** 탭 표시 — 짚은 자리에 원이 한 번 퍼진다. */
@@ -66,13 +69,13 @@ export function PostSharePreview() {
         </span>
       </div>
       <img
-        src="/prototype/reminder/post-2.png"
+        src="/whats-new/pangyo-cafe.jpg"
         alt=""
-        className="mx-4 aspect-[343/212] w-[311px] rounded object-cover"
+        className="mx-4 aspect-[343/212] w-[311px] rounded object-cover object-[50%_25%]"
       />
       <div className="flex flex-col gap-1 px-4 pt-3">
-        <p className="text-b1 font-semibold text-gray-100">을지로 와인바</p>
-        <p className="text-b2 font-medium text-gray-60">서울 중구 · 와인바</p>
+        <p className="text-b1 font-semibold text-gray-100">판교 카페</p>
+        <p className="text-b2 font-medium text-gray-60">경기 성남시 분당구 · 카페</p>
       </div>
 
       {/* MoreMenu 패널과 같은 모양 — 더보기 아래 오른쪽에서 펼쳐진다. */}
@@ -110,12 +113,12 @@ export function PostSharePreview() {
       >
         <div className="flex items-center gap-3 rounded-xl border border-gray-20 p-2">
           <img
-            src="/prototype/reminder/post-2.png"
+            src="/whats-new/pangyo-cafe.jpg"
             alt=""
-            className="size-12 rounded-sm object-cover"
+            className="size-12 rounded-sm object-cover object-[50%_25%]"
           />
           <div className="flex min-w-0 flex-col">
-            <p className="truncate text-b3 font-semibold text-gray-100">을지로 와인바</p>
+            <p className="truncate text-b3 font-semibold text-gray-100">판교 카페</p>
             <p className="truncate font-mono text-e2 text-gray-60">nook.app/shared-post/…</p>
           </div>
         </div>
