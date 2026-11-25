@@ -8,14 +8,15 @@ import { buildAppSharedLink } from '../lib/appLink';
 const OPEN_TIMEOUT_MS = 1500;
 
 interface OpenInAppBannerProps {
-  token: string;
+  /** 앱에서 열 웹 공유 경로 — `shared/{token}`·`shared-post/{token}`. */
+  path: string;
 }
 
 /**
  * 브라우저에서 공유 페이지를 열었을 때만 노출 — 셸 웹뷰(ios/android)에선 이미 앱 안이다.
  * 스토어 폴백 링크는 앱 등록 후 이 컴포넌트에 추가한다.
  */
-export function OpenInAppBanner({ token }: OpenInAppBannerProps) {
+export function OpenInAppBanner({ path }: OpenInAppBannerProps) {
   const { showToast } = useToast();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cleanupVisibilityRef = useRef<(() => void) | null>(null);
@@ -48,7 +49,7 @@ export function OpenInAppBanner({ token }: OpenInAppBannerProps) {
           cleanupVisibilityRef.current = () =>
             document.removeEventListener('visibilitychange', onVisibilityChange);
 
-          window.location.href = buildAppSharedLink(token);
+          window.location.href = buildAppSharedLink(path);
           timeoutRef.current = setTimeout(() => {
             cleanupVisibilityRef.current?.();
             cleanupVisibilityRef.current = null;

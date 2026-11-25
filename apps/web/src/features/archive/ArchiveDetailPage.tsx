@@ -11,7 +11,7 @@ import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider'
 import { FirstSaveEmpty } from '@/features/onboarding/FirstSaveEmpty';
 import { PlaceCard } from '@/features/place';
 import { POST_FROM_LIST_STATE } from '@/features/post/postEntry';
-import { ShareSheet } from '@/features/share/components/ShareSheet';
+import { archiveSharePreview, ShareSheet } from '@/features/share/components/ShareSheet';
 import { buildShareUrl } from '@/features/share/lib/shareUrl';
 import { Icon16ArrowUpTray } from '@/shared/icons/NookIcons';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
@@ -483,7 +483,7 @@ export function ArchiveDetailPage() {
           open
           onOpenChange={(open) => !open && setShareUrl(null)}
           url={shareUrl}
-          archive={archive}
+          preview={archiveSharePreview(archive)}
         />
       ) : null}
     </PinnedHeaderLayout>

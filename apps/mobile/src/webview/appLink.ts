@@ -36,6 +36,13 @@ export function resolveAppLinkWebUrl(appLink: string, webBaseUrl: string): strin
   } else if (segments.length === 2 && segments[0] === 'shared' && SHARE_TOKEN.test(segments[1])) {
     // 공유 링크의 "앱에서 보기" 진입 — 웹의 공개 공유 화면을 그대로 연다.
     webPath = `/shared/${segments[1]}`;
+  } else if (
+    segments.length === 2 &&
+    segments[0] === 'shared-post' &&
+    SHARE_TOKEN.test(segments[1])
+  ) {
+    // 게시물 단위 공유 링크의 "앱에서 보기" 진입.
+    webPath = `/shared-post/${segments[1]}`;
   }
 
   if (!webPath) return null;

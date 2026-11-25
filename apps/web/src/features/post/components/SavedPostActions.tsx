@@ -1,11 +1,14 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useArchives } from '@/features/archive/api/queries';
 import { SavePostSheet } from '@/features/share/components/SavePostSheet';
-import { Icon16Move, Icon16Trash } from '@/shared/icons/NookIcons';
+import { postSharePreview, ShareSheet } from '@/features/share/components/ShareSheet';
+import { shareErrorMessage } from '@/features/share/lib/shareError';
+import { buildPostShareUrl } from '@/features/share/lib/shareUrl';
+import { Icon16Move, Icon16Share, Icon16Trash } from '@/shared/icons/NookIcons';
 import { useToast } from '@/shared/toast';
 import { MoreMenu, Popup } from '@/shared/ui';
-import { deletePost, replacePostArchives } from '../api';
+import { deletePost, issuePostShareLink, replacePostArchives } from '../api';
 import { invalidatePostLists, postQueryKeys, useUpdatePostArchives } from '../api/queries';
 import { deferPostRemoval } from '../lib/pendingPostRemoval';
 import type { PostDetail } from '../types';
@@ -22,7 +25,7 @@ export interface SavedPostActionsProps {
 }
 
 /**
- * Figma `장소 > 저장된 게시물 상세` 헤더 더보기 메뉴 — `게시물 이동` / `게시물 삭제`.
+ * Figma `장소 > 저장된 게시물 상세` 헤더 더보기 메뉴 — `게시물 공유` / `게시물 이동` / `게시물 삭제`.
  * 게시물 확대뷰(`SavedPostPreview`) 헤더 오른쪽에 들어가고, 메뉴가 여는 시트·팝업·스낵바를
  * 함께 소유한다(시트·팝업은 body 로 포탈돼 확대뷰 위에 뜬다).
  *
@@ -36,6 +39,10 @@ export function SavedPostActions({ detail, onDeleted }: SavedPostActionsProps) {
   const { showToast } = useToast();
   const showSavedToast = useSavedToArchivesToast();
   const { data: myArchives } = useArchives();
+
+  // 공유 링크는 열 때마다 새로 발급한다 — 발급 시점 스냅샷이라 이전 링크를 재사용하면 내용이 낡는다.
+  const issueShare = useMutation({ mutationFn: issuePostShareLink });
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   const [moveOpen, setMoveOpen] = useState(false);
   const updateArchivesMutation = useUpdatePostArchives(postId);
@@ -111,6 +118,19 @@ export function SavedPostActions({ detail, onDeleted }: SavedPostActionsProps) {
     <>
       <MoreMenu
         items={[
+          {
+            label: '게시물 공유',
+            icon: <Icon16Share />,
+            onSelect: () =>
+              issueShare.mutate(postId, {
+                onSuccess: (token) => setShareUrl(buildPostShareUrl(token)),
+                onError: (error) =>
+                  showToast({
+                    variant: 'simple',
+                    title: shareErrorMessage(error, '공유 링크를 만들지 못했어요'),
+                  }),
+              }),
+          },
           { label: '게시물 이동', icon: <Icon16Move />, onSelect: () => setMoveOpen(true) },
           {
             label: '게시물 삭제',
@@ -124,6 +144,16 @@ export function SavedPostActions({ detail, onDeleted }: SavedPostActionsProps) {
           },
         ]}
       />
+
+      {shareUrl ? (
+        <ShareSheet
+          open
+          onOpenChange={(open) => !open && setShareUrl(null)}
+          url={shareUrl}
+          title="게시물 공유"
+          preview={postSharePreview(detail)}
+        />
+      ) : null}
 
       <SavePostSheet
         open={moveOpen}
