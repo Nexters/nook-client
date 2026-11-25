@@ -504,6 +504,48 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
     await screen.findByText(`스냅: ${MID_SNAP_POINT}`);
   });
 
+  it('선택 없이 빈 지도를 누르면 펼친 시트가 최저 높이로 접힌다(NOOK-395)', async () => {
+    const { FULL_SNAP_POINT, PEEK_SNAP_POINT } = await import('@/features/map/constants');
+    renderMapAt('/map');
+    fireEvent.click(await screen.findByRole('button', { name: '시트 펼치기' }));
+    await screen.findByText(`스냅: ${FULL_SNAP_POINT}`);
+
+    fireEvent.click(screen.getByRole('button', { name: '빈 지도 탭' }));
+
+    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
+  });
+
+  it('빈 검색에서 빈 지도를 누르면 검색을 끝내고 접힌다 — 키보드도 닫는다', async () => {
+    const { MID_SNAP_POINT, PEEK_SNAP_POINT } = await import('@/features/map/constants');
+    renderMapAt('/map');
+    fireEvent.click(await screen.findByRole('button', { name: '검색 진입' }));
+    fireEvent.click(screen.getByRole('button', { name: '검색 입력 포커스' }));
+    await screen.findByText(`스냅: ${MID_SNAP_POINT}`);
+    const input = screen.getByLabelText('검색어');
+    input.focus();
+
+    fireEvent.click(screen.getByRole('button', { name: '빈 지도 탭' }));
+
+    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
+    expect(screen.getByText('검색모드: false')).toBeInTheDocument();
+    expect(input).not.toHaveFocus();
+  });
+
+  it('검색어가 있으면 빈 지도를 눌러도 검색어·검색 모드를 유지한 채 접힌다', async () => {
+    const { MID_SNAP_POINT, PEEK_SNAP_POINT } = await import('@/features/map/constants');
+    renderMapAt('/map');
+    fireEvent.click(await screen.findByRole('button', { name: '검색 진입' }));
+    fireEvent.click(screen.getByRole('button', { name: '검색 입력 포커스' }));
+    fireEvent.change(screen.getByLabelText('검색어'), { target: { value: '성수' } });
+    await screen.findByText(`스냅: ${MID_SNAP_POINT}`);
+
+    fireEvent.click(screen.getByRole('button', { name: '빈 지도 탭' }));
+
+    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
+    expect(screen.getByText('검색모드: true')).toBeInTheDocument();
+    expect(screen.getByLabelText('검색어')).toHaveValue('성수');
+  });
+
   it('peek 에서 검색 입력에 포커스되면 mid 로 올라간다 — 키보드가 시트를 가리지 않게', async () => {
     const { MID_SNAP_POINT, PEEK_SNAP_POINT } = await import('@/features/map/constants');
     renderMapAt('/map');
