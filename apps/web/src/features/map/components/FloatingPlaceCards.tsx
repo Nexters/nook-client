@@ -83,8 +83,6 @@ export function FloatingPlaceCards({
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  // 처음 그릴 땐 고른 카드에 바로 서 있어야 한다 — 첫 카드에서 미끄러져 오면 어색하다.
-  const mountedRef = useRef(false);
   // 세로로 끄는 중인 거리(아래가 +). 모든 카드가 함께 늘고 준다. 끄는 중이 아니면 null.
   const [dragDy, setDragDy] = useState<number | null>(null);
   const coverageRef = useRef<number | null>(null);
@@ -122,10 +120,17 @@ export function FloatingPlaceCards({
       }
       if (axis === 'y') setDragDy(dy);
     };
+    // 세로로 정해지면 손을 뗄 때까지 가로 스크롤을 막는다 — 카드는 touch-pan-x 라 끌어올리는 중
+    // 손가락이 옆으로 조금만 흘러도 브라우저가 가로 스크롤을 시작하고(pointercancel 로 끌기가 끊긴다)
+    // 스냅이 옆 카드로 넘겨 버린다(NOOK-440). 포인터 이벤트로는 스크롤을 못 막아 touchmove 로 막는다.
+    const blockScroll = (touch: TouchEvent) => {
+      if (axis === 'y' && touch.cancelable) touch.preventDefault();
+    };
     const handleEnd = (end: globalThis.PointerEvent) => {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleEnd);
       window.removeEventListener('pointercancel', handleEnd);
+      window.removeEventListener('touchmove', blockScroll);
       setDragDy(null);
       if (axis !== 'y' || end.type === 'pointercancel') return;
       suppressClickRef.current = true;
@@ -146,18 +151,17 @@ export function FloatingPlaceCards({
     window.addEventListener('pointermove', handleMove);
     window.addEventListener('pointerup', handleEnd);
     window.addEventListener('pointercancel', handleEnd);
+    window.addEventListener('touchmove', blockScroll, { passive: false });
   };
 
+  // 바깥(핀 선택)에서 바뀐 카드로는 미끄러지지 않고 바로 선다 — 멀리 있는 결과로 가면서 중간 카드가
+  // 줄줄이 지나가면 안 된다(NOOK-440). 손으로 넘긴 경우는 이미 그 자리라 여기서 움직이지 않는다.
   useEffect(() => {
     const scroller = scrollerRef.current;
     const step = scroller ? stepOf(scroller) : 0;
     if (scroller && step > 0 && Math.round(scroller.scrollLeft / step) !== activeIndex) {
-      scroller.scrollTo({
-        left: step * activeIndex,
-        behavior: mountedRef.current ? 'smooth' : 'instant',
-      });
+      scroller.scrollTo({ left: step * activeIndex, behavior: 'instant' });
     }
-    mountedRef.current = true;
   }, [activeIndex]);
 
   useEffect(() => () => clearTimeout(settleTimer.current), []);
