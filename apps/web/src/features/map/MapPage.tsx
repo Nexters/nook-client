@@ -418,6 +418,17 @@ export function MapPage() {
     setSnap((current) => (current === PEEK_SNAP_POINT ? MID_SNAP_POINT : current));
   }
 
+  /**
+   * 선택 없이 빈 지도를 탭하면 시트를 최저 높이로 접어 지도로 돌아간다(NOOK-395). 키보드는
+   * 닫는다 — 네이버 지도가 포인터를 먹어 입력이 저절로 blur 되지 않는다. 검색어가 있으면
+   * 검색·결과·필터를 그대로 두고 높이만 바꾸고, 빈 검색은 보존할 게 없으니 검색을 끝낸다.
+   */
+  function handleCollapseSheet() {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    if (isSearchMode && !searchQuery.trim()) handleExitSearch();
+    setSnap(PEEK_SNAP_POINT);
+  }
+
   return (
     <MainTabPageLayout variant="transparent">
       <div className="relative h-full w-full overflow-hidden">
@@ -434,11 +445,11 @@ export function MapPage() {
           // 검색 결과 지도는 시트 대신 플로팅 카드가 화면 아래 절반쯤을 덮는다.
           sheetSnap={searchMapActive ? cardsSnap : typeof snap === 'number' ? snap : undefined}
           onPlaceClick={handlePlaceClick}
-          // 빈 지도 탭 = 상세 헤더 닫기와 같은 길(NOOK-327). 선택이 없으면 할 일이 없다.
+          // 빈 지도 탭 = 상세 헤더 닫기와 같은 길(NOOK-327). 선택이 없으면 시트를 접는다(NOOK-395).
           // 검색 결과 지도에선 카드를 닫지 않고 접는다 — 닫기는 카드의 X 뿐이다(NOOK-383).
           onEmptyMapClick={
             selectedPlaceId === null
-              ? undefined
+              ? handleCollapseSheet
               : searchMapActive
                 ? () => setCardsCollapsed(true)
                 : handleCloseDetail
