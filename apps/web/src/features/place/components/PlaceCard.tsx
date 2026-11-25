@@ -98,7 +98,12 @@ function PlaceCard({
           )}
         />
         {/* 게시물 카드(CollectionCard)처럼 사진이 아직 없는 처리 중·실패 카드엔 붙이지 않는다. */}
-        {mediaBadge && !isProcessing && !isFailed ? <MediaBadge type="IMAGE" /> : null}
+        {mediaBadge && !isProcessing && !isFailed ? (
+          <MediaBadge
+            type="IMAGE"
+            className={variant === 'list' ? 'top-1 right-1 size-3' : undefined}
+          />
+        ) : null}
       </div>
       <div
         className={cn(
