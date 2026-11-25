@@ -806,6 +806,53 @@ describe('MapPage — 검색 결과 지도(NOOK-383)', () => {
     await screen.findByTestId('cards');
   }
 
+  it('공유 아카이브의 검색 결과를 고르면 그 토큰으로 공유 상세를 조회한다', async () => {
+    mocks.fetchSavedPlaceSearch.mockResolvedValue({
+      items: [{ id: 1, name: '장소 1', region: '서울', shareToken: 'tok-1' }],
+      groups: [],
+      totalCount: 1,
+    });
+    mocks.fetchSharedPlaceDetail.mockImplementation((_token: string, id: number) =>
+      Promise.resolve({
+        id,
+        name: `공유 장소 ${id}`,
+        lat: 37.5,
+        lng: 127,
+        bookmarked: false,
+        photos: [],
+      }),
+    );
+    await openSearchMap();
+
+    await waitFor(() => expect(mocks.fetchSharedPlaceDetail).toHaveBeenCalledWith('tok-1', 1));
+    expect(mocks.fetchPlaceDetail).not.toHaveBeenCalledWith(1);
+    expect(screen.getByTestId('search-params')).toHaveTextContent('shareToken=tok-1');
+  });
+
+  it('공유 아카이브의 핀을 고르면 그 토큰으로 공유 상세를 조회한다 — 결과 밖 주변 핀도', async () => {
+    mocks.fetchMapPins.mockResolvedValue([
+      { id: 1, lat: 37.5, lng: 127, name: '장소 1', color: 'blue' },
+      { id: 7, lat: 37.51, lng: 127.01, name: '장소 7', color: 'red', shareToken: 'tok-7' },
+    ]);
+    mocks.fetchSharedPlaceDetail.mockImplementation((_token: string, id: number) =>
+      Promise.resolve({
+        id,
+        name: `공유 장소 ${id}`,
+        lat: 37.5,
+        lng: 127,
+        bookmarked: false,
+        photos: [],
+      }),
+    );
+    await openSearchMap();
+    await waitFor(() => expect(screen.getByTestId('pins')).toHaveTextContent('7'));
+
+    fireEvent.click(screen.getByRole('button', { name: '핀 7 클릭' }));
+
+    await waitFor(() => expect(mocks.fetchSharedPlaceDetail).toHaveBeenCalledWith('tok-7', 7));
+    expect(screen.getByTestId('search-params')).toHaveTextContent('shareToken=tok-7');
+  });
+
   it('결과 카드를 고르면 시트를 가리고 검색 헤더와 결과 순서의 플로팅 카드를 띄운다', async () => {
     await openSearchMap();
 

@@ -35,6 +35,8 @@ export interface MapPin {
    * true 면 대표 이미지 대신 작은 원형 핀으로 그린다. 일반 지도에서는 늘 비어 있다.
    */
   outsideSearch?: boolean;
+  /** 구독한 공유 아카이브로만 보이는 장소의 공유 토큰 — 상세를 공유 API 로 조회한다. 내 장소면 null. */
+  shareToken?: string | null;
 }
 
 /** "최근 저장한 공간" 한 페이지. `nextCursor` 가 없으면 마지막 페이지다. */
@@ -83,6 +85,8 @@ export interface SavedPlaceSearchResult {
   /** 카드의 지역 표기(예: "서울") — 주소의 첫 토큰. */
   region?: string;
   thumbnail?: string;
+  /** 구독한 공유 아카이브로만 보이는 장소의 공유 토큰. 내 장소면 null. */
+  shareToken?: string | null;
 }
 
 /** 검색어와 일치하는 장소가 담긴 그룹 한 건 — 그룹 칩 필터가 그리는 형태. */

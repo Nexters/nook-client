@@ -50,12 +50,15 @@ function frameOf(rect: DOMRect, container: DOMRect): Frame {
  */
 export function PlaceFullSheet({
   place,
+  shareToken,
   origin,
   userCoords,
   onClose,
   onSelectPlace,
 }: {
   place: PlaceDetailModel;
+  /** 공유 아카이브로 연 장소의 토큰 — 게시물을 공유 스코프로 읽고 편집 액션을 감춘다. */
+  shareToken?: string | null;
   /** 없으면(앞으로 가기 등 카드를 거치지 않은 진입) 모션 없이 꽉 찬 채로 열리고 닫힌다. */
   origin: CardOrigin | null;
   userCoords?: Coordinates | null;
@@ -210,6 +213,7 @@ export function PlaceFullSheet({
           key={place.id}
           place={place}
           expanded
+          shareToken={shareToken}
           userCoords={userCoords}
           onClose={close}
           onSelectPlace={onSelectPlace}
