@@ -115,6 +115,7 @@ const PAGE: SavedPlaceSearchPageResponse = {
   items: [
     {
       id: 11,
+      accessType: 'OWNED',
       name: '하우스 오브 와일드',
       address: '서울 성동구 성수이로 118',
       category: '카페',
@@ -165,6 +166,7 @@ describe('toSavedPlaceSearchPage', () => {
       items: [
         {
           id: 14,
+          accessType: 'OWNED',
           name: '썸네일 없는 곳',
           address: '서울 마포구',
           category: null,
@@ -183,6 +185,7 @@ describe('toSavedPlaceSearchPage', () => {
       items: [
         {
           id: 12,
+          accessType: 'OWNED',
           name: '탐석과 사랑',
           address: '경기 성남시 분당구',
           category: null,
@@ -199,7 +202,14 @@ describe('toSavedPlaceSearchPage', () => {
     const page = toSavedPlaceSearchPage({
       ...PAGE,
       items: [
-        { id: 13, name: '이름만 있는 곳', address: '', category: '카페', categoryGroup: 'CAFE' },
+        {
+          id: 13,
+          accessType: 'OWNED',
+          name: '이름만 있는 곳',
+          address: '',
+          category: '카페',
+          categoryGroup: 'CAFE',
+        },
       ],
     });
 
@@ -246,6 +256,7 @@ describe('fetchMapPins', () => {
   const BOUNDS = { north: 38, south: 37, east: 128, west: 126 };
   const MAP_PLACE: MapPlaceResponse = {
     id: 5,
+    accessType: 'OWNED',
     name: '앤트러사이트',
     color: 'YELLOW',
     categoryGroup: 'BAKERY',
