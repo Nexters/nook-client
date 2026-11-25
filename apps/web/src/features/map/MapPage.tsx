@@ -211,6 +211,7 @@ export function MapPage() {
             color: 'cement' as const,
             thumbnail: selectedPlace.thumbnail,
             categoryGroup: selectedPlace.categoryGroup,
+            shareToken,
           },
         ]
       : bboxPins;
@@ -221,6 +222,12 @@ export function MapPage() {
     : placePins;
   const searchResultIndex =
     searchMapActive && selectedPlaceId !== null ? searchResultIds.indexOf(selectedPlaceId) : -1;
+  // 구독한 공유 아카이브의 장소는 핀·검색 결과가 공유 토큰을 함께 내려준다 — 상세를 공유 API 로
+  // 조회해야 공유한 사람의 게시물이 온다(내 API 로 부르면 비어 온다). 최근 저장한 공간과 같은 분기다.
+  const shareTokenOf = (id: number) =>
+    searchPage?.items.find((item) => item.id === id)?.shareToken ??
+    placePins.find((pin) => pin.id === id)?.shareToken ??
+    null;
 
   useEffect(() => {
     // 검색 모드도 상세처럼 시트가 화면을 채우는 상태라 하단 탭바를 함께 숨긴다(Figma `검색 추가`).
@@ -296,11 +303,11 @@ export function MapPage() {
 
   /**
    * 장소 선택 — 핀·최근 목록·검색 결과·연관 장소가 모두 이 길로 들어온다.
-   * `placeShareToken` 은 고르는 쪽이 "이건 구독한 공유 아카이브의 장소"라고 알고 있을 때만
-   * 실린다(현재는 최근 저장한 공간 목록뿐 — `/places/recent` 만 accessType 을 내려준다).
+   * `placeShareToken` 은 고르는 쪽이 아는 공유 토큰이다(최근 저장한 공간). 넘기지 않으면(핀·연관
+   * 장소) 핀·검색 결과에서 그 장소의 토큰을 찾는다.
    */
   function handlePlaceClick(id: number, placeShareToken?: string | null) {
-    setSelectedPlaceId(id, placeShareToken);
+    setSelectedPlaceId(id, placeShareToken === undefined ? shareTokenOf(id) : placeShareToken);
     // 핀을 새로 고르면 접혀 있던 카드도 기본 높이로 다시 보여준다.
     setCardsCollapsed(false);
     // 검색 결과 지도에선 시트를 쓰지 않아 높이를 건드리지 않는다 — 결과 목록으로 돌아갔을 때
@@ -362,7 +369,7 @@ export function MapPage() {
   /** 검색 결과 카드 선택 — 시트 상세 대신 검색 결과 지도로 들어간다(NOOK-383). */
   function handleSearchResultClick(id: number) {
     setCardsCollapsed(false);
-    setSelectedPlaceId(id, null, { entersSearchMap: true });
+    setSelectedPlaceId(id, shareTokenOf(id), { entersSearchMap: true });
   }
 
   /** 검색 결과 지도의 상단 뒤로가기 — 결과 목록으로 돌아간다(검색어·결과·스크롤 유지). */
@@ -498,8 +505,9 @@ export function MapPage() {
             }}
             onActiveIndexChange={(index) => {
               const id = searchResultIds[index];
-              if (id !== undefined) setSelectedPlaceId(id);
+              if (id !== undefined) setSelectedPlaceId(id, shareTokenOf(id));
             }}
+            shareTokenOf={shareTokenOf}
             onClose={handleCloseDetail}
             onSelectPlace={handlePlaceClick}
           />
@@ -507,6 +515,7 @@ export function MapPage() {
         {searchMapActive && placeFullOpen && selectedPlace ? (
           <PlaceFullSheet
             place={selectedPlace}
+            shareToken={shareToken}
             origin={fullOrigin}
             userCoords={location.coords}
             onClose={closePlaceFull}

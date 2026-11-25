@@ -51,6 +51,7 @@ export function FloatingPlaceCards({
   collapsed,
   fullOpen = false,
   userCoords,
+  shareTokenOf,
   onActiveIndexChange,
   onCollapsedChange,
   onExpandFull,
@@ -64,6 +65,8 @@ export function FloatingPlaceCards({
   /** 지금 카드가 풀업으로 커져 있는 동안 — 풀업이 그 카드 행세를 하므로 진짜 카드는 가린다. */
   fullOpen?: boolean;
   userCoords?: Coordinates | null;
+  /** 장소별 공유 토큰 — 구독한 공유 아카이브의 장소는 공유 API 로 상세를 받는다. */
+  shareTokenOf?: (placeId: number) => string | null;
   onActiveIndexChange: (index: number) => void;
   onCollapsedChange: (collapsed: boolean) => void;
   /**
@@ -210,6 +213,7 @@ export function FloatingPlaceCards({
           <FloatingPlaceCard
             key={placeId}
             placeId={placeId}
+            shareToken={shareTokenOf?.(placeId) ?? null}
             // 보이는 카드와 양옆만 상세를 받는다 — 결과가 많아도 한꺼번에 다 부르지 않는다.
             enabled={Math.abs(index - activeIndex) <= 1}
             collapsed={collapsed}
@@ -228,6 +232,7 @@ export function FloatingPlaceCards({
 
 function FloatingPlaceCard({
   placeId,
+  shareToken,
   enabled,
   collapsed,
   hidden,
@@ -238,6 +243,7 @@ function FloatingPlaceCard({
   onSelectPlace,
 }: {
   placeId: number;
+  shareToken: string | null;
   enabled: boolean;
   collapsed: boolean;
   hidden: boolean;
@@ -247,7 +253,7 @@ function FloatingPlaceCard({
   onClose: () => void;
   onSelectPlace: (placeId: number) => void;
 }) {
-  const { data: place } = usePlaceDetail(enabled ? placeId : null);
+  const { data: place } = usePlaceDetail(enabled ? placeId : null, shareToken);
   // 높이를 손에 맞춰 움직이려면 펼친·접힌 높이를 숫자로 알아야 한다 — 내용(사진은 늘 그려 둔다)을
   // 감싼 안쪽 상자를 재서 구한다. 카드 자체는 높이를 강제로 받으니 바깥을 재면 안 된다.
   const contentRef = useRef<HTMLDivElement>(null);
@@ -308,6 +314,7 @@ function FloatingPlaceCard({
             expanded={false}
             // 내용이 비어도 카드 높이가 장소마다 달라지지 않게 자리를 지킨다(NOOK-383).
             keepEmptySlots
+            shareToken={shareToken}
             userCoords={userCoords}
             onClose={onClose}
             onSelectPlace={onSelectPlace}

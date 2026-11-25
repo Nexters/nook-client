@@ -55,6 +55,7 @@ function toMapPin(dto: MapPlaceResponse): MapPin {
     thumbnail: dto.thumbnailUrl ?? undefined,
     // 운영 서버가 필드를 내리기 전 응답도 오므로 타입과 달리 비어 있을 수 있다.
     categoryGroup: dto.categoryGroup ?? undefined,
+    shareToken: dto.shareToken ?? null,
   };
 }
 
@@ -143,6 +144,7 @@ function toSavedPlaceSearchResult(dto: SavedPlaceSearchItemResponse): SavedPlace
     category: dto.category ?? undefined,
     region: region || undefined,
     thumbnail: dto.thumbnailUrl ?? undefined,
+    shareToken: dto.shareToken ?? null,
   };
 }
 

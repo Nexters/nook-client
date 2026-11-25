@@ -141,6 +141,7 @@ describe('toSavedPlaceSearchPage', () => {
         category: '카페',
         region: '서울',
         thumbnail: 'https://img.example/haus.jpg',
+        shareToken: null,
       },
     ]);
   });
