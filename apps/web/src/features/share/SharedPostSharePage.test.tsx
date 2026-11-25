@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PostDetail } from '@/features/post/types';
 import { ApiClientError } from '@/shared/api';
 import { ToastProvider } from '@/shared/toast';
-import type { PostShare } from './api';
 import { SharedPostSharePage } from './SharedPostSharePage';
 
 const mocks = vi.hoisted(() => ({
@@ -59,8 +58,6 @@ const DETAIL: PostDetail = {
   ],
 };
 
-const SHARE: PostShare = { detail: DETAIL, viewerSavedPostId: null };
-
 function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -80,7 +77,7 @@ function renderPage() {
 describe('SharedPostSharePage', () => {
   beforeEach(() => {
     session.status = 'anonymous';
-    mocks.fetchPostShare.mockReset().mockResolvedValue(SHARE);
+    mocks.fetchPostShare.mockReset().mockResolvedValue(DETAIL);
     mocks.savePostShare.mockReset().mockResolvedValue(77);
   });
 
@@ -116,11 +113,20 @@ describe('SharedPostSharePage', () => {
     expect(await screen.findByText('"카페"에 저장됐어요.')).toBeInTheDocument();
   });
 
-  it('이미 저장한 공유로 들어오면 내 게시물 상세로 보낸다', async () => {
+  it('같은 원본을 이미 저장했으면 공유 화면에 내 저장 아카이브를 보여준다', async () => {
     session.status = 'authenticated';
-    mocks.fetchPostShare.mockResolvedValue({ ...SHARE, viewerSavedPostId: 9 });
+    mocks.fetchPostShare.mockResolvedValue({
+      ...DETAIL,
+      archives: [
+        { id: 3, name: '서울 카페', color: 'yellow' },
+        { id: 4, name: '주말', color: 'cement' },
+      ],
+    });
     renderPage();
-    expect(await screen.findByText('내 게시물 상세')).toBeInTheDocument();
+    expect(await screen.findByText('서울 카페')).toBeInTheDocument();
+    expect(screen.getByText('외 1곳에 저장')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /아카이브에 저장/ })).not.toBeInTheDocument();
+    expect(screen.queryByText('내 게시물 상세')).not.toBeInTheDocument();
   });
 
   it('원본이 삭제돼 만료된 링크면 안내 문구를 보여준다', async () => {

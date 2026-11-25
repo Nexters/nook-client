@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useArchives } from '@/features/archive/api/queries';
 import { useSavedToArchivesToast } from '@/features/post/components/ArchiveJumpPopover';
 import { Icon16Share } from '@/shared/icons/NookIcons';
@@ -14,7 +14,7 @@ import { buildPostShareUrl } from './lib/shareUrl';
 /**
  * Figma `게시물 공유 > 공유 받은 후 저장 전 화면` — 게시물 단위 공유 링크(`/shared-post/:token`).
  * 발급 시점 스냅샷을 읽기 전용으로 보여주고, 저장하면 내 게시물로 복사돼 게시물 상세로 넘어간다.
- * 이미 저장한 공유로 들어오면 곧장 내 게시물 상세로 보낸다.
+ * 이미 저장한 사람에겐 저장 칩 대신 내 아카이브("OO에 저장")가 보인다(NOOK-369 PM 확인).
  */
 export function SharedPostSharePage() {
   const { token = '' } = useParams();
@@ -43,9 +43,7 @@ export function SharedPostSharePage() {
     );
   }
 
-  const { detail, viewerSavedPostId } = shareQuery.data;
-  // ponytail: 이미 저장한 사람의 CTA 는 PM 미정(NOOK-369) — 정해지기 전엔 내 게시물로 보낸다.
-  if (viewerSavedPostId) return <Navigate to={`/post/${viewerSavedPostId}`} replace />;
+  const detail = shareQuery.data;
 
   return (
     <>

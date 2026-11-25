@@ -7,7 +7,12 @@ import {
   toArchiveSubscriberPage,
 } from '@/features/archive/api';
 import type { Archive, ArchiveSubscriberPage } from '@/features/archive/types';
-import { formatAuthorHandle, toPostDetail, updatePostMemo } from '@/features/post/api';
+import {
+  fetchPostDetail,
+  formatAuthorHandle,
+  toPostDetail,
+  updatePostMemo,
+} from '@/features/post/api';
 import type { PostDetail } from '@/features/post/types';
 import {
   get3 as getPostShareEndpoint,
@@ -124,21 +129,25 @@ export async function saveSharedPost(input: {
   return response.postId;
 }
 
-/** 게시물 단위 공유 링크로 본 게시물 — 저장 전 화면은 게시물 상세와 같은 모델로 그린다. */
-export interface PostShare {
-  detail: PostDetail;
-  /** 로그인한 사람이 이미 이 공유를 저장했으면 그 내 게시물 id. */
-  viewerSavedPostId: number | null;
-}
-
 /**
  * `GET /api/public/v1/post-shares/{token}` — 발급 시점에 고정된 게시물 스냅샷.
- * 비로그인도 볼 수 있고, 로그인 상태면(optional) 내 저장 여부가 함께 온다.
+ * 비로그인도 볼 수 있고, 로그인 상태면(optional) 같은 원본을 내가 저장한 게시물 id 가 함께 온다.
+ * 판별 기준은 아카이브 공유와 같다(서버 `findByUserIdAndPostId`, 공유자가 달라도 같은 원본이면 저장됨).
+ * 응답엔 아카이브 목록이 없어 내 게시물 상세에서 가져와 `archives` 에 채운다 — 화면이
+ * 아카이브 공유처럼 "OO에 저장"을 그린다.
  */
-export async function fetchPostShare(token: string): Promise<PostShare> {
+export async function fetchPostShare(token: string): Promise<PostDetail> {
   const dto = unwrapApiResponse(await getPostShareEndpoint(token, { auth: 'optional' }));
   if (!dto) throw new Error('공유 게시물 응답이 비어 있어요');
-  return { detail: toPostShareDetail(dto), viewerSavedPostId: dto.viewerSavedPostId ?? null };
+  const detail = toPostShareDetail(dto);
+  if (!dto.viewerSavedPostId) return detail;
+  try {
+    const mine = await fetchPostDetail(dto.viewerSavedPostId);
+    return { ...detail, archives: mine.archives };
+  } catch {
+    // 저장 표시만 못 할 뿐 공유 화면은 보여준다 — 다시 저장해도 서버가 기존 메모·장소를 지킨다.
+    return detail;
+  }
 }
 
 function toPostShareDetail({ post }: PostShareResponse): PostDetail {
@@ -149,7 +158,7 @@ function toPostShareDetail({ post }: PostShareResponse): PostDetail {
     placeParsingStatus: 'COMPLETED',
     placeParsingFailureReason: null,
     title: post.title || '제목 없는 게시물',
-    // 아직 내 게시물이 아니라 속한 아카이브·메모가 없다.
+    // 스냅샷엔 아카이브·메모가 없다 — 저장한 사람의 아카이브는 fetchPostShare 가 채운다.
     archives: [],
     places: [...post.places].sort((a, b) => a.sequence - b.sequence).map(toSharedPlace),
     post: {
