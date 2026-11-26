@@ -78,6 +78,8 @@ function CollectionCard({
           alt=""
           loading={isProcessing}
           failed={isFailed}
+          // 피드형의 영상 썸네일은 잘라 채우지 않고 원본 비율 그대로 전부 보여준다(NOOK-451).
+          fit={view === 'feed' && archive.coverType === 'VIDEO' ? 'contain' : 'cover'}
           className={cn('h-auto w-full', THUMBNAIL_ASPECT[view])}
         />
         {/* 선택 삭제 모드에서는 같은 자리를 체크가 쓰므로 양보하고, 커버가 아직 없는
