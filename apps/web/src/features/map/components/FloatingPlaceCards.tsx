@@ -297,7 +297,9 @@ function FloatingPlaceCard({
         // 가로(카드·사진 넘기기)는 그대로 둔다.
         'w-full shrink-0 touch-pan-x snap-start overflow-hidden rounded-[14px] bg-gray-0 px-4',
         hidden && 'invisible',
-        'drop-shadow-[2px_2px_24.4px_rgba(0,0,0,0.1)]',
+        // filter(drop-shadow)가 아니라 box-shadow 로 그린다 — iOS WebKit 은 필터 층 + overflow·둥근
+        // 모서리 + 가로 스크롤·높이 전환이 겹치면 카드 배경을 간헐적으로 못 그린다(NOOK-455).
+        'shadow-[2px_2px_24.4px_rgba(0,0,0,0.1)]',
         // 카드 안 사진 캐러셀이 끝에 닿아도 바깥 카드 스와이프로 이어지지 않게 끊는다 —
         // 사진을 넘기다 다음 장소로 넘어가 버리면 안 된다(NOOK-383).
         '[&_[data-slot=carousel]>div]:overscroll-x-contain',
