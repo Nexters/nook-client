@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { cn } from '@/shared/lib/utils';
 import { MediaBadge } from '@/shared/ui';
 
 type Mode = 'feed' | 'grid' | 'list';
@@ -107,11 +106,10 @@ export function ViewModePreview() {
                     objectPosition: card.src.includes('pangyo-cafe') ? '50% 25%' : 'center',
                   }}
                 />
-                <span
-                  className={cn('transition-opacity duration-300', mode === 'list' && 'opacity-0')}
-                >
-                  <MediaBadge type="IMAGE" />
-                </span>
+                <MediaBadge
+                  type="IMAGE"
+                  className={mode === 'list' ? 'top-1 right-1 size-3' : undefined}
+                />
               </div>
               <div
                 className="view-preview-move view-preview-size absolute top-0 left-0 flex min-w-0 flex-col items-start justify-center text-left"
