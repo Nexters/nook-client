@@ -56,7 +56,6 @@ enum class NookIconName {
     Icon20Picture,
     Icon20PlayMini,
     Icon24Add,
-    Icon24AdjustmentsVertical,
     Icon24Archive,
     Icon24ArchiveAdd,
     Icon24ArchiveCheck,
@@ -65,6 +64,7 @@ enum class NookIconName {
     Icon24CheckOn,
     Icon24Close,
     Icon24Delete,
+    Icon24Filter,
     Icon24Link,
     Icon24MagnifyingGlass,
     Icon24MappinOff,
@@ -140,7 +140,6 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon20Picture -> 20f to 20f
             NookIconName.Icon20PlayMini -> 20f to 20f
             NookIconName.Icon24Add -> 24f to 24f
-            NookIconName.Icon24AdjustmentsVertical -> 24f to 24f
             NookIconName.Icon24Archive -> 24f to 24f
             NookIconName.Icon24ArchiveAdd -> 24f to 24f
             NookIconName.Icon24ArchiveCheck -> 24f to 24f
@@ -149,6 +148,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon24CheckOn -> 24f to 24f
             NookIconName.Icon24Close -> 24f to 24f
             NookIconName.Icon24Delete -> 24f to 24f
+            NookIconName.Icon24Filter -> 24f to 24f
             NookIconName.Icon24Link -> 24f to 24f
             NookIconName.Icon24MagnifyingGlass -> 24f to 24f
             NookIconName.Icon24MappinOff -> 24f to 24f
@@ -222,7 +222,6 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon20Picture -> drawIcon20Picture()
             NookIconName.Icon20PlayMini -> drawIcon20PlayMini()
             NookIconName.Icon24Add -> drawIcon24Add()
-            NookIconName.Icon24AdjustmentsVertical -> drawIcon24AdjustmentsVertical()
             NookIconName.Icon24Archive -> drawIcon24Archive()
             NookIconName.Icon24ArchiveAdd -> drawIcon24ArchiveAdd()
             NookIconName.Icon24ArchiveCheck -> drawIcon24ArchiveCheck()
@@ -231,6 +230,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon24CheckOn -> drawIcon24CheckOn()
             NookIconName.Icon24Close -> drawIcon24Close()
             NookIconName.Icon24Delete -> drawIcon24Delete()
+            NookIconName.Icon24Filter -> drawIcon24Filter()
             NookIconName.Icon24Link -> drawIcon24Link()
             NookIconName.Icon24MagnifyingGlass -> drawIcon24MagnifyingGlass()
             NookIconName.Icon24MappinOff -> drawIcon24MappinOff()
@@ -2693,61 +2693,6 @@ private fun DrawScope.drawIcon24Add() {
     drawPath(path = path2, color = Color(0xFF99A0AC), style = Stroke(width = 1.5f, cap = StrokeCap.Square))
 }
 
-private fun DrawScope.drawIcon24AdjustmentsVertical() {
-    val path0 = Path().apply {
-
-        moveTo(8.5f, 4f)
-        cubicTo(8.9142f, 4f, 9.25f, 4.3358f, 9.25f, 4.75f)
-        lineTo(9.25f, 12.0625f)
-        cubicTo(9.25f, 12.1055f, 9.2443f, 12.1474f, 9.2373f, 12.1885f)
-        cubicTo(10.1174f, 12.4939f, 10.75f, 13.3284f, 10.75f, 14.3125f)
-        cubicTo(10.75f, 15.2917f, 10.1233f, 16.1214f, 9.25f, 16.4307f)
-        lineTo(9.25f, 19.6621f)
-        cubicTo(9.25f, 20.0763f, 8.9142f, 20.4121f, 8.5f, 20.4121f)
-        cubicTo(8.0858f, 20.4121f, 7.75f, 20.0763f, 7.75f, 19.6621f)
-        lineTo(7.75f, 16.4307f)
-        cubicTo(6.8767f, 16.1214f, 6.25f, 15.2917f, 6.25f, 14.3125f)
-        cubicTo(6.25f, 13.3287f, 6.882f, 12.4942f, 7.7617f, 12.1885f)
-        cubicTo(7.7548f, 12.1475f, 7.75f, 12.1055f, 7.75f, 12.0625f)
-        lineTo(7.75f, 4.75f)
-        cubicTo(7.75f, 4.3358f, 8.0858f, 4f, 8.5f, 4f)
-        close()
-        moveTo(8.5f, 13.5625f)
-        cubicTo(8.0858f, 13.5625f, 7.75f, 13.8983f, 7.75f, 14.3125f)
-        cubicTo(7.75f, 14.7267f, 8.0858f, 15.0625f, 8.5f, 15.0625f)
-        cubicTo(8.9142f, 15.0625f, 9.25f, 14.7267f, 9.25f, 14.3125f)
-        cubicTo(9.25f, 13.8983f, 8.9142f, 13.5625f, 8.5f, 13.5625f)
-        close()
-    }
-    drawPath(path = path0, color = Color(0xFF4E5662))
-    val path1 = Path().apply {
-
-        moveTo(15.5f, 20.4121f)
-        cubicTo(15.9142f, 20.4121f, 16.25f, 20.0763f, 16.25f, 19.6621f)
-        lineTo(16.25f, 12.3496f)
-        cubicTo(16.25f, 12.3065f, 16.2443f, 12.2647f, 16.2373f, 12.2236f)
-        cubicTo(17.1174f, 11.9182f, 17.75f, 11.0837f, 17.75f, 10.0996f)
-        cubicTo(17.75f, 9.1204f, 17.1233f, 8.2907f, 16.25f, 7.9815f)
-        lineTo(16.25f, 4.75f)
-        cubicTo(16.25f, 4.3358f, 15.9142f, 4f, 15.5f, 4f)
-        cubicTo(15.0858f, 4f, 14.75f, 4.3358f, 14.75f, 4.75f)
-        lineTo(14.75f, 7.9815f)
-        cubicTo(13.8767f, 8.2907f, 13.25f, 9.1204f, 13.25f, 10.0996f)
-        cubicTo(13.25f, 11.0834f, 13.882f, 11.9179f, 14.7617f, 12.2236f)
-        cubicTo(14.7548f, 12.2646f, 14.75f, 12.3066f, 14.75f, 12.3496f)
-        lineTo(14.75f, 19.6621f)
-        cubicTo(14.75f, 20.0763f, 15.0858f, 20.4121f, 15.5f, 20.4121f)
-        close()
-        moveTo(15.5f, 10.8496f)
-        cubicTo(15.0858f, 10.8496f, 14.75f, 10.5138f, 14.75f, 10.0996f)
-        cubicTo(14.75f, 9.6854f, 15.0858f, 9.3496f, 15.5f, 9.3496f)
-        cubicTo(15.9142f, 9.3496f, 16.25f, 9.6854f, 16.25f, 10.0996f)
-        cubicTo(16.25f, 10.5138f, 15.9142f, 10.8496f, 15.5f, 10.8496f)
-        close()
-    }
-    drawPath(path = path1, color = Color(0xFF4E5662))
-}
-
 private fun DrawScope.drawIcon24Archive() {
     val path0 = Path().apply {
         fillType = PathFillType.EvenOdd
@@ -2962,6 +2907,33 @@ private fun DrawScope.drawIcon24Delete() {
         lineTo(9f, 14.998f)
     }
     drawPath(path = path2, color = Color(0xFF848B96), style = Stroke(width = 1.5f, cap = StrokeCap.Square))
+}
+
+private fun DrawScope.drawIcon24Filter() {
+    val path0 = Path().apply {
+
+        moveTo(18.189f, 9.31766f)
+        lineTo(19.0008f, 9.31766f)
+        moveTo(5.00105f, 9.31766f)
+        lineTo(10.6832f, 9.31766f)
+        moveTo(5.81249f, 14.6831f)
+        lineTo(5.00076f, 14.6831f)
+        moveTo(19.0005f, 14.6831f)
+        lineTo(13.3184f, 14.6831f)
+        moveTo(15.5693f, 11.1257f)
+        cubicTo(14.5708f, 11.1257f, 13.7613f, 10.3162f, 13.7613f, 9.31766f)
+        cubicTo(13.7613f, 8.31913f, 14.5708f, 7.50966f, 15.5693f, 7.50966f)
+        cubicTo(16.5678f, 7.50966f, 17.3773f, 8.31913f, 17.3773f, 9.31766f)
+        cubicTo(17.3773f, 10.3162f, 16.5678f, 11.1257f, 15.5693f, 11.1257f)
+        close()
+        moveTo(8.43222f, 12.8751f)
+        cubicTo(9.43075f, 12.8751f, 10.2402f, 13.6846f, 10.2402f, 14.6831f)
+        cubicTo(10.2402f, 15.6816f, 9.43075f, 16.4911f, 8.43222f, 16.4911f)
+        cubicTo(7.43369f, 16.4911f, 6.62422f, 15.6816f, 6.62422f, 14.6831f)
+        cubicTo(6.62422f, 13.6846f, 7.43369f, 12.8751f, 8.43222f, 12.8751f)
+        close()
+    }
+    drawPath(path = path0, color = Color(0xFF67707D), style = Stroke(width = 1.2f, cap = StrokeCap.Round))
 }
 
 private fun DrawScope.drawIcon24Link() {
@@ -3184,7 +3156,7 @@ private fun DrawScope.drawIcon24More() {
         lineTo(3.25f, 10.75f)
         close()
     }
-    drawPath(path = path0, color = Color(0xFF848B96))
+    drawPath(path = path0, color = Color(0xFF353C46))
     val path1 = Path().apply {
 
         moveTo(10.75f, 10.75f)
@@ -3194,7 +3166,7 @@ private fun DrawScope.drawIcon24More() {
         lineTo(10.75f, 10.75f)
         close()
     }
-    drawPath(path = path1, color = Color(0xFF848B96))
+    drawPath(path = path1, color = Color(0xFF353C46))
     val path2 = Path().apply {
 
         moveTo(18.25f, 10.75f)
@@ -3204,7 +3176,7 @@ private fun DrawScope.drawIcon24More() {
         lineTo(18.25f, 10.75f)
         close()
     }
-    drawPath(path = path2, color = Color(0xFF848B96))
+    drawPath(path = path2, color = Color(0xFF353C46))
 }
 
 private fun DrawScope.drawIcon24Pause() {

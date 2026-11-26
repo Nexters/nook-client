@@ -27,8 +27,8 @@ import { FirstSaveEmpty } from '@/features/onboarding/FirstSaveEmpty';
 import { PlaceCard } from '@/features/place';
 import {
   Icon20ArrowUp,
-  Icon24AdjustmentsVertical,
   Icon24Back,
+  Icon24Filter,
   Icon24MagnifyingGlass,
 } from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
@@ -415,7 +415,7 @@ export function PlaceSheet({
                       onClick={onOpenFilter}
                       className="relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
                     >
-                      <Icon24AdjustmentsVertical />
+                      <Icon24Filter />
                       {/* 필터가 걸려 있을 때만 우상단 점 배지. */}
                       {filterActive ? (
                         <span className="absolute top-0 right-0 size-1 rounded-full bg-nook-blue" />

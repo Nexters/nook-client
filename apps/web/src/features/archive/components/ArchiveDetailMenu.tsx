@@ -63,7 +63,7 @@ function ArchiveDetailMenu(props: ArchiveDetailMenuProps) {
   return (
     <MoreMenu
       items={items}
-      triggerClassName="grid h-10 w-11 place-items-center rounded-lg bg-gray-10"
+      triggerClassName="grid h-10 w-11 place-items-center rounded-lg bg-gray-10 [&_svg]:size-4"
     />
   );
 }
