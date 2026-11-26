@@ -6,6 +6,12 @@ import type { Coordinates } from '@/shared/lib/geolocation';
 import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui';
 import { CarouselIndicator } from '@/shared/ui/carousel-indicator';
+import {
+  type GestureSample,
+  releaseVelocity,
+  sampleGesture,
+  shouldAdvanceSheet,
+} from './sheet-gesture';
 
 /** 카드 사이 간격(px) — 시안 `홈_지도` 403:18114 와 옆 카드(403:18099) 사이 4px. */
 const CARD_GAP_PX = 4;
@@ -113,6 +119,8 @@ export function FloatingPlaceCards({
     suppressClickRef.current = false;
     const start = { x: event.clientX, y: event.clientY };
     let axis: 'x' | 'y' | null = null;
+    // 놓는 순간의 속도를 재려고 최근 위치를 남긴다 — 짧게 툭 튕겨도 넘기기 위해서다(NOOK-441).
+    const samples: GestureSample[] = [{ position: 0, time: performance.now() }];
     const handleMove = (move: globalThis.PointerEvent) => {
       const dx = move.clientX - start.x;
       const dy = move.clientY - start.y;
@@ -121,7 +129,10 @@ export function FloatingPlaceCards({
         // 가로가 더 길면 카드 넘기기다 — 브라우저 스크롤에 맡기고 높이는 건드리지 않는다.
         axis = Math.abs(dy) > Math.abs(dx) ? 'y' : 'x';
       }
-      if (axis === 'y') setDragDy(dy);
+      if (axis === 'y') {
+        sampleGesture(samples, dy, performance.now());
+        setDragDy(dy);
+      }
     };
     // 세로로 정해지면 손을 뗄 때까지 가로 스크롤을 막는다 — 카드는 touch-pan-x 라 끌어올리는 중
     // 손가락이 옆으로 조금만 흘러도 브라우저가 가로 스크롤을 시작하고(pointercancel 로 끌기가 끊긴다)
@@ -138,7 +149,9 @@ export function FloatingPlaceCards({
       if (axis !== 'y' || end.type === 'pointercancel') return;
       suppressClickRef.current = true;
       const dy = end.clientY - start.y;
-      if (Math.abs(dy) < DRAG_THRESHOLD_PX) return;
+      // 문턱(40px)에 못 미쳐도 같은 방향으로 빠르게 튕겼으면 넘긴다.
+      if (!shouldAdvanceSheet(dy, releaseVelocity(samples, performance.now()), DRAG_THRESHOLD_PX))
+        return;
       if (dy > 0) onCollapsedChange(true);
       else if (collapsed) onCollapsedChange(false);
       else {
