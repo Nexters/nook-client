@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useArchives } from '@/features/archive/api/queries';
 import { useSavedToArchivesToast } from '@/features/post/components/ArchiveJumpPopover';
+import { POST_NO_HISTORY_STATE } from '@/features/post/postEntry';
 import { Icon16Share } from '@/shared/icons/NookIcons';
 import { useToast } from '@/shared/toast';
 import { MoreMenu } from '@/shared/ui';
@@ -75,7 +76,12 @@ export function SharedPostSharePage() {
                   }),
                 );
                 // 저장한 순간부터 내 게시물이다 — 장소 추가·삭제가 되는 게시물 상세로 넘긴다.
-                navigate(`/post/${myPostId}`, { replace: true });
+                // 바깥에서 곧장 연 링크면 이 화면이 첫 히스토리다 — 상세에서 뒤로가기가 갈 곳이
+                // 없으니 이 화면의 뒤로가기(goBack)와 같이 홈 지도로 보내라고 알린다(NOOK-449).
+                navigate(`/post/${myPostId}`, {
+                  replace: true,
+                  state: location.key === 'default' ? POST_NO_HISTORY_STATE : undefined,
+                });
               },
               onError: () => showToast({ variant: 'simple', title: '게시물을 저장하지 못했어요' }),
             },

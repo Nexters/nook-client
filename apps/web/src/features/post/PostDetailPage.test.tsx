@@ -451,6 +451,15 @@ describe('게시물 상세', () => {
     expect(screen.getByTestId('map-route-probe')).toHaveTextContent('/map');
   });
 
+  it('히스토리 없이 들어온 게시물(공유 링크 저장 직후)은 뒤로가기 시 기본 지도로 이동한다', async () => {
+    await renderPost(1, '', [{ pathname: '/post/1', state: { postNoHistory: true } }]);
+
+    fireEvent.click(screen.getByRole('button', { name: '뒤로 가기' }));
+
+    expect(screen.getByTestId('map-route-probe')).toHaveTextContent('/map');
+    expect(screen.getByTestId('map-route-probe')).not.toHaveTextContent('placeId');
+  });
+
   it('일반 화면 이동으로 진입하면 기존 히스토리로 돌아간다', async () => {
     await renderPost(1, '', ['/archive/7', '/post/1']);
 
