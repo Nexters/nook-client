@@ -2,6 +2,12 @@ import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import type { PlaceDetail as PlaceDetailModel } from '@/features/map/types';
 import type { Coordinates } from '@/shared/lib/geolocation';
+import {
+  type GestureSample,
+  releaseVelocity,
+  sampleGesture,
+  shouldAdvanceSheet,
+} from './sheet-gesture';
 
 /** 끌어올린 카드가 있던 자리(뷰포트 기준). 풀업은 여기서 커지고, 닫힐 땐 `rest` 로 줄어든다. */
 export interface CardOrigin {
@@ -117,39 +123,76 @@ export function PlaceFullSheet({
     const scroller = scrollRef.current;
     const panel = panelRef.current;
     if (!scroller || !panel) return;
-    let startY: number | null = null;
+    // 손이 닿은 뒤 목록을 스크롤하다 맨 위에 닿으면, 같은 터치를 그 자리부터 끌어내리기로
+    // 이어받는다(NOOK-441) — 예전엔 터치 시작 때 맨 위였을 때만 끌 수 있었다.
+    let started = false;
+    let dragging = false;
+    let horizontal = false;
+    let startX = 0;
+    let startY = 0;
+    let lastY = 0;
     let lastDy = 0;
+    let samples: GestureSample[] = [];
 
-    const begin = (y: number) => {
-      startY = scroller.scrollTop <= 0 ? y : null;
+    const begin = (x: number, y: number) => {
+      started = true;
+      dragging = false;
+      horizontal = false;
+      startX = x;
+      startY = lastY = y;
       lastDy = 0;
+      samples = [{ position: y, time: performance.now() }];
     };
-    const move = (y: number) => {
-      if (startY === null) return false;
-      const dy = y - startY;
-      if (dy <= 0 && lastDy <= 0) {
-        startY = null; // 위로 밀면 그냥 스크롤이다.
-        return false;
+    const move = (x: number, y: number) => {
+      if (!started || horizontal) return false;
+      sampleGesture(samples, y, performance.now());
+      if (!dragging) {
+        const dx = x - startX;
+        const dy = y - startY;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return false;
+        // 가로가 먼저면 사진 캐러셀 넘기기다 — 이 터치는 끝까지 끌기로 보지 않는다.
+        if (Math.abs(dx) > Math.abs(dy)) {
+          horizontal = true;
+          return false;
+        }
+        // 아직 목록이 내려가 있거나 위로 미는 중이면 스크롤이다 — 기준점만 따라 옮긴다.
+        if (scroller.scrollTop > 0 || y <= lastY) {
+          startY = lastY = y;
+          return false;
+        }
+        dragging = true;
+        startY = lastY;
       }
-      lastDy = Math.max(dy, 0);
+      lastDy = Math.max(y - startY, 0);
+      lastY = y;
       setDragY(lastDy);
       return true;
     };
     const end = () => {
-      if (startY === null) return;
-      startY = null;
-      if (lastDy > CLOSE_THRESHOLD_PX) closeRef.current();
+      if (!started) return;
+      started = false;
+      if (!dragging) return;
+      dragging = false;
+      // 문턱(120px)에 못 미쳐도 아래로 빠르게 튕겼으면 닫는다.
+      if (
+        shouldAdvanceSheet(lastDy, releaseVelocity(samples, performance.now()), CLOSE_THRESHOLD_PX)
+      )
+        closeRef.current();
       else setDragY(null);
     };
 
-    const onTouchStart = (e: TouchEvent) => begin(e.touches[0]?.clientY ?? 0);
+    const onTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (touch) begin(touch.clientX, touch.clientY);
+    };
     const onTouchMove = (e: TouchEvent) => {
-      if (move(e.touches[0]?.clientY ?? 0)) e.preventDefault();
+      const touch = e.touches[0];
+      if (touch && move(touch.clientX, touch.clientY) && e.cancelable) e.preventDefault();
     };
     const onPointerDown = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse' || e.button !== 0) return;
-      begin(e.clientY);
-      const onMove = (m: PointerEvent) => move(m.clientY);
+      begin(e.clientX, e.clientY);
+      const onMove = (m: PointerEvent) => move(m.clientX, m.clientY);
       const onUp = () => {
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', onUp);

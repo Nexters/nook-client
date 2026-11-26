@@ -231,6 +231,36 @@ export function PlaceSheet({
     setIsAtBottom(false);
   }, [canScroll, selectedPlace?.id]);
 
+  // full 에서 목록이 맨 위(scrollTop 0)인데 아래로 끌면 iOS 는 그 제스처를 스크롤 바운스로
+  // 가져가며 pointercancel 을 보낸다 — vaul 이 move 를 더 못 받아 핸들을 잡을 때만 시트가
+  // 접혔다. 이 경우에만 기본 스크롤을 막아 같은 터치를 vaul 의 시트 드래그로 넘긴다(NOOK-441).
+  // 목록이 내려가 있거나 위로 미는 중, 가로 스와이프(사진 캐러셀)는 건드리지 않는다.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !canScroll) return;
+    let startX = 0;
+    let startY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      startX = touch.clientX;
+      startY = touch.clientY;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (!touch || !e.cancelable) return;
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+      if (el.scrollTop <= 0 && dy > 0 && Math.abs(dy) > Math.abs(dx)) e.preventDefault();
+    };
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+    };
+  }, [canScroll]);
+
   return (
     <Drawer
       open

@@ -74,6 +74,20 @@ describe('CollectionCard', () => {
     ).toBeInTheDocument();
   });
 
+  it('피드형의 영상 커버만 자르지 않고 전체를 보여준다(contain)', () => {
+    const video = { ...BASE, thumbnails: ['poster.jpg'], coverType: 'VIDEO' as const };
+    const media = (view: 'feed' | 'grid', archive: CollectionSummary) => {
+      const { container, unmount } = render(<CollectionCard archive={archive} view={view} />);
+      const className = container.querySelector('[data-slot="thumbnail"] img')?.className;
+      unmount();
+      return className;
+    };
+
+    expect(media('feed', video)).toContain('object-contain');
+    expect(media('grid', video)).toContain('object-cover');
+    expect(media('feed', { ...video, coverType: 'IMAGE' })).toContain('object-cover');
+  });
+
   it('커버가 이미지면 재생 표시 대신 사진 표시를 얹는다', () => {
     const { container } = render(
       <CollectionCard

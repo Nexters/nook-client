@@ -1,13 +1,13 @@
 import {
-  Icon16CheckCircle,
-  Icon16Pen,
+  Icon16AdjustmentsVertical,
+  Icon16CheckCircleLine,
+  Icon16PencilLine,
   Icon16Share,
   Icon16Trash,
-  Icon20Filter,
 } from '@/shared/icons/NookIcons';
 import { MoreMenu, type MoreMenuItem } from '@/shared/ui';
 
-/** Figma `아카이브 상세 > 더보기 메뉴`(138:5298) — 소유·공유 여부에 따라 항목만 고른다. */
+/** Figma `아카이브 상세 > 더보기 메뉴`(138:5298, 선형 아이콘 425:20722) — 소유·공유 여부에 따라 항목만 고른다. */
 export type ArchiveDetailMenuProps =
   | {
       kind: 'owned';
@@ -31,15 +31,21 @@ export type ArchiveDetailMenuProps =
 
 function ArchiveDetailMenu(props: ArchiveDetailMenuProps) {
   const filterItems: MoreMenuItem[] = props.onFilter
-    ? [{ label: '아카이브 필터', icon: <Icon20Filter size={16} />, onSelect: props.onFilter }]
+    ? [{ label: '아카이브 필터', icon: <Icon16AdjustmentsVertical />, onSelect: props.onFilter }]
     : [];
   const items: MoreMenuItem[] =
     props.kind === 'owned'
       ? [
-          { label: '아카이브 편집', icon: <Icon16Pen />, onSelect: props.onEdit },
+          { label: '아카이브 편집', icon: <Icon16PencilLine />, onSelect: props.onEdit },
           { label: '아카이브 공유', icon: <Icon16Share />, onSelect: props.onShare },
           ...(props.onSelectDelete
-            ? [{ label: '선택 삭제', icon: <Icon16CheckCircle />, onSelect: props.onSelectDelete }]
+            ? [
+                {
+                  label: '선택 삭제',
+                  icon: <Icon16CheckCircleLine />,
+                  onSelect: props.onSelectDelete,
+                },
+              ]
             : []),
           ...filterItems,
           {
