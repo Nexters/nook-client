@@ -107,7 +107,7 @@ describe('PlaceSearchPanel', () => {
     expect(mocks.fetchSavedPlaceSearch).not.toHaveBeenCalled();
 
     expect(await screen.findByText('하우스 오브 와일드')).toBeInTheDocument();
-    expect(mocks.fetchSavedPlaceSearch).toHaveBeenCalledWith('하우스', null);
+    expect(mocks.fetchSavedPlaceSearch).toHaveBeenCalledWith('하우스', null, { type: 'LATEST' });
     // 개수·아카이브 필터는 목록 헤더에만 둔다(QA).
     expect(screen.queryByText('건')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '전체' })).not.toBeInTheDocument();

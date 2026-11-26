@@ -10,6 +10,7 @@ import { FloatingPlaceCards } from '@/features/map/components/FloatingPlaceCards
 import { getLastMapCamera, MapView, type MapViewHandle } from '@/features/map/components/MapView';
 import { type CardOrigin, PlaceFullSheet } from '@/features/map/components/PlaceFullSheet';
 import { PlaceSheet } from '@/features/map/components/PlaceSheet';
+import { PlaceSortSheet } from '@/features/map/components/PlaceSortSheet';
 import { RecenterButton } from '@/features/map/components/RecenterButton';
 import { SearchMapHeader } from '@/features/map/components/SearchMapHeader';
 import {
@@ -21,9 +22,16 @@ import {
 } from '@/features/map/constants';
 import { useCurrentLocation } from '@/features/map/hooks/useCurrentLocation';
 import { toInitialBounds } from '@/features/map/initial-bounds';
-import type { ArchiveFilter, MapBounds } from '@/features/map/types';
+import {
+  type ArchiveFilter,
+  DEFAULT_PLACE_SORT,
+  type MapBounds,
+  type PlaceSort,
+} from '@/features/map/types';
+import { getCurrentPosition } from '@/shared/lib/geolocation';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
+import { useToast } from '@/shared/toast';
 import { useMapPins, usePlaceDetail, useRecentPlaces, useSearchSavedPlaces } from './api/queries';
 
 /**
@@ -118,7 +126,16 @@ export function MapPage() {
   const debouncedSearchQuery = useDebouncedValue(searchQuery, SEARCH_DEBOUNCE_MS);
   // ponytail: 지도 아카이브 필터는 아직 검색에 안 걸린다 — 서버 검색 API 가 groupIds 를 받게 되면 넘긴다.
   // 지운 건 기다리지 않는다 — 디바운스 동안 지우기 전 결과가 남아 x 를 누른 뒤 잠깐 비친다(QA).
-  const searchPage = useSearchSavedPlaces(searchQuery.trim() ? debouncedSearchQuery : '', null);
+  // 장소 목록 정렬(NOOK-430). 아카이브 필터와 같은 정책 — 이 화면에 있는 동안만 유지하고,
+  // 검색 결과에도 같은 정렬을 건다.
+  const [placeSort, setPlaceSort] = useState<PlaceSort>(DEFAULT_PLACE_SORT);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const { showToast } = useToast();
+  const searchPage = useSearchSavedPlaces(
+    searchQuery.trim() ? debouncedSearchQuery : '',
+    null,
+    placeSort,
+  );
   // 검색 결과 지도. 검색 모드는 히스토리에 없어서, 새로고침으로 검색 상태가 날아가면 같은
   // 엔트리라도 일반 상세로 떨어진다. 결과 유무는 조건에 넣지 않는다 — 헤더의 검색어 지우기처럼
   // 결과가 먼저 비고 엔트리가 뒤늦게 되감기는 사이에 시트 상세가 한 프레임 비치면 안 된다.
@@ -159,7 +176,7 @@ export function MapPage() {
   const pinsQuery = useMapPins(effectiveBounds, archiveFilter);
   // 도착 경계가 없으면 위와 같은 키라 요청이 따로 나가지 않는다.
   const destinationPinsQuery = useMapPins(destinationBounds ?? effectiveBounds, archiveFilter);
-  const recentPlacesQuery = useRecentPlaces(archiveFilter);
+  const recentPlacesQuery = useRecentPlaces(archiveFilter, placeSort);
   const hasSaveHistory = useHasSaveHistory();
   const placeDetailQuery = usePlaceDetail(selectedPlaceId, shareToken);
 
@@ -411,6 +428,35 @@ export function MapPage() {
     setIsFilterOpen(true);
   }
 
+  function handleOpenSort() {
+    if (!isAuthenticated) {
+      openLoginWall('저장한 공간을 보려면 로그인이 필요해요');
+      return;
+    }
+    setIsSortOpen(true);
+  }
+
+  /**
+   * 가까운 순은 고르는 순간 위치를 새로 잰다 — 진입 때 잰 위치는 권한이 없었을 수도 있고,
+   * 고른 시점의 기준점이 페이지를 넘기는 동안 고정돼야 한다. 못 재면 기존 정렬을 그대로 둔다.
+   */
+  async function handleSelectSort(type: PlaceSort['type']) {
+    setIsSortOpen(false);
+    if (type !== 'NEAREST') {
+      setPlaceSort({ type });
+      return;
+    }
+    const coords = await getCurrentPosition();
+    if (!coords) {
+      showToast({
+        variant: 'simple',
+        title: '현재 위치를 확인할 수 없어요. 위치 권한을 확인해주세요.',
+      });
+      return;
+    }
+    setPlaceSort({ type, coords });
+  }
+
   /** 검색 닫기 — 뒤로가기 버튼·Android 하드웨어 백(PlaceSheet 의 useCloseOnBack). */
   function handleExitSearch() {
     setIsSearchMode(false);
@@ -554,6 +600,14 @@ export function MapPage() {
           onExitSearch={handleExitSearch}
           onSearchInputFocus={handleSearchInputFocus}
           onOpenFilter={handleOpenFilter}
+          sort={placeSort.type}
+          onOpenSort={handleOpenSort}
+        />
+        <PlaceSortSheet
+          open={isSortOpen}
+          onOpenChange={setIsSortOpen}
+          value={placeSort.type}
+          onSelect={handleSelectSort}
         />
         <ArchiveFilterSheet
           open={isFilterOpen}
