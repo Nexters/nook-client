@@ -83,6 +83,7 @@ function renderSheet(
               onExitSearch={() => {}}
               onSearchInputFocus={() => {}}
               onOpenFilter={() => {}}
+              onOpenSort={() => {}}
               searchQuery=""
               searchPage={undefined}
               onSearchQueryChange={() => {}}
@@ -344,6 +345,7 @@ describe('PlaceSheet 검색 패널 — 상세가 열려도 살아남는다', () 
         onExitSearch={() => {}}
         onSearchInputFocus={() => {}}
         onOpenFilter={() => {}}
+        onOpenSort={() => {}}
         searchQuery={query}
         searchPage={undefined}
         onSearchQueryChange={setQuery}
@@ -407,6 +409,7 @@ describe('PlaceSheet 검색 패널 — 상세가 열려도 살아남는다', () 
                 onExitSearch={() => {}}
                 onSearchInputFocus={() => {}}
                 onOpenFilter={() => {}}
+                onOpenSort={() => {}}
                 searchQuery="아이소"
                 searchPage={undefined}
                 onSearchQueryChange={() => {}}

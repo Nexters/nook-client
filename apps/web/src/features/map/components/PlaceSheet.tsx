@@ -5,6 +5,7 @@ import { EmptySavedPlaces } from '@/features/map/components/EmptySavedPlaces';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { PlaceSearchPanel } from '@/features/map/components/PlaceSearchPanel';
+import { PLACE_SORT_LABEL } from '@/features/map/components/PlaceSortSheet';
 import {
   getPlaceSheetLayoutClassNames,
   getSnapTransitionDurationSeconds,
@@ -20,12 +21,14 @@ import {
 } from '@/features/map/constants';
 import type {
   PlaceDetail as PlaceDetailModel,
+  PlaceSort,
   RecentPlace,
   SavedPlaceSearchPage,
 } from '@/features/map/types';
 import { FirstSaveEmpty } from '@/features/onboarding/FirstSaveEmpty';
 import { PlaceCard } from '@/features/place';
 import {
+  Icon16ArrowDown,
   Icon20ArrowUp,
   Icon24Back,
   Icon24Filter,
@@ -77,6 +80,7 @@ export function PlaceSheet({
   onSelectSearchResult,
   hidden = false,
   filterActive = false,
+  sort = 'LATEST',
   onSnapChange,
   onSelectPlace,
   onClose,
@@ -84,6 +88,7 @@ export function PlaceSheet({
   onExitSearch,
   onSearchInputFocus,
   onOpenFilter,
+  onOpenSort,
 }: {
   recentPlaces: RecentPlace[];
   /** 지금 필터 조건의 전체 장소 수 — 헤더의 `N곳`. 첫 응답 전엔 없어서 숫자를 비워둔다. */
@@ -123,6 +128,8 @@ export function PlaceSheet({
   hidden?: boolean;
   /** 아카이브 필터가 걸려 있는지 — 필터 아이콘에 점 배지를 단다. */
   filterActive?: boolean;
+  /** 지금 적용 중인 정렬 — 헤더의 정렬 버튼 글자(NOOK-430). */
+  sort?: PlaceSort['type'];
   onSnapChange: (snap: number | string | null) => void;
   /**
    * 장소 선택. 두 번째 인자는 그 장소가 구독한 공유 아카이브의 것일 때의 공유 토큰이다 —
@@ -136,6 +143,8 @@ export function PlaceSheet({
   onSearchInputFocus: () => void;
   /** 지도에 노출할 아카이브 선택 시트를 연다(NOOK-311). */
   onOpenFilter: () => void;
+  /** 정렬 시트를 연다(NOOK-430). */
+  onOpenSort: () => void;
 }) {
   const overlayContainer = useAppOverlayContainer();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -439,18 +448,30 @@ export function PlaceSheet({
                         </>
                       )}
                     </p>
-                    <button
-                      type="button"
-                      aria-label={filterActive ? '아카이브 필터 (적용 중)' : '아카이브 필터'}
-                      onClick={onOpenFilter}
-                      className="relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-                    >
-                      <Icon24Filter />
-                      {/* 필터가 걸려 있을 때만 우상단 점 배지. */}
-                      {filterActive ? (
-                        <span className="absolute top-0 right-0 size-1 rounded-full bg-nook-blue" />
-                      ) : null}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-label={`정렬: ${PLACE_SORT_LABEL[sort]}`}
+                        onClick={onOpenSort}
+                        className="flex items-center text-b2 text-gray-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                      >
+                        {PLACE_SORT_LABEL[sort]}
+                        <Icon16ArrowDown />
+                      </button>
+                      <span className="h-4 w-px bg-gray-10" aria-hidden="true" />
+                      <button
+                        type="button"
+                        aria-label={filterActive ? '아카이브 필터 (적용 중)' : '아카이브 필터'}
+                        onClick={onOpenFilter}
+                        className="relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                      >
+                        <Icon24Filter />
+                        {/* 필터가 걸려 있을 때만 우상단 점 배지. */}
+                        {filterActive ? (
+                          <span className="absolute top-0 right-0 size-1 rounded-full bg-nook-blue" />
+                        ) : null}
+                      </button>
+                    </div>
                   </div>
                 </div>
                 {recentPlacesLoading ? (

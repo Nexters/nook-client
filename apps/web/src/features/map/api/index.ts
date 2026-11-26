@@ -24,11 +24,13 @@ import type {
   MapPin,
   PlaceDetail,
   PlaceDetailPost,
+  PlaceSort,
   RecentPlace,
   RecentPlacePage,
   SavedPlaceSearchPage,
   SavedPlaceSearchResult,
 } from '../types';
+import { DEFAULT_PLACE_SORT } from '../types';
 
 /**
  * 서버 색상 코드 ↔ 디자인 토큰 색상. `features/archive/api`·`features/post/api`의 매핑과
@@ -44,6 +46,13 @@ const SERVER_TO_UI_COLOR = {
   GREEN: 'green',
   GRAY: 'cement',
 } as const satisfies Record<CreateGroupRequestColor, ArchiveColor>;
+
+/** 정렬 → 서버 파라미터. 가까운 순만 기준 좌표를 같이 보낸다. */
+function toSortParams(sort: PlaceSort) {
+  return sort.type === 'NEAREST'
+    ? { sort: sort.type, latitude: sort.coords.lat, longitude: sort.coords.lng }
+    : { sort: sort.type };
+}
 
 function toMapPin(dto: MapPlaceResponse): MapPin {
   return {
@@ -120,12 +129,13 @@ export function toRecentPlace(dto: RecentPlaceResponse): RecentPlace {
 export async function fetchRecentPlaces(
   cursor?: string,
   filter: ArchiveFilter = null,
+  sort: PlaceSort = DEFAULT_PLACE_SORT,
 ): Promise<RecentPlacePage> {
   // 전체 해제 — `fetchMapPins` 와 같은 이유로 요청 없이 빈 페이지.
   if (filter?.length === 0) return { places: [], totalCount: 0 };
   const response = unwrapApiResponse(
     await getRecentPlacesEndpoint(
-      { cursor: cursor || undefined, groupIds: filter ?? undefined },
+      { cursor: cursor || undefined, groupIds: filter ?? undefined, ...toSortParams(sort) },
       { auth: 'required' },
     ),
   );
@@ -168,10 +178,11 @@ export function toSavedPlaceSearchPage(dto: SavedPlaceSearchPageResponse): Saved
 export async function fetchSavedPlaceSearch(
   query: string,
   groupId: number | null,
+  sort: PlaceSort = DEFAULT_PLACE_SORT,
 ): Promise<SavedPlaceSearchPage> {
   const response = unwrapApiResponse(
     await searchSavedPlacesEndpoint(
-      { query, page: 0, size: 100, ...(groupId !== null && { groupId }) },
+      { query, page: 0, size: 100, ...(groupId !== null && { groupId }), ...toSortParams(sort) },
       { auth: 'required' },
     ),
   );

@@ -16,6 +16,16 @@ export interface MapBounds {
 export type ArchiveFilter = number[] | null;
 
 /**
+ * 장소 목록 정렬(NOOK-430). 가까운 순은 고른 순간의 GPS 좌표를 함께 들고 다닌다 — 서버가
+ * 페이지를 넘기는 동안 같은 기준점을 요구하고, 지도를 움직여도 순서가 바뀌면 안 된다.
+ */
+export type PlaceSort =
+  | { type: 'LATEST' | 'OLDEST' }
+  | { type: 'NEAREST'; coords: { lat: number; lng: number } };
+
+export const DEFAULT_PLACE_SORT: PlaceSort = { type: 'LATEST' };
+
+/**
  * 지도 핀 하나 — `MapPlaceResponse` 기준. 이름·대표 아카이브 색상·대표 썸네일까지 내려오므로
  * 핀 단계에서 사진과 이름표를 다 그린다. 나머지 상세는 클릭 시 `usePlaceDetail`로 가져온다.
  */

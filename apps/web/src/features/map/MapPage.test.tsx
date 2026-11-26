@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
+import { ToastProvider } from '@/shared/toast';
 
 // 데이터는 feature api 모듈을 거친다 — HTTP 가 아니라 페이지 ↔ Query ↔ api 배선만 검증한다.
 const mocks = vi.hoisted(() => ({
@@ -252,17 +253,19 @@ function renderMapAt(entry: string, { from }: { from?: string } = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
-        <MemoryRouter initialEntries={from ? [from, entry] : [entry]}>
-          <LocationProbe />
-          <MapTabLinkProbe />
-          <HistoryBackProbe />
-          <Routes>
-            <Route path="/map" element={<MapPage />} />
-            <Route path="/before" element={<p>지도에 오기 전 화면</p>} />
-          </Routes>
-        </MemoryRouter>
-      </BottomMenuVisibilityProvider>
+      <ToastProvider>
+        <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
+          <MemoryRouter initialEntries={from ? [from, entry] : [entry]}>
+            <LocationProbe />
+            <MapTabLinkProbe />
+            <HistoryBackProbe />
+            <Routes>
+              <Route path="/map" element={<MapPage />} />
+              <Route path="/before" element={<p>지도에 오기 전 화면</p>} />
+            </Routes>
+          </MemoryRouter>
+        </BottomMenuVisibilityProvider>
+      </ToastProvider>
     </QueryClientProvider>,
   );
 }
@@ -801,7 +804,9 @@ describe('MapPage — 검색 결과 지도(NOOK-383)', () => {
     await screen.findByText('검색모드: false');
     fireEvent.click(screen.getByRole('button', { name: '검색 진입' }));
     fireEvent.change(screen.getByLabelText('검색어'), { target: { value: '성수' } });
-    await waitFor(() => expect(mocks.fetchSavedPlaceSearch).toHaveBeenCalledWith('성수', null));
+    await waitFor(() =>
+      expect(mocks.fetchSavedPlaceSearch).toHaveBeenCalledWith('성수', null, { type: 'LATEST' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: '검색 결과 카드 선택' }));
     await screen.findByTestId('cards');
   }
