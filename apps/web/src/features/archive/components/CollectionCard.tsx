@@ -59,8 +59,13 @@ function CollectionCard({
       {...(onClick ? { type: 'button' as const, onClick } : {})}
       {...(selected !== undefined ? { 'aria-pressed': selected } : {})}
       className={cn(
-        'flex w-full min-w-0 gap-2 text-left',
-        view === 'list' ? 'flex-row items-center gap-3' : 'flex-col items-start',
+        'flex w-full min-w-0 text-left',
+        view === 'list'
+          ? 'flex-row items-center gap-3'
+          : // 피드형은 장소 카드(PlaceCard)와 같은 여백 — 두 탭을 넘겨도 카드 간격이 같아야 한다(NOOK-452).
+            view === 'feed'
+            ? 'flex-col items-start gap-1 pb-2'
+            : 'flex-col items-start gap-2',
         onClick &&
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-2',
         className,
@@ -92,7 +97,7 @@ function CollectionCard({
           </>
         ) : null}
       </span>
-      <div className="flex w-full min-w-0 flex-col">
+      <div className={cn('flex w-full min-w-0 flex-col', view === 'feed' && 'gap-0.5 p-1')}>
         {isProcessing || isFailed ? (
           <div className="flex items-center gap-1">
             {/* 처리 중 표시는 정지 아이콘이 아니라 실제로 도는 스피너여야 한다(QA) —
