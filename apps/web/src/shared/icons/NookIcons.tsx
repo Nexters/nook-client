@@ -1049,31 +1049,6 @@ export function Icon24Add({ size, width, height, ...props }: NookIconProps) {
   );
 }
 
-export function Icon24AdjustmentsVertical({ size, width, height, ...props }: NookIconProps) {
-  const renderedWidth = width ?? size ?? 24;
-  const renderedHeight = height ?? (size === undefined ? 24 : size * 1);
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width={renderedWidth}
-      height={renderedHeight}
-      fill="none"
-      role="presentation"
-      aria-hidden="true"
-      {...props}
-    >
-      <path
-        d="M8.5 4C8.9142 4 9.25 4.3358 9.25 4.75V12.0625C9.25 12.1055 9.2443 12.1474 9.2373 12.1885C10.1174 12.4939 10.75 13.3284 10.75 14.3125C10.75 15.2917 10.1233 16.1214 9.25 16.4307V19.6621C9.25 20.0763 8.9142 20.4121 8.5 20.4121C8.0858 20.4121 7.75 20.0763 7.75 19.6621V16.4307C6.8767 16.1214 6.25 15.2917 6.25 14.3125C6.25 13.3287 6.882 12.4942 7.7617 12.1885C7.7548 12.1475 7.75 12.1055 7.75 12.0625V4.75C7.75 4.3358 8.0858 4 8.5 4ZM8.5 13.5625C8.0858 13.5625 7.75 13.8983 7.75 14.3125C7.75 14.7267 8.0858 15.0625 8.5 15.0625C8.9142 15.0625 9.25 14.7267 9.25 14.3125C9.25 13.8983 8.9142 13.5625 8.5 13.5625Z"
-        fill="#4E5662"
-      />
-      <path
-        d="M15.5 20.4121C15.9142 20.4121 16.25 20.0763 16.25 19.6621V12.3496C16.25 12.3065 16.2443 12.2647 16.2373 12.2236C17.1174 11.9182 17.75 11.0837 17.75 10.0996C17.75 9.1204 17.1233 8.2907 16.25 7.9815V4.75C16.25 4.3358 15.9142 4 15.5 4C15.0858 4 14.75 4.3358 14.75 4.75V7.9815C13.8767 8.2907 13.25 9.1204 13.25 10.0996C13.25 11.0834 13.882 11.9179 14.7617 12.2236C14.7548 12.2646 14.75 12.3066 14.75 12.3496V19.6621C14.75 20.0763 15.0858 20.4121 15.5 20.4121ZM15.5 10.8496C15.0858 10.8496 14.75 10.5138 14.75 10.0996C14.75 9.6854 15.0858 9.3496 15.5 9.3496C15.9142 9.3496 16.25 9.6854 16.25 10.0996C16.25 10.5138 15.9142 10.8496 15.5 10.8496Z"
-        fill="#4E5662"
-      />
-    </svg>
-  );
-}
-
 export function Icon24Archive({ size, width, height, ...props }: NookIconProps) {
   const renderedWidth = width ?? size ?? 24;
   const renderedHeight = height ?? (size === undefined ? 24 : size * 1);
@@ -1288,6 +1263,30 @@ export function Icon24Delete({ size, width, height, ...props }: NookIconProps) {
   );
 }
 
+export function Icon24Filter({ size, width, height, ...props }: NookIconProps) {
+  const renderedWidth = width ?? size ?? 24;
+  const renderedHeight = height ?? (size === undefined ? 24 : size * 1);
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={renderedWidth}
+      height={renderedHeight}
+      fill="none"
+      role="presentation"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M18.189 9.31766H19.0008M5.00105 9.31766H10.6832M5.81249 14.6831H5.00076M19.0005 14.6831L13.3184 14.6831M15.5693 11.1257C14.5708 11.1257 13.7613 10.3162 13.7613 9.31766C13.7613 8.31913 14.5708 7.50966 15.5693 7.50966C16.5678 7.50966 17.3773 8.31913 17.3773 9.31766C17.3773 10.3162 16.5678 11.1257 15.5693 11.1257ZM8.43222 12.8751C9.43075 12.8751 10.2402 13.6846 10.2402 14.6831C10.2402 15.6816 9.43075 16.4911 8.43222 16.4911C7.43369 16.4911 6.62422 15.6816 6.62422 14.6831C6.62422 13.6846 7.43369 12.8751 8.43222 12.8751Z"
+        fill="none"
+        stroke="#67707D"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function Icon24Link({ size, width, height, ...props }: NookIconProps) {
   const renderedWidth = width ?? size ?? 24;
   const renderedHeight = height ?? (size === undefined ? 24 : size * 1);
@@ -1388,9 +1387,9 @@ export function Icon24More({ size, width, height, ...props }: NookIconProps) {
       aria-hidden="true"
       {...props}
     >
-      <path d="M3.25 10.75H5.75V13.25H3.25V10.75Z" fill="#848B96" />
-      <path d="M10.75 10.75H13.25V13.25H10.75V10.75Z" fill="#848B96" />
-      <path d="M18.25 10.75H20.75V13.25H18.25V10.75Z" fill="#848B96" />
+      <path d="M3.25 10.75H5.75V13.25H3.25V10.75Z" fill="#353C46" />
+      <path d="M10.75 10.75H13.25V13.25H10.75V10.75Z" fill="#353C46" />
+      <path d="M18.25 10.75H20.75V13.25H18.25V10.75Z" fill="#353C46" />
     </svg>
   );
 }
