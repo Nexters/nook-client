@@ -40,7 +40,7 @@ import { GoHomeTooltip, PostParsingView } from './components/PostParsingView';
 import { PostVideoViewer } from './components/PostVideoViewer';
 import { RelatedPlacesSection } from './components/RelatedPlacesSection';
 import { SavedPostActions } from './components/SavedPostActions';
-import { isPostFromList, POST_NOT_FOUND_TOAST } from './postEntry';
+import { isPostFromList, isPostNoHistory, POST_NOT_FOUND_TOAST } from './postEntry';
 import type { SearchedPlace } from './types';
 
 /** 이 값을 넘겨 스크롤된 것으로 본다 — PinnedHeaderLayout 의 +1px 최소 스크롤은 무시. */
@@ -64,7 +64,10 @@ export function PostDetailPage() {
   const [searchParams] = useSearchParams();
   const enteredFromShare = searchParams.get('entry') === 'share';
   // 게시물 여러 개를 보여주던 화면에서 들어왔는가 — 삭제 뒤 그 화면으로 돌아갈지 홈 지도로 갈지.
-  const enteredFromList = isPostFromList(useLocation().state);
+  const location = useLocation();
+  const enteredFromList = isPostFromList(location.state);
+  // 돌아갈 히스토리가 없다 — navigate(-1) 이 아무 일도 안 하니 홈 지도로 보낸다(NOOK-449).
+  const noHistory = isPostNoHistory(location.state);
   useHideBottomMenu();
   const atBottom = useRootScrolledToBottom();
 
@@ -134,7 +137,7 @@ export function PostDetailPage() {
 
   function handleBack() {
     // 파싱 중엔 돌아갈 완성 화면이 없다 — 툴팁 문구대로 홈(지도)으로 보낸다.
-    if (isProcessing) {
+    if (isProcessing || noHistory) {
       navigate('/map', { replace: true });
       return;
     }
@@ -150,7 +153,7 @@ export function PostDetailPage() {
   useBackInterceptor(
     useCallback(() => {
       if (viewerOpen || videoViewerOpen) return false;
-      if (isProcessing) {
+      if (isProcessing || noHistory) {
         navigate('/map', { replace: true });
         return true;
       }
@@ -159,6 +162,7 @@ export function PostDetailPage() {
       return true;
     }, [
       isProcessing,
+      noHistory,
       enteredFromShare,
       viewerOpen,
       videoViewerOpen,

@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PostDetail } from '@/features/post/types';
 import { ApiClientError } from '@/shared/api';
@@ -58,15 +58,21 @@ const DETAIL: PostDetail = {
   ],
 };
 
-function renderPage() {
+function PostProbe() {
+  const { state } = useLocation();
+  return <div>내 게시물 상세 {JSON.stringify(state)}</div>;
+}
+
+function renderPage(initialEntries: string[] = ['/shared-post/ptok']) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <MemoryRouter initialEntries={['/shared-post/ptok']}>
+        <MemoryRouter initialEntries={initialEntries}>
           <Routes>
             <Route path="/shared-post/:token" element={<SharedPostSharePage />} />
-            <Route path="/post/:postId" element={<div>내 게시물 상세</div>} />
+            <Route path="/post/:postId" element={<PostProbe />} />
+            <Route path="/before" element={<div>이전 화면</div>} />
           </Routes>
         </MemoryRouter>
       </ToastProvider>
@@ -104,7 +110,8 @@ describe('SharedPostSharePage', () => {
     fireEvent.click(await screen.findByText('카페'));
     fireEvent.click(screen.getByRole('button', { name: '저장하기' }));
 
-    expect(await screen.findByText('내 게시물 상세')).toBeInTheDocument();
+    // 링크로 곧장 들어온 첫 화면이었다 — 상세에 돌아갈 곳이 없다고 알린다(NOOK-449).
+    expect(await screen.findByText(/내 게시물 상세 \{"postNoHistory":true\}/)).toBeInTheDocument();
     expect(mocks.savePostShare.mock.calls[0]?.[0]).toEqual({
       token: 'ptok',
       groupIds: [1],
@@ -126,7 +133,16 @@ describe('SharedPostSharePage', () => {
     expect(await screen.findByText('서울 카페')).toBeInTheDocument();
     expect(screen.getByText('외 1곳에 저장')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /아카이브에 저장/ })).not.toBeInTheDocument();
-    expect(screen.queryByText('내 게시물 상세')).not.toBeInTheDocument();
+    expect(screen.queryByText(/내 게시물 상세/)).not.toBeInTheDocument();
+  });
+
+  it('앞 화면이 있는 채로 저장하면 상세는 평소처럼 히스토리로 돌아간다', async () => {
+    session.status = 'authenticated';
+    renderPage(['/before', '/shared-post/ptok']);
+    fireEvent.click(await screen.findByRole('button', { name: /아카이브에 저장/ }));
+    fireEvent.click(await screen.findByText('카페'));
+    fireEvent.click(screen.getByRole('button', { name: '저장하기' }));
+    expect(await screen.findByText(/내 게시물 상세/)).toHaveTextContent('내 게시물 상세 null');
   });
 
   it('원본이 삭제돼 만료된 링크면 안내 문구를 보여준다', async () => {
