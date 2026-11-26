@@ -23,7 +23,7 @@ export function ClusterBubble({
         type="button"
         onClick={onClick}
         aria-label={`이 근처에 저장한 장소 ${count}곳 — 확대해서 보기`}
-        className="flex size-11 items-center justify-center rounded-full bg-gray-90/85 font-medium text-b2 text-gray-0"
+        className="flex size-11 items-center justify-center rounded-full bg-nook-blue/85 font-medium text-b2 text-gray-0"
       >
         {count}
       </button>
