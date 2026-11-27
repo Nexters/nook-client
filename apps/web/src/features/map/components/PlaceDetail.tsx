@@ -12,7 +12,7 @@ import {
   PlaceRow,
 } from '@/features/place';
 import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
-import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
+import { formatBusinessInfo } from '@/features/place/lib/opening-hours';
 import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
 import {
   MemoSheet,
@@ -27,6 +27,7 @@ import { useHiddenPostIds } from '@/features/post/lib/pendingPostRemoval';
 import type { PostDetail } from '@/features/post/types';
 import { fetchSharedPostDetail } from '@/features/share/api';
 import { sharedQueryKeys } from '@/features/share/api/queries';
+import { env } from '@/shared/config/env';
 import { Icon16ArrowRight, Icon16Copy } from '@/shared/icons/NookIcons';
 import { type Coordinates, formatDistance } from '@/shared/lib/geolocation';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
@@ -38,6 +39,7 @@ import {
   useUpdatePlaceBookmark,
   useUpdatePlaceMemo,
 } from '../api/queries';
+import { PlaceTags } from './PlaceTags';
 
 /**
  * 지점 정보/저장된 게시물/게시물에 포함된 장소 섹션 사이 구분선(Figma 14:1873).
@@ -385,6 +387,20 @@ export function PlaceDetail({
     ? formatDistance(userCoords, { lat: place.lat, lng: place.lng })
     : undefined;
   const mapHref = buildNaverMapSearchUrl(place);
+  const previewHours = env.localPrototype
+    ? new URLSearchParams(window.location.search).get('prototypeHours')
+    : null;
+  const businessInfo = formatBusinessInfo(
+    place.openingHours,
+    place.openNow,
+    previewHours === 'break'
+      ? new Date('2026-11-28T06:00:00Z')
+      : previewHours === 'open'
+        ? new Date('2026-11-28T08:30:00Z')
+        : previewHours === 'before'
+          ? new Date('2026-11-28T00:00:00Z')
+          : undefined,
+  );
   const showCopiedToast = () =>
     showToast({ variant: 'simple', title: '클립보드에 복사되었습니다.' });
 
@@ -437,7 +453,7 @@ export function PlaceDetail({
         </div>
         {/* 꽉 찬 스냅에서는 아래 `PlaceInfo` 가 같은 줄을 보여줘서 여기선 뺀다.
             복사·지도는 전체 확장 없이도 쓸 수 있어야 해서 주소만 말줄임하고 둘은 남긴다(NOOK-408). */}
-        {!expanded && (
+        {!expanded && floating && (
           <div
             className={cn(
               'flex w-full items-center gap-2 text-b2 text-gray-70',
@@ -464,7 +480,9 @@ export function PlaceDetail({
             </a>
           </div>
         )}
-        {place.tags.length > 0 || floating ? (
+        {!floating ? (
+          <PlaceTags key={place.id} tags={place.tags} />
+        ) : place.tags.length > 0 || floating ? (
           <div
             className={cn(
               'flex flex-wrap items-center',
@@ -496,20 +514,21 @@ export function PlaceDetail({
         />
       ) : null}
 
+      {(expanded || !floating) && (
+        <PlaceInfo
+          address={place.address}
+          distance={distance}
+          onAddressCopied={showCopiedToast}
+          mapHref={mapHref}
+          businessStatus={businessInfo.status}
+          businessHours={businessInfo.hours}
+          memo={place.memo}
+          onMemoEdit={readOnly ? undefined : () => setMemoOpen(true)}
+          className={expanded ? 'mb-4' : undefined}
+        />
+      )}
       {expanded && (
         <>
-          <PlaceInfo
-            address={place.address}
-            distance={distance}
-            onAddressCopied={showCopiedToast}
-            mapHref={mapHref}
-            businessStatus={formatBusinessStatus(place.openNow)}
-            businessHours={formatBusinessHours(place.openingHours)}
-            memo={place.memo}
-            onMemoEdit={readOnly ? undefined : () => setMemoOpen(true)}
-            className="mb-4"
-          />
-
           <SavedPostsSection place={place} shareToken={shareToken} onClose={onClose} />
           <RelatedPlacesSection
             place={place}

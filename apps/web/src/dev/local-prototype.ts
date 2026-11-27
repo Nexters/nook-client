@@ -418,10 +418,33 @@ export async function localPrototypeRequest(
     const place = db.places.find((item) => item.id === Number(placeMatch[1]));
     if (!place) throw new Error('장소를 찾을 수 없어요.');
     const posts = db.posts.filter((post) => post.places.some((item) => item.id === place.id));
+    const hoursCase = new URLSearchParams(window.location.search).get('prototypeHours');
+    const hoursPreview =
+      hoursCase === 'break' || hoursCase === 'open' || hoursCase === 'before'
+        ? {
+            name: '퍼머넌트해비탯',
+            category: '카페',
+            address: '서울 성동구 서울숲7길 9 4층',
+            tags: ['조용한', '정갈한', '혼밥', '친절한'],
+            photoUrls: ['/prototype/hours/place.jpg'],
+            thumbnailUrl: '/prototype/hours/place.jpg',
+            openNow: hoursCase === 'open',
+            openingHours: {
+              timeZone: 'Asia/Seoul',
+              weekdayDescriptions: [],
+              periods: [
+                { open: { day: 6, hour: 10, minute: 0 }, close: { day: 6, hour: 14, minute: 0 } },
+                { open: { day: 6, hour: 17, minute: 0 }, close: { day: 6, hour: 22, minute: 0 } },
+              ],
+            },
+          }
+        : {};
     if (method === 'GET') {
       const items = posts.map((post) => ({ ...postSummary(post), groups: post.groups }));
       return success(
-        placeMatch[2] === 'posts' ? page(items, params) : { ...place, posts: page(items, params) },
+        placeMatch[2] === 'posts'
+          ? page(items, params)
+          : { ...place, ...hoursPreview, posts: page(items, params) },
       );
     }
     if (method === 'PATCH' && (placeMatch[2] === 'memo' || placeMatch[2] === 'bookmark')) {
