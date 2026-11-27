@@ -127,6 +127,8 @@ export function PlaceSearchPanel({
             <div className="grid grid-cols-2 justify-items-center gap-2">
               {page.items.map((place) => (
                 <PlaceCard
+                  contextMenu
+                  shared={Boolean(place.shareToken)}
                   variant="map"
                   key={place.id}
                   place={{

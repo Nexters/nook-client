@@ -11,7 +11,14 @@ import { useToast } from '@/shared/toast';
 import { Popup } from '@/shared/ui';
 
 /** NOOK-418 interaction mock: affects only this local preview, never the API. */
-export function PrototypePlaceContextMenu({
+export function PrototypePlaceContextMenu(
+  props: Parameters<typeof PrototypePlaceContextMenuPreview>[0],
+) {
+  if (!env.localPrototype) return props.children;
+  return <PrototypePlaceContextMenuPreview {...props} />;
+}
+
+function PrototypePlaceContextMenuPreview({
   place,
   shared,
   children,
@@ -37,7 +44,6 @@ export function PrototypePlaceContextMenu({
     setMenuKey((value) => value + 1);
   };
   useCloseOnBack(open, close);
-  if (!env.localPrototype) return children;
   if (removed) return null;
   return (
     <>
@@ -94,7 +100,7 @@ export function PrototypePlaceContextMenu({
         </ContextMenu.Trigger>
         <ContextMenu.Portal>
           <ContextMenu.Content
-            className="prototype-context-menu text-gray-100"
+            className="prototype-context-menu text-gray-80"
             collisionPadding={16}
             aria-label={`${place.name} 관리`}
           >
@@ -109,16 +115,16 @@ export function PrototypePlaceContextMenu({
                 }
               }}
             >
-              공유하기
               <Icon16Share />
+              공유하기
             </ContextMenu.Item>
             {!shared ? (
               <ContextMenu.Item
                 className="prototype-context-action text-error"
                 onSelect={() => setConfirming(true)}
               >
+                <Icon16Trash />
                 아카이브에서 삭제
-                <Icon16Trash size={20} />
               </ContextMenu.Item>
             ) : null}
           </ContextMenu.Content>

@@ -128,3 +128,32 @@ it('opens a single-post share and saves its places into an owned archive', async
   fireEvent.click(screen.getByRole('button', { name: '저장하기' }));
   expect(await screen.findByText('내 게시물 상세')).toBeInTheDocument();
 });
+
+it('opens the place-menu QA link on places and shows the context menu', async () => {
+  const page = render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <AuthSessionProvider>
+        <ToastProvider>
+          <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
+            <MemoryRouter initialEntries={['/archive/1?tab=places']}>
+              <Routes>
+                <Route path="/archive/:archiveId" element={<ArchiveDetailPage />} />
+              </Routes>
+            </MemoryRouter>
+          </BottomMenuVisibilityProvider>
+        </ToastProvider>
+      </AuthSessionProvider>
+    </QueryClientProvider>,
+  );
+  await waitFor(() =>
+    expect(page.container.querySelector('[data-prototype-place]')).not.toBeNull(),
+  );
+  expect(screen.getByRole('tab', { name: /장소/ })).toHaveAttribute('aria-selected', 'true');
+  const card = page.container.querySelector('[data-prototype-place]');
+  if (!card) throw new Error('장소 카드가 없습니다');
+  fireEvent.contextMenu(card, { clientX: 100, clientY: 200 });
+  expect(await screen.findByRole('menuitem', { name: '공유하기' })).toBeInTheDocument();
+  expect(screen.getByRole('menuitem', { name: '아카이브에서 삭제' })).toBeInTheDocument();
+});

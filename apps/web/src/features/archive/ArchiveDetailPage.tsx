@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import {
   PINNED_HEADER_STICKY,
   PinnedHeaderLayout,
   PinnedHeaderTitle,
 } from '@/app/layouts/PinnedHeaderLayout';
+import { PrototypePlaceContextMenu } from '@/dev/PrototypePlaceContextMenu';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { FirstSaveEmpty } from '@/features/onboarding/FirstSaveEmpty';
 import { PlaceCard } from '@/features/place';
@@ -77,7 +78,10 @@ export function ArchiveDetailPage() {
   // 보기·정렬은 아카이브별 기기 로컬 설정이다(NOOK-376) — 공유받은 아카이브도 내 설정만 바뀐다.
   const [viewPreferences, applyViewPreferences] = useArchiveView(archiveId ?? '');
   const [viewFilterOpen, setViewFilterOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<DetailTab>('posts');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<DetailTab>(() =>
+    searchParams.get('tab') === 'places' ? 'places' : 'posts',
+  );
   const [deletePopupOpen, setDeletePopupOpen] = useState(false);
   // 스크롤에 실려 올라가는 아카이브 정보 블록 — 헤더 뒤로 숨으면 헤더 제목이 뜨고,
   // 그 뒤로는 아래로 스크롤할 때 헤더까지 접혀 탭만 남는다.
@@ -421,21 +425,22 @@ export function ArchiveDetailPage() {
               // 장소 카드(PlaceCard)를 쓴다.
               <div data-view={viewPreferences.view} className={listGridClass}>
                 {places.map((place) => (
-                  <PlaceCard
-                    variant={viewPreferences.view === 'grid' ? 'default' : viewPreferences.view}
-                    key={place.id}
-                    place={place}
-                    // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
-                    // 공유(SHARED) 아카이브의 장소는 내 상세 API 로는 404 라(내 저장 장소
-                    // 기준), 공개 API 우회용 공유 토큰을 함께 실어 보낸다.
-                    onClick={() =>
-                      navigate(
-                        isShared && archive.shareToken
-                          ? `/map?placeId=${place.id}&shareToken=${archive.shareToken}`
-                          : `/map?placeId=${place.id}`,
-                      )
-                    }
-                  />
+                  <PrototypePlaceContextMenu key={place.id} place={place} shared={isShared}>
+                    <PlaceCard
+                      variant={viewPreferences.view === 'grid' ? 'default' : viewPreferences.view}
+                      place={place}
+                      // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
+                      // 공유(SHARED) 아카이브의 장소는 내 상세 API 로는 404 라(내 저장 장소
+                      // 기준), 공개 API 우회용 공유 토큰을 함께 실어 보낸다.
+                      onClick={() =>
+                        navigate(
+                          isShared && archive.shareToken
+                            ? `/map?placeId=${place.id}&shareToken=${archive.shareToken}`
+                            : `/map?placeId=${place.id}`,
+                        )
+                      }
+                    />
+                  </PrototypePlaceContextMenu>
                 ))}
               </div>
             )}
