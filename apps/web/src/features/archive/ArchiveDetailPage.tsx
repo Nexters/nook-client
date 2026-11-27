@@ -398,6 +398,8 @@ export function ArchiveDetailPage() {
                     variant={viewPreferences.view === 'grid' ? 'default' : viewPreferences.view}
                     key={place.id}
                     place={place}
+                    // 리스트형은 게시물 카드처럼 썸네일에 미디어 표시를 얹는다(NOOK-454).
+                    mediaBadge={viewPreferences.view === 'list'}
                     // 장소 상세는 지도 화면이 소유한다 — 연관 장소 클릭과 같은 딥링크.
                     // 공유(SHARED) 아카이브의 장소는 내 상세 API 로는 404 라(내 저장 장소
                     // 기준), 공개 API 우회용 공유 토큰을 함께 실어 보낸다.

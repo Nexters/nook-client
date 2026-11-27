@@ -85,7 +85,7 @@ function CollectionCard({
         {/* 선택 삭제 모드에서는 같은 자리를 체크가 쓰므로 양보하고, 커버가 아직 없는
             처리 중·실패 카드에도 붙이지 않는다. */}
         {archive.coverType && selected === undefined && !isProcessing && !isFailed ? (
-          <MediaBadge type={archive.coverType} />
+          <MediaBadge type={archive.coverType} size={view === 'list' ? 'sm' : 'md'} />
         ) : null}
         {selected !== undefined ? (
           <>
