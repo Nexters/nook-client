@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Icon32Delete } from '@/shared/icons/NookIcons';
 import { Button, CheckIndicator, Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
 import type { ArchiveSort, ArchiveView, ArchiveViewPreferences } from '../lib/viewPreferences';
@@ -98,9 +98,14 @@ function OptionGroup<T extends string>({
   selected: T;
   onSelect: (id: T) => void;
 }) {
+  const legendId = useId();
+  // fieldset/legend 대신 div 라디오 그룹이다(NOOK-450) — 일부 iOS 에서 시트가 올라오는 동안
+  // fieldset 묶음이 잠깐 크게 그려져 시트 위쪽 끝이 올라갔다 내려왔다.
   return (
-    <fieldset>
-      <legend className="mb-2 text-b2 text-gray-60">{legend}</legend>
+    <div role="radiogroup" aria-labelledby={legendId}>
+      <p id={legendId} className="mb-2 text-b2 text-gray-60">
+        {legend}
+      </p>
       {options.map((option) => (
         <label
           key={option.id}
@@ -117,6 +122,6 @@ function OptionGroup<T extends string>({
           {selected === option.id ? <CheckIndicator checked /> : null}
         </label>
       ))}
-    </fieldset>
+    </div>
   );
 }

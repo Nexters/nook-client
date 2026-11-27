@@ -26,8 +26,12 @@ export function PlaceSortSheet({ open, onOpenChange, value, onSelect }: PlaceSor
       {/* 탭바(z-60)보다 위 — 딤과 함께 바텀내비를 덮는다(ArchiveFilterSheet 와 같은 층). */}
       <DrawerContent className="z-[70]" overlayClassName="z-[70]">
         <DrawerTitle className="sr-only">정렬</DrawerTitle>
-        <fieldset className="flex flex-col px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-          <legend className="sr-only">정렬</legend>
+        {/* fieldset 이 아니라 div 라디오 그룹이다 — 아카이브 필터 시트와 같은 이유(NOOK-450). */}
+        <div
+          role="radiogroup"
+          aria-label="정렬"
+          className="flex flex-col px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+        >
           {OPTIONS.map((type) => (
             <label
               key={type}
@@ -46,7 +50,7 @@ export function PlaceSortSheet({ open, onOpenChange, value, onSelect }: PlaceSor
               {type === value ? <Icon24CheckOn /> : null}
             </label>
           ))}
-        </fieldset>
+        </div>
       </DrawerContent>
     </Drawer>
   );
