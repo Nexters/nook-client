@@ -24,6 +24,7 @@ import { MyPage } from '@/features/my/MyPage';
 import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
 import { SaveGuidePage } from '@/features/my/SaveGuidePage';
+import { SettingsPage } from '@/features/my/SettingsPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 import { OnboardingEventSyncHost } from '@/features/onboarding/onboardingEvents';
 import { PostDetailPage } from '@/features/post/PostDetailPage';
@@ -128,6 +129,10 @@ export const router = createBrowserRouter([
           {
             path: 'place/:placeId/posts',
             element: <PlacePostsPage />,
+          },
+          {
+            path: 'my/settings',
+            element: <SettingsPage />,
           },
           {
             path: 'my',

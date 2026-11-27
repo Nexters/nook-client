@@ -118,6 +118,7 @@
       selectedReminder = id;
       sessionStorage.setItem('nook.prototype.reminder', id);
       localStorage.removeItem(`nook.local-prototype.v1.reminder.${id}`);
+      localStorage.removeItem('nook.prototype.reminder.hidden-until');
       frame.src = `/archive?reminder=${id}`;
       document.querySelector('#reminder-select').value = id;
       updateReminderLink(id);

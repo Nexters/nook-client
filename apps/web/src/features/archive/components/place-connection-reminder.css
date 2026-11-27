@@ -66,3 +66,29 @@
     transform: none !important;
   }
 }
+
+/* 닫기와 알림 끄기: 카드가 사라지는 동안 목록이 빈자리를 함께 채운다. */
+.reminder-reveal[data-visible="false"] {
+  grid-template-rows: 0fr;
+  pointer-events: none;
+  transition: grid-template-rows 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reminder-reveal[data-visible="false"] .reminder-reveal-clip {
+  animation: none;
+  overflow: hidden;
+  overflow-clip-margin: 0;
+}
+.reminder-reveal[data-visible="false"] .reminder-card {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+  transition:
+    opacity 240ms ease-out,
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .reminder-reveal[data-visible="false"],
+  .reminder-reveal[data-visible="false"] .reminder-card {
+    transition: none;
+    transform: none;
+  }
+}

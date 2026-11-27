@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useBottomMenuVisibility } from '@/app/bottom-menu-visibility';
 import { MainTabPageLayout } from '@/app/layouts/MainTabPageLayout';
 import { SlideScreen, useSlideScreen } from '@/app/slide-screen';
+import settingsIcon from '@/assets/icons/settings-stroke.svg';
 import { useArchives } from '@/features/archive/api/queries';
 import { useAuthSession, useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { useLogout, useMyProfile, useSaveProfile, useWithdraw } from '@/features/my/api/queries';
@@ -219,7 +220,18 @@ export function MyPage() {
     <>
       {/* 회원 정보가 덮고 있는 동안 뒤 목록으로 포커스가 들어가거나 낭독되지 않게 막는다. */}
       <div inert={editingProfile}>
-        <MainTabPageLayout>
+        <MainTabPageLayout
+          headerRight={
+            <button
+              type="button"
+              aria-label="설정"
+              onClick={() => navigate('/my/settings')}
+              className="flex size-6 items-center justify-center rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+            >
+              <img src={settingsIcon} alt="" width={24} height={24} />
+            </button>
+          }
+        >
           {/* 콘텐츠는 문서 흐름 그대로 #root 스크롤에 맡긴다(러버밴드). 하단 여백은
               fixed 탭바(60px)가 마지막 행을 가리지 않게 하는 것. */}
           <main

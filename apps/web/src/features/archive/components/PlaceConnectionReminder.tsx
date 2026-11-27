@@ -12,6 +12,11 @@ import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { useToast } from '@/shared/toast';
 import { BackButton, Button, Header } from '@/shared/ui';
 import { toArchivePost } from '../api';
+import {
+  REMINDER_HIDE_MS,
+  readReminderHiddenUntil,
+  setReminderHiddenUntil,
+} from '../lib/reminderDismissal';
 import { CollectionCard } from './CollectionCard';
 
 export const PLACE_REMINDER_KEY = ['place-connection-reminder'] as const;
@@ -25,9 +30,11 @@ export function PlaceConnectionReminderCard({
   onView,
   disabling = false,
   revealDelay = 900,
+  visible: shown = true,
 }: {
   /** 등장 전 기다리는 시간(ms). 업데이트 안내 미리보기처럼 이미 화면이 떠 있으면 줄인다. */
   revealDelay?: number;
+  visible?: boolean;
   count: number;
   thumbnails: string[];
   onDismiss: () => void;
@@ -51,7 +58,13 @@ export function PlaceConnectionReminderCard({
   }, [revealDelay]);
   if (count < 1) return null;
   return (
-    <div className="reminder-reveal" data-revealed={revealed}>
+    <div
+      className="reminder-reveal"
+      data-revealed={revealed}
+      data-visible={shown}
+      aria-hidden={!shown}
+      inert={!shown}
+    >
       <div className="reminder-reveal-clip">
         <section
           aria-label="장소 미연결 게시물 안내"
@@ -144,7 +157,22 @@ export function PlaceConnectionReminder() {
   const client = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();
-  const [dismissed, setDismissed] = useState(false);
+  const [hiddenUntil, setHiddenUntil] = useState(readReminderHiddenUntil);
+  const dismissed = hiddenUntil > Date.now();
+  useEffect(() => {
+    if (!hiddenUntil) return;
+    const timer = window.setTimeout(() => setHiddenUntil(0), Math.max(0, hiddenUntil - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [hiddenUntil]);
+  const clearDismissal = () => {
+    setReminderHiddenUntil(0);
+    setHiddenUntil(0);
+  };
+  const dismiss = () => {
+    const until = Date.now() + REMINDER_HIDE_MS;
+    setReminderHiddenUntil(until);
+    setHiddenUntil(until);
+  };
   const [open, openList, closeList] = useHistoryBackedFlag('unlinkedPosts');
   const reminder = useQuery({
     queryKey: PLACE_REMINDER_KEY,
@@ -163,7 +191,10 @@ export function PlaceConnectionReminder() {
   });
   const restore = useMutation({
     mutationFn: () => update1({ enabled: true }, { auth: 'required' }),
-    onSuccess: () => client.invalidateQueries({ queryKey: PLACE_REMINDER_KEY }),
+    onSuccess: () => {
+      clearDismissal();
+      return client.invalidateQueries({ queryKey: PLACE_REMINDER_KEY });
+    },
     onError: () =>
       toast.showToast({ variant: 'simple', title: '설정을 복원하지 못했어요. 다시 시도해주세요.' }),
   });
@@ -173,7 +204,7 @@ export function PlaceConnectionReminder() {
       await client.invalidateQueries({ queryKey: PLACE_REMINDER_KEY });
       toast.showToast({
         variant: 'link',
-        title: '설정에서 언제든지 변경할 수 있어요',
+        title: '마이페이지> 설정에서 다시 킬 수 있어요.',
         actionLabel: '취소',
         onAction: () => restore.mutate(),
       });
@@ -186,9 +217,10 @@ export function PlaceConnectionReminder() {
     env.localPrototype && sessionStorage.getItem('nook.prototype.reminder') === 'text';
   return (
     <>
-      {!dismissed && reminder.data?.showBanner ? (
+      {reminder.data && reminder.data.unlinkedPostCount > 0 ? (
         <PlaceConnectionReminderCard
           count={reminder.data.unlinkedPostCount}
+          visible={!dismissed && reminder.data.showBanner}
           thumbnails={
             textOnly
               ? []
@@ -197,7 +229,7 @@ export function PlaceConnectionReminder() {
                   return media ? [media.thumbnailUrl ?? media.url] : [];
                 })
           }
-          onDismiss={() => setDismissed(true)}
+          onDismiss={dismiss}
           onDisable={() => disable.mutate()}
           disabling={disable.isPending}
           onView={openList}

@@ -28,10 +28,15 @@ export function markTabRootNavigation() {
 interface MainTabPageLayoutProps {
   children: ReactNode;
   variant?: 'gray' | 'transparent';
+  headerRight?: ReactNode;
 }
 
 /** map/archive/my 최상위 탭 화면이 공유하는 safe area와 로고 헤더 레이아웃. */
-export function MainTabPageLayout({ children, variant = 'gray' }: MainTabPageLayoutProps) {
+export function MainTabPageLayout({
+  children,
+  variant = 'gray',
+  headerRight,
+}: MainTabPageLayoutProps) {
   const overlay = variant === 'transparent';
   const navigate = useNavigate();
   const { pathname, key } = useLocation();
@@ -114,6 +119,7 @@ export function MainTabPageLayout({ children, variant = 'gray' }: MainTabPageLay
   const header = (
     <Header
       variant={variant}
+      right={headerRight}
       left={
         env.enableDevRoutes ? (
           <button

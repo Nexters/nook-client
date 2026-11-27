@@ -90,7 +90,7 @@ it('offers the existing action toast and restores reminder settings on cancel', 
     </QueryClientProvider>,
   );
   fireEvent.click(await screen.findByRole('button', { name: '다시 보지 않음' }));
-  expect(await screen.findByText('설정에서 언제든지 변경할 수 있어요')).toBeInTheDocument();
+  expect(await screen.findByText('마이페이지> 설정에서 다시 킬 수 있어요.')).toBeInTheDocument();
   await waitFor(() =>
     expect(
       screen.queryByRole('region', { name: '장소 미연결 게시물 안내' }),
