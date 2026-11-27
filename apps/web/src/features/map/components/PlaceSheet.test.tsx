@@ -377,6 +377,13 @@ describe('PlaceSheet 검색 패널 — 상세가 열려도 살아남는다', () 
   /** 검색 패널을 감싸는 오버레이 — 상세가 떠 있는 동안 여기에 `hidden` 이 붙는다. */
   const searchOverlay = () => searchInput().closest('.absolute');
 
+  it('검색 입력에 포커스될 때 패널을 옆으로 밀지 않는다', () => {
+    renderSearchingSheet();
+    expect(searchInput()).toHaveFocus();
+    expect(searchOverlay()).not.toHaveClass('translate-x-full');
+    expect(searchOverlay()).not.toHaveClass('transition-transform');
+  });
+
   it('상세가 열리면 검색 패널을 가리기만 하고 검색어는 그대로 남긴다', () => {
     const { selectPlace } = renderSearchingSheet();
     fireEvent.change(searchInput(), { target: { value: '아이소' } });

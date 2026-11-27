@@ -12,7 +12,7 @@ import {
   PlaceRow,
 } from '@/features/place';
 import { buildNaverMapSearchUrl } from '@/features/place/lib/naverMapLink';
-import { formatBusinessHours, formatBusinessStatus } from '@/features/place/lib/opening-hours';
+import { formatBusinessInfo } from '@/features/place/lib/opening-hours';
 import { usePlaceDeletion } from '@/features/place/lib/usePlaceDeletion';
 import {
   MemoSheet,
@@ -27,6 +27,7 @@ import { useHiddenPostIds } from '@/features/post/lib/pendingPostRemoval';
 import type { PostDetail } from '@/features/post/types';
 import { fetchSharedPostDetail } from '@/features/share/api';
 import { sharedQueryKeys } from '@/features/share/api/queries';
+import { env } from '@/shared/config/env';
 import { Icon16ArrowRight, Icon16Copy } from '@/shared/icons/NookIcons';
 import { type Coordinates, formatDistance } from '@/shared/lib/geolocation';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
@@ -38,6 +39,7 @@ import {
   useUpdatePlaceBookmark,
   useUpdatePlaceMemo,
 } from '../api/queries';
+import { PlaceTags } from './PlaceTags';
 
 /**
  * 지점 정보/저장된 게시물/게시물에 포함된 장소 섹션 사이 구분선(Figma 14:1873).
@@ -338,6 +340,7 @@ export function PlaceDetail({
   place,
   expanded,
   showPhotos = true,
+  variant = 'sheet',
   keepEmptySlots = false,
   shareToken,
   userCoords,
@@ -346,6 +349,8 @@ export function PlaceDetail({
 }: {
   place: PlaceDetailModel;
   expanded: boolean;
+  /** 검색 결과 카드만 컴팩트한 디자인 토큰으로 표시한다. */
+  variant?: 'sheet' | 'floating';
   /**
    * 사진 캐러셀 노출 여부. 최저 스냅(detailCompact)의 시트 높이는 사진 없는 장소에
    * 맞춰 잡은 것이라, 사진이 있는 장소도 그 높이에서는 사진을 접어야 시트 안에 들어간다.
@@ -369,6 +374,7 @@ export function PlaceDetail({
   /** "게시물에 포함된 장소" 행을 눌렀을 때 그 장소로 선택을 옮긴다. */
   onSelectPlace?: (placeId: number) => void;
 }) {
+  const floating = variant === 'floating';
   const readOnly = Boolean(shareToken);
   const { showToast } = useToast();
   // 사진 전체보기는 상세 위에 얹는 오버레이라 뒤로가기 = 닫기다 — 스와이프도 같게
@@ -381,6 +387,20 @@ export function PlaceDetail({
     ? formatDistance(userCoords, { lat: place.lat, lng: place.lng })
     : undefined;
   const mapHref = buildNaverMapSearchUrl(place);
+  const previewHours = env.localPrototype
+    ? new URLSearchParams(window.location.search).get('prototypeHours')
+    : null;
+  const businessInfo = formatBusinessInfo(
+    place.openingHours,
+    place.openNow,
+    previewHours === 'break'
+      ? new Date('2026-11-28T06:00:00Z')
+      : previewHours === 'open'
+        ? new Date('2026-11-28T08:30:00Z')
+        : previewHours === 'before'
+          ? new Date('2026-11-28T00:00:00Z')
+          : undefined,
+  );
   const showCopiedToast = () =>
     showToast({ variant: 'simple', title: '클립보드에 복사되었습니다.' });
 
@@ -394,13 +414,34 @@ export function PlaceDetail({
   }
 
   return (
-    <div className="flex w-full flex-col gap-3">
-      <div className="flex w-full flex-col gap-1">
-        <div className="flex items-center justify-between gap-2">
+    <div
+      className={cn(
+        'flex w-full flex-col',
+        floating ? 'gap-2' : 'gap-3',
+        floating && !showPhotos && 'pb-5',
+      )}
+    >
+      <div className={cn('flex w-full flex-col', floating ? 'gap-0' : 'gap-1')}>
+        <div className={cn('flex items-center justify-between gap-2', floating && 'pb-1')}>
           <div className="flex min-w-0 items-center gap-2">
-            <p className="min-w-0 truncate text-h1 font-semibold text-gray-100">{place.name}</p>
+            <p
+              title={place.name}
+              className={cn(
+                'min-w-0 truncate font-semibold text-gray-100',
+                floating ? 'text-h2' : 'text-h1',
+              )}
+            >
+              {place.name}
+            </p>
             {place.category ? (
-              <p className="shrink-0 text-b2 text-gray-80">{place.category}</p>
+              <p
+                className={cn(
+                  'shrink-0 text-gray-80',
+                  floating ? 'text-b3 font-semibold' : 'text-b2',
+                )}
+              >
+                {place.category}
+              </p>
             ) : null}
           </div>
           <PlaceActions
@@ -412,8 +453,13 @@ export function PlaceDetail({
         </div>
         {/* 꽉 찬 스냅에서는 아래 `PlaceInfo` 가 같은 줄을 보여줘서 여기선 뺀다.
             복사·지도는 전체 확장 없이도 쓸 수 있어야 해서 주소만 말줄임하고 둘은 남긴다(NOOK-408). */}
-        {!expanded && (
-          <div className="flex w-full items-center gap-2 text-b2 text-gray-70">
+        {!expanded && floating && (
+          <div
+            className={cn(
+              'flex w-full items-center gap-2 text-b2 text-gray-70',
+              floating && 'pt-1 pb-2',
+            )}
+          >
             {distance ? (
               <>
                 <span className="shrink-0 font-semibold">{distance}</span>
@@ -434,10 +480,19 @@ export function PlaceDetail({
             </a>
           </div>
         )}
-        {place.tags.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-1.5 py-2">
+        {!floating ? (
+          <PlaceTags key={place.id} tags={place.tags} />
+        ) : place.tags.length > 0 || floating ? (
+          <div
+            className={cn(
+              'flex flex-wrap items-center',
+              // 플로팅 카드는 높이를 고정해야 해 태그가 없어도 줄 자리(24px)는 남기되,
+              // 윗여백(pt-1)은 빼서 빈 띠가 덜 도드라지게 한다.
+              floating ? cn('min-h-6 gap-2', place.tags.length > 0 && 'pt-1') : 'gap-1.5 py-2',
+            )}
+          >
             {place.tags.map((tag) => (
-              <Badge key={tag} variant="label">
+              <Badge key={tag} variant="label" className={floating ? 'h-5' : undefined}>
                 {tag}
               </Badge>
             ))}
@@ -453,25 +508,27 @@ export function PlaceDetail({
       {showPhotos ? (
         <PlacePhotos
           photos={place.photos}
+          variant={floating ? 'floating' : 'default'}
           keepFrameWhenEmpty={keepEmptySlots}
           onPhotoClick={place.photos.length > 0 ? openPhotos : undefined}
         />
       ) : null}
 
+      {(expanded || !floating) && (
+        <PlaceInfo
+          address={place.address}
+          distance={distance}
+          onAddressCopied={showCopiedToast}
+          mapHref={mapHref}
+          businessStatus={businessInfo.status}
+          businessHours={businessInfo.hours}
+          memo={place.memo}
+          onMemoEdit={readOnly ? undefined : () => setMemoOpen(true)}
+          className={expanded ? 'mb-4' : undefined}
+        />
+      )}
       {expanded && (
         <>
-          <PlaceInfo
-            address={place.address}
-            distance={distance}
-            onAddressCopied={showCopiedToast}
-            mapHref={mapHref}
-            businessStatus={formatBusinessStatus(place.openNow)}
-            businessHours={formatBusinessHours(place.openingHours)}
-            memo={place.memo}
-            onMemoEdit={readOnly ? undefined : () => setMemoOpen(true)}
-            className="mb-4"
-          />
-
           <SavedPostsSection place={place} shareToken={shareToken} onClose={onClose} />
           <RelatedPlacesSection
             place={place}

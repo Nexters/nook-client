@@ -1,0 +1,82 @@
+/* 시트가 올라온 뒤 제목 → 미리보기 → 설명 순으로 한 번만 떠오른다. 페이지를 넘길 땐 다시 돌지 않는다. */
+.whats-new-enter {
+  animation: whats-new-rise 640ms cubic-bezier(0.22, 1, 0.36, 1) 180ms both;
+}
+.whats-new-enter-2 {
+  animation-delay: 260ms;
+}
+.whats-new-enter-3 {
+  animation-delay: 340ms;
+}
+@keyframes whats-new-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .whats-new-enter {
+    animation: none;
+  }
+}
+
+/* 보기 전환 미리보기 — 카드 자리·사진 크기·글자 자리가 함께 옮겨 가며 보기 사이를 모핑한다. */
+.view-preview-move,
+.view-preview-size {
+  transition-property: transform, width, height;
+  transition-duration: 720ms;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .view-preview-move,
+  .view-preview-size {
+    transition: none;
+  }
+}
+
+/* 게시물 공유 미리보기 — 탭 → 메뉴 → 탭 → 공유 시트. */
+.share-preview-tap {
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 360ms ease-out;
+}
+.share-preview-tap.is-on {
+  opacity: 1;
+  transform: scale(1);
+}
+.share-preview-menu {
+  opacity: 0;
+  transform: scale(0.92);
+  transform-origin: top right;
+  transition:
+    transform 260ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 200ms ease-out;
+}
+.share-preview-menu.is-on {
+  opacity: 1;
+  transform: none;
+}
+.share-preview-dim {
+  opacity: 0;
+  transition: opacity 320ms ease-out;
+}
+.share-preview-dim.is-on {
+  opacity: 1;
+}
+.share-preview-sheet {
+  transform: translateY(100%);
+  transition: transform 520ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.share-preview-sheet.is-on {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .share-preview-tap,
+  .share-preview-menu,
+  .share-preview-dim,
+  .share-preview-sheet {
+    transition: none;
+  }
+}

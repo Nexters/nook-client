@@ -4,7 +4,30 @@ import { resolve } from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
+
+/**
+ * dev 전용 — 실기기 Safari/WebView 에서 난 에러를 dev 서버 터미널로 받아 찍는다.
+ * 폰의 콘솔을 Mac 에서 열지 않아도 원인을 볼 수 있다. 클라이언트는 HMR 채널로 보낸다
+ * (`src/app/route-error.tsx` 의 reportClientError).
+ */
+function clientErrorLogger(): Plugin {
+  return {
+    name: 'nook-client-error-logger',
+    apply: 'serve',
+    configureServer(server) {
+      server.ws.on(
+        'nook:client-error',
+        (data: { kind: string; message: string; stack?: string; url: string }) => {
+          server.config.logger.error(
+            `\n[client-error:${data.kind}] ${data.url}\n${data.message}\n${data.stack ?? ''}`,
+            { timestamp: true },
+          );
+        },
+      );
+    },
+  };
+}
 
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -27,7 +50,7 @@ export default defineConfig(({ command, mode }) => {
     define: {
       __NOOK_WEB_BUILD__: JSON.stringify(`${buildDate}-${commit}`),
     },
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), clientErrorLogger()],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),

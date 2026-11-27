@@ -43,6 +43,9 @@ const anonymousSession: SessionState = {
 };
 
 function restoreDevWebSession(): SessionState {
+  if (env.localPrototype && !nativeBridge.isNative) {
+    return { status: 'authenticated', accessToken: 'local-prototype', revision: 1 };
+  }
   if (nativeBridge.isNative) {
     return { ...anonymousSession, status: 'bootstrapping' };
   }

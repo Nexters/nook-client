@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlaceOpeningHoursResponse } from '@/shared/api';
-import { formatBusinessHours, formatBusinessStatus } from './opening-hours';
+import { formatBusinessHours, formatBusinessInfo, formatBusinessStatus } from './opening-hours';
 
 /** 2026-08-13 은 목요일 → Google 규약 day 4. */
 const THURSDAY = new Date('2026-08-13T05:00:00Z');
@@ -133,5 +133,54 @@ describe('formatBusinessHours', () => {
 
   it('영업시간이 없으면 undefined 다', () => {
     expect(formatBusinessHours(undefined, THURSDAY)).toBeUndefined();
+  });
+});
+
+describe('브레이크타임 표시', () => {
+  const hours: PlaceOpeningHoursResponse = {
+    timeZone: 'Asia/Seoul',
+    weekdayDescriptions: [],
+    periods: [
+      { open: { day: 6, hour: 10, minute: 0 }, close: { day: 6, hour: 14, minute: 0 } },
+      { open: { day: 6, hour: 17, minute: 0 }, close: { day: 6, hour: 22, minute: 0 } },
+    ],
+  };
+  it('당일 두 구간 사이에만 재개 시간을 표시한다', () => {
+    expect(formatBusinessInfo(hours, false, new Date('2026-11-28T06:00:00Z'))).toEqual({
+      status: '브레이크타임',
+      hours: '17:00 영업 재개',
+    });
+  });
+  it('첫 영업 전과 마지막 영업 후에는 브레이크타임으로 표시하지 않는다', () => {
+    for (const time of ['2026-11-28T00:00:00Z', '2026-11-28T14:00:00Z']) {
+      expect(formatBusinessInfo(hours, false, new Date(time)).status).toBe('영업전');
+    }
+  });
+  it('영업 중에는 현재 구간을 표시한다', () => {
+    expect(formatBusinessInfo(hours, true, new Date('2026-11-28T08:30:00Z'))).toEqual({
+      status: '영업중',
+      hours: '17:00 - 22:00',
+    });
+  });
+  it('정보가 없으면 영업 상태를 만들어내지 않는다', () => {
+    expect(formatBusinessInfo(undefined, undefined)).toEqual({
+      status: undefined,
+      hours: undefined,
+    });
+  });
+});
+
+it('마감 후에는 날짜 없이 다음 영업 시작 시간을 안내한다', () => {
+  const hours: PlaceOpeningHoursResponse = {
+    timeZone: 'Asia/Seoul',
+    weekdayDescriptions: [],
+    periods: [
+      { open: { day: 6, hour: 10, minute: 0 }, close: { day: 6, hour: 20, minute: 0 } },
+      { open: { day: 0, hour: 11, minute: 0 }, close: { day: 0, hour: 20, minute: 0 } },
+    ],
+  };
+  expect(formatBusinessInfo(hours, false, new Date('2026-11-28T12:00:00Z'))).toEqual({
+    status: '영업전',
+    hours: '11:00 시작',
   });
 });

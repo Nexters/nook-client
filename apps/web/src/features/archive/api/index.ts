@@ -264,3 +264,37 @@ export async function fetchArchivePlaces(archiveId: number, page = 0): Promise<A
     totalElements: response?.totalElements ?? 0,
   };
 }
+
+/** The archive API has no sort parameter: collect all pages before reversing, never just reverse the loaded page. */
+export async function fetchArchivePostsInOrder(
+  id: number,
+  page: number,
+  oldest: boolean,
+): Promise<ArchivePostPage> {
+  const first = await fetchArchivePosts(id, page);
+  if (!oldest) return first;
+  const posts = [...first.posts];
+  let next = first.nextPage;
+  while (next !== undefined) {
+    const result = await fetchArchivePosts(id, next);
+    posts.push(...result.posts);
+    next = result.nextPage;
+  }
+  return { ...first, posts: posts.reverse(), nextPage: undefined };
+}
+export async function fetchArchivePlacesInOrder(
+  id: number,
+  page: number,
+  oldest: boolean,
+): Promise<ArchivePlacePage> {
+  const first = await fetchArchivePlaces(id, page);
+  if (!oldest) return first;
+  const places = [...first.places];
+  let next = first.nextPage;
+  while (next !== undefined) {
+    const result = await fetchArchivePlaces(id, next);
+    places.push(...result.places);
+    next = result.nextPage;
+  }
+  return { ...first, places: places.reverse(), nextPage: undefined };
+}

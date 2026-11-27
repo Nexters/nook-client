@@ -50,7 +50,11 @@ function toWorldPixel(lat: number, lng: number, zoom: number): { x: number; y: n
  * 지도 인스턴스가 아니라 줌 숫자만 받는 순수 함수다. 멤버가 1개인 덩어리도 그대로 돌려준다
  * — 그건 버블이 아니라 개별 핀으로 그리는 건 호출부(`MapView`)가 정한다(NOOK-390).
  */
-export function clusterPins(pins: MapPin[], zoom: number): PinCluster[] {
+export function clusterPins(
+  pins: MapPin[],
+  zoom: number,
+  markerFootprint?: { width: number; height: number },
+): PinCluster[] {
   // 씨앗 순서를 좌표로 고정한다 — 입력 배열 순서가 흔들려도 같은 그룹이 나오도록.
   const points = pins
     .map((pin) => ({ pin, ...toWorldPixel(pin.lat, pin.lng, zoom) }))
@@ -66,7 +70,12 @@ export function clusterPins(pins: MapPin[], zoom: number): PinCluster[] {
     const members = [seed.pin];
     for (const other of points) {
       if (merged.has(other.pin.id)) continue;
-      if (Math.hypot(other.x - seed.x, other.y - seed.y) > CLUSTER_MERGE_RADIUS_PX) continue;
+      const dx = Math.abs(other.x - seed.x);
+      const dy = Math.abs(other.y - seed.y);
+      const overlaps = markerFootprint
+        ? dx < markerFootprint.width && dy < markerFootprint.height
+        : Math.hypot(dx, dy) <= CLUSTER_MERGE_RADIUS_PX;
+      if (!overlaps) continue;
       merged.add(other.pin.id);
       members.push(other.pin);
     }

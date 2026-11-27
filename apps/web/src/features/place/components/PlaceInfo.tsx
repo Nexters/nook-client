@@ -97,7 +97,18 @@ function PlaceInfo({
           </RowIcon>
           <div className="flex min-w-0 items-center gap-1">
             {businessStatus ? (
-              <span className="shrink-0 text-b2 font-medium text-gray-80">{businessStatus}</span>
+              <span
+                className={cn(
+                  'shrink-0 text-b2',
+                  businessStatus === '브레이크타임'
+                    ? 'font-medium text-error'
+                    : businessStatus === '영업중' || businessStatus === '영업전'
+                      ? 'font-semibold text-gray-100'
+                      : 'font-medium text-gray-80',
+                )}
+              >
+                {businessStatus}
+              </span>
             ) : null}
             {businessStatus && businessHours ? (
               <span className="size-0.5 shrink-0 rounded-full bg-gray-80" aria-hidden="true" />

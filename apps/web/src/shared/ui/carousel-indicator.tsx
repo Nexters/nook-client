@@ -4,6 +4,8 @@ import { cn } from '@/shared/lib/utils';
 export interface CarouselIndicatorProps
   extends Omit<React.HTMLAttributes<HTMLElement>, 'onChange'> {
   count: number;
+  /** 사진 최대 6장인 고정 프레임에서 모든 점을 같은 크기로 표시한다. */
+  fixedSize?: 4;
   activeIndex: number;
   onIndexChange?: (index: number) => void;
   getItemLabel?: (index: number) => string;
@@ -98,6 +100,7 @@ function visibleDots(count: number, activeIndex: number, anchor: SlotAnchor) {
 function CarouselIndicator({
   count,
   activeIndex,
+  fixedSize,
   onIndexChange,
   getItemLabel = (index) => `${index + 1}번째 페이지 보기`,
   className,
@@ -120,7 +123,9 @@ function CarouselIndicator({
 
   if (count <= 1) return null;
 
-  const dots = visibleDots(count, activeIndex, current);
+  const dots = fixedSize
+    ? Array.from({ length: count }, (_, index) => ({ index, size: fixedSize }))
+    : visibleDots(count, activeIndex, current);
   const dotClassName = (index: number, size: DotSize) =>
     cn(
       'shrink-0 transition-all',

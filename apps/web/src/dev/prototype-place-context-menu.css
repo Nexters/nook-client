@@ -1,0 +1,56 @@
+.prototype-context-trigger {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+.prototype-context-dim {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  pointer-events: none;
+  background: rgb(40 44 52 / 12%);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.prototype-context-menu {
+  z-index: 80;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 10px 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--color-gray-0);
+  box-shadow: 0 4px 20px rgb(0 0 0 / 10%);
+  transform-origin: var(--radix-context-menu-content-transform-origin);
+  animation: prototype-menu-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.prototype-context-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px 9px 16px;
+  white-space: nowrap;
+  outline: none;
+  font-size: var(--text-b2);
+  font-weight: 600;
+  line-height: var(--text-b2--line-height);
+  letter-spacing: var(--text-b2--letter-spacing);
+  cursor: pointer;
+}
+.prototype-context-action[data-highlighted] {
+  background: #e4e6e9;
+}
+@keyframes prototype-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prototype-context-menu {
+    animation: none;
+  }
+  .prototype-context-dim {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}

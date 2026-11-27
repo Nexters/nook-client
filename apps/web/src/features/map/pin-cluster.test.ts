@@ -34,6 +34,19 @@ describe('clusterPins', () => {
     expect(cluster?.lat).toBeCloseTo(37.5, 6);
   });
 
+  it('사진 핀의 화면 영역이 겹치는 가까운 장소만 묶는다', () => {
+    const zoom = PIN_DETAIL_MIN_ZOOM;
+    const pins = [
+      pin(1, 37.5, 127),
+      pin(2, 37.5, lngOffsetByPixels(127, 80, zoom)),
+      pin(3, 37.5, lngOffsetByPixels(127, 200, zoom)),
+    ];
+
+    const clusters = clusterPins(pins, zoom, { width: 86, height: 76 });
+
+    expect(clusters.map((cluster) => cluster.pins.map((item) => item.id))).toEqual([[1, 2], [3]]);
+  });
+
   it('격자와 달리 경계 위치에 상관없이 붙어 있으면 합쳐진다', () => {
     const zoom = 10;
     // 격자 방식이라면 칸 경계가 사이를 지날 때 갈라졌을 아주 가까운 두 점.

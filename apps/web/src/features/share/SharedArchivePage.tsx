@@ -7,7 +7,7 @@ import { ArchiveEmpty } from '@/features/archive/components/ArchiveEmpty';
 import { CollectionCard } from '@/features/archive/components/CollectionCard';
 import { useLoginGate } from '@/features/auth/session/useLoginGate';
 import { PlaceCard } from '@/features/place';
-import { Icon16ArrowUpTray, Icon16Check, Icon16Plus } from '@/shared/icons/NookIcons';
+import { Icon16Check, Icon16Plus, Icon16Share } from '@/shared/icons/NookIcons';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
 import { useToast } from '@/shared/toast';
@@ -193,7 +193,7 @@ export function SharedArchivePage() {
             className={ACTION_CHIP_DEFAULT}
           >
             공유
-            <Icon16ArrowUpTray />
+            <Icon16Share />
           </button>
         </div>
 

@@ -3,6 +3,7 @@ import { ProtectedAppLayout } from '@/app/layouts/ProtectedAppLayout';
 import { NativeBackHost } from '@/app/native-back';
 import { NativePushHost } from '@/app/native-push';
 import { PushTokenSyncHost } from '@/app/push-token-sync';
+import { RouteErrorFallback } from '@/app/route-error';
 import { RootScrollReset } from '@/app/scroll-reset';
 import { AppUpdateGateHost } from '@/features/app-version/AppUpdateGateHost';
 import { ArchiveDetailPage } from '@/features/archive/ArchiveDetailPage';
@@ -23,6 +24,7 @@ import { MyPage } from '@/features/my/MyPage';
 import { PrivacyPolicyPage } from '@/features/my/policy/PrivacyPolicyPage';
 import { TermsPage } from '@/features/my/policy/TermsPage';
 import { SaveGuidePage } from '@/features/my/SaveGuidePage';
+import { SettingsPage } from '@/features/my/SettingsPage';
 import { OnboardingPage } from '@/features/onboarding/OnboardingPage';
 import { OnboardingEventSyncHost } from '@/features/onboarding/onboardingEvents';
 import { PostDetailPage } from '@/features/post/PostDetailPage';
@@ -59,6 +61,7 @@ const devRoutes = env.enableDevRoutes
 export const router = createBrowserRouter([
   {
     path: '/',
+    errorElement: <RouteErrorFallback />,
     element: (
       <>
         <RootScrollReset />
@@ -92,6 +95,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        errorElement: <RouteErrorFallback />,
         element: (
           <AwaitSession>
             <ProtectedAppLayout />
@@ -125,6 +129,10 @@ export const router = createBrowserRouter([
           {
             path: 'place/:placeId/posts',
             element: <PlacePostsPage />,
+          },
+          {
+            path: 'my/settings',
+            element: <SettingsPage />,
           },
           {
             path: 'my',

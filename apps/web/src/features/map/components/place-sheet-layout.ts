@@ -123,3 +123,16 @@ export function getSnapTransitionDurationSeconds(
     Math.max(SNAP_DURATION_MIN_S, distance * SNAP_SECONDS_PER_VIEWPORT),
   );
 }
+
+/** Gesture release uses the remaining distance, not the original snap-to-snap distance. */
+export function getSheetReleaseDuration(
+  remainingPx: number,
+  velocityPxPerMs: number,
+  reduced = false,
+) {
+  if (reduced) return 0.12;
+  const distance = Math.abs(remainingPx);
+  // Vaul's steep drawer curve settles gently; short corrections should never take 0.6–0.95s.
+  const duration = 0.24 + distance / (1800 + Math.abs(velocityPxPerMs) * 900);
+  return Math.min(0.5, Math.max(0.24, duration));
+}

@@ -3,6 +3,7 @@ import { FULL_SNAP_POINT, MID_SNAP_POINT, PEEK_SNAP_POINT } from '@/features/map
 import { BOTTOM_MENU_HEIGHT } from '@/shared/ui/bottom-menu';
 import {
   getPlaceSheetLayoutClassNames,
+  getSheetReleaseDuration,
   getSnapTransitionDurationSeconds,
   PLACE_SHEET_HEADER_HEIGHT,
 } from './place-sheet-layout';
@@ -112,5 +113,14 @@ describe('getSnapTransitionDurationSeconds', () => {
   it('비율이 아닌 스냅(px 문자열·null)은 계산하지 않고 null 을 준다 — 호출부가 기본값으로 돌아간다', () => {
     expect(getSnapTransitionDurationSeconds('320px', FULL_SNAP_POINT)).toBeNull();
     expect(getSnapTransitionDurationSeconds(null, FULL_SNAP_POINT)).toBeNull();
+  });
+});
+
+describe('gesture release timing', () => {
+  it('settles short corrections sooner and responds to release velocity', () => {
+    expect(getSheetReleaseDuration(20, 0)).toBeLessThan(getSheetReleaseDuration(400, 0));
+    expect(getSheetReleaseDuration(400, 2)).toBeLessThan(getSheetReleaseDuration(400, 0));
+    expect(getSheetReleaseDuration(1000, 0)).toBeLessThanOrEqual(0.5);
+    expect(getSheetReleaseDuration(400, 2, true)).toBe(0.12);
   });
 });

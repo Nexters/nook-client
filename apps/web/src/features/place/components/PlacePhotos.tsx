@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import emptyPhoto from '@/assets/images/98_Group.svg';
+import emptyPhoto from '@/assets/images/place-photo-empty.svg';
 import { cn } from '@/shared/lib/utils';
 import { Badge, Carousel } from '@/shared/ui';
 import { CarouselIndicator } from '@/shared/ui/carousel-indicator';
@@ -21,6 +21,8 @@ import { CarouselIndicator } from '@/shared/ui/carousel-indicator';
  */
 export interface PlacePhotosProps {
   photos: string[];
+  /** 검색 결과 플로팅 카드는 319:198의 사진 비율을 사용한다. */
+  variant?: 'default' | 'floating';
   /** 넘기면 사진이 버튼이 된다 — 전체보기(사진 그리드)로 열 때 쓴다. */
   onPhotoClick?: () => void;
   /**
@@ -33,10 +35,23 @@ export interface PlacePhotosProps {
 
 const FRAME_CLASS = 'w-full overflow-hidden rounded-sm border border-gray-20 bg-gray-10';
 
-function PlacePhotos({ photos, onPhotoClick, keepFrameWhenEmpty, className }: PlacePhotosProps) {
+function PlacePhotos({
+  photos,
+  onPhotoClick,
+  className,
+  variant = 'default',
+  keepFrameWhenEmpty,
+}: PlacePhotosProps) {
   const [active, setActive] = useState(0);
   // 플로팅 카드(자리 고정 모드)는 시트보다 좁아(319 vs 343) 같은 비율로 198px 이다(시안 405:18473).
-  const frameClass = cn(FRAME_CLASS, keepFrameWhenEmpty ? 'h-[198px]' : 'h-[212px]');
+  const frameClass = cn(
+    FRAME_CLASS,
+    keepFrameWhenEmpty
+      ? 'h-[198px]'
+      : variant === 'floating'
+        ? 'aspect-[319/198] h-auto'
+        : 'h-[212px]',
+  );
 
   // 여러 장일 때만 붙는 점 인디케이터 몫 — 높이를 고정할 땐 한 장·없음에서도 비워 둔다.
   const indicatorSpace = keepFrameWhenEmpty ? (
@@ -57,7 +72,15 @@ function PlacePhotos({ photos, onPhotoClick, keepFrameWhenEmpty, className }: Pl
   // 사진이 하나도 없으면 아무것도 그리지 않는다 — 빈 프레임으로 자리를 잡아두면 시트에
   // 회색 상자만 덩그러니 남는다(QA). 사라진 만큼 시트가 낮아져야 콘텐츠가 꽉 차는데,
   // 그 높이(스냅)는 시트가 정한다 — `DETAIL_SNAP_POINTS_WITHOUT_PHOTOS`.
-  if (photos.length === 0) return null;
+  if (photos.length === 0)
+    return variant === 'floating' ? (
+      <div data-slot="place-photos" className={cn('w-full', className)}>
+        <div className={cn(FRAME_CLASS, 'flex aspect-[319/198] items-center justify-center')}>
+          <img src={emptyPhoto} alt="" />
+        </div>
+        <div aria-hidden="true" className="h-7" />
+      </div>
+    ) : null;
 
   const slides = photos.map((src, index) => {
     const Comp = onPhotoClick ? 'button' : 'div';
@@ -82,7 +105,15 @@ function PlacePhotos({ photos, onPhotoClick, keepFrameWhenEmpty, className }: Pl
 
   if (photos.length === 1) {
     return (
-      <div data-slot="place-photos" className={cn('w-full', className)}>
+      <div
+        data-slot="place-photos"
+        className={cn(
+          'w-full',
+          variant === 'floating' && 'touch-none',
+          variant === 'floating' && !keepFrameWhenEmpty && 'pb-7',
+          className,
+        )}
+      >
         {slides[0]}
         {indicatorSpace}
       </div>
@@ -93,10 +124,17 @@ function PlacePhotos({ photos, onPhotoClick, keepFrameWhenEmpty, className }: Pl
   // 사진 태그는 스크롤 영역 밖(이 relative 컨테이너)에 얹혀 제자리에 머문다.
   return (
     <div data-slot="place-photos" className={cn('relative w-full', className)}>
-      <Carousel padded={false} onActiveIndexChange={setActive}>
+      <Carousel
+        padded={false}
+        onActiveIndexChange={setActive}
+        indicatorSize={variant === 'floating' ? 4 : undefined}
+      >
         {slides}
       </Carousel>
-      <Badge variant="photo" className="absolute top-2.5 right-2.5">
+      <Badge
+        variant="photo"
+        className={cn('absolute', variant === 'floating' ? 'top-2 right-2' : 'top-2.5 right-2.5')}
+      >
         {active + 1}/{photos.length}
       </Badge>
     </div>

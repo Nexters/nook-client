@@ -98,3 +98,45 @@ export function formatBusinessHours(
   // allDay 가 아니면 close 가 있다.
   return `${formatTime(open.hour, open.minute)} - ${formatTime(close?.hour ?? 0, close?.minute ?? 0)}`;
 }
+
+/** 당일 영업 구간 사이의 휴식이 확실할 때만 브레이크타임으로 안내한다. */
+export function formatBusinessInfo(
+  openingHours: PlaceOpeningHoursResponse | undefined,
+  openNow: boolean | undefined,
+  now: Date = new Date(),
+): { status?: string; hours?: string } {
+  if (openingHours && openNow === false) {
+    const minute = getNowWeekMinute(openingHours.timeZone, now);
+    const day = Math.floor(minute / DAY_MINUTES);
+    const today = openingHours.periods.filter((period) => period.open.day === day);
+    const next = today
+      .filter((period) => toWeekMinute(period.open) > minute)
+      .sort((a, b) => toWeekMinute(a.open) - toWeekMinute(b.open))[0];
+    const ended = today.some(
+      (period) =>
+        period.close &&
+        toWeekMinute(period.close) > toWeekMinute(period.open) &&
+        toWeekMinute(period.close) <= minute,
+    );
+    if (ended && next) {
+      return {
+        status: '브레이크타임',
+        hours: `${formatTime(next.open.hour, next.open.minute)} 영업 재개`,
+      };
+    }
+  }
+  if (openNow === false) {
+    if (!openingHours) return { status: '영업전' };
+    const minute = getNowWeekMinute(openingHours.timeZone, now);
+    const next = openingHours.periods
+      .map((period) => {
+        let start = toWeekMinute(period.open);
+        if (start <= minute) start += WEEK_MINUTES;
+        return { start, open: period.open };
+      })
+      .sort((a, b) => a.start - b.start)[0];
+    if (!next) return { status: '영업전' };
+    return { status: '영업전', hours: `${formatTime(next.open.hour, next.open.minute)} 시작` };
+  }
+  return { status: formatBusinessStatus(openNow), hours: formatBusinessHours(openingHours, now) };
+}

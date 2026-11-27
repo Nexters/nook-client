@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { PrototypePlaceContextMenu } from '@/dev/PrototypePlaceContextMenu';
 import { Icon14Processing } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { MediaBadge, Thumbnail } from '@/shared/ui';
@@ -30,6 +31,8 @@ export interface PlaceCardProps {
    * 사진 아이콘으로 고정한다 — 구분 필드가 생기면 타입을 받게 바꾼다.
    */
   mediaBadge?: boolean;
+  contextMenu?: boolean;
+  shared?: boolean;
   className?: string;
   /**
    * 카드 모양.
@@ -51,6 +54,8 @@ function PlaceCard({
   place,
   onClick,
   mediaBadge = false,
+  contextMenu = false,
+  shared = false,
   className,
   variant = 'default',
 }: PlaceCardProps) {
@@ -61,7 +66,7 @@ function PlaceCard({
   const isFailed = place.thumbnailState === 'failed';
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
 
-  return (
+  const card = (
     <Comp
       {...(onClick
         ? {
@@ -145,6 +150,13 @@ function PlaceCard({
         )}
       </div>
     </Comp>
+  );
+  return contextMenu ? (
+    <PrototypePlaceContextMenu place={place} shared={shared}>
+      {card}
+    </PrototypePlaceContextMenu>
+  ) : (
+    card
   );
 }
 
