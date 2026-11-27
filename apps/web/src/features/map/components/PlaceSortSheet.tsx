@@ -1,4 +1,5 @@
 import { Icon24CheckOn } from '@/shared/icons/NookIcons';
+import { cn } from '@/shared/lib/utils';
 import { Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
 import type { PlaceSort } from '../types';
 
@@ -26,7 +27,15 @@ export function PlaceSortSheet({ open, onOpenChange, value, onSelect }: PlaceSor
       {/* 탭바(z-60)보다 위 — 딤과 함께 바텀내비를 덮는다(ArchiveFilterSheet 와 같은 층). */}
       <DrawerContent className="z-[70]" overlayClassName="z-[70]">
         <DrawerTitle className="sr-only">정렬</DrawerTitle>
-        <fieldset className="flex flex-col px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        {/* 옵션 영역은 3줄(40×3) 높이로 고정하고 넘치면 스크롤한다 — 내용 높이를 따라가게 두면 일부
+            iOS 에서 열리는 동안 시트 위쪽 끝이 출렁인다(NOOK-450, 아카이브 필터 시트와 같은 처리).
+            옵션 수가 바뀌면 이 높이도 같이 바꾼다. */}
+        <fieldset
+          className={cn(
+            'mx-4 mt-3 mb-[max(1.5rem,env(safe-area-inset-bottom))] flex h-[7.5rem] flex-col overflow-y-auto',
+            '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+          )}
+        >
           <legend className="sr-only">정렬</legend>
           {OPTIONS.map((type) => (
             <label
