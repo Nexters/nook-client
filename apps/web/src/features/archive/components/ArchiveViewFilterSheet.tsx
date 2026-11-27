@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Icon32Delete } from '@/shared/icons/NookIcons';
-import { cn } from '@/shared/lib/utils';
 import { Button, CheckIndicator, Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
 import type { ArchiveSort, ArchiveView, ArchiveViewPreferences } from '../lib/viewPreferences';
 
@@ -50,16 +49,7 @@ export function ArchiveViewFilterSheet({
             <Icon32Delete />
           </button>
         </div>
-        {/* 옵션 영역은 시안 높이로 고정하고 넘치면 스크롤한다(NOOK-450) — 내용 높이를 따라가게 두면
-            일부 iOS 에서 열리는 동안 옵션 묶음이 잠깐 더 크게 잡혀 시트 위쪽 끝이 올라갔다 내려왔다.
-            = 정렬 묶음(제목 29 + 40×2) + gap 16 + 보기 묶음(29 + 40×3) + pb 12 = 286px.
-            옵션 수가 바뀌면 이 높이도 같이 바꾼다. */}
-        <div
-          className={cn(
-            'flex h-[17.875rem] flex-col gap-4 overflow-y-auto px-4 pb-3',
-            '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
-          )}
-        >
+        <div className="flex flex-col gap-4 px-4 pb-3">
           <OptionGroup
             legend="정렬 옵션"
             name="archive-sort"
@@ -108,9 +98,14 @@ function OptionGroup<T extends string>({
   selected: T;
   onSelect: (id: T) => void;
 }) {
+  const legendId = useId();
+  // fieldset/legend 대신 div 라디오 그룹이다(NOOK-450) — 일부 iOS 에서 시트가 올라오는 동안
+  // fieldset 묶음이 잠깐 크게 그려져 시트 위쪽 끝이 올라갔다 내려왔다.
   return (
-    <fieldset>
-      <legend className="mb-2 text-b2 text-gray-60">{legend}</legend>
+    <div role="radiogroup" aria-labelledby={legendId}>
+      <p id={legendId} className="mb-2 text-b2 text-gray-60">
+        {legend}
+      </p>
       {options.map((option) => (
         <label
           key={option.id}
@@ -127,6 +122,6 @@ function OptionGroup<T extends string>({
           {selected === option.id ? <CheckIndicator checked /> : null}
         </label>
       ))}
-    </fieldset>
+    </div>
   );
 }
