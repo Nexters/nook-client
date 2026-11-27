@@ -13,7 +13,7 @@ import { PlaceCard } from '@/features/place';
 import { POST_FROM_LIST_STATE } from '@/features/post/postEntry';
 import { archiveSharePreview, ShareSheet } from '@/features/share/components/ShareSheet';
 import { buildShareUrl } from '@/features/share/lib/shareUrl';
-import { Icon16ArrowUpTray } from '@/shared/icons/NookIcons';
+import { Icon16ArrowUpTray, Icon16Check } from '@/shared/icons/NookIcons';
 import { useHistoryBackedFlag } from '@/shared/lib/useHistoryBackedFlag';
 import { useInfiniteScrollSentinel } from '@/shared/lib/useInfiniteScrollSentinel';
 import { cn } from '@/shared/lib/utils';
@@ -58,6 +58,12 @@ const ARCHIVE_ACTION_CHIP = cn(
   'inline-flex h-10 shrink-0 items-center justify-center gap-1 rounded-lg bg-gray-10 px-4',
   'text-b3 font-medium text-gray-100',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100',
+);
+
+/** Figma `butto/40_save` Selected — 저장(구독)한 공유 아카이브의 상태 칩. SharedArchivePage 와 같은 스타일. */
+const ARCHIVE_SAVED_CHIP = cn(
+  'inline-flex h-10 shrink-0 items-center justify-center gap-1 rounded-lg bg-gray-80 px-4',
+  'text-b3 font-semibold text-gray-0',
 );
 
 /** 선택 모드 CTA 바 높이(p-4 16px + Button_52 + 16px) — 콘텐츠 하단 패딩이 비켜줄 몫. */
@@ -292,6 +298,27 @@ export function ArchiveDetailPage() {
             isEmpty && 'border-gray-20 border-b',
           )}
         >
+          {isShared && !isEmpty ? (
+            // 공유받은 아카이브는 이미 저장(구독)한 상태라 저장 상태를 보여주고, 받은 링크를
+            // 다시 공유할 수 있게 한다(NOOK-448).
+            <>
+              <span className={ARCHIVE_SAVED_CHIP}>
+                아카이브 저장됨
+                <Icon16Check />
+              </span>
+              {/* 내 것이 아니라 링크를 새로 발급할 수 없다 — 받은 공유 토큰을 그대로 다시 공유한다. */}
+              {archive.shareToken ? (
+                <button
+                  type="button"
+                  onClick={() => setShareUrl(buildShareUrl(archive.shareToken as string))}
+                  className={ARCHIVE_ACTION_CHIP}
+                >
+                  공유
+                  <Icon16ArrowUpTray />
+                </button>
+              ) : null}
+            </>
+          ) : null}
           {!isShared && !isEmpty ? (
             <>
               <button

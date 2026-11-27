@@ -103,7 +103,9 @@ function PlaceCard({
           className={cn('h-auto w-full', THUMBNAIL_ASPECT[variant])}
         />
         {/* 게시물 카드(CollectionCard)처럼 사진이 아직 없는 처리 중·실패 카드엔 붙이지 않는다. */}
-        {mediaBadge && !isProcessing && !isFailed ? <MediaBadge type="IMAGE" /> : null}
+        {mediaBadge && !isProcessing && !isFailed ? (
+          <MediaBadge type="IMAGE" size={variant === 'list' ? 'sm' : 'md'} />
+        ) : null}
       </div>
       <div
         className={cn('flex w-full min-w-0 flex-col', variant === 'map' ? 'pb-1.5' : 'gap-0.5 p-1')}
