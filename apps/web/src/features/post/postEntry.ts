@@ -10,6 +10,16 @@ export function isPostFromList(state: unknown): boolean {
 }
 
 /**
+ * 앞에 돌아갈 히스토리 없이 게시물 상세에 들어왔다는 history state — 바깥에서 곧장 연 게시물
+ * 공유 링크에서 저장하고 넘어온 경우(NOOK-449). 뒤로가기는 공유 화면과 같이 홈 지도로 보낸다.
+ */
+export const POST_NO_HISTORY_STATE = { postNoHistory: true } as const;
+
+export function isPostNoHistory(state: unknown): boolean {
+  return (state as { postNoHistory?: unknown } | null)?.postNoHistory === true;
+}
+
+/**
  * 게시물을 열 수 없어 아카이브 목록으로 돌려보낼 때의 안내 — 상세 404, 저장 게시물 ID 가 없는
  * 구형·잘못된 푸시 공용. 사용자 잘못이 아니라 "못 찾았다" 는 사실만 알린다.
  * TODO(NOOK-410): 시안에 없는 임시 문구 — 기획 확인 후 교체.

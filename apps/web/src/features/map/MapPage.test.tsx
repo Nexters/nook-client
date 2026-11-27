@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
+import { ToastProvider } from '@/shared/toast';
 
 // 데이터는 feature api 모듈을 거친다 — HTTP 가 아니라 페이지 ↔ Query ↔ api 배선만 검증한다.
 const mocks = vi.hoisted(() => ({
@@ -252,17 +253,19 @@ function renderMapAt(entry: string, { from }: { from?: string } = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
-        <MemoryRouter initialEntries={from ? [from, entry] : [entry]}>
-          <LocationProbe />
-          <MapTabLinkProbe />
-          <HistoryBackProbe />
-          <Routes>
-            <Route path="/map" element={<MapPage />} />
-            <Route path="/before" element={<p>지도에 오기 전 화면</p>} />
-          </Routes>
-        </MemoryRouter>
-      </BottomMenuVisibilityProvider>
+      <ToastProvider>
+        <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
+          <MemoryRouter initialEntries={from ? [from, entry] : [entry]}>
+            <LocationProbe />
+            <MapTabLinkProbe />
+            <HistoryBackProbe />
+            <Routes>
+              <Route path="/map" element={<MapPage />} />
+              <Route path="/before" element={<p>지도에 오기 전 화면</p>} />
+            </Routes>
+          </MemoryRouter>
+        </BottomMenuVisibilityProvider>
+      </ToastProvider>
     </QueryClientProvider>,
   );
 }
@@ -502,6 +505,48 @@ describe('MapPage — 선택 장소의 URL(?placeId=) 동기화', () => {
     fireEvent.click(screen.getByRole('button', { name: '검색 닫기' }));
 
     await screen.findByText(`스냅: ${MID_SNAP_POINT}`);
+  });
+
+  it('선택 없이 빈 지도를 누르면 펼친 시트가 최저 높이로 접힌다(NOOK-395)', async () => {
+    const { FULL_SNAP_POINT, PEEK_SNAP_POINT } = await import('@/features/map/constants');
+    renderMapAt('/map');
+    fireEvent.click(await screen.findByRole('button', { name: '시트 펼치기' }));
+    await screen.findByText(`스냅: ${FULL_SNAP_POINT}`);
+
+    fireEvent.click(screen.getByRole('button', { name: '빈 지도 탭' }));
+
+    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
+  });
+
+  it('빈 검색에서 빈 지도를 누르면 검색을 끝내고 접힌다 — 키보드도 닫는다', async () => {
+    const { MID_SNAP_POINT, PEEK_SNAP_POINT } = await import('@/features/map/constants');
+    renderMapAt('/map');
+    fireEvent.click(await screen.findByRole('button', { name: '검색 진입' }));
+    fireEvent.click(screen.getByRole('button', { name: '검색 입력 포커스' }));
+    await screen.findByText(`스냅: ${MID_SNAP_POINT}`);
+    const input = screen.getByLabelText('검색어');
+    input.focus();
+
+    fireEvent.click(screen.getByRole('button', { name: '빈 지도 탭' }));
+
+    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
+    expect(screen.getByText('검색모드: false')).toBeInTheDocument();
+    expect(input).not.toHaveFocus();
+  });
+
+  it('검색어가 있으면 빈 지도를 눌러도 검색어·검색 모드를 유지한 채 접힌다', async () => {
+    const { MID_SNAP_POINT, PEEK_SNAP_POINT } = await import('@/features/map/constants');
+    renderMapAt('/map');
+    fireEvent.click(await screen.findByRole('button', { name: '검색 진입' }));
+    fireEvent.click(screen.getByRole('button', { name: '검색 입력 포커스' }));
+    fireEvent.change(screen.getByLabelText('검색어'), { target: { value: '성수' } });
+    await screen.findByText(`스냅: ${MID_SNAP_POINT}`);
+
+    fireEvent.click(screen.getByRole('button', { name: '빈 지도 탭' }));
+
+    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
+    expect(screen.getByText('검색모드: true')).toBeInTheDocument();
+    expect(screen.getByLabelText('검색어')).toHaveValue('성수');
   });
 
   it('peek 에서 검색 입력에 포커스되면 mid 로 올라간다 — 키보드가 시트를 가리지 않게', async () => {
@@ -759,27 +804,58 @@ describe('MapPage — 검색 결과 지도(NOOK-383)', () => {
     await screen.findByText('검색모드: false');
     fireEvent.click(screen.getByRole('button', { name: '검색 진입' }));
     fireEvent.change(screen.getByLabelText('검색어'), { target: { value: '성수' } });
-    await waitFor(() => expect(mocks.fetchSavedPlaceSearch).toHaveBeenCalledWith('성수', null));
+    await waitFor(() =>
+      expect(mocks.fetchSavedPlaceSearch).toHaveBeenCalledWith('성수', null, { type: 'LATEST' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: '검색 결과 카드 선택' }));
     await screen.findByTestId('cards');
   }
 
-  it('검색 결과 목록에서 빈 지도를 누르면 검색어를 유지하며 시트를 접는다', async () => {
-    const { MID_SNAP_POINT, PEEK_SNAP_POINT } = await import('@/features/map/constants');
-    renderMapAt('/map');
-    await screen.findByText(`스냅: ${PEEK_SNAP_POINT}`);
-    fireEvent.click(screen.getByRole('button', { name: '검색 진입' }));
-    fireEvent.click(screen.getByRole('button', { name: '검색 입력 포커스' }));
-    const input = screen.getByLabelText('검색어');
-    fireEvent.change(input, { target: { value: '성수' } });
-    await waitFor(() => expect(mocks.fetchSavedPlaceSearch).toHaveBeenCalledWith('성수', null));
-    expect(screen.getByText(`스냅: ${MID_SNAP_POINT}`)).toBeInTheDocument();
+  it('공유 아카이브의 검색 결과를 고르면 그 토큰으로 공유 상세를 조회한다', async () => {
+    mocks.fetchSavedPlaceSearch.mockResolvedValue({
+      items: [{ id: 1, name: '장소 1', region: '서울', shareToken: 'tok-1' }],
+      groups: [],
+      totalCount: 1,
+    });
+    mocks.fetchSharedPlaceDetail.mockImplementation((_token: string, id: number) =>
+      Promise.resolve({
+        id,
+        name: `공유 장소 ${id}`,
+        lat: 37.5,
+        lng: 127,
+        bookmarked: false,
+        photos: [],
+      }),
+    );
+    await openSearchMap();
 
-    fireEvent.click(screen.getByRole('button', { name: '빈 지도 탭' }));
+    await waitFor(() => expect(mocks.fetchSharedPlaceDetail).toHaveBeenCalledWith('tok-1', 1));
+    expect(mocks.fetchPlaceDetail).not.toHaveBeenCalledWith(1);
+    expect(screen.getByTestId('search-params')).toHaveTextContent('shareToken=tok-1');
+  });
 
-    expect(screen.getByText(`스냅: ${PEEK_SNAP_POINT}`)).toBeInTheDocument();
-    expect(input).toHaveValue('성수');
-    expect(screen.getByText('검색모드: true')).toBeInTheDocument();
+  it('공유 아카이브의 핀을 고르면 그 토큰으로 공유 상세를 조회한다 — 결과 밖 주변 핀도', async () => {
+    mocks.fetchMapPins.mockResolvedValue([
+      { id: 1, lat: 37.5, lng: 127, name: '장소 1', color: 'blue' },
+      { id: 7, lat: 37.51, lng: 127.01, name: '장소 7', color: 'red', shareToken: 'tok-7' },
+    ]);
+    mocks.fetchSharedPlaceDetail.mockImplementation((_token: string, id: number) =>
+      Promise.resolve({
+        id,
+        name: `공유 장소 ${id}`,
+        lat: 37.5,
+        lng: 127,
+        bookmarked: false,
+        photos: [],
+      }),
+    );
+    await openSearchMap();
+    await waitFor(() => expect(screen.getByTestId('pins')).toHaveTextContent('7'));
+
+    fireEvent.click(screen.getByRole('button', { name: '핀 7 클릭' }));
+
+    await waitFor(() => expect(mocks.fetchSharedPlaceDetail).toHaveBeenCalledWith('tok-7', 7));
+    expect(screen.getByTestId('search-params')).toHaveTextContent('shareToken=tok-7');
   });
 
   it('결과 카드를 고르면 시트를 가리고 검색 헤더와 결과 순서의 플로팅 카드를 띄운다', async () => {

@@ -24,11 +24,13 @@ import type {
   MapPin,
   PlaceDetail,
   PlaceDetailPost,
+  PlaceSort,
   RecentPlace,
   RecentPlacePage,
   SavedPlaceSearchPage,
   SavedPlaceSearchResult,
 } from '../types';
+import { DEFAULT_PLACE_SORT } from '../types';
 
 /**
  * 서버 색상 코드 ↔ 디자인 토큰 색상. `features/archive/api`·`features/post/api`의 매핑과
@@ -45,6 +47,13 @@ const SERVER_TO_UI_COLOR = {
   GRAY: 'cement',
 } as const satisfies Record<CreateGroupRequestColor, ArchiveColor>;
 
+/** 정렬 → 서버 파라미터. 가까운 순만 기준 좌표를 같이 보낸다. */
+function toSortParams(sort: PlaceSort) {
+  return sort.type === 'NEAREST'
+    ? { sort: sort.type, latitude: sort.coords.lat, longitude: sort.coords.lng }
+    : { sort: sort.type };
+}
+
 function toMapPin(dto: MapPlaceResponse): MapPin {
   return {
     id: dto.id,
@@ -55,6 +64,7 @@ function toMapPin(dto: MapPlaceResponse): MapPin {
     thumbnail: dto.thumbnailUrl ?? undefined,
     // 운영 서버가 필드를 내리기 전 응답도 오므로 타입과 달리 비어 있을 수 있다.
     categoryGroup: dto.categoryGroup ?? undefined,
+    shareToken: dto.shareToken ?? null,
   };
 }
 
@@ -119,13 +129,13 @@ export function toRecentPlace(dto: RecentPlaceResponse): RecentPlace {
 export async function fetchRecentPlaces(
   cursor?: string,
   filter: ArchiveFilter = null,
-  order?: { sort: 'LATEST' | 'OLDEST' | 'NEAREST'; latitude?: number; longitude?: number },
+  sort: PlaceSort = DEFAULT_PLACE_SORT,
 ): Promise<RecentPlacePage> {
   // 전체 해제 — `fetchMapPins` 와 같은 이유로 요청 없이 빈 페이지.
   if (filter?.length === 0) return { places: [], totalCount: 0 };
   const response = unwrapApiResponse(
     await getRecentPlacesEndpoint(
-      { cursor: cursor || undefined, groupIds: filter ?? undefined, ...order },
+      { cursor: cursor || undefined, groupIds: filter ?? undefined, ...toSortParams(sort) },
       { auth: 'required' },
     ),
   );
@@ -136,9 +146,7 @@ export async function fetchRecentPlaces(
   };
 }
 
-function toSavedPlaceSearchResult(
-  dto: SavedPlaceSearchItemResponse & { latitude?: number; longitude?: number },
-): SavedPlaceSearchResult {
+function toSavedPlaceSearchResult(dto: SavedPlaceSearchItemResponse): SavedPlaceSearchResult {
   const [region] = dto.address.split(' ');
   return {
     id: dto.id,
@@ -146,9 +154,7 @@ function toSavedPlaceSearchResult(
     category: dto.category ?? undefined,
     region: region || undefined,
     thumbnail: dto.thumbnailUrl ?? undefined,
-    ...(typeof dto.latitude === 'number' && typeof dto.longitude === 'number'
-      ? { prototypeCoords: { lat: dto.latitude, lng: dto.longitude } }
-      : {}),
+    shareToken: dto.shareToken ?? null,
   };
 }
 
@@ -172,10 +178,11 @@ export function toSavedPlaceSearchPage(dto: SavedPlaceSearchPageResponse): Saved
 export async function fetchSavedPlaceSearch(
   query: string,
   groupId: number | null,
+  sort: PlaceSort = DEFAULT_PLACE_SORT,
 ): Promise<SavedPlaceSearchPage> {
   const response = unwrapApiResponse(
     await searchSavedPlacesEndpoint(
-      { query, page: 0, size: 100, ...(groupId !== null && { groupId }) },
+      { query, page: 0, size: 100, ...(groupId !== null && { groupId }), ...toSortParams(sort) },
       { auth: 'required' },
     ),
   );

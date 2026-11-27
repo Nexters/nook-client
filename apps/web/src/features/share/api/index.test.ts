@@ -7,7 +7,10 @@ const endpoints = vi.hoisted(() => ({
   subscribe: vi.fn(),
   postDetail: vi.fn(),
   save: vi.fn(),
+  get3: vi.fn(),
 }));
+
+const fetchPostDetailMock = vi.hoisted(() => vi.fn());
 
 const postMemoMock = vi.hoisted(() => vi.fn());
 
@@ -19,9 +22,11 @@ vi.mock('@/shared/api', async (importOriginal) => ({
 vi.mock('@/features/post/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/post/api')>()),
   updatePostMemo: postMemoMock,
+  fetchPostDetail: fetchPostDetailMock,
 }));
 
 import {
+  fetchPostShare,
   fetchSharedArchive,
   fetchSharedArchivePosts,
   fetchSharedPostDetail,
@@ -130,5 +135,48 @@ describe('share fetchers', () => {
       memo: '지우랑 가면 좋겠다',
     });
     expect(postId).toBe(123);
+  });
+
+  describe('게시물 단위 공유', () => {
+    const snapshot = (viewerSavedPostId: number | null) => ({
+      resultType: 'SUCCESS',
+      success: {
+        post: {
+          title: '초록뷰 카페',
+          canonicalUrl: 'https://instagram.com/p/x',
+          media: [],
+          places: [],
+        },
+        sharedAt: '2026-11-25T00:00:00+09:00',
+        viewerSavedPostId,
+      },
+    });
+    const MINE = [{ id: 3, name: '서울 카페', color: 'yellow' }];
+
+    beforeEach(() => {
+      fetchPostDetailMock.mockReset().mockResolvedValue({ archives: MINE });
+    });
+
+    it('저장 안 한 사람은 스냅샷만 — 내 게시물을 조회하지 않는다', async () => {
+      endpoints.get3.mockResolvedValue(snapshot(null));
+      const detail = await fetchPostShare('ptok');
+      expect(detail.archives).toEqual([]);
+      expect(fetchPostDetailMock).not.toHaveBeenCalled();
+    });
+
+    it('같은 원본을 저장한 사람은 내 게시물의 아카이브를 채운다', async () => {
+      endpoints.get3.mockResolvedValue(snapshot(22));
+      const detail = await fetchPostShare('ptok');
+      expect(fetchPostDetailMock).toHaveBeenCalledWith(22);
+      expect(detail.archives).toEqual(MINE);
+    });
+
+    it('내 게시물 조회가 실패해도 공유 화면은 그린다', async () => {
+      endpoints.get3.mockResolvedValue(snapshot(22));
+      fetchPostDetailMock.mockRejectedValue(new Error('boom'));
+      const detail = await fetchPostShare('ptok');
+      expect(detail.title).toBe('초록뷰 카페');
+      expect(detail.archives).toEqual([]);
+    });
   });
 });

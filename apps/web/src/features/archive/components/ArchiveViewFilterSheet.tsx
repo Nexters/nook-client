@@ -1,79 +1,69 @@
-import { useState } from 'react';
-import check from '@/assets/images/archive-filter-check.svg';
+import { useId, useState } from 'react';
 import { Icon32Delete } from '@/shared/icons/NookIcons';
-import { Button, Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
-import type { ArchiveViewPreferences } from '../lib/viewPreferences';
+import { Button, CheckIndicator, Drawer, DrawerContent, DrawerTitle } from '@/shared/ui';
+import type { ArchiveSort, ArchiveView, ArchiveViewPreferences } from '../lib/viewPreferences';
 
+const SORT_OPTIONS: { id: ArchiveSort; label: string }[] = [
+  { id: 'LATEST', label: '최신순' },
+  { id: 'OLDEST', label: '오래된순' },
+];
+
+const VIEW_OPTIONS: { id: ArchiveView; label: string }[] = [
+  { id: 'feed', label: '피드형' },
+  { id: 'grid', label: '기본형' },
+  { id: 'list', label: '리스트형' },
+];
+
+interface ArchiveViewFilterSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** 지금 적용 중인 설정. 시트는 열 때 이 값에서 시작한다. */
+  value: ArchiveViewPreferences;
+  onApply: (value: ArchiveViewPreferences) => void;
+}
+
+/**
+ * 아카이브 상세 `필터` 시트(NOOK-376) — 정렬·보기 옵션을 고르고 [적용하기]로 반영한다.
+ * 닫으면 만지던 선택은 버린다(지도 ArchiveFilterSheet 와 같은 규칙).
+ */
 export function ArchiveViewFilterSheet({
   open,
   onOpenChange,
   value,
   onApply,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  value: ArchiveViewPreferences;
-  onApply: (value: ArchiveViewPreferences) => void;
-}) {
+}: ArchiveViewFilterSheetProps) {
   const [draft, setDraft] = useState(value);
   const [wasOpen, setWasOpen] = useState(open);
-  if (wasOpen !== open) {
+  if (open !== wasOpen) {
     setWasOpen(open);
     if (open) setDraft(value);
   }
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent
-        showHandle={false}
-        className="z-[70] rounded-t-none"
-        overlayClassName="z-[70] bg-black/30"
-      >
+      {/* 탭바(z-60)보다 위 — 딤과 함께 바텀내비를 덮는다. */}
+      <DrawerContent className="z-[70]" overlayClassName="z-[70]" showHandle={false}>
         <div className="flex items-center justify-between px-4 py-5">
-          <DrawerTitle className="font-semibold text-b1 text-gray-100">필터</DrawerTitle>
-          <button type="button" aria-label="필터 닫기" onClick={() => onOpenChange(false)}>
+          <DrawerTitle className="text-h2 font-semibold text-gray-100">필터</DrawerTitle>
+          <button type="button" aria-label="닫기" onClick={() => onOpenChange(false)}>
             <Icon32Delete />
           </button>
         </div>
-        <div className="flex flex-col gap-4 px-4 pb-3" data-vaul-no-drag>
-          <fieldset className="flex flex-col gap-2">
-            <legend className="mb-2 text-b2 text-gray-60">정렬 옵션</legend>
-            <div>
-              {(
-                [
-                  { id: 'LATEST', label: '최신순' },
-                  { id: 'OLDEST', label: '오래된순' },
-                ] as const
-              ).map((option) => (
-                <Option
-                  key={option.id}
-                  label={option.label}
-                  name="archive-sort"
-                  checked={draft.sort === option.id}
-                  onChange={() => setDraft({ ...draft, sort: option.id })}
-                />
-              ))}
-            </div>
-          </fieldset>
-          <fieldset className="flex flex-col gap-2">
-            <legend className="mb-2 text-b2 text-gray-60">보기 옵션</legend>
-            <div>
-              {(
-                [
-                  { id: 'feed', label: '피드형' },
-                  { id: 'grid', label: '기본형' },
-                  { id: 'list', label: '리스트형' },
-                ] as const
-              ).map((option) => (
-                <Option
-                  key={option.id}
-                  label={option.label}
-                  name="archive-view"
-                  checked={draft.view === option.id}
-                  onChange={() => setDraft({ ...draft, view: option.id })}
-                />
-              ))}
-            </div>
-          </fieldset>
+        <div className="flex flex-col gap-4 px-4 pb-3">
+          <OptionGroup
+            legend="정렬 옵션"
+            name="archive-sort"
+            options={SORT_OPTIONS}
+            selected={draft.sort}
+            onSelect={(sort) => setDraft({ ...draft, sort })}
+          />
+          <OptionGroup
+            legend="보기 옵션"
+            name="archive-view"
+            options={VIEW_OPTIONS}
+            selected={draft.view}
+            onSelect={(view) => setDraft({ ...draft, view })}
+          />
         </div>
         <div
           className="px-4 pt-4"
@@ -94,24 +84,44 @@ export function ArchiveViewFilterSheet({
     </Drawer>
   );
 }
-function Option({
-  label,
+
+function OptionGroup<T extends string>({
+  legend,
   name,
-  checked,
-  onChange,
+  options,
+  selected,
+  onSelect,
 }: {
-  label: string;
+  legend: string;
   name: string;
-  checked: boolean;
-  onChange: () => void;
+  options: { id: T; label: string }[];
+  selected: T;
+  onSelect: (id: T) => void;
 }) {
+  const legendId = useId();
+  // fieldset/legend 대신 div 라디오 그룹이다(NOOK-450) — 일부 iOS 에서 시트가 올라오는 동안
+  // fieldset 묶음이 잠깐 크게 그려져 시트 위쪽 끝이 올라갔다 내려왔다.
   return (
-    <label className="flex h-10 cursor-pointer items-center justify-between px-1 py-2 text-b2 font-medium text-gray-100 has-[:focus-visible]:ring-2">
-      <input className="sr-only" type="radio" name={name} checked={checked} onChange={onChange} />
-      {label}
-      <span className="grid size-6 place-items-center">
-        {checked ? <img src={check} alt="" /> : null}
-      </span>
-    </label>
+    <div role="radiogroup" aria-labelledby={legendId}>
+      <p id={legendId} className="mb-2 text-b2 text-gray-60">
+        {legend}
+      </p>
+      {options.map((option) => (
+        <label
+          key={option.id}
+          className="flex h-10 cursor-pointer items-center justify-between px-1 py-2 text-b2 font-medium text-gray-100 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-gray-100"
+        >
+          <input
+            className="sr-only"
+            type="radio"
+            name={name}
+            checked={selected === option.id}
+            onChange={() => onSelect(option.id)}
+          />
+          {option.label}
+          {selected === option.id ? <CheckIndicator checked /> : null}
+        </label>
+      ))}
+    </div>
   );
 }

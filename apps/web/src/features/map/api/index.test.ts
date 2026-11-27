@@ -115,6 +115,7 @@ const PAGE: SavedPlaceSearchPageResponse = {
   items: [
     {
       id: 11,
+      accessType: 'OWNED',
       name: '하우스 오브 와일드',
       address: '서울 성동구 성수이로 118',
       category: '카페',
@@ -140,6 +141,7 @@ describe('toSavedPlaceSearchPage', () => {
         category: '카페',
         region: '서울',
         thumbnail: 'https://img.example/haus.jpg',
+        shareToken: null,
       },
     ]);
   });
@@ -165,6 +167,7 @@ describe('toSavedPlaceSearchPage', () => {
       items: [
         {
           id: 14,
+          accessType: 'OWNED',
           name: '썸네일 없는 곳',
           address: '서울 마포구',
           category: null,
@@ -183,6 +186,7 @@ describe('toSavedPlaceSearchPage', () => {
       items: [
         {
           id: 12,
+          accessType: 'OWNED',
           name: '탐석과 사랑',
           address: '경기 성남시 분당구',
           category: null,
@@ -199,7 +203,14 @@ describe('toSavedPlaceSearchPage', () => {
     const page = toSavedPlaceSearchPage({
       ...PAGE,
       items: [
-        { id: 13, name: '이름만 있는 곳', address: '', category: '카페', categoryGroup: 'CAFE' },
+        {
+          id: 13,
+          accessType: 'OWNED',
+          name: '이름만 있는 곳',
+          address: '',
+          category: '카페',
+          categoryGroup: 'CAFE',
+        },
       ],
     });
 
@@ -246,6 +257,7 @@ describe('fetchMapPins', () => {
   const BOUNDS = { north: 38, south: 37, east: 128, west: 126 };
   const MAP_PLACE: MapPlaceResponse = {
     id: 5,
+    accessType: 'OWNED',
     name: '앤트러사이트',
     color: 'YELLOW',
     categoryGroup: 'BAKERY',
@@ -307,7 +319,10 @@ describe('fetchRecentPlaces', () => {
 
     const page = await fetchRecentPlaces('c1');
 
-    expect(endpoints.getRecentPlaces).toHaveBeenCalledWith({ cursor: 'c1' }, { auth: 'required' });
+    expect(endpoints.getRecentPlaces).toHaveBeenCalledWith(
+      { cursor: 'c1', sort: 'LATEST' },
+      { auth: 'required' },
+    );
     expect(page.places).toEqual([expect.objectContaining({ id: 21 })]);
     expect(page.nextCursor).toBe('c2');
     expect(page.totalCount).toBe(34);
@@ -324,13 +339,23 @@ describe('fetchRecentPlaces', () => {
 
     await fetchRecentPlaces(undefined, [3]);
     expect(endpoints.getRecentPlaces).toHaveBeenLastCalledWith(
-      { cursor: undefined, groupIds: [3] },
+      { cursor: undefined, groupIds: [3], sort: 'LATEST' },
       { auth: 'required' },
     );
 
     endpoints.getRecentPlaces.mockClear();
     expect(await fetchRecentPlaces(undefined, [])).toEqual({ places: [], totalCount: 0 });
     expect(endpoints.getRecentPlaces).not.toHaveBeenCalled();
+  });
+
+  it('가까운 순은 고른 순간의 좌표를 같이 보낸다', async () => {
+    endpoints.getRecentPlaces.mockResolvedValue(ok({ items: [], hasNext: false }));
+
+    await fetchRecentPlaces('c1', null, { type: 'NEAREST', coords: { lat: 37.5, lng: 127 } });
+    expect(endpoints.getRecentPlaces).toHaveBeenLastCalledWith(
+      { cursor: 'c1', sort: 'NEAREST', latitude: 37.5, longitude: 127 },
+      { auth: 'required' },
+    );
   });
 });
 

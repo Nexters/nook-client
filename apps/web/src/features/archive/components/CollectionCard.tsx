@@ -6,6 +6,7 @@ import {
 } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { MediaBadge, Thumbnail } from '@/shared/ui';
+import type { ArchiveView } from '../lib/viewPreferences';
 import type { CollectionSummary } from '../types';
 
 /**
@@ -30,10 +31,24 @@ export interface CollectionCardProps {
    */
   selected?: boolean;
   className?: string;
-  view?: 'grid' | 'feed' | 'list';
+  /** 아카이브 상세 보기 형식(NOOK-376). 기본은 2열 그리드 카드. */
+  view?: ArchiveView;
 }
 
-function CollectionCard({ archive, onClick, selected, className, view }: CollectionCardProps) {
+/** 보기 형식별 썸네일 비율(시안) — 기본형 167:208(기존 세로형), 피드형 343:212, 리스트형 정사각 64. */
+const THUMBNAIL_ASPECT: Record<ArchiveView, string> = {
+  grid: 'aspect-[167/208]',
+  feed: 'aspect-[343/212]',
+  list: 'aspect-square',
+};
+
+function CollectionCard({
+  archive,
+  onClick,
+  selected,
+  className,
+  view = 'grid',
+}: CollectionCardProps) {
   const Comp = onClick ? 'button' : 'div';
   const cover = archive.thumbnails?.[0];
   const isProcessing = archive.processingState === 'processing';
@@ -44,38 +59,33 @@ function CollectionCard({ archive, onClick, selected, className, view }: Collect
       {...(onClick ? { type: 'button' as const, onClick } : {})}
       {...(selected !== undefined ? { 'aria-pressed': selected } : {})}
       className={cn(
-        'flex w-full min-w-0 gap-2 text-left',
-        view === 'list' ? 'flex-row items-center' : 'flex-col items-start',
+        'flex w-full min-w-0 text-left',
+        view === 'list'
+          ? 'flex-row items-center gap-3'
+          : // 피드형은 장소 카드(PlaceCard)와 같은 여백 — 두 탭을 넘겨도 카드 간격이 같아야 한다(NOOK-452).
+            view === 'feed'
+            ? 'flex-col items-start gap-1 pb-2'
+            : 'flex-col items-start gap-2',
         onClick &&
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-2',
         className,
       )}
     >
-      {/* 시안 167x208. 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
+      {/* 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
       <span className={cn('relative', view === 'list' ? 'w-16 shrink-0' : 'w-full')}>
         <Thumbnail
           src={cover}
           alt=""
           loading={isProcessing}
           failed={isFailed}
-          className={cn(
-            'h-auto w-full',
-            view === 'grid'
-              ? 'aspect-[167/134]'
-              : view === 'feed'
-                ? 'aspect-[343/212]'
-                : view === 'list'
-                  ? 'aspect-square'
-                  : 'aspect-[167/208]',
-          )}
+          // 피드형의 영상 썸네일은 잘라 채우지 않고 원본 비율 그대로 전부 보여준다(NOOK-451).
+          fit={view === 'feed' && archive.coverType === 'VIDEO' ? 'contain' : 'cover'}
+          className={cn('h-auto w-full', THUMBNAIL_ASPECT[view])}
         />
         {/* 선택 삭제 모드에서는 같은 자리를 체크가 쓰므로 양보하고, 커버가 아직 없는
             처리 중·실패 카드에도 붙이지 않는다. */}
         {archive.coverType && selected === undefined && !isProcessing && !isFailed ? (
-          <MediaBadge
-            type={archive.coverType}
-            className={view === 'list' ? 'top-1 right-1 size-3' : undefined}
-          />
+          <MediaBadge type={archive.coverType} size={view === 'list' ? 'sm' : 'md'} />
         ) : null}
         {selected !== undefined ? (
           <>
@@ -89,8 +99,7 @@ function CollectionCard({ archive, onClick, selected, className, view }: Collect
           </>
         ) : null}
       </span>
-      {/* 그리드 보기는 장소 탭 카드(PlaceCard map)와 높이를 맞춘다 — 메타 줄 18px + 아래 6px. */}
-      <div className={cn('flex w-full min-w-0 flex-col', view === 'grid' && 'pb-1.5')}>
+      <div className={cn('flex w-full min-w-0 flex-col', view === 'feed' && 'gap-0.5 p-1')}>
         {isProcessing || isFailed ? (
           <div className="flex items-center gap-1">
             {/* 처리 중 표시는 정지 아이콘이 아니라 실제로 도는 스피너여야 한다(QA) —
@@ -107,7 +116,7 @@ function CollectionCard({ archive, onClick, selected, className, view }: Collect
         ) : (
           <>
             <p className="truncate text-b3 font-semibold text-gray-90">{archive.name}</p>
-            <div className={cn('flex items-center gap-1', view === 'grid' && 'h-[18px]')}>
+            <div className="flex items-center gap-1">
               {archive.authorHandle ? (
                 <>
                   <span className="truncate font-mono text-e2 text-gray-60">

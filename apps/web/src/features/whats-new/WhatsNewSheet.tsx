@@ -3,7 +3,7 @@ import { type ReactNode, useState } from 'react';
 import { PlaceConnectionReminderCard } from '@/features/archive/components/PlaceConnectionReminder';
 import {
   Icon16Archive,
-  Icon20Filter,
+  Icon24Filter,
   Icon24MappinOn,
   Icon24Share,
   Icon32Delete,
@@ -141,7 +141,7 @@ const SAMPLE_PHOTOS = [1, 2, 3].map((n) => `/prototype/reminder/post-${n}.png`);
 export const SAMPLE_WHATS_NEW: WhatsNewItem[] = [
   {
     id: 'archive-view',
-    icon: <Icon20Filter />,
+    icon: <Icon24Filter />,
     title: '게시물 보기 방식',
     description: '피드, 그리드, 리스트 중\n원하는 방식을 선택해 게시물을 볼 수 있어요.',
     preview: <ViewModePreview />,

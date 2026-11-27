@@ -55,6 +55,8 @@ export interface ThumbnailProps
    * 보여준다(Figma). 문구·아이콘은 마찬가지로 카드가 이름 자리에 그린다.
    */
   failed?: boolean;
+  /** 실제 사진을 채우는 방식. `contain` 은 자르지 않고 원본 비율 그대로 전체를 보여준다. */
+  fit?: 'cover' | 'contain';
 }
 
 function Thumbnail({
@@ -63,6 +65,7 @@ function Thumbnail({
   overflowCount,
   loading = false,
   failed = false,
+  fit = 'cover',
   size = 'lg',
   className,
   ...props
@@ -83,9 +86,12 @@ function Thumbnail({
         alt={showingRealImage ? alt : ''}
         // 고스트는 실제 사진과 달리 상자를 꽉 채우려는 그림이 아니라, 상자 비율과
         // 무관하게 제 비율대로 안에 들어가야 한다 — object-cover 로 채우면 잘려서
-        // 과하게 확대돼 보인다(실제 사진만 cover 로 채운다). SVG 자체 여백(뷰박스
+        // 과하게 확대돼 보인다(실제 사진은 fit 대로 채운다). SVG 자체 여백(뷰박스
         // 안에서 도형이 차지하는 비율)이 이미 있어 별도 padding 은 더하지 않는다.
-        className={cn('size-full', showingRealImage ? 'object-cover' : 'object-contain')}
+        className={cn(
+          'size-full',
+          showingRealImage && fit === 'cover' ? 'object-cover' : 'object-contain',
+        )}
       />
       {dimmed ? (
         <span

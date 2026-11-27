@@ -5,31 +5,41 @@ import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import { markTabRootNavigation } from '@/app/layouts/MainTabPageLayout';
 import { bottomMenuItems } from '@/app/navigation';
 import { PrototypeWhatsNew } from '@/dev/PrototypeWhatsNew';
-import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { useMyProfile } from '@/features/my/api/queries';
 import { ArchiveJumpHost } from '@/features/post/components/ArchiveJumpPopover';
 import { BOTTOM_INSET_VAR, BOTTOM_MENU_HEIGHT, BottomMenu } from '@/shared/ui';
 
 export function ProtectedAppLayout() {
   const [bottomMenuHidden, setBottomMenuHidden] = useState(false);
-  const isAuthenticated = useIsAuthenticated();
-  const { data: profile } = useMyProfile();
+  // MY 탭 아이콘을 내 프로필 이미지로 바꾼다(NOOK-446). 없으면(게스트 포함) 기본 아이콘.
+  const profileImageUrl = useMyProfile().data?.profileImageUrl;
   const [failedPhoto, setFailedPhoto] = useState<string | null>(null);
-  const photo = isAuthenticated ? profile?.profileImageUrl : null;
-  const profileIcon =
-    photo && photo !== failedPhoto ? (
-      <img
-        src={photo}
-        alt=""
-        className="size-8 rounded-full object-cover"
-        onError={() => setFailedPhoto(photo)}
-      />
-    ) : null;
-  const menuItems = profileIcon
-    ? bottomMenuItems.map((item) =>
-        item.to === '/my' ? { ...item, icon: profileIcon, activeIcon: profileIcon } : item,
-      )
-    : bottomMenuItems;
+  const menuItems =
+    profileImageUrl && profileImageUrl !== failedPhoto
+      ? bottomMenuItems.map((item) =>
+          item.to === '/my'
+            ? {
+                ...item,
+                icon: (
+                  <img
+                    src={profileImageUrl}
+                    alt=""
+                    className="size-6 rounded-full object-cover"
+                    onError={() => setFailedPhoto(profileImageUrl)}
+                  />
+                ),
+                activeIcon: (
+                  <img
+                    src={profileImageUrl}
+                    alt=""
+                    className="size-6 rounded-full object-cover ring-[1.5px] ring-gray-100"
+                    onError={() => setFailedPhoto(profileImageUrl)}
+                  />
+                ),
+              }
+            : item,
+        )
+      : bottomMenuItems;
 
   // 하단에 떠 있는 요소(토스트)가 탭바를 비켜 앉도록 지금 가려진 높이를 :root 에 심는다.
   // 컨텍스트 대신 CSS 변수인 이유: 토스트는 shared 레이어라 app 의 탭바 상태를 몰라야 한다.

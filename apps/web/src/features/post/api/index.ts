@@ -236,18 +236,6 @@ export async function deletePost(postId: number): Promise<void> {
 }
 
 /**
- * `POST /api/v1/posts/{postId}/share-links` — 지금 게시물의 공개 콘텐츠·장소 목록을 고정한
- * 공유 토큰 발급. 생성 함수명(`issue1`)이 아카이브 공유와 겹쳐 import 에서 별칭을 붙인다.
- */
-export async function issuePostShareLink(postId: number): Promise<string> {
-  const response = unwrapApiResponse(
-    await issuePostShareLinkEndpoint(postId, { auth: 'required' }),
-  );
-  if (!response?.token) throw new Error('공유 링크를 발급하지 못했어요');
-  return response.token;
-}
-
-/**
  * `POST /api/v1/posts/{postId}/recovery` — 수집에 실패한 저장 건을 기존 URL·아카이브 그대로
  * 다시 처리해 달라고 요청한다. 이미 처리 중이면 서버가 중복 실행하지 않고 `requested=false` 를 준다.
  * 생성 함수명(`request`)이 서버 operationId 그대로라 import 에서만 별칭을 붙인다.
@@ -274,4 +262,14 @@ export async function updatePlaceBookmark(placeId: number, bookmarked: boolean):
  */
 export async function disconnectPostPlace(postId: number, placeId: number): Promise<void> {
   await disconnectPlaceEndpoint(postId, placeId, { auth: 'required' });
+}
+
+/**
+ * `POST /api/v1/posts/{postId}/share-links` — 지금 게시물 콘텐츠와 연결된 장소를 고정한(스냅샷)
+ * 공유 토큰을 발급한다. 이후 원본이 바뀌어도 링크로 보이는 내용은 그대로다.
+ */
+export async function issuePostShareLink(postId: number): Promise<string> {
+  const dto = unwrapApiResponse(await issuePostShareLinkEndpoint(postId, { auth: 'required' }));
+  if (!dto?.token) throw new Error('공유 링크를 발급하지 못했어요');
+  return dto.token;
 }

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { type InitialEntry, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
@@ -19,11 +19,16 @@ const mocks = vi.hoisted(() => ({
   disconnectPostPlace: vi.fn(),
   replacePostArchives: vi.fn(),
   deletePost: vi.fn(),
-  issuePostShareLink: vi.fn(),
   requestPostRecovery: vi.fn(),
+  issuePostShareLink: vi.fn(),
 }));
 
 vi.mock('@/features/post/api', () => mocks);
+
+// 공유 프리뷰의 소유자 표기 — 내 게시물은 내 닉네임으로 채운다.
+vi.mock('@/features/my/api', () => ({
+  fetchMyProfile: () => Promise.resolve({ nickname: 'Purr' }),
+}));
 
 // 아카이브 시트의 목록(내 아카이브). 공유받은 아카이브는 시트에 뜨지 않는다.
 vi.mock('@/features/archive/api', () => ({
@@ -446,6 +451,15 @@ describe('게시물 상세', () => {
     expect(screen.getByTestId('map-route-probe')).toHaveTextContent('/map');
   });
 
+  it('히스토리 없이 들어온 게시물(공유 링크 저장 직후)은 뒤로가기 시 기본 지도로 이동한다', async () => {
+    await renderPost(1, '', [{ pathname: '/post/1', state: { postNoHistory: true } }]);
+
+    fireEvent.click(screen.getByRole('button', { name: '뒤로 가기' }));
+
+    expect(screen.getByTestId('map-route-probe')).toHaveTextContent('/map');
+    expect(screen.getByTestId('map-route-probe')).not.toHaveTextContent('placeId');
+  });
+
   it('일반 화면 이동으로 진입하면 기존 히스토리로 돌아간다', async () => {
     await renderPost(1, '', ['/archive/7', '/post/1']);
 
@@ -466,6 +480,31 @@ describe('게시물 상세', () => {
 
     expect(screen.getByRole('button', { name: '카페 외 1개' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '밥집' })).not.toBeInTheDocument();
+  });
+
+  it('더보기 > 게시물 공유를 누르면 공유 링크를 발급해 게시물 프리뷰가 담긴 공유 시트를 연다', async () => {
+    mocks.issuePostShareLink.mockResolvedValue('post-tok');
+    await renderPost(1);
+
+    fireEvent.click(screen.getByRole('button', { name: '더보기', expanded: false }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '게시물 공유' }));
+
+    const sheet = await screen.findByRole('dialog', { name: '게시물 공유' });
+    expect(sheet).toHaveTextContent('지금 가기 좋은 초록뷰 카페');
+    expect(sheet).toHaveTextContent('0 Places');
+    expect(await screen.findByText(/@Purr/)).toBeInTheDocument();
+    expect(mocks.issuePostShareLink.mock.calls[0]?.[0]).toBe(1);
+  });
+
+  it('공유 링크 발급에 실패하면 시트 없이 토스트로 알린다', async () => {
+    mocks.issuePostShareLink.mockRejectedValue(new Error('boom'));
+    await renderPost(1);
+
+    fireEvent.click(screen.getByRole('button', { name: '더보기', expanded: false }));
+    fireEvent.click(screen.getByRole('menuitem', { name: '게시물 공유' }));
+
+    expect(await screen.findByText('공유 링크를 만들지 못했어요')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: '게시물 공유' })).not.toBeInTheDocument();
   });
 
   it('아카이브 칩을 누르면 저장된 아카이브가 체크된 시트가 뜬다 — 아카이브 상세로 가지 않는다', async () => {
@@ -805,44 +844,19 @@ describe('게시물 상세', () => {
   it('본문은 접혀 있고 더보기로 펼친다', async () => {
     await renderPost(1);
 
-    fireEvent.click(screen.getByText('더보기'));
+    fireEvent.click(within(screen.getByRole('main')).getByRole('button', { name: '더보기' }));
     expect(screen.getByRole('button', { name: '접기' })).toBeInTheDocument();
   });
 
   it('펼친 본문을 다시 누르면 접힌다', async () => {
     await renderPost(1);
 
-    fireEvent.click(screen.getByText('더보기'));
+    fireEvent.click(within(screen.getByRole('main')).getByRole('button', { name: '더보기' }));
     fireEvent.click(screen.getByRole('button', { name: /초록뷰가 아름다운 카페 공간/ }));
 
-    expect(screen.getByText('더보기')).toBeInTheDocument();
-  });
-
-  it('헤더 오른쪽 더보기 메뉴로 지도 진입과 같은 게시물 이동·삭제를 연다', async () => {
-    await renderPost(1);
-
-    fireEvent.click(screen.getByRole('button', { name: '더보기', expanded: false }));
-
-    expect(screen.getByRole('menuitem', { name: '게시물 이동' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: '게시물 삭제' })).toBeInTheDocument();
-  });
-
-  it('게시물 공유는 공유 토큰을 받아 시스템 공유 시트를 연다', async () => {
-    mocks.issuePostShareLink.mockResolvedValue('tok-post');
-    const share = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, 'share', { value: share, configurable: true });
-    try {
-      await renderPost(1);
-
-      fireEvent.click(screen.getByRole('button', { name: '더보기', expanded: false }));
-      fireEvent.click(screen.getByRole('menuitem', { name: '게시물 공유' }));
-
-      await vi.waitFor(() => expect(share).toHaveBeenCalledTimes(1));
-      expect(mocks.issuePostShareLink).toHaveBeenCalledWith(1);
-      expect(share.mock.calls[0]?.[0].url).toMatch(/\/shared-post\/tok-post$/);
-    } finally {
-      Reflect.deleteProperty(navigator, 'share');
-    }
+    expect(
+      within(screen.getByRole('main')).getByRole('button', { name: '더보기' }),
+    ).toBeInTheDocument();
   });
 
   it('메모하기에서 저장하면 postId 와 새 메모로 updatePostMemo 를 호출한다', async () => {

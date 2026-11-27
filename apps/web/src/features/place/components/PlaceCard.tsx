@@ -1,5 +1,4 @@
 import { useRef } from 'react';
-import placeMetaDot from '@/assets/images/place-meta-dot.svg';
 import { Icon14Processing } from '@/shared/icons/NookIcons';
 import { cn } from '@/shared/lib/utils';
 import { MediaBadge, Thumbnail } from '@/shared/ui';
@@ -31,17 +30,29 @@ export interface PlaceCardProps {
    * 사진 아이콘으로 고정한다 — 구분 필드가 생기면 타입을 받게 바꾼다.
    */
   mediaBadge?: boolean;
-  /** 지도 탭: Figma 56:3703의 167×134 가로형 썸네일·12px 텍스트. */
-  variant?: 'default' | 'map' | 'feed' | 'list';
   className?: string;
+  /**
+   * 카드 모양.
+   * - `default`: 167:208 세로 카드 — 아카이브 상세 기본형·공유 아카이브.
+   * - `map`: 지도 목록·검색 결과(Figma 56:3703) — 167:134 가로형 썸네일, 12px 이름·메타.
+   * - `feed` / `list`: 아카이브 상세 보기 형식(NOOK-376) — 1열 343:212 / 64 정사각 가로 행.
+   */
+  variant?: 'default' | 'map' | 'feed' | 'list';
 }
+
+const THUMBNAIL_ASPECT: Record<NonNullable<PlaceCardProps['variant']>, string> = {
+  default: 'aspect-[167/208]',
+  map: 'aspect-[167/134]',
+  feed: 'aspect-[343/212]',
+  list: 'aspect-square',
+};
 
 function PlaceCard({
   place,
   onClick,
   mediaBadge = false,
-  variant = 'default',
   className,
+  variant = 'default',
 }: PlaceCardProps) {
   const Comp = onClick ? 'button' : 'div';
   const isProcessing = place.thumbnailState === 'processing';
@@ -72,44 +83,32 @@ function PlaceCard({
         : {})}
       className={cn(
         'flex w-full min-w-0 bg-gray-0 text-left',
-        variant === 'list' ? 'flex-row items-center gap-3' : 'flex-col items-start',
-        variant === 'map' ? 'gap-2' : 'gap-1 pb-2',
+        variant === 'list'
+          ? 'flex-row items-center gap-3'
+          : variant === 'map'
+            ? 'flex-col items-start gap-2'
+            : 'flex-col items-start gap-1 pb-2',
         onClick &&
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100 focus-visible:ring-offset-2',
         className,
       )}
     >
-      {/* 시안 167x208. 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
+      {/* 화면 폭이 달라져도 같은 모양이 되게 고정 높이 대신 비율로 잡는다. */}
       <div className={cn('relative', variant === 'list' ? 'w-16 shrink-0' : 'w-full')}>
         <Thumbnail
           src={place.thumbnail}
           alt=""
           loading={isProcessing}
           failed={isFailed}
-          className={cn(
-            'h-auto w-full',
-            variant === 'map'
-              ? 'aspect-[167/134]'
-              : variant === 'feed'
-                ? 'aspect-[343/212]'
-                : variant === 'list'
-                  ? 'aspect-square'
-                  : 'aspect-[167/208]',
-          )}
+          className={cn('h-auto w-full', THUMBNAIL_ASPECT[variant])}
         />
         {/* 게시물 카드(CollectionCard)처럼 사진이 아직 없는 처리 중·실패 카드엔 붙이지 않는다. */}
         {mediaBadge && !isProcessing && !isFailed ? (
-          <MediaBadge
-            type="IMAGE"
-            className={variant === 'list' ? 'top-1 right-1 size-3' : undefined}
-          />
+          <MediaBadge type="IMAGE" size={variant === 'list' ? 'sm' : 'md'} />
         ) : null}
       </div>
       <div
-        className={cn(
-          'flex w-full min-w-0 flex-col',
-          variant === 'map' ? 'gap-0 pb-1.5' : 'gap-0.5 p-1',
-        )}
+        className={cn('flex w-full min-w-0 flex-col', variant === 'map' ? 'pb-1.5' : 'gap-0.5 p-1')}
       >
         {isProcessing ? (
           <div className="flex items-center gap-1">
@@ -129,10 +128,11 @@ function PlaceCard({
               {place.name}
             </p>
             {variant === 'map' ? (
+              // 시안은 글자 `·` 대신 2px 점 — 게시물 카드(CollectionCard) 메타 줄과 같은 모양.
               <div className="flex min-w-0 items-center gap-1 text-b3 font-medium text-gray-60">
                 {place.region ? <span className="truncate">{place.region}</span> : null}
                 {place.region && place.category ? (
-                  <img src={placeMetaDot} width={2} height={2} alt="" className="shrink-0" />
+                  <span className="size-0.5 shrink-0 rounded-full bg-gray-60" aria-hidden="true" />
                 ) : null}
                 {place.category ? <span className="truncate">{place.category}</span> : null}
               </div>

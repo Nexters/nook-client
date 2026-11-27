@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Archive } from '@/features/archive/types';
 import { ToastProvider } from '@/shared/toast';
-import { ShareSheet } from './ShareSheet';
+import { archiveSharePreview, ShareSheet } from './ShareSheet';
 
 const profileMock = vi.hoisted(() => vi.fn());
 vi.mock('@/features/my/api', () => ({ fetchMyProfile: profileMock }));
@@ -34,7 +34,12 @@ function renderSheet(archive: Archive) {
   render(
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <ShareSheet open onOpenChange={() => {}} url="https://nook.today/s/abc" archive={archive} />
+        <ShareSheet
+          open
+          onOpenChange={() => {}}
+          url="https://nook.today/s/abc"
+          preview={archiveSharePreview(archive)}
+        />
       </ToastProvider>
     </QueryClientProvider>,
   );

@@ -127,6 +127,7 @@ export function PlaceSearchPanel({
             <div className="grid grid-cols-2 justify-items-center gap-2">
               {page.items.map((place) => (
                 <PlaceCard
+                  variant="map"
                   key={place.id}
                   place={{
                     id: String(place.id),
@@ -136,7 +137,6 @@ export function PlaceSearchPanel({
                     thumbnail: place.thumbnail,
                   }}
                   mediaBadge
-                  variant="map"
                   onClick={() => onSelectPlace(place.id)}
                 />
               ))}

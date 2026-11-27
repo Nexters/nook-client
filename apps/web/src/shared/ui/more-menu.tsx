@@ -22,6 +22,7 @@ function MoreMenu({
   menuClassName,
 }: {
   items: MoreMenuItem[];
+  /** 트리거 버튼 모양 덮어쓰기 — 헤더 밖(아카이브 상세 액션 행)에 놓일 때 칩 모양을 입힌다. */
   triggerClassName?: string;
   menuClassName?: string;
 }) {

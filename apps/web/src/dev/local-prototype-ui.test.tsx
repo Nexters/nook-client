@@ -6,7 +6,7 @@ import { BottomMenuVisibilityProvider } from '@/app/bottom-menu-visibility';
 import { ArchiveDetailPage } from '@/features/archive/ArchiveDetailPage';
 import { ArchivePage } from '@/features/archive/ArchivePage';
 import { AuthSessionProvider } from '@/features/auth/session/AuthSessionProvider';
-import { SharedPostDetailPage } from '@/features/share/SharedPostDetailPage';
+import { SharedPostSharePage } from '@/features/share/SharedPostSharePage';
 import { ToastProvider } from '@/shared/toast';
 import { localPrototypeRequest } from './local-prototype';
 
@@ -114,7 +114,7 @@ it('opens a single-post share and saves its places into an owned archive', async
           <BottomMenuVisibilityProvider value={{ hidden: false, setHidden: () => {} }}>
             <MemoryRouter initialEntries={[`/shared-post/${token}`]}>
               <Routes>
-                <Route path="/shared-post/:token" element={<SharedPostDetailPage singlePost />} />
+                <Route path="/shared-post/:token" element={<SharedPostSharePage />} />
                 <Route path="/post/:postId" element={<p>내 게시물 상세</p>} />
               </Routes>
             </MemoryRouter>
@@ -123,7 +123,7 @@ it('opens a single-post share and saves its places into an owned archive', async
       </AuthSessionProvider>
     </QueryClientProvider>,
   );
-  fireEvent.click(await screen.findByRole('button', { name: '내 아카이브에 저장' }));
+  fireEvent.click(await screen.findByRole('button', { name: '아카이브에 저장' }));
   fireEvent.click(await screen.findByRole('checkbox', { name: '다음에 같이 가요' }));
   fireEvent.click(screen.getByRole('button', { name: '저장하기' }));
   expect(await screen.findByText('내 게시물 상세')).toBeInTheDocument();

@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 
 enum class NookIconName {
     Icon14Processing,
+    Icon16AdjustmentsVertical,
     Icon16Archive,
     Icon16ArrowDiagonal,
     Icon16ArrowDown,
@@ -25,6 +26,7 @@ enum class NookIconName {
     Icon16Chat,
     Icon16Check,
     Icon16CheckCircle,
+    Icon16CheckCircleLine,
     Icon16Clock,
     Icon16Copy,
     Icon16ExclamationCircle,
@@ -36,6 +38,7 @@ enum class NookIconName {
     Icon16Move,
     Icon16Paper,
     Icon16Pen,
+    Icon16PencilLine,
     Icon16Plus,
     Icon16Refresh,
     Icon16Sad,
@@ -49,7 +52,6 @@ enum class NookIconName {
     Icon20Camera,
     Icon20Delete,
     Icon20ExclamationCircle,
-    Icon20Filter,
     Icon20History,
     Icon20Images,
     Icon20MagnifyingGlass,
@@ -57,7 +59,6 @@ enum class NookIconName {
     Icon20Picture,
     Icon20PlayMini,
     Icon24Add,
-    Icon24AdjustmentsVertical,
     Icon24Archive,
     Icon24ArchiveAdd,
     Icon24ArchiveCheck,
@@ -102,6 +103,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
     Canvas(modifier) {
         val viewBox = when (name) {
             NookIconName.Icon14Processing -> 14f to 14f
+            NookIconName.Icon16AdjustmentsVertical -> 16f to 16f
             NookIconName.Icon16Archive -> 16f to 16f
             NookIconName.Icon16ArrowDiagonal -> 16f to 16f
             NookIconName.Icon16ArrowDown -> 16f to 16f
@@ -111,6 +113,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon16Chat -> 16f to 16f
             NookIconName.Icon16Check -> 16f to 16f
             NookIconName.Icon16CheckCircle -> 16f to 16f
+            NookIconName.Icon16CheckCircleLine -> 16f to 16f
             NookIconName.Icon16Clock -> 16f to 16f
             NookIconName.Icon16Copy -> 16f to 16f
             NookIconName.Icon16ExclamationCircle -> 16.25f to 16.25f
@@ -122,6 +125,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon16Move -> 16f to 16f
             NookIconName.Icon16Paper -> 16f to 16f
             NookIconName.Icon16Pen -> 16f to 16f
+            NookIconName.Icon16PencilLine -> 16f to 16f
             NookIconName.Icon16Plus -> 16f to 16f
             NookIconName.Icon16Refresh -> 16f to 16f
             NookIconName.Icon16Sad -> 16f to 16f
@@ -135,7 +139,6 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon20Camera -> 20f to 20f
             NookIconName.Icon20Delete -> 20f to 20f
             NookIconName.Icon20ExclamationCircle -> 20f to 20f
-            NookIconName.Icon20Filter -> 20f to 20f
             NookIconName.Icon20History -> 20f to 20f
             NookIconName.Icon20Images -> 20f to 20f
             NookIconName.Icon20MagnifyingGlass -> 20f to 20f
@@ -143,7 +146,6 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon20Picture -> 20f to 20f
             NookIconName.Icon20PlayMini -> 20f to 20f
             NookIconName.Icon24Add -> 24f to 24f
-            NookIconName.Icon24AdjustmentsVertical -> 24f to 24f
             NookIconName.Icon24Archive -> 24f to 24f
             NookIconName.Icon24ArchiveAdd -> 24f to 24f
             NookIconName.Icon24ArchiveCheck -> 24f to 24f
@@ -186,6 +188,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
         drawContext.canvas.scale(size.width / viewBox.first, size.height / viewBox.second)
         when (name) {
             NookIconName.Icon14Processing -> drawIcon14Processing()
+            NookIconName.Icon16AdjustmentsVertical -> drawIcon16AdjustmentsVertical()
             NookIconName.Icon16Archive -> drawIcon16Archive()
             NookIconName.Icon16ArrowDiagonal -> drawIcon16ArrowDiagonal()
             NookIconName.Icon16ArrowDown -> drawIcon16ArrowDown()
@@ -195,6 +198,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon16Chat -> drawIcon16Chat()
             NookIconName.Icon16Check -> drawIcon16Check()
             NookIconName.Icon16CheckCircle -> drawIcon16CheckCircle()
+            NookIconName.Icon16CheckCircleLine -> drawIcon16CheckCircleLine()
             NookIconName.Icon16Clock -> drawIcon16Clock()
             NookIconName.Icon16Copy -> drawIcon16Copy()
             NookIconName.Icon16ExclamationCircle -> drawIcon16ExclamationCircle()
@@ -206,6 +210,7 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon16Move -> drawIcon16Move()
             NookIconName.Icon16Paper -> drawIcon16Paper()
             NookIconName.Icon16Pen -> drawIcon16Pen()
+            NookIconName.Icon16PencilLine -> drawIcon16PencilLine()
             NookIconName.Icon16Plus -> drawIcon16Plus()
             NookIconName.Icon16Refresh -> drawIcon16Refresh()
             NookIconName.Icon16Sad -> drawIcon16Sad()
@@ -219,7 +224,6 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon20Camera -> drawIcon20Camera()
             NookIconName.Icon20Delete -> drawIcon20Delete()
             NookIconName.Icon20ExclamationCircle -> drawIcon20ExclamationCircle()
-            NookIconName.Icon20Filter -> drawIcon20Filter()
             NookIconName.Icon20History -> drawIcon20History()
             NookIconName.Icon20Images -> drawIcon20Images()
             NookIconName.Icon20MagnifyingGlass -> drawIcon20MagnifyingGlass()
@@ -227,7 +231,6 @@ fun NookIcon(name: NookIconName, modifier: Modifier = Modifier) {
             NookIconName.Icon20Picture -> drawIcon20Picture()
             NookIconName.Icon20PlayMini -> drawIcon20PlayMini()
             NookIconName.Icon24Add -> drawIcon24Add()
-            NookIconName.Icon24AdjustmentsVertical -> drawIcon24AdjustmentsVertical()
             NookIconName.Icon24Archive -> drawIcon24Archive()
             NookIconName.Icon24ArchiveAdd -> drawIcon24ArchiveAdd()
             NookIconName.Icon24ArchiveCheck -> drawIcon24ArchiveCheck()
@@ -288,6 +291,61 @@ private fun DrawScope.drawIcon14Processing() {
         cubicTo(11.5951f, 2.93507f, 12.3557f, 4.00756f, 12.7333f, 5.23333f)
     }
     drawPath(path = path1, color = Color(0xFF4E5662), style = Stroke(width = 2f, cap = StrokeCap.Round))
+}
+
+private fun DrawScope.drawIcon16AdjustmentsVertical() {
+    val path0 = Path().apply {
+
+        moveTo(4.8899f, 0.88995f)
+        cubicTo(5.2581f, 0.88995f, 5.557f, 1.1888f, 5.557f, 1.5569f)
+        lineTo(5.557f, 8.057f)
+        cubicTo(5.5569f, 8.095f, 5.5514f, 8.1319f, 5.5452f, 8.1683f)
+        cubicTo(6.3277f, 8.4398f, 6.8899f, 9.1821f, 6.8899f, 10.057f)
+        cubicTo(6.8898f, 10.927f, 6.333f, 11.665f, 5.557f, 11.94f)
+        lineTo(5.557f, 14.812f)
+        cubicTo(5.5567f, 15.18f, 5.258f, 15.478f, 4.8899f, 15.478f)
+        cubicTo(4.5219f, 15.478f, 4.2232f, 15.18f, 4.223f, 14.812f)
+        lineTo(4.223f, 11.94f)
+        cubicTo(3.4469f, 11.665f, 2.8901f, 10.927f, 2.89f, 10.057f)
+        cubicTo(2.89f, 9.1824f, 3.4517f, 8.44f, 4.2337f, 8.1683f)
+        cubicTo(4.2276f, 8.132f, 4.223f, 8.095f, 4.223f, 8.057f)
+        lineTo(4.223f, 1.5569f)
+        cubicTo(4.223f, 1.1888f, 4.5218f, 0.88995f, 4.8899f, 0.88995f)
+        close()
+        moveTo(4.8899f, 9.39f)
+        cubicTo(4.5218f, 9.39f, 4.223f, 9.6888f, 4.223f, 10.057f)
+        cubicTo(4.2231f, 10.425f, 4.5219f, 10.724f, 4.8899f, 10.724f)
+        cubicTo(5.258f, 10.724f, 5.5568f, 10.425f, 5.557f, 10.057f)
+        cubicTo(5.557f, 9.6888f, 5.2581f, 9.39f, 4.8899f, 9.39f)
+        close()
+    }
+    drawPath(path = path0, color = Color(0xFF4E5662))
+    val path1 = Path().apply {
+
+        moveTo(11.109f, 15.479f)
+        cubicTo(11.477f, 15.479f, 11.776f, 15.181f, 11.776f, 14.812f)
+        lineTo(11.776f, 8.3125f)
+        cubicTo(11.776f, 8.2744f, 11.77f, 8.2375f, 11.764f, 8.2012f)
+        cubicTo(12.546f, 7.9297f, 13.109f, 7.1874f, 13.109f, 6.3125f)
+        cubicTo(13.109f, 5.4422f, 12.552f, 4.7046f, 11.776f, 4.4297f)
+        lineTo(11.776f, 1.5547f)
+        cubicTo(11.775f, 1.1867f, 11.477f, 0.88865f, 11.109f, 0.88865f)
+        cubicTo(10.741f, 0.88865f, 10.442f, 1.1867f, 10.442f, 1.5547f)
+        lineTo(10.442f, 4.4297f)
+        cubicTo(9.6656f, 4.7046f, 9.1087f, 5.4422f, 9.1087f, 6.3125f)
+        cubicTo(9.1087f, 7.187f, 9.6704f, 7.9295f, 10.452f, 8.2012f)
+        cubicTo(10.446f, 8.2374f, 10.442f, 8.2745f, 10.442f, 8.3125f)
+        lineTo(10.442f, 14.812f)
+        cubicTo(10.442f, 15.181f, 10.741f, 15.479f, 11.109f, 15.479f)
+        close()
+        moveTo(11.109f, 6.9795f)
+        cubicTo(10.741f, 6.9795f, 10.442f, 6.6807f, 10.442f, 6.3125f)
+        cubicTo(10.442f, 5.9443f, 10.741f, 5.6455f, 11.109f, 5.6455f)
+        cubicTo(11.477f, 5.6455f, 11.776f, 5.9443f, 11.776f, 6.3125f)
+        cubicTo(11.776f, 6.6807f, 11.477f, 6.9795f, 11.109f, 6.9795f)
+        close()
+    }
+    drawPath(path = path1, color = Color(0xFF4E5662))
 }
 
 private fun DrawScope.drawIcon16Archive() {
@@ -558,6 +616,49 @@ private fun DrawScope.drawIcon16CheckCircle() {
         close()
     }
     drawPath(path = path0, color = Color(0xFFB5BBC3))
+}
+
+private fun DrawScope.drawIcon16CheckCircleLine() {
+    val path0 = Path().apply {
+
+        moveTo(8f, 1.3333f)
+        cubicTo(11.682f, 1.3333f, 14.667f, 4.318f, 14.667f, 8f)
+        cubicTo(14.667f, 11.682f, 11.682f, 14.667f, 8f, 14.667f)
+        cubicTo(4.318f, 14.667f, 1.3333f, 11.682f, 1.3333f, 8f)
+        cubicTo(1.3333f, 4.318f, 4.318f, 1.3333f, 8f, 1.3333f)
+        close()
+        moveTo(8f, 2.6666f)
+        cubicTo(6.5855f, 2.6666f, 5.2289f, 3.2285f, 4.2287f, 4.2287f)
+        cubicTo(3.2285f, 5.2289f, 2.6666f, 6.5855f, 2.6666f, 8f)
+        cubicTo(2.6666f, 9.4144f, 3.2285f, 10.771f, 4.2287f, 11.771f)
+        cubicTo(5.2289f, 12.771f, 6.5855f, 13.333f, 8f, 13.333f)
+        cubicTo(9.4144f, 13.333f, 10.771f, 12.771f, 11.771f, 11.771f)
+        cubicTo(12.771f, 10.771f, 13.333f, 9.4144f, 13.333f, 8f)
+        cubicTo(13.333f, 6.5855f, 12.771f, 5.2289f, 11.771f, 4.2287f)
+        cubicTo(10.771f, 3.2285f, 9.4144f, 2.6666f, 8f, 2.6666f)
+        close()
+        moveTo(10.357f, 5.5873f)
+        cubicTo(10.476f, 5.4665f, 10.638f, 5.3959f, 10.808f, 5.3902f)
+        cubicTo(10.978f, 5.3844f, 11.143f, 5.4438f, 11.271f, 5.5563f)
+        cubicTo(11.399f, 5.6687f, 11.478f, 5.8257f, 11.494f, 5.995f)
+        cubicTo(11.51f, 6.1644f, 11.46f, 6.3333f, 11.355f, 6.4673f)
+        lineTo(11.3f, 6.53f)
+        lineTo(7.576f, 10.255f)
+        cubicTo(7.4489f, 10.382f, 7.2795f, 10.458f, 7.1001f, 10.468f)
+        cubicTo(6.9207f, 10.479f, 6.7436f, 10.423f, 6.6026f, 10.311f)
+        lineTo(6.5386f, 10.255f)
+        lineTo(4.7f, 8.416f)
+        cubicTo(4.5791f, 8.2963f, 4.5086f, 8.1349f, 4.5028f, 7.9649f)
+        cubicTo(4.4971f, 7.795f, 4.5565f, 7.6292f, 4.6689f, 7.5016f)
+        cubicTo(4.7814f, 7.374f, 4.9384f, 7.2942f, 5.1077f, 7.2785f)
+        cubicTo(5.2771f, 7.2628f, 5.446f, 7.3125f, 5.58f, 7.4173f)
+        lineTo(5.6426f, 7.4733f)
+        lineTo(7.0573f, 8.8873f)
+        lineTo(10.357f, 5.5873f)
+        lineTo(10.357f, 5.5873f)
+        close()
+    }
+    drawPath(path = path0, color = Color(0xFF4E5662))
 }
 
 private fun DrawScope.drawIcon16Clock() {
@@ -1019,6 +1120,54 @@ private fun DrawScope.drawIcon16Pen() {
     drawPath(path = path0, color = Color(0xFFB5BBC3))
 }
 
+private fun DrawScope.drawIcon16PencilLine() {
+    val path0 = Path().apply {
+
+        moveTo(10.69f, 2.01044f)
+        cubicTo(11.049f, 1.65137f, 11.5311f, 1.44228f, 12.0386f, 1.42556f)
+        cubicTo(12.546f, 1.40885f, 13.0409f, 1.58577f, 13.4227f, 1.92044f)
+        lineTo(13.5187f, 2.01044f)
+        lineTo(13.99f, 2.48177f)
+        cubicTo(14.3489f, 2.84072f, 14.5579f, 3.32269f, 14.5746f, 3.83f)
+        cubicTo(14.5913f, 4.3373f, 14.4145f, 4.83198f, 14.08f, 5.21377f)
+        lineTo(13.99f, 5.30977f)
+        lineTo(6.51534f, 12.7851f)
+        cubicTo(6.40966f, 12.8908f, 6.28163f, 12.9714f, 6.14068f, 13.0211f)
+        lineTo(6.03268f, 13.0524f)
+        lineTo(3.06334f, 13.7378f)
+        cubicTo(2.95932f, 13.7618f, 2.85105f, 13.7605f, 2.74762f, 13.7341f)
+        cubicTo(2.64419f, 13.7076f, 2.54862f, 13.6567f, 2.46894f, 13.5856f)
+        cubicTo(2.38926f, 13.5146f, 2.32779f, 13.4254f, 2.28969f, 13.3257f)
+        cubicTo(2.2516f, 13.2259f, 2.23799f, 13.1185f, 2.25001f, 13.0124f)
+        lineTo(2.26334f, 12.9371f)
+        lineTo(2.94801f, 9.96711f)
+        cubicTo(2.98184f, 9.82143f, 3.0479f, 9.6852f, 3.14134f, 9.56844f)
+        lineTo(3.21534f, 9.48511f)
+        lineTo(10.69f, 2.01044f)
+        close()
+        moveTo(10.2187f, 4.36711f)
+        lineTo(4.22534f, 10.3604f)
+        lineTo(3.80134f, 12.1991f)
+        lineTo(5.64001f, 11.7744f)
+        lineTo(11.6333f, 5.78111f)
+        lineTo(10.2187f, 4.36711f)
+        close()
+        moveTo(12.576f, 2.95311f)
+        cubicTo(12.4612f, 2.83832f, 12.3085f, 2.76937f, 12.1465f, 2.75918f)
+        cubicTo(11.9844f, 2.74899f, 11.8243f, 2.79827f, 11.696f, 2.89777f)
+        lineTo(11.6333f, 2.95311f)
+        lineTo(11.1613f, 3.42444f)
+        lineTo(12.576f, 4.83844f)
+        lineTo(13.0473f, 4.36711f)
+        cubicTo(13.1621f, 4.25231f, 13.2311f, 4.09958f, 13.2413f, 3.93756f)
+        cubicTo(13.2515f, 3.77554f, 13.2022f, 3.61538f, 13.1027f, 3.48711f)
+        lineTo(13.0473f, 3.42444f)
+        lineTo(12.576f, 2.95311f)
+        close()
+    }
+    drawPath(path = path0, color = Color(0xFF4E5662))
+}
+
 private fun DrawScope.drawIcon16Plus() {
     val path0 = Path().apply {
 
@@ -1214,10 +1363,9 @@ private fun DrawScope.drawIcon16Share() {
 
 private fun DrawScope.drawIcon16Trash() {
     val path0 = Path().apply {
-        fillType = PathFillType.EvenOdd
 
         moveTo(9.52f, 1.33333f)
-        cubicTo(9.79984f, 1.33341f, 10.0726f, 1.42152f, 10.2995f, 1.5852f)
+        cubicTo(9.79984f, 1.33341f, 10.0726f, 1.42152f, 10.2995f, 1.58521f)
         cubicTo(10.5265f, 1.74889f, 10.6962f, 1.97983f, 10.7847f, 2.24533f)
         lineTo(11.1467f, 3.33333f)
         lineTo(13.3333f, 3.33333f)
@@ -1227,7 +1375,7 @@ private fun DrawScope.drawIcon16Trash() {
         cubicTo(13.6797f, 4.59643f, 13.5101f, 4.66667f, 13.3333f, 4.66667f)
         lineTo(13.3313f, 4.714f)
         lineTo(12.7533f, 12.8093f)
-        cubicTo(12.7173f, 13.3137f, 12.4914f, 13.7858f, 12.1214f, 14.1304f)
+        cubicTo(12.7173f, 13.3137f, 12.4915f, 13.7858f, 12.1214f, 14.1304f)
         cubicTo(11.7513f, 14.475f, 11.2644f, 14.6666f, 10.7587f, 14.6667f)
         lineTo(5.24133f, 14.6667f)
         cubicTo(4.73564f, 14.6666f, 4.24874f, 14.475f, 3.87864f, 14.1304f)
@@ -1244,31 +1392,41 @@ private fun DrawScope.drawIcon16Trash() {
         cubicTo(5.92784f, 1.42132f, 6.20071f, 1.33327f, 6.48067f, 1.33333f)
         lineTo(9.52f, 1.33333f)
         close()
-        moveTo(6f, 6.66667f)
-        cubicTo(5.83671f, 6.66669f, 5.67911f, 6.72664f, 5.55708f, 6.83514f)
-        cubicTo(5.43506f, 6.94365f, 5.3571f, 7.09317f, 5.338f, 7.25533f)
-        lineTo(5.33333f, 7.33333f)
-        lineTo(5.33333f, 11.3333f)
-        cubicTo(5.33352f, 11.5033f, 5.39859f, 11.6667f, 5.51523f, 11.7902f)
-        cubicTo(5.63188f, 11.9138f, 5.7913f, 11.9882f, 5.96093f, 11.9981f)
-        cubicTo(6.13056f, 12.0081f, 6.29759f, 11.9529f, 6.42789f, 11.8438f)
-        cubicTo(6.55819f, 11.7348f, 6.64193f, 11.5801f, 6.662f, 11.4113f)
-        lineTo(6.66667f, 11.3333f)
-        lineTo(6.66667f, 7.33333f)
-        cubicTo(6.66667f, 7.15652f, 6.59643f, 6.98695f, 6.4714f, 6.86193f)
-        cubicTo(6.34638f, 6.7369f, 6.17681f, 6.66667f, 6f, 6.66667f)
+        moveTo(11.998f, 4.66667f)
+        lineTo(4.002f, 4.66667f)
+        lineTo(4.57667f, 12.714f)
+        cubicTo(4.58863f, 12.8821f, 4.66385f, 13.0395f, 4.78717f, 13.1544f)
+        cubicTo(4.9105f, 13.2693f, 5.07277f, 13.3333f, 5.24133f, 13.3333f)
+        lineTo(10.7587f, 13.3333f)
+        cubicTo(10.9272f, 13.3333f, 11.0895f, 13.2693f, 11.2128f, 13.1544f)
+        cubicTo(11.3362f, 13.0395f, 11.4114f, 12.8821f, 11.4233f, 12.714f)
+        lineTo(11.998f, 4.66667f)
         close()
-        moveTo(10f, 6.66667f)
-        cubicTo(9.82319f, 6.66667f, 9.65362f, 6.7369f, 9.5286f, 6.86193f)
-        cubicTo(9.40357f, 6.98695f, 9.33333f, 7.15652f, 9.33333f, 7.33333f)
-        lineTo(9.33333f, 11.3333f)
-        cubicTo(9.33333f, 11.5101f, 9.40357f, 11.6797f, 9.5286f, 11.8047f)
-        cubicTo(9.65362f, 11.9298f, 9.82319f, 12f, 10f, 12f)
-        cubicTo(10.1768f, 12f, 10.3464f, 11.9298f, 10.4714f, 11.8047f)
-        cubicTo(10.5964f, 11.6797f, 10.6667f, 11.5101f, 10.6667f, 11.3333f)
-        lineTo(10.6667f, 7.33333f)
-        cubicTo(10.6667f, 7.15652f, 10.5964f, 6.98695f, 10.4714f, 6.86193f)
-        cubicTo(10.3464f, 6.7369f, 10.1768f, 6.66667f, 10f, 6.66667f)
+        moveTo(6.66667f, 6.66667f)
+        cubicTo(6.82996f, 6.66669f, 6.98756f, 6.72664f, 7.10958f, 6.83514f)
+        cubicTo(7.23161f, 6.94365f, 7.30956f, 7.09317f, 7.32867f, 7.25533f)
+        lineTo(7.33333f, 7.33333f)
+        lineTo(7.33333f, 10.6667f)
+        cubicTo(7.33315f, 10.8366f, 7.26808f, 11f, 7.15143f, 11.1236f)
+        cubicTo(7.03479f, 11.2471f, 6.87536f, 11.3215f, 6.70574f, 11.3314f)
+        cubicTo(6.53611f, 11.3414f, 6.36908f, 11.2862f, 6.23878f, 11.1772f)
+        cubicTo(6.10848f, 11.0681f, 6.02474f, 10.9134f, 6.00467f, 10.7447f)
+        lineTo(6f, 10.6667f)
+        lineTo(6f, 7.33333f)
+        cubicTo(6f, 7.15652f, 6.07024f, 6.98695f, 6.19526f, 6.86193f)
+        cubicTo(6.32029f, 6.7369f, 6.48986f, 6.66667f, 6.66667f, 6.66667f)
+        close()
+        moveTo(9.33333f, 6.66667f)
+        cubicTo(9.51014f, 6.66667f, 9.67971f, 6.7369f, 9.80474f, 6.86193f)
+        cubicTo(9.92976f, 6.98695f, 10f, 7.15652f, 10f, 7.33333f)
+        lineTo(10f, 10.6667f)
+        cubicTo(10f, 10.8435f, 9.92976f, 11.013f, 9.80474f, 11.1381f)
+        cubicTo(9.67971f, 11.2631f, 9.51014f, 11.3333f, 9.33333f, 11.3333f)
+        cubicTo(9.15652f, 11.3333f, 8.98695f, 11.2631f, 8.86193f, 11.1381f)
+        cubicTo(8.73691f, 11.013f, 8.66667f, 10.8435f, 8.66667f, 10.6667f)
+        lineTo(8.66667f, 7.33333f)
+        cubicTo(8.66667f, 7.15652f, 8.73691f, 6.98695f, 8.86193f, 6.86193f)
+        cubicTo(8.98695f, 6.7369f, 9.15652f, 6.66667f, 9.33333f, 6.66667f)
         close()
         moveTo(9.52f, 2.66667f)
         lineTo(6.48f, 2.66667f)
@@ -2464,55 +2622,6 @@ private fun DrawScope.drawIcon20ExclamationCircle() {
     drawPath(path = path0, color = Color(0xFF4E5662), style = Stroke(width = 1.25f, cap = StrokeCap.Round))
 }
 
-private fun DrawScope.drawIcon20Filter() {
-    val path0 = Path().apply {
-
-        moveTo(8.75f, 5f)
-        lineTo(16.875f, 5f)
-        moveTo(8.75f, 5f)
-        cubicTo(8.75f, 5.33152f, 8.6183f, 5.64946f, 8.38388f, 5.88388f)
-        cubicTo(8.14946f, 6.1183f, 7.83152f, 6.25f, 7.5f, 6.25f)
-        cubicTo(7.16848f, 6.25f, 6.85054f, 6.1183f, 6.61612f, 5.88388f)
-        cubicTo(6.3817f, 5.64946f, 6.25f, 5.33152f, 6.25f, 5f)
-        moveTo(8.75f, 5f)
-        cubicTo(8.75f, 4.66848f, 8.6183f, 4.35054f, 8.38388f, 4.11612f)
-        cubicTo(8.14946f, 3.8817f, 7.83152f, 3.75f, 7.5f, 3.75f)
-        cubicTo(7.16848f, 3.75f, 6.85054f, 3.8817f, 6.61612f, 4.11612f)
-        cubicTo(6.3817f, 4.35054f, 6.25f, 4.66848f, 6.25f, 5f)
-        moveTo(6.25f, 5f)
-        lineTo(3.125f, 5f)
-        moveTo(8.75f, 15f)
-        lineTo(16.875f, 15f)
-        moveTo(8.75f, 15f)
-        cubicTo(8.75f, 15.3315f, 8.6183f, 15.6495f, 8.38388f, 15.8839f)
-        cubicTo(8.14946f, 16.1183f, 7.83152f, 16.25f, 7.5f, 16.25f)
-        cubicTo(7.16848f, 16.25f, 6.85054f, 16.1183f, 6.61612f, 15.8839f)
-        cubicTo(6.3817f, 15.6495f, 6.25f, 15.3315f, 6.25f, 15f)
-        moveTo(8.75f, 15f)
-        cubicTo(8.75f, 14.6685f, 8.6183f, 14.3505f, 8.38388f, 14.1161f)
-        cubicTo(8.14946f, 13.8817f, 7.83152f, 13.75f, 7.5f, 13.75f)
-        cubicTo(7.16848f, 13.75f, 6.85054f, 13.8817f, 6.61612f, 14.1161f)
-        cubicTo(6.3817f, 14.3505f, 6.25f, 14.6685f, 6.25f, 15f)
-        moveTo(6.25f, 15f)
-        lineTo(3.125f, 15f)
-        moveTo(13.75f, 10f)
-        lineTo(16.875f, 10f)
-        moveTo(13.75f, 10f)
-        cubicTo(13.75f, 10.3315f, 13.6183f, 10.6495f, 13.3839f, 10.8839f)
-        cubicTo(13.1495f, 11.1183f, 12.8315f, 11.25f, 12.5f, 11.25f)
-        cubicTo(12.1685f, 11.25f, 11.8505f, 11.1183f, 11.6161f, 10.8839f)
-        cubicTo(11.3817f, 10.6495f, 11.25f, 10.3315f, 11.25f, 10f)
-        moveTo(13.75f, 10f)
-        cubicTo(13.75f, 9.66848f, 13.6183f, 9.35054f, 13.3839f, 9.11612f)
-        cubicTo(13.1495f, 8.8817f, 12.8315f, 8.75f, 12.5f, 8.75f)
-        cubicTo(12.1685f, 8.75f, 11.8505f, 8.8817f, 11.6161f, 9.11612f)
-        cubicTo(11.3817f, 9.35054f, 11.25f, 9.66848f, 11.25f, 10f)
-        moveTo(11.25f, 10f)
-        lineTo(3.125f, 10f)
-    }
-    drawPath(path = path0, color = Color(0xFF000000), style = Stroke(width = 1.25f, cap = StrokeCap.Round))
-}
-
 private fun DrawScope.drawIcon20History() {
     val path0 = Path().apply {
 
@@ -2726,61 +2835,6 @@ private fun DrawScope.drawIcon24Add() {
         lineTo(12.0029f, 15.998f)
     }
     drawPath(path = path2, color = Color(0xFF99A0AC), style = Stroke(width = 1.5f, cap = StrokeCap.Square))
-}
-
-private fun DrawScope.drawIcon24AdjustmentsVertical() {
-    val path0 = Path().apply {
-
-        moveTo(8.5f, 4f)
-        cubicTo(8.9142f, 4f, 9.25f, 4.3358f, 9.25f, 4.75f)
-        lineTo(9.25f, 12.0625f)
-        cubicTo(9.25f, 12.1055f, 9.2443f, 12.1474f, 9.2373f, 12.1885f)
-        cubicTo(10.1174f, 12.4939f, 10.75f, 13.3284f, 10.75f, 14.3125f)
-        cubicTo(10.75f, 15.2917f, 10.1233f, 16.1214f, 9.25f, 16.4307f)
-        lineTo(9.25f, 19.6621f)
-        cubicTo(9.25f, 20.0763f, 8.9142f, 20.4121f, 8.5f, 20.4121f)
-        cubicTo(8.0858f, 20.4121f, 7.75f, 20.0763f, 7.75f, 19.6621f)
-        lineTo(7.75f, 16.4307f)
-        cubicTo(6.8767f, 16.1214f, 6.25f, 15.2917f, 6.25f, 14.3125f)
-        cubicTo(6.25f, 13.3287f, 6.882f, 12.4942f, 7.7617f, 12.1885f)
-        cubicTo(7.7548f, 12.1475f, 7.75f, 12.1055f, 7.75f, 12.0625f)
-        lineTo(7.75f, 4.75f)
-        cubicTo(7.75f, 4.3358f, 8.0858f, 4f, 8.5f, 4f)
-        close()
-        moveTo(8.5f, 13.5625f)
-        cubicTo(8.0858f, 13.5625f, 7.75f, 13.8983f, 7.75f, 14.3125f)
-        cubicTo(7.75f, 14.7267f, 8.0858f, 15.0625f, 8.5f, 15.0625f)
-        cubicTo(8.9142f, 15.0625f, 9.25f, 14.7267f, 9.25f, 14.3125f)
-        cubicTo(9.25f, 13.8983f, 8.9142f, 13.5625f, 8.5f, 13.5625f)
-        close()
-    }
-    drawPath(path = path0, color = Color(0xFF4E5662))
-    val path1 = Path().apply {
-
-        moveTo(15.5f, 20.4121f)
-        cubicTo(15.9142f, 20.4121f, 16.25f, 20.0763f, 16.25f, 19.6621f)
-        lineTo(16.25f, 12.3496f)
-        cubicTo(16.25f, 12.3065f, 16.2443f, 12.2647f, 16.2373f, 12.2236f)
-        cubicTo(17.1174f, 11.9182f, 17.75f, 11.0837f, 17.75f, 10.0996f)
-        cubicTo(17.75f, 9.1204f, 17.1233f, 8.2907f, 16.25f, 7.9815f)
-        lineTo(16.25f, 4.75f)
-        cubicTo(16.25f, 4.3358f, 15.9142f, 4f, 15.5f, 4f)
-        cubicTo(15.0858f, 4f, 14.75f, 4.3358f, 14.75f, 4.75f)
-        lineTo(14.75f, 7.9815f)
-        cubicTo(13.8767f, 8.2907f, 13.25f, 9.1204f, 13.25f, 10.0996f)
-        cubicTo(13.25f, 11.0834f, 13.882f, 11.9179f, 14.7617f, 12.2236f)
-        cubicTo(14.7548f, 12.2646f, 14.75f, 12.3066f, 14.75f, 12.3496f)
-        lineTo(14.75f, 19.6621f)
-        cubicTo(14.75f, 20.0763f, 15.0858f, 20.4121f, 15.5f, 20.4121f)
-        close()
-        moveTo(15.5f, 10.8496f)
-        cubicTo(15.0858f, 10.8496f, 14.75f, 10.5138f, 14.75f, 10.0996f)
-        cubicTo(14.75f, 9.6854f, 15.0858f, 9.3496f, 15.5f, 9.3496f)
-        cubicTo(15.9142f, 9.3496f, 16.25f, 9.6854f, 16.25f, 10.0996f)
-        cubicTo(16.25f, 10.5138f, 15.9142f, 10.8496f, 15.5f, 10.8496f)
-        close()
-    }
-    drawPath(path = path1, color = Color(0xFF4E5662))
 }
 
 private fun DrawScope.drawIcon24Archive() {
@@ -3246,7 +3300,7 @@ private fun DrawScope.drawIcon24More() {
         lineTo(3.25f, 10.75f)
         close()
     }
-    drawPath(path = path0, color = Color(0xFF848B96))
+    drawPath(path = path0, color = Color(0xFF353C46))
     val path1 = Path().apply {
 
         moveTo(10.75f, 10.75f)
@@ -3256,7 +3310,7 @@ private fun DrawScope.drawIcon24More() {
         lineTo(10.75f, 10.75f)
         close()
     }
-    drawPath(path = path1, color = Color(0xFF848B96))
+    drawPath(path = path1, color = Color(0xFF353C46))
     val path2 = Path().apply {
 
         moveTo(18.25f, 10.75f)
@@ -3266,7 +3320,7 @@ private fun DrawScope.drawIcon24More() {
         lineTo(18.25f, 10.75f)
         close()
     }
-    drawPath(path = path2, color = Color(0xFF848B96))
+    drawPath(path = path2, color = Color(0xFF353C46))
 }
 
 private fun DrawScope.drawIcon24Pause() {

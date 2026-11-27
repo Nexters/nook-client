@@ -1,10 +1,11 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { Trash2 } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useArchives } from '@/features/archive/api/queries';
 import { SavePostSheet } from '@/features/share/components/SavePostSheet';
-import { buildPostShareUrl, copyText, shareViaSystem } from '@/features/share/lib/shareUrl';
-import { Icon16Move, Icon16Share } from '@/shared/icons/NookIcons';
+import { postSharePreview, ShareSheet } from '@/features/share/components/ShareSheet';
+import { shareErrorMessage } from '@/features/share/lib/shareError';
+import { buildPostShareUrl } from '@/features/share/lib/shareUrl';
+import { Icon16Move, Icon16Share, Icon16Trash } from '@/shared/icons/NookIcons';
 import { useToast } from '@/shared/toast';
 import { MoreMenu, Popup } from '@/shared/ui';
 import { deletePost, issuePostShareLink, replacePostArchives } from '../api';
@@ -39,6 +40,10 @@ export function SavedPostActions({ detail, onDeleted }: SavedPostActionsProps) {
   const showSavedToast = useSavedToArchivesToast();
   const { data: myArchives } = useArchives();
 
+  // 공유 링크는 열 때마다 새로 발급한다 — 발급 시점 스냅샷이라 이전 링크를 재사용하면 내용이 낡는다.
+  const issueShare = useMutation({ mutationFn: issuePostShareLink });
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+
   const [moveOpen, setMoveOpen] = useState(false);
   const updateArchivesMutation = useUpdatePostArchives(postId);
 
@@ -67,21 +72,6 @@ export function SavedPostActions({ detail, onDeleted }: SavedPostActionsProps) {
         onError: () => showToast({ variant: 'simple', title: '게시물을 옮기지 못했어요' }),
       },
     );
-  }
-
-  // 공유: 토큰을 받아 OS 공유 시트를 열고, 시트를 못 여는 환경이면 링크를 복사한다.
-  // 사용자가 시트를 닫은 경우(취소)도 false 라 복사로 이어진다 — 손해 없는 폴백이다.
-  async function share() {
-    try {
-      const url = buildPostShareUrl(await issuePostShareLink(postId));
-      if (await shareViaSystem({ title: detail.title, url })) return;
-      showToast({
-        variant: 'simple',
-        title: (await copyText(url)) ? '링크를 복사했어요' : '공유 링크를 만들지 못했어요',
-      });
-    } catch {
-      showToast({ variant: 'simple', title: '공유 링크를 만들지 못했어요' });
-    }
   }
 
   function remove(archiveIds: number[]) {
@@ -128,13 +118,23 @@ export function SavedPostActions({ detail, onDeleted }: SavedPostActionsProps) {
     <>
       <MoreMenu
         items={[
-          { label: '게시물 공유', icon: <Icon16Share />, onSelect: () => void share() },
+          {
+            label: '게시물 공유',
+            icon: <Icon16Share />,
+            onSelect: () =>
+              issueShare.mutate(postId, {
+                onSuccess: (token) => setShareUrl(buildPostShareUrl(token)),
+                onError: (error) =>
+                  showToast({
+                    variant: 'simple',
+                    title: shareErrorMessage(error, '공유 링크를 만들지 못했어요'),
+                  }),
+              }),
+          },
           { label: '게시물 이동', icon: <Icon16Move />, onSelect: () => setMoveOpen(true) },
           {
             label: '게시물 삭제',
-            icon: (
-              <Trash2 size={16} strokeWidth={1.5} className="text-[#FA5947]" aria-hidden="true" />
-            ),
+            icon: <Icon16Trash />,
             destructive: true,
             // 한 아카이브에만 있으면 고를 게 없다 — 바로 확인 팝업.
             onSelect: () =>
@@ -144,6 +144,16 @@ export function SavedPostActions({ detail, onDeleted }: SavedPostActionsProps) {
           },
         ]}
       />
+
+      {shareUrl ? (
+        <ShareSheet
+          open
+          onOpenChange={(open) => !open && setShareUrl(null)}
+          url={shareUrl}
+          title="게시물 공유"
+          preview={postSharePreview(detail)}
+        />
+      ) : null}
 
       <SavePostSheet
         open={moveOpen}

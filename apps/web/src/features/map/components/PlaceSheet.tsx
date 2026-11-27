@@ -5,9 +5,9 @@ import { EmptySavedPlaces } from '@/features/map/components/EmptySavedPlaces';
 import { PlaceActions } from '@/features/map/components/PlaceActions';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import { PlaceSearchPanel } from '@/features/map/components/PlaceSearchPanel';
+import { PLACE_SORT_LABEL } from '@/features/map/components/PlaceSortSheet';
 import {
   getPlaceSheetLayoutClassNames,
-  getSheetReleaseDuration,
   getSnapTransitionDurationSeconds,
   SNAP_DURATION_VAR,
 } from '@/features/map/components/place-sheet-layout';
@@ -21,6 +21,7 @@ import {
 } from '@/features/map/constants';
 import type {
   PlaceDetail as PlaceDetailModel,
+  PlaceSort,
   RecentPlace,
   SavedPlaceSearchPage,
 } from '@/features/map/types';
@@ -29,9 +30,9 @@ import { PlaceCard } from '@/features/place';
 import {
   Icon16ArrowDown,
   Icon20ArrowUp,
-  Icon20MagnifyingGlass,
   Icon24Back,
   Icon24Filter,
+  Icon24MagnifyingGlass,
 } from '@/shared/icons/NookIcons';
 import { AllowBackGesture } from '@/shared/lib/backGesture';
 import { useCloseOnBack } from '@/shared/lib/backInterceptors';
@@ -64,8 +65,6 @@ export function PlaceSheet({
   recentPlacesTotal,
   recentPlacesLoading = false,
   recentPlacesPaging,
-  sort = 'LATEST',
-  onSortChange,
   firstSave = false,
   selectedPlace,
   shareToken,
@@ -76,12 +75,12 @@ export function PlaceSheet({
   userCoords,
   isSearchMode,
   searchQuery,
-  searchFocusRequest,
   searchPage,
   onSearchQueryChange,
   onSelectSearchResult,
   hidden = false,
   filterActive = false,
+  sort = 'LATEST',
   onSnapChange,
   onSelectPlace,
   onClose,
@@ -89,10 +88,9 @@ export function PlaceSheet({
   onExitSearch,
   onSearchInputFocus,
   onOpenFilter,
+  onOpenSort,
 }: {
   recentPlaces: RecentPlace[];
-  sort?: 'LATEST' | 'OLDEST' | 'NEAREST';
-  onSortChange?: (sort: 'LATEST' | 'OLDEST' | 'NEAREST') => void;
   /** 지금 필터 조건의 전체 장소 수 — 헤더의 `N곳`. 첫 응답 전엔 없어서 숫자를 비워둔다. */
   recentPlacesTotal?: number;
   /** 지금 필터 조건의 목록을 아직 한 번도 못 받았는지 — 빈 상태 대신 스켈레톤을 그린다. */
@@ -119,7 +117,6 @@ export function PlaceSheet({
   isSearchMode: boolean;
   /** 검색어·결과 — 검색 결과 지도와 같은 값을 써야 해서 `MapPage` 가 갖는다. */
   searchQuery: string;
-  searchFocusRequest?: number;
   searchPage: SavedPlaceSearchPage | undefined;
   onSearchQueryChange: (query: string) => void;
   /** 검색 결과 카드 선택 — 시트 상세가 아니라 검색 결과 지도로 들어간다(NOOK-383). */
@@ -131,6 +128,8 @@ export function PlaceSheet({
   hidden?: boolean;
   /** 아카이브 필터가 걸려 있는지 — 필터 아이콘에 점 배지를 단다. */
   filterActive?: boolean;
+  /** 지금 적용 중인 정렬 — 헤더의 정렬 버튼 글자(NOOK-430). */
+  sort?: PlaceSort['type'];
   onSnapChange: (snap: number | string | null) => void;
   /**
    * 장소 선택. 두 번째 인자는 그 장소가 구독한 공유 아카이브의 것일 때의 공유 토큰이다 —
@@ -144,6 +143,8 @@ export function PlaceSheet({
   onSearchInputFocus: () => void;
   /** 지도에 노출할 아카이브 선택 시트를 연다(NOOK-311). */
   onOpenFilter: () => void;
+  /** 정렬 시트를 연다(NOOK-430). */
+  onOpenSort: () => void;
 }) {
   const overlayContainer = useAppOverlayContainer();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -178,8 +179,14 @@ export function PlaceSheet({
   // 콘텐츠를 가린다. isScrolled 를 함께 보므로 스크롤이 없는 짧은 상세에서는 뜨지 않는다.
   const showScrollToTop = showStickyHeader && isAtBottom;
   const layoutClassNames = getPlaceSheetLayoutClassNames(bottomMenuHidden, snap, showStickyHeader);
-  // 검색은 같은 시트에서 즉시 입력 상태로 바뀐다. 상세·결과 지도를 볼 때는
-  // 패널을 숨겨 검색어와 스크롤을 보존하고, 뒤로가기는 검색 모드만 닫는다.
+  // 검색은 같은 시트 안에서 제자리에 바로 뜨고 입력에 포커스한다 — 옆에서 밀려 들어오지 않는다.
+  // Android 하드웨어 백은 검색 닫기로 수렴한다.
+  // 검색 패널은 상세가 열려 있는 동안 마운트된 채로 가려만 둔다 — 검색 결과에서 연 상세를
+  // 닫으면 치던 검색어·결과·칩 필터가 그대로 있는 검색 화면으로 돌아와야 한다(MapPage 가
+  // 검색 모드를 끄지 않는 이유). 가려진 동안은 존재하지 않는 것처럼 굴어야 한다 —
+  // 뒤로가기 인터셉터도, 상세 위로 덮는 오버레이도 함께 빠진다.
+  // 시트를 가린 동안(검색 결과 지도)도 패널은 "덮인" 것으로 친다 — 뒤로가기 인터셉터가 빠져야
+  // Android 백이 검색 닫기가 아니라 결과 목록 복귀(히스토리 되감기)로 간다.
   const searchVisible = isSearchMode && !hasSelection && !hidden;
   useCloseOnBack(searchVisible, onExitSearch);
   // 스크롤 영역과 검색 오버레이가 같은 높이를 공유해야 해서, 높이만 래퍼로 올린다.
@@ -207,25 +214,9 @@ export function PlaceSheet({
   // 넣고, 화면이 스냅을 직접 바꾸는 경우(장소 선택 등)는 이 레이아웃 이펙트가 맡는다.
   // useEffect 가 아니라 useLayoutEffect 인 이유: vaul 의 스냅 이펙트는 passive 라
   // 자식이어도 모든 layout effect 뒤에 돈다 — 여기서 넣어야 이번 전환에 반영된다.
-  const releaseRef = useRef<{ y: number; velocity: number } | null>(null);
-  const pointerSample = useRef<{ y: number; time: number; velocity: number } | null>(null);
-  const applyReleaseDuration = (target: number | string | null) => {
-    const release = releaseRef.current;
-    if (!release || typeof target !== 'number') return;
-    const height = overlayContainer?.getBoundingClientRect().height || window.innerHeight;
-    const remaining = (1 - target) * height - release.y;
-    const duration = getSheetReleaseDuration(
-      remaining,
-      release.velocity,
-      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
-    );
-    contentRef.current?.style.setProperty(SNAP_DURATION_VAR, `${duration}s`);
-  };
   const prevSnapRef = useRef(snap);
   const applySnapDuration = (from: number | string | null, to: number | string | null) => {
-    const duration = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-      ? 0.12
-      : getSnapTransitionDurationSeconds(from, to);
+    const duration = getSnapTransitionDurationSeconds(from, to);
     if (duration === null) contentRef.current?.style.removeProperty(SNAP_DURATION_VAR);
     else contentRef.current?.style.setProperty(SNAP_DURATION_VAR, `${duration}s`);
   };
@@ -249,11 +240,10 @@ export function PlaceSheet({
     setIsAtBottom(false);
   }, [canScroll, selectedPlace?.id]);
 
-  // 목록이 맨 위(scrollTop 0)인 상태에서 아래로 끌면 iOS Safari 는 그 제스처를 스크롤
-  // 바운스로 가져가고 pointercancel 을 보낸다 — vaul 은 move 이벤트를 더 못 받아 시트가
-  // 안 접힌다(핸들을 잡을 때만 접히던 원인). 이 경우에만 기본 스크롤을 막아 제스처를
-  // vaul 의 시트 드래그로 넘긴다. 목록이 내려가 있을 땐(scrollTop > 0) 그대로 스크롤되고,
-  // 가로 스와이프(사진 캐러셀 등)는 건드리지 않는다.
+  // full 에서 목록이 맨 위(scrollTop 0)인데 아래로 끌면 iOS 는 그 제스처를 스크롤 바운스로
+  // 가져가며 pointercancel 을 보낸다 — vaul 이 move 를 더 못 받아 핸들을 잡을 때만 시트가
+  // 접혔다. 이 경우에만 기본 스크롤을 막아 같은 터치를 vaul 의 시트 드래그로 넘긴다(NOOK-441).
+  // 목록이 내려가 있거나 위로 미는 중, 가로 스와이프(사진 캐러셀)는 건드리지 않는다.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el || !canScroll) return;
@@ -297,9 +287,11 @@ export function PlaceSheet({
       // 시트가 손을 안 따라오다 손 뗀 순간 스냅으로 튀는 원인(QA: 핸들 말고는 안 끌린다).
       // 0 으로 고정해 페이드 대상 스냅을 최저점으로 밀어두면 그 분기에 걸리지 않는다.
       fadeFromIndex={0}
-      // 목록이 맨 위에 도달하면 같은 터치로 시트 드래그를 이어받는다.
-      // Vaul은 잠금 중 move마다 시간을 다시 찍어 100ms도 재터치를 요구할 수 있다.
-      // scrollTop 판정은 그대로 두고 시간 잠금만 제거해 목록 스크롤 우선권을 유지한다.
+      // vaul 은 스크롤 때문에 드래그를 한 번 거절하면 그 뒤 500ms 동안 드래그를 계속
+      // 거절하고, 거절할 때마다 타이머를 다시 찍는다 — 손을 떼지 않는 한 영영 안 풀린다.
+      // 그래서 목록을 내리다 맨 위에 닿아 이어서 끌면 시트가 반응하지 않는다(실측). 0 으로
+      // 두면 스크롤이 맨 위(scrollTop 0)에 닿는 순간 같은 제스처가 그대로 시트 드래그로
+      // 넘어간다 — 스크롤 중에는 어차피 scrollTop 조건이 막아주므로 오작동하지 않는다.
       scrollLockTimeout={0}
       // 키보드가 뜨면 vaul 이 드로어의 인라인 height 를 직접 덮어쓴다 —
       // `visualViewportHeight - rect.top` 으로 다시 계산하는데, 이 시트는 늘 컨테이너를
@@ -319,51 +311,13 @@ export function PlaceSheet({
       }
       activeSnapPoint={snap}
       setActiveSnapPoint={(next) => {
-        if (releaseRef.current) applyReleaseDuration(next);
-        else applySnapDuration(prevSnapRef.current, next);
-        prevSnapRef.current = next;
+        applySnapDuration(prevSnapRef.current, next);
         onSnapChange(next);
-      }}
-      onRelease={() => {
-        // Also runs when a small drag returns to the same snap (no state change).
-        applyReleaseDuration(prevSnapRef.current);
-        releaseRef.current = null;
-        pointerSample.current = null;
       }}
       container={overlayContainer}
     >
       <DrawerContent
         ref={contentRef}
-        onPointerDownCapture={(event) => {
-          releaseRef.current = null;
-          pointerSample.current = { y: event.clientY, time: event.timeStamp, velocity: 0 };
-        }}
-        onPointerMoveCapture={(event) => {
-          const previous = pointerSample.current;
-          if (!previous) return;
-          const elapsed = event.timeStamp - previous.time;
-          if (elapsed > 0)
-            pointerSample.current = {
-              y: event.clientY,
-              time: event.timeStamp,
-              velocity: (event.clientY - previous.y) / elapsed,
-            };
-        }}
-        onPointerUpCapture={(event) => {
-          const element = contentRef.current;
-          const sample = pointerSample.current;
-          if (!element || !sample || !element.classList.contains('vaul-dragging')) return;
-          const transform = getComputedStyle(element).transform;
-          const y = transform && transform !== 'none' ? new DOMMatrixReadOnly(transform).m42 : 0;
-          releaseRef.current = {
-            y,
-            velocity: event.timeStamp - sample.time > 100 ? 0 : sample.velocity,
-          };
-        }}
-        onPointerCancelCapture={() => {
-          releaseRef.current = null;
-          pointerSample.current = null;
-        }}
         overlay={false}
         // 핸들은 상세의 스티키 헤더가 대신할 때만 숨긴다. 목록 모드에선 어느 스크롤 위치에서든
         // 남겨 둬야 시트를 다시 내려 지도로 돌아갈 수 있다(NOOK-387).
@@ -435,8 +389,7 @@ export function PlaceSheet({
             // 카드 클릭으로 오인되면 handlePlaceClick 이 검색모드를 강제 종료해 버림, QA).
             inert={searchVisible || undefined}
             className={cn(
-              'flex h-full flex-col px-4',
-              hasSelection ? 'gap-3' : 'gap-2',
+              'flex h-full flex-col gap-3 px-4',
               // overflow-y 만 주면 x 도 auto 가 돼 -mx-4 sticky 헤더 때문에 좌우로 밀린다(NOOK-422 QA).
               canScroll
                 ? 'overflow-y-auto overflow-x-hidden overscroll-contain'
@@ -476,44 +429,36 @@ export function PlaceSheet({
                   <button
                     type="button"
                     onClick={onEnterSearch}
-                    className="flex h-11 w-full items-center gap-2 rounded-xl border border-gray-20 px-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                    className="flex h-11 w-full items-center gap-2 rounded-lg border border-gray-30 px-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
                   >
-                    <Icon20MagnifyingGlass />
-                    <span className="text-b2 font-normal text-gray-60">
+                    <Icon24MagnifyingGlass />
+                    <span className="text-b2 font-medium text-gray-50">
                       저장한 공간을 검색해보세요
                     </span>
                   </button>
                   <div className="flex items-center justify-between py-1">
-                    <p className="text-b2 font-normal text-gray-80">
+                    <p className="text-b2 font-medium text-gray-80">
                       {recentPlacesTotal === undefined ? null : (
                         <>
                           {/* 필터를 걸기 전엔 숫자에 색을 넣지 않는다(NOOK-422 QA). */}
                           <span className={cn(filterActive && 'text-nook-blue')}>
                             {recentPlacesTotal}
-                          </span>
+                          </span>{' '}
                           곳
                         </>
                       )}
                     </p>
                     <div className="flex items-center gap-2">
-                      <label className="relative flex items-center text-b2 font-normal text-gray-70">
-                        <select
-                          aria-label="장소 정렬"
-                          value={sort}
-                          onChange={(event) =>
-                            onSortChange?.(event.target.value as 'LATEST' | 'OLDEST' | 'NEAREST')
-                          }
-                          className="appearance-none bg-transparent pr-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
-                        >
-                          <option value="LATEST">최신순</option>
-                          <option value="OLDEST">오래된순</option>
-                          <option value="NEAREST" disabled={!userCoords}>
-                            가까운순
-                          </option>
-                        </select>
-                        <Icon16ArrowDown className="pointer-events-none absolute right-0" />
-                      </label>
-                      <span aria-hidden="true" className="h-4 w-px bg-gray-10" />
+                      <button
+                        type="button"
+                        aria-label={`정렬: ${PLACE_SORT_LABEL[sort]}`}
+                        onClick={onOpenSort}
+                        className="flex items-center text-b2 text-gray-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-100"
+                      >
+                        {PLACE_SORT_LABEL[sort]}
+                        <Icon16ArrowDown />
+                      </button>
+                      <span className="h-4 w-px bg-gray-10" aria-hidden="true" />
                       <button
                         type="button"
                         aria-label={filterActive ? '아카이브 필터 (적용 중)' : '아카이브 필터'}
@@ -545,6 +490,7 @@ export function PlaceSheet({
                     <div className="grid grid-cols-2 justify-items-center gap-2">
                       {recentPlaces.map((place) => (
                         <PlaceCard
+                          variant="map"
                           key={place.id}
                           place={{
                             id: String(place.id),
@@ -555,7 +501,6 @@ export function PlaceSheet({
                             thumbnailState: place.thumbnailState,
                           }}
                           mediaBadge
-                          variant="map"
                           // 구독한 공유 아카이브의 장소는 내 API 로는 게시물이 비어 오므로
                           // 토큰을 함께 넘겨 공유 공개 API 로 조회하게 한다.
                           onClick={() => onSelectPlace(place.id, place.shareToken)}
@@ -569,21 +514,20 @@ export function PlaceSheet({
             )}
           </div>
 
-          {/* 검색은 같은 자리에서 즉시 표시하고 입력에 포커스한다. */}
+          {/* 검색 패널 — 탐색 콘텐츠 위를 제자리에서 바로 덮는다(Figma `검색 추가`). */}
           {isSearchMode ? (
             <div
               className={cn(
-                // 목록의 sticky 헤더보다 위에 표시한다.
+                // 목록 헤더가 sticky z-10 이라 그보다 위에 쌓아야 검색 필드를 가리지 않는다.
                 'absolute inset-0 z-20 bg-gray-0',
                 // 상세가 떠 있는 동안만 숨긴다. 언마운트가 아니라 display:none 이라 검색어와
-                // 결과가 살아 있고, 상세를 닫으면 같은 자리에서 다시 드러난다. 시트째 가린
+                // 결과가 살아 있고, 상세를 닫으면 같은 자리에 그대로 다시 드러난다. 시트째 가린
                 // 동안(hidden)은 display 를 살려 둔다 — display:none 이면 결과 스크롤 위치가 날아간다.
                 !searchVisible && !hidden && 'hidden',
               )}
             >
               <PlaceSearchPanel
                 query={searchQuery}
-                focusRequest={searchFocusRequest}
                 page={searchPage}
                 onQueryChange={onSearchQueryChange}
                 canScroll={canScroll}

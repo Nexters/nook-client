@@ -3,7 +3,6 @@ import { usePlaceDetail } from '@/features/map/api/queries';
 import { PlaceDetail } from '@/features/map/components/PlaceDetail';
 import type { CardOrigin } from '@/features/map/components/PlaceFullSheet';
 import type { Coordinates } from '@/shared/lib/geolocation';
-import { usePointerDragScroll } from '@/shared/lib/usePointerDragScroll';
 import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui';
 import { CarouselIndicator } from '@/shared/ui/carousel-indicator';
@@ -34,7 +33,7 @@ const MAX_STRETCH_RATIO = 0.85;
 const SETTLE_TRANSITION = 'height 0.5s cubic-bezier(0.32, 0.72, 0, 1)';
 
 /** 카드 한 칸의 폭(카드 + 간격). 카드 폭은 모두 같다. */
-function stepOf(scroller: HTMLElement) {
+function stepOf(scroller: HTMLDivElement) {
   const first = scroller.firstElementChild;
   return first instanceof HTMLElement ? first.offsetWidth + CARD_GAP_PX : 0;
 }
@@ -58,6 +57,7 @@ export function FloatingPlaceCards({
   collapsed,
   fullOpen = false,
   userCoords,
+  shareTokenOf,
   onActiveIndexChange,
   onCollapsedChange,
   onExpandFull,
@@ -71,6 +71,8 @@ export function FloatingPlaceCards({
   /** 지금 카드가 풀업으로 커져 있는 동안 — 풀업이 그 카드 행세를 하므로 진짜 카드는 가린다. */
   fullOpen?: boolean;
   userCoords?: Coordinates | null;
+  /** 장소별 공유 토큰 — 구독한 공유 아카이브의 장소는 공유 API 로 상세를 받는다. */
+  shareTokenOf?: (placeId: number) => string | null;
   onActiveIndexChange: (index: number) => void;
   onCollapsedChange: (collapsed: boolean) => void;
   /**
@@ -88,15 +90,8 @@ export function FloatingPlaceCards({
   onClose: () => void;
   onSelectPlace: (placeId: number) => void;
 }) {
-  const scrollerRef = useRef<HTMLElement>(null);
-  const pointerDrag = usePointerDragScroll(scrollerRef, {
-    count: placeIds.length,
-    gap: CARD_GAP_PX,
-    onIndexChange: onActiveIndexChange,
-  });
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  // 처음 그릴 땐 고른 카드에 바로 서 있어야 한다 — 첫 카드에서 미끄러져 오면 어색하다.
-  const mountedRef = useRef(false);
   // 세로로 끄는 중인 거리(아래가 +). 모든 카드가 함께 늘고 준다. 끄는 중이 아니면 null.
   const [dragDy, setDragDy] = useState<number | null>(null);
   const coverageRef = useRef<number | null>(null);
@@ -118,79 +113,45 @@ export function FloatingPlaceCards({
   // 마우스로 끌고 놓으면 click 이 뒤따라 온다 — 끌기였다면 그 click 은 버튼에 닿지 않게 삼킨다.
   const suppressClickRef = useRef(false);
 
-  // 한 제스처의 축 — 포인터 핸들러와 터치 리스너(아래)가 같은 판정을 공유한다.
-  const gestureRef = useRef<{ x: number; y: number; axis: 'x' | 'y' | null } | null>(null);
-  const decideAxis = (dx: number, dy: number) => {
-    const gesture = gestureRef.current;
-    if (!gesture) return null;
-    if (gesture.axis === null && Math.hypot(dx, dy) >= AXIS_LOCK_PX) {
-      // 가로가 더 길면 카드 넘기기다 — 브라우저 스크롤에 맡기고 높이는 건드리지 않는다.
-      gesture.axis = Math.abs(dy) > Math.abs(dx) ? 'y' : 'x';
-      // 세로로 정해지면 가로 스크롤을 잠근다 — 비스듬히 끌 때 카드가 옆으로 같이 밀리지 않게.
-      const scroller = scrollerRef.current;
-      if (gesture.axis === 'y' && scroller) {
-        lockedLeftRef.current = scroller.scrollLeft;
-        scroller.style.overflowX = 'hidden';
-      }
-    }
-    return gesture.axis;
-  };
-  const lockedLeftRef = useRef<number | null>(null);
-  const unlockHorizontal = () => {
-    const scroller = scrollerRef.current;
-    if (scroller && lockedLeftRef.current !== null) {
-      scroller.style.overflowX = '';
-      scroller.scrollLeft = lockedLeftRef.current;
-    }
-    lockedLeftRef.current = null;
-  };
-
-  // iOS 는 세로가 주인 제스처에서도 손이 살짝 비스듬하면 가로 스크롤을 시작하고, 그대로
-  // 터치를 가져가 pointercancel 을 보낸다(열다가 툭 끊겨 들썩이는 원인). 세로로 정해진 뒤의
-  // touchmove 는 기본 동작을 막아 제스처를 끝까지 우리 것으로 둔다. passive:false 라 React
-  // 이벤트가 아니라 직접 붙인다.
-  useEffect(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-    const onTouchMove = (e: TouchEvent) => {
-      const gesture = gestureRef.current;
-      const touch = e.touches[0];
-      if (!gesture || !touch) return;
-      const axis = decideAxis(touch.clientX - gesture.x, touch.clientY - gesture.y);
-      if (axis === 'y' && e.cancelable) e.preventDefault();
-    };
-    scroller.addEventListener('touchmove', onTouchMove, { passive: false });
-    return () => scroller.removeEventListener('touchmove', onTouchMove);
-  });
-
   // 포인터라 터치·마우스 둘 다 받는다. 카드 밖으로 나가도 놓치지 않게 이동·떼기는 window 에서 받는다.
   const handlePointerDown = (event: PointerEvent) => {
     if (event.button !== 0) return;
     suppressClickRef.current = false;
-    const start = { x: event.clientX, y: event.clientY, time: performance.now() };
-    const samples: GestureSample[] = [{ position: 0, time: start.time }];
-    gestureRef.current = { x: start.x, y: start.y, axis: null };
+    const start = { x: event.clientX, y: event.clientY };
+    let axis: 'x' | 'y' | null = null;
+    // 놓는 순간의 속도를 재려고 최근 위치를 남긴다 — 짧게 툭 튕겨도 넘기기 위해서다(NOOK-441).
+    const samples: GestureSample[] = [{ position: 0, time: performance.now() }];
     const handleMove = (move: globalThis.PointerEvent) => {
-      const axis = decideAxis(move.clientX - start.x, move.clientY - start.y);
+      const dx = move.clientX - start.x;
+      const dy = move.clientY - start.y;
+      if (axis === null) {
+        if (Math.hypot(dx, dy) < AXIS_LOCK_PX) return;
+        // 가로가 더 길면 카드 넘기기다 — 브라우저 스크롤에 맡기고 높이는 건드리지 않는다.
+        axis = Math.abs(dy) > Math.abs(dx) ? 'y' : 'x';
+      }
       if (axis === 'y') {
-        const dy = move.clientY - start.y;
         sampleGesture(samples, dy, performance.now());
         setDragDy(dy);
       }
+    };
+    // 세로로 정해지면 손을 뗄 때까지 가로 스크롤을 막는다 — 카드는 touch-pan-x 라 끌어올리는 중
+    // 손가락이 옆으로 조금만 흘러도 브라우저가 가로 스크롤을 시작하고(pointercancel 로 끌기가 끊긴다)
+    // 스냅이 옆 카드로 넘겨 버린다(NOOK-440). 포인터 이벤트로는 스크롤을 못 막아 touchmove 로 막는다.
+    const blockScroll = (touch: TouchEvent) => {
+      if (axis === 'y' && touch.cancelable) touch.preventDefault();
     };
     const handleEnd = (end: globalThis.PointerEvent) => {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleEnd);
       window.removeEventListener('pointercancel', handleEnd);
-      const axis = gestureRef.current?.axis ?? null;
-      gestureRef.current = null;
-      unlockHorizontal();
+      window.removeEventListener('touchmove', blockScroll);
       setDragDy(null);
       if (axis !== 'y' || end.type === 'pointercancel') return;
       suppressClickRef.current = true;
       const dy = end.clientY - start.y;
-      const velocity = releaseVelocity(samples, performance.now());
-      if (!shouldAdvanceSheet(dy, velocity, DRAG_THRESHOLD_PX)) return;
+      // 문턱(40px)에 못 미쳐도 같은 방향으로 빠르게 튕겼으면 넘긴다.
+      if (!shouldAdvanceSheet(dy, releaseVelocity(samples, performance.now()), DRAG_THRESHOLD_PX))
+        return;
       if (dy > 0) onCollapsedChange(true);
       else if (collapsed) onCollapsedChange(false);
       else {
@@ -206,18 +167,17 @@ export function FloatingPlaceCards({
     window.addEventListener('pointermove', handleMove);
     window.addEventListener('pointerup', handleEnd);
     window.addEventListener('pointercancel', handleEnd);
+    window.addEventListener('touchmove', blockScroll, { passive: false });
   };
 
-  useLayoutEffect(() => {
+  // 바깥(핀 선택)에서 바뀐 카드로는 미끄러지지 않고 바로 선다 — 멀리 있는 결과로 가면서 중간 카드가
+  // 줄줄이 지나가면 안 된다(NOOK-440). 손으로 넘긴 경우는 이미 그 자리라 여기서 움직이지 않는다.
+  useEffect(() => {
     const scroller = scrollerRef.current;
     const step = scroller ? stepOf(scroller) : 0;
     if (scroller && step > 0 && Math.round(scroller.scrollLeft / step) !== activeIndex) {
-      scroller.scrollTo({
-        left: step * activeIndex,
-        behavior: mountedRef.current ? 'smooth' : 'instant',
-      });
+      scroller.scrollTo({ left: step * activeIndex, behavior: 'instant' });
     }
-    mountedRef.current = true;
   }, [activeIndex]);
 
   useEffect(() => () => clearTimeout(settleTimer.current), []);
@@ -243,17 +203,10 @@ export function FloatingPlaceCards({
       // 시안은 홈 인디케이터 영역(아래 20px) 바로 위에 카드가 앉는다 — safe-area(34px)까지 띄우면 너무 뜬다.
       style={{ bottom: '1.25rem' }}
     >
-      <section
-        {...pointerDrag}
+      <div
         ref={scrollerRef}
-        aria-label="검색 결과 장소"
-        aria-roledescription="캐러셀"
-        onPointerDown={(event) => {
-          pointerDrag.onPointerDown(event);
-          handlePointerDown(event);
-        }}
+        onPointerDown={handlePointerDown}
         onClickCapture={(event) => {
-          pointerDrag.onClickCapture(event);
           if (!suppressClickRef.current) return;
           suppressClickRef.current = false;
           event.stopPropagation();
@@ -273,6 +226,7 @@ export function FloatingPlaceCards({
           <FloatingPlaceCard
             key={placeId}
             placeId={placeId}
+            shareToken={shareTokenOf?.(placeId) ?? null}
             // 보이는 카드와 양옆만 상세를 받는다 — 결과가 많아도 한꺼번에 다 부르지 않는다.
             enabled={Math.abs(index - activeIndex) <= 1}
             collapsed={collapsed}
@@ -284,13 +238,14 @@ export function FloatingPlaceCards({
             onSelectPlace={onSelectPlace}
           />
         ))}
-      </section>
+      </div>
     </div>
   );
 }
 
 function FloatingPlaceCard({
   placeId,
+  shareToken,
   enabled,
   collapsed,
   hidden,
@@ -301,6 +256,7 @@ function FloatingPlaceCard({
   onSelectPlace,
 }: {
   placeId: number;
+  shareToken: string | null;
   enabled: boolean;
   collapsed: boolean;
   hidden: boolean;
@@ -310,7 +266,7 @@ function FloatingPlaceCard({
   onClose: () => void;
   onSelectPlace: (placeId: number) => void;
 }) {
-  const { data: place } = usePlaceDetail(enabled ? placeId : null);
+  const { data: place } = usePlaceDetail(enabled ? placeId : null, shareToken);
   // 높이를 손에 맞춰 움직이려면 펼친·접힌 높이를 숫자로 알아야 한다 — 내용(사진은 늘 그려 둔다)을
   // 감싼 안쪽 상자를 재서 구한다. 카드 자체는 높이를 강제로 받으니 바깥을 재면 안 된다.
   const contentRef = useRef<HTMLDivElement>(null);
@@ -355,6 +311,9 @@ function FloatingPlaceCard({
         'w-full shrink-0 touch-pan-x snap-start overflow-hidden rounded-[14px] bg-gray-0 px-4',
         hidden && 'invisible',
         'drop-shadow-[2px_2px_24.4px_rgba(0,0,0,0.1)]',
+        // 카드마다 자기 합성 레이어를 준다 — iOS WebKit 은 가로 스크롤 컨테이너 안에서 높이가 바뀌거나
+        // (끌기·풀업 복귀) invisible 이 풀린 카드의 배경을 일부 다시 그리지 않아 지도가 비친다(NOOK-455).
+        '[transform:translateZ(0)]',
         // 카드 안 사진 캐러셀이 끝에 닿아도 바깥 카드 스와이프로 이어지지 않게 끊는다 —
         // 사진을 넘기다 다음 장소로 넘어가 버리면 안 된다(NOOK-383).
         '[&_[data-slot=carousel]>div]:overscroll-x-contain',
@@ -371,6 +330,7 @@ function FloatingPlaceCard({
             expanded={false}
             // 내용이 비어도 카드 높이가 장소마다 달라지지 않게 자리를 지킨다(NOOK-383).
             keepEmptySlots
+            shareToken={shareToken}
             userCoords={userCoords}
             onClose={onClose}
             onSelectPlace={onSelectPlace}

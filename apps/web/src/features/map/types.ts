@@ -16,6 +16,16 @@ export interface MapBounds {
 export type ArchiveFilter = number[] | null;
 
 /**
+ * 장소 목록 정렬(NOOK-430). 가까운 순은 고른 순간의 GPS 좌표를 함께 들고 다닌다 — 서버가
+ * 페이지를 넘기는 동안 같은 기준점을 요구하고, 지도를 움직여도 순서가 바뀌면 안 된다.
+ */
+export type PlaceSort =
+  | { type: 'LATEST' | 'OLDEST' }
+  | { type: 'NEAREST'; coords: { lat: number; lng: number } };
+
+export const DEFAULT_PLACE_SORT: PlaceSort = { type: 'LATEST' };
+
+/**
  * 지도 핀 하나 — `MapPlaceResponse` 기준. 이름·대표 아카이브 색상·대표 썸네일까지 내려오므로
  * 핀 단계에서 사진과 이름표를 다 그린다. 나머지 상세는 클릭 시 `usePlaceDetail`로 가져온다.
  */
@@ -35,6 +45,8 @@ export interface MapPin {
    * true 면 대표 이미지 대신 작은 원형 핀으로 그린다. 일반 지도에서는 늘 비어 있다.
    */
   outsideSearch?: boolean;
+  /** 구독한 공유 아카이브로만 보이는 장소의 공유 토큰 — 상세를 공유 API 로 조회한다. 내 장소면 null. */
+  shareToken?: string | null;
 }
 
 /** "최근 저장한 공간" 한 페이지. `nextCursor` 가 없으면 마지막 페이지다. */
@@ -83,7 +95,8 @@ export interface SavedPlaceSearchResult {
   /** 카드의 지역 표기(예: "서울") — 주소의 첫 토큰. */
   region?: string;
   thumbnail?: string;
-  prototypeCoords?: { lat: number; lng: number };
+  /** 구독한 공유 아카이브로만 보이는 장소의 공유 토큰. 내 장소면 null. */
+  shareToken?: string | null;
 }
 
 /** 검색어와 일치하는 장소가 담긴 그룹 한 건 — 그룹 칩 필터가 그리는 형태. */

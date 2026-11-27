@@ -7,7 +7,8 @@ import {
 } from '@tanstack/react-query';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { usePlacePinToast } from '@/features/place/lib/usePlacePinToast';
-import type { ArchiveFilter, MapBounds, SavedPlaceSearchPage } from '../types';
+import type { ArchiveFilter, MapBounds, PlaceSort, SavedPlaceSearchPage } from '../types';
+import { DEFAULT_PLACE_SORT } from '../types';
 import {
   disconnectPostPlace,
   fetchMapPins,
@@ -28,7 +29,7 @@ export const mapQueryKeys = {
   pins: (bounds: MapBounds, filter: ArchiveFilter) => ['map', 'pins', bounds, filter] as const,
   // 무효화는 접두사(`recent`)로 걸어 아카이브 선택과 무관하게 모든 목록을 갱신한다.
   recent: ['map', 'recent'] as const,
-  recentList: (filter: ArchiveFilter) => ['map', 'recent', filter] as const,
+  recentList: (filter: ArchiveFilter, sort: PlaceSort) => ['map', 'recent', filter, sort] as const,
   // 공유 토큰이 있으면 공유자 기준 읽기 전용 상세라 별도 캐시 키를 쓴다 — 내 상세(북마크·메모
   // 포함)와 모양이 다르니 같은 장소를 두 경로로 봤을 때 서로 캐시를 덮어쓰면 안 된다.
   detail: (placeId: number, shareToken?: string | null) =>
@@ -39,7 +40,8 @@ export const mapQueryKeys = {
   // `detail(placeId)` 가 접두사 매칭으로 이 목록까지 함께 갱신한다. 공유 진입에는 쓰지 않는다
   // (모아보기 페이지는 내 API 만 쓴다).
   posts: (placeId: number) => ['map', 'detail', placeId, 'posts'] as const,
-  search: (query: string, groupId: number | null) => ['map', 'search', query, groupId] as const,
+  search: (query: string, groupId: number | null, sort: PlaceSort) =>
+    ['map', 'search', query, groupId, sort] as const,
 };
 
 /** 지도 핀(bbox 안의 북마크 장소). 실제 idle 이벤트를 못 받은 동안엔 호출부가 근사 bbox를 대신 넘긴다. */
@@ -65,14 +67,14 @@ export function useMapPins(bounds: MapBounds, filter: ArchiveFilter = null) {
  */
 export function useRecentPlaces(
   filter: ArchiveFilter = null,
-  order?: { sort: 'LATEST' | 'OLDEST' | 'NEAREST'; latitude?: number; longitude?: number },
+  sort: PlaceSort = DEFAULT_PLACE_SORT,
 ) {
   const isAuthenticated = useIsAuthenticated();
 
   return useInfiniteQuery({
-    // 선택이 바뀌면 키가 바뀌어 목록과 커서가 처음부터 다시 시작한다.
-    queryKey: order ? [...mapQueryKeys.recentList(filter), order] : mapQueryKeys.recentList(filter),
-    queryFn: ({ pageParam }) => fetchRecentPlaces(pageParam, filter, order),
+    // 필터·정렬이 바뀌면 키가 바뀌어 목록과 커서가 처음부터 다시 시작한다.
+    queryKey: mapQueryKeys.recentList(filter, sort),
+    queryFn: ({ pageParam }) => fetchRecentPlaces(pageParam, filter, sort),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     select: (data) => ({
@@ -102,12 +104,13 @@ export function useRecentPlaces(
 export function useSearchSavedPlaces(
   query: string,
   groupId: number | null,
+  sort: PlaceSort = DEFAULT_PLACE_SORT,
 ): SavedPlaceSearchPage | undefined {
   const isAuthenticated = useIsAuthenticated();
   const trimmed = query.trim();
   const result = useQuery({
-    queryKey: mapQueryKeys.search(trimmed, groupId),
-    queryFn: () => fetchSavedPlaceSearch(trimmed, groupId),
+    queryKey: mapQueryKeys.search(trimmed, groupId, sort),
+    queryFn: () => fetchSavedPlaceSearch(trimmed, groupId, sort),
     enabled: isAuthenticated && trimmed.length > 0,
     placeholderData: keepPreviousData,
   });

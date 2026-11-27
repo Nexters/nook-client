@@ -6,9 +6,7 @@ export function buildShareUrl(token: string): string {
   return `${env.webOrigin}/shared/${token}`;
 }
 
-/**
- * NOOK-369 게시물 단독 공유. 공개 스냅샷을 보여주는 수신 화면과 같은 경로다.
- */
+/** 게시물 단위 공유 링크 — 아카이브 공유(`/shared/:token`)와 토큰 공간이 달라 경로를 나눈다. */
 export function buildPostShareUrl(token: string): string {
   return `${env.webOrigin}/shared-post/${token}`;
 }

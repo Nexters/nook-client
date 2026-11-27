@@ -27,12 +27,12 @@ function setup(collapsed: boolean) {
     />,
   );
   const card = screen.getByRole('region', { name: '장소' });
-  /** `durationMs` — 누른 순간부터 뗄 때까지 걸린 시간. 짧은 거리라도 빠르면 튕기기로 본다. */
+  /** `durationMs` — 누른 순간부터 뗄 때까지 걸린 시간. 짧은 거리라도 빠르면 튕기기로 본다(NOOK-441). */
   const drag = (dx: number, dy: number, durationMs = 400) => {
     const now = vi.spyOn(performance, 'now').mockReturnValue(1000);
     fireEvent.pointerDown(card, { clientX: 100, clientY: 400, button: 0 });
-    // 손은 카드 밖으로 나갈 수 있다 — 이동·떼기는 window 에서 받는다.
     now.mockReturnValue(1000 + durationMs);
+    // 손은 카드 밖으로 나갈 수 있다 — 이동·떼기는 window 에서 받는다.
     fireEvent.pointerMove(window, { clientX: 100 + dx, clientY: 400 + dy });
     fireEvent.pointerUp(window, { clientX: 100 + dx, clientY: 400 + dy });
     now.mockRestore();
@@ -63,52 +63,47 @@ describe('FloatingPlaceCards 높이 제스처(NOOK-383)', () => {
     expect(onExpandFull).not.toHaveBeenCalled();
   });
 
+  it('세로로 정해진 끌기는 손을 뗄 때까지 가로 스크롤을 막는다 — 옆 카드로 넘어가지 않게(NOOK-440)', () => {
+    const { card, onExpandFull } = setup(false);
+    const touchMove = () => {
+      const event = new Event('touchmove', { cancelable: true });
+      window.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    fireEvent.pointerDown(card, { clientX: 100, clientY: 400, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 102, clientY: 380 });
+    expect(touchMove()).toBe(true);
+    // 위로 끄는 중 손가락이 옆으로 흘러도 세로 그대로다.
+    fireEvent.pointerMove(window, { clientX: 160, clientY: 340 });
+    expect(touchMove()).toBe(true);
+    fireEvent.pointerUp(window, { clientX: 160, clientY: 320 });
+    expect(onExpandFull).toHaveBeenCalledTimes(1);
+    expect(touchMove()).toBe(false);
+  });
+
+  it('가로로 정해진 끌기는 브라우저 스크롤에 맡긴다', () => {
+    const { card } = setup(false);
+    fireEvent.pointerDown(card, { clientX: 100, clientY: 400, button: 0 });
+    fireEvent.pointerMove(window, { clientX: 70, clientY: 396 });
+    const event = new Event('touchmove', { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+    fireEvent.pointerUp(window, { clientX: 40, clientY: 396 });
+  });
+
+  it('문턱보다 짧아도 빠르게 튕기면 넘기고, 천천히 움직이면 그대로 둔다(NOOK-441)', () => {
+    const { drag, onCollapsedChange } = setup(false);
+    drag(0, 20, 400);
+    expect(onCollapsedChange).not.toHaveBeenCalled();
+    drag(0, 20, 50);
+    expect(onCollapsedChange).toHaveBeenCalledWith(true);
+  });
+
   it('짧은 흔들림이나 가로 넘기기는 높이를 바꾸지 않는다', () => {
     const { drag, onCollapsedChange, onExpandFull } = setup(false);
     drag(0, -20);
     drag(-120, -60);
     expect(onCollapsedChange).not.toHaveBeenCalled();
     expect(onExpandFull).not.toHaveBeenCalled();
-  });
-
-  it('짧아도 빠르게 툭 튕기면 다음 높이로 간다', () => {
-    const { drag, onCollapsedChange, onExpandFull } = setup(false);
-    drag(0, -25, 50);
-    expect(onExpandFull).toHaveBeenCalledTimes(1);
-    drag(0, 25, 50);
-    expect(onCollapsedChange).toHaveBeenCalledWith(true);
-  });
-});
-
-describe('검색 결과 캐러셀', () => {
-  function renderMultiple() {
-    render(
-      <FloatingPlaceCards
-        placeIds={[1, 2, 3]}
-        activeIndex={0}
-        collapsed={false}
-        onActiveIndexChange={vi.fn()}
-        onCollapsedChange={vi.fn()}
-        onExpandFull={vi.fn()}
-        onClose={vi.fn()}
-        onSelectPlace={vi.fn()}
-      />,
-    );
-    return screen.getByRole('region', { name: '검색 결과 장소' });
-  }
-
-  it('가로로 넘기는 동안 카드에 회전이나 축소를 적용하지 않는다', () => {
-    const width = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(351);
-    try {
-      const scroller = renderMultiple();
-      fireEvent.scroll(scroller, { target: { scrollLeft: 177.5 } });
-      const cards = Array.from(scroller.children) as HTMLElement[];
-      expect(cards).toHaveLength(3);
-      for (const card of cards) {
-        expect(card.style.transform).toBe('');
-      }
-    } finally {
-      width.mockRestore();
-    }
   });
 });

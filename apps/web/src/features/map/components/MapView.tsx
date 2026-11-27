@@ -3,7 +3,6 @@ import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState 
 import { Container as MapDiv, NaverMap, useNavermaps } from 'react-naver-maps';
 import { ClusterBubble } from '@/features/map/components/ClusterBubble';
 import { CurrentLocationDot } from '@/features/map/components/CurrentLocationDot';
-import { ExpandedClusterPins } from '@/features/map/components/ExpandedClusterPins';
 import { PlacePin } from '@/features/map/components/PlacePin';
 import {
   DEFAULT_ZOOM,
@@ -64,7 +63,6 @@ export function MapView({
   panTarget,
   sheetSnap = DETAIL_PAGE_SNAP_POINT,
   onPlaceClick,
-  expandDenseClusters = false,
   onEmptyMapClick,
   onBoundsChanged,
   onDestinationBounds,
@@ -87,7 +85,6 @@ export function MapView({
    */
   sheetSnap?: number;
   onPlaceClick?: (id: number) => void;
-  expandDenseClusters?: boolean;
   /** 핀·클러스터가 아닌 지도 바닥을 탭했을 때(드래그·핀치는 제외 — 네이버가 click 을 안 쏜다). */
   onEmptyMapClick?: () => void;
   /** 지도가 멈춘(idle) 시점의 실제 뷰포트 경계 — 팬/줌이 끝날 때만 넘어온다(최초 마운트 포함). */
@@ -269,25 +266,6 @@ export function MapView({
       ? undefined
       : pins.find((pin) => pin.id === selectedPlaceId);
   const restPins = selectedPin ? pins.filter((pin) => pin.id !== selectedPin.id) : pins;
-  const denseDetail = expandDenseClusters && zoom >= PIN_DETAIL_MIN_ZOOM;
-  const [expandedCluster, setExpandedCluster] = useState<string | null>(null);
-  const selectPlace = (id: number) => {
-    setExpandedCluster(null);
-    onPlaceClick?.(id);
-  };
-  const clusterOffset = (lat: number, lng: number) => {
-    const projection = mapRef.current?.getProjection();
-    if (!denseDetail || !selectedPin || !projection) return 0;
-    const selected = projection.fromCoordToOffset(
-      new navermaps.LatLng(selectedPin.lat, selectedPin.lng),
-    );
-    const cluster = projection.fromCoordToOffset(new navermaps.LatLng(lat, lng));
-    const dx = cluster.x - selected.x;
-    const dy = cluster.y - selected.y;
-    const clearance = 74;
-    if (Math.abs(dx) >= clearance || dy < -80 || dy > 42) return 0;
-    return (dx < 0 ? -clearance : clearance) - dx;
-  };
   const renderPin = (pin: MapPin) => (
     <PlacePin
       key={pin.id}
@@ -299,7 +277,7 @@ export function MapView({
       categoryGroup={pin.categoryGroup}
       // 검색 결과 지도에서만 값이 있다 — 클러스터 규칙은 그대로라 버블에는 섞여 묶인다(NOOK-383).
       compact={pin.outsideSearch}
-      onClick={() => selectPlace(pin.id)}
+      onClick={() => onPlaceClick?.(pin.id)}
     />
   );
 
@@ -316,50 +294,26 @@ export function MapView({
         defaultZoom={restoredCamera?.zoom ?? DEFAULT_ZOOM}
         {...styleProps}
         onIdle={() => reportIdleRef.current()}
-        onZoomChanged={expandDenseClusters ? () => setExpandedCluster(null) : undefined}
         onClick={(e) => {
           // 오버레이(핀·클러스터 버튼) 위 탭이 지도 click 으로도 올라오면 선택하자마자 풀려
           // 버린다 — 버튼 위에서 시작된 탭은 걸러 낸다.
           if ((e.pointerEvent.target as Element | null)?.closest?.('button')) return;
-          if (expandedCluster !== null) {
-            setExpandedCluster(null);
-            return;
-          }
           onEmptyMapClick?.();
         }}
       >
-        {zoom < PIN_DETAIL_MIN_ZOOM || denseDetail
-          ? clusterPins(
-              restPins,
-              clusterZoom,
-              denseDetail ? { width: 86, height: 76 } : undefined,
-            ).map(({ key, lat, lng, pins: members }) =>
+        {zoom < PIN_DETAIL_MIN_ZOOM
+          ? clusterPins(restPins, clusterZoom).map(({ key, lat, lng, pins: members }) =>
               // 묶인 게 하나뿐이면 "1" 버블 대신 개별 핀으로 그린다 — 버블은 실제로 여러 곳이
               // 묶일 때만 쓴다(NOOK-390).
               members.length === 1 && members[0] ? (
                 renderPin(members[0])
-              ) : denseDetail && expandedCluster === key ? (
-                <ExpandedClusterPins
-                  key={key}
-                  lat={lat}
-                  lng={lng}
-                  pins={members}
-                  collapseOffsetX={clusterOffset(lat, lng)}
-                  onCollapse={() => setExpandedCluster(null)}
-                  onSelectPlace={selectPlace}
-                />
               ) : (
                 <ClusterBubble
                   key={key}
                   lat={lat}
                   lng={lng}
                   count={members.length}
-                  expandsOnMap={denseDetail}
-                  offsetX={clusterOffset(lat, lng)}
-                  onClick={() => {
-                    if (denseDetail) setExpandedCluster(key);
-                    else zoomIntoCluster(members);
-                  }}
+                  onClick={() => zoomIntoCluster(members)}
                 />
               ),
             )
@@ -374,7 +328,7 @@ export function MapView({
             thumbnail={selectedPin.thumbnail}
             categoryGroup={selectedPin.categoryGroup}
             selected
-            onClick={() => selectPlace(selectedPin.id)}
+            onClick={() => onPlaceClick?.(selectedPin.id)}
           />
         )}
         {currentLocation && (

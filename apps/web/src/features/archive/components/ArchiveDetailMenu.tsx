@@ -1,14 +1,17 @@
-import filterIcon from '@/assets/images/archive-filter.svg';
-import deleteIcon from '@/assets/images/archive-menu/delete.svg';
-import editIcon from '@/assets/images/archive-menu/edit.svg';
-import selectIcon from '@/assets/images/archive-menu/select.svg';
-import shareIcon from '@/assets/images/archive-menu/share.svg';
+import {
+  Icon16AdjustmentsVertical,
+  Icon16CheckCircleLine,
+  Icon16PencilLine,
+  Icon16Share,
+  Icon16Trash,
+} from '@/shared/icons/NookIcons';
 import { MoreMenu, type MoreMenuItem } from '@/shared/ui';
 
-/** Figma `아카이브 상세 > 더보기 메뉴`(138:5298) — 소유·공유 여부에 따라 항목만 고른다. */
+/** Figma `아카이브 상세 > 더보기 메뉴`(138:5298, 선형 아이콘 425:20722) — 소유·공유 여부에 따라 항목만 고른다. */
 export type ArchiveDetailMenuProps =
   | {
       kind: 'owned';
+      /** 보기·정렬 필터 시트(NOOK-376). 넘기지 않으면(빈 아카이브) 항목이 빠진다. */
       onFilter?: () => void;
       onEdit: () => void;
       onShare: () => void;
@@ -27,75 +30,46 @@ export type ArchiveDetailMenuProps =
     };
 
 function ArchiveDetailMenu(props: ArchiveDetailMenuProps) {
+  const filterItems: MoreMenuItem[] = props.onFilter
+    ? [{ label: '아카이브 필터', icon: <Icon16AdjustmentsVertical />, onSelect: props.onFilter }]
+    : [];
   const items: MoreMenuItem[] =
     props.kind === 'owned'
       ? [
-          { label: '아카이브 편집', icon: <img src={editIcon} alt="" />, onSelect: props.onEdit },
-          {
-            label: '아카이브 공유',
-            icon: (
-              <span className="relative size-4 shrink-0">
-                <img src={shareIcon} alt="" className="absolute left-0 top-[-0.67px]" />
-              </span>
-            ),
-            onSelect: props.onShare,
-          },
+          { label: '아카이브 편집', icon: <Icon16PencilLine />, onSelect: props.onEdit },
+          { label: '아카이브 공유', icon: <Icon16Share />, onSelect: props.onShare },
           ...(props.onSelectDelete
             ? [
                 {
-                  label: '선택 편집',
-                  icon: <img src={selectIcon} alt="" />,
+                  label: '선택 삭제',
+                  icon: <Icon16CheckCircleLine />,
                   onSelect: props.onSelectDelete,
                 },
               ]
             : []),
-          ...(props.onFilter
-            ? [
-                {
-                  label: '아카이브 필터',
-                  icon: (
-                    <span className="grid size-4 place-items-center">
-                      <img src={filterIcon} alt="" />
-                    </span>
-                  ),
-                  onSelect: props.onFilter,
-                },
-              ]
-            : []),
+          ...filterItems,
           {
             label: '아카이브 삭제',
-            icon: <img src={deleteIcon} alt="" />,
+            icon: <Icon16Trash />,
             onSelect: props.onDelete,
             destructive: true,
           },
         ]
       : [
-          ...(props.onFilter
-            ? [
-                {
-                  label: '아카이브 필터',
-                  icon: (
-                    <span className="grid size-4 place-items-center">
-                      <img src={filterIcon} alt="" />
-                    </span>
-                  ),
-                  onSelect: props.onFilter,
-                },
-              ]
-            : []),
+          ...filterItems,
           {
             label: '내 목록에서 제거',
-            icon: <img src={deleteIcon} alt="" />,
+            icon: <Icon16Trash />,
             onSelect: props.onRemove,
             destructive: true,
           },
         ];
 
+  // 헤더가 아니라 편집·공유 칩 행 오른쪽에 놓여 같은 40px 칩 모양을 입는다(시안).
   return (
     <MoreMenu
       items={items}
       triggerClassName="grid h-10 w-11 place-items-center rounded-lg bg-gray-10 [&_svg]:size-4"
-      menuClassName="mt-4"
     />
   );
 }

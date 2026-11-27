@@ -1,14 +1,13 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useIsAuthenticated } from '@/features/auth/session/AuthSessionProvider';
 import { mapQueryKeys } from '@/features/map/api/queries';
+import type { ArchiveSort } from '../lib/viewPreferences';
 import {
   createArchive,
   deleteArchive,
   deleteArchivePosts,
   fetchArchivePlaces,
-  fetchArchivePlacesInOrder,
   fetchArchivePosts,
-  fetchArchivePostsInOrder,
   fetchArchiveSubscribers,
   fetchArchives,
   issueShareLink,
@@ -25,6 +24,24 @@ export const archiveQueryKeys = {
 
 /** 처리 중(본문 크롤링·장소 파싱)인 게시물이 있는 동안의 재조회 간격 — post 쪽 폴링과 같은 값. */
 const POLL_INTERVAL_MS = 3000;
+
+/**
+ * 오래된순 — 목록 API 에 정렬 파라미터가 없어 전 페이지를 받아 뒤집은 한 페이지로 만든다.
+ * 받은 페이지만 뒤집으면 "지금까지 받은 것 중 오래된순"이 돼 버린다.
+ * ponytail: 아카이브가 클수록 첫 로딩이 길다. 서버 `sort=OLDEST` 가 생기면 파라미터로 교체.
+ */
+async function fetchAllPages<P extends { nextPage?: number }>(
+  fetchPage: (page: number) => Promise<P>,
+): Promise<[P, ...P[]]> {
+  const first = await fetchPage(0);
+  const pages: [P, ...P[]] = [first];
+  for (let next = first.nextPage; next !== undefined; ) {
+    const page = await fetchPage(next);
+    pages.push(page);
+    next = page.nextPage;
+  }
+  return pages;
+}
 
 /** 아카이브 목록. 목록/상세/편집 화면이 같은 캐시를 공유한다. */
 export function useArchives() {
@@ -58,20 +75,19 @@ export function useHasSaveHistory(): boolean | undefined {
  * 저장 직후엔 BE 가 본문/장소를 비동기로 처리해 카드가 로딩 상태로 내려올 수 있다 —
  * 처리 중인 게시물이 하나라도 있으면 끝날 때까지 폴링해 카드를 실시간으로 채운다.
  */
-export function useArchivePosts(
-  archiveId: number | undefined,
-  sort: 'LATEST' | 'OLDEST' = 'LATEST',
-) {
+export function useArchivePosts(archiveId: number | undefined, sort: ArchiveSort = 'LATEST') {
   const isAuthenticated = useIsAuthenticated();
 
   return useInfiniteQuery({
-    queryKey:
-      sort === 'LATEST'
-        ? archiveQueryKeys.posts(archiveId ?? -1)
-        : [...archiveQueryKeys.posts(archiveId ?? -1), sort],
+    // 정렬은 키 끝에 붙인다 — `posts(id)` 접두로 무효화하면 두 정렬이 함께 갱신된다.
+    queryKey: [...archiveQueryKeys.posts(archiveId ?? -1), sort],
     queryFn: ({ pageParam }) =>
       sort === 'OLDEST'
-        ? fetchArchivePostsInOrder(archiveId as number, pageParam, true)
+        ? fetchAllPages((page) => fetchArchivePosts(archiveId as number, page)).then((pages) => ({
+            ...pages[0],
+            posts: pages.flatMap((page) => page.posts).reverse(),
+            nextPage: undefined,
+          }))
         : fetchArchivePosts(archiveId as number, pageParam),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,
@@ -98,20 +114,18 @@ export function useArchivePosts(
  * 저장 직후엔 BE 가 썸네일을 비동기로 파싱한다 — 처리 중(`thumbnailState === 'processing'`)인
  * 장소가 하나라도 있으면 끝날 때까지 폴링해 카드를 실시간으로 채운다.
  */
-export function useArchivePlaces(
-  archiveId: number | undefined,
-  sort: 'LATEST' | 'OLDEST' = 'LATEST',
-) {
+export function useArchivePlaces(archiveId: number | undefined, sort: ArchiveSort = 'LATEST') {
   const isAuthenticated = useIsAuthenticated();
 
   return useInfiniteQuery({
-    queryKey:
-      sort === 'LATEST'
-        ? archiveQueryKeys.places(archiveId ?? -1)
-        : [...archiveQueryKeys.places(archiveId ?? -1), sort],
+    queryKey: [...archiveQueryKeys.places(archiveId ?? -1), sort],
     queryFn: ({ pageParam }) =>
       sort === 'OLDEST'
-        ? fetchArchivePlacesInOrder(archiveId as number, pageParam, true)
+        ? fetchAllPages((page) => fetchArchivePlaces(archiveId as number, page)).then((pages) => ({
+            ...pages[0],
+            places: pages.flatMap((page) => page.places).reverse(),
+            nextPage: undefined,
+          }))
         : fetchArchivePlaces(archiveId as number, pageParam),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,

@@ -7,17 +7,24 @@ import {
   toArchiveSubscriberPage,
 } from '@/features/archive/api';
 import type { Archive, ArchiveSubscriberPage } from '@/features/archive/types';
-import { toPostDetail, updatePostMemo } from '@/features/post/api';
+import {
+  fetchPostDetail,
+  formatAuthorHandle,
+  toPostDetail,
+  updatePostMemo,
+} from '@/features/post/api';
 import type { PostDetail } from '@/features/post/types';
 import {
+  get3 as getPostShareEndpoint,
   // 생성기가 다른 `get` 들과 이름이 겹쳐 붙인 접미사다 — 여기서만 풀어준다.
   get4 as getSharedArchiveEndpoint,
-  get3 as getSinglePostShareEndpoint,
   places as listSharedPlacesEndpoint,
   posts as listSharedPostsEndpoint,
   shared as listSharedSubscribersEndpoint,
+  type PostSharePlace,
+  type Response as PostShareResponse,
+  save1 as savePostShareEndpoint,
   save as saveSharedPostEndpoint,
-  save1 as saveSinglePostShareEndpoint,
   postDetail as sharedPostDetailEndpoint,
   subscribe as subscribeEndpoint,
   unwrapApiResponse,
@@ -97,27 +104,7 @@ export async function saveSharedPost(input: {
   sharedPostId: number;
   groupIds: number[];
   memo?: string;
-  singlePost?: boolean;
 }): Promise<number> {
-  if (input.singlePost) {
-    const result = unwrapApiResponse(
-      await saveSinglePostShareEndpoint(
-        input.shareToken,
-        { groupIds: input.groupIds },
-        { auth: 'required' },
-      ),
-    );
-    if (!result?.postId) throw new Error('게시물을 저장하지 못했어요');
-    // Existing saves retain their own places and memo, as promised by the endpoint.
-    if (!result.alreadySaved && input.memo?.trim()) {
-      try {
-        await updatePostMemo(result.postId, input.memo.trim());
-      } catch {
-        /* The post is already saved. */
-      }
-    }
-    return result.postId;
-  }
   const response = unwrapApiResponse(
     await saveSharedPostEndpoint(
       input.shareToken,
@@ -142,19 +129,92 @@ export async function saveSharedPost(input: {
   return response.postId;
 }
 
-/** NOOK-369: use the server snapshot, never reconstruct sharing from an archive. */
-export async function fetchSinglePostShare(token: string): Promise<PostDetail> {
-  const response = unwrapApiResponse(await getSinglePostShareEndpoint(token, { auth: 'optional' }));
-  if (!response) throw new Error('공유 게시물을 불러오지 못했어요');
-  const detail = toPostDetail({
-    ...response.post,
-    postId: response.viewerSavedPostId ?? 0,
-    groups: [],
-    places: response.post.places.map((place) => ({ ...place, bookmarked: false })),
+/**
+ * `GET /api/public/v1/post-shares/{token}` — 발급 시점에 고정된 게시물 스냅샷.
+ * 비로그인도 볼 수 있고, 로그인 상태면(optional) 같은 원본을 내가 저장한 게시물 id 가 함께 온다.
+ * 판별 기준은 아카이브 공유와 같다(서버 `findByUserIdAndPostId`, 공유자가 달라도 같은 원본이면 저장됨).
+ * 응답엔 아카이브 목록이 없어 내 게시물 상세에서 가져와 `archives` 에 채운다 — 화면이
+ * 아카이브 공유처럼 "OO에 저장"을 그린다.
+ */
+export async function fetchPostShare(token: string): Promise<PostDetail> {
+  const dto = unwrapApiResponse(await getPostShareEndpoint(token, { auth: 'optional' }));
+  if (!dto) throw new Error('공유 게시물 응답이 비어 있어요');
+  const detail = toPostShareDetail(dto);
+  if (!dto.viewerSavedPostId) return detail;
+  try {
+    const mine = await fetchPostDetail(dto.viewerSavedPostId);
+    return { ...detail, archives: mine.archives };
+  } catch {
+    // 저장 표시만 못 할 뿐 공유 화면은 보여준다 — 다시 저장해도 서버가 기존 메모·장소를 지킨다.
+    return detail;
+  }
+}
+
+function toPostShareDetail({ post }: PostShareResponse): PostDetail {
+  return {
+    // 스냅샷은 처리가 끝난 게시물만 발급된다(서버 POST_SHARE_NOT_READY).
     processingStatus: 'COMPLETED',
     processingPercent: 100,
     placeParsingStatus: 'COMPLETED',
-    savedAt: response.sharedAt,
-  });
-  return { ...detail, viewerSavedPostId: response.viewerSavedPostId ?? undefined };
+    placeParsingFailureReason: null,
+    title: post.title || '제목 없는 게시물',
+    // 스냅샷엔 아카이브·메모가 없다 — 저장한 사람의 아카이브는 fetchPostShare 가 채운다.
+    archives: [],
+    places: [...post.places].sort((a, b) => a.sequence - b.sequence).map(toSharedPlace),
+    post: {
+      id: '',
+      authorHandle: formatAuthorHandle(post.authorIdentifier, post.canonicalUrl),
+      caption: post.body ?? undefined,
+      media: [...post.media]
+        .sort((a, b) => a.sequence - b.sequence)
+        .map((item) => ({
+          url: item.url,
+          thumbnailUrl: item.thumbnailUrl ?? undefined,
+          type: item.type,
+        })),
+      originalUrl: post.canonicalUrl,
+    },
+  };
+}
+
+function toSharedPlace(dto: PostSharePlace): PostDetail['places'][number] {
+  return {
+    id: dto.id,
+    provider: dto.provider,
+    externalPlaceId: dto.externalPlaceId,
+    name: dto.name,
+    address: dto.address,
+    latitude: dto.latitude,
+    longitude: dto.longitude,
+    category: dto.category ?? undefined,
+    phoneNumber: dto.phoneNumber ?? null,
+    bookmarked: false,
+    thumbnail: dto.thumbnailUrl ?? undefined,
+    thumbnailParsingStatus: dto.thumbnailParsingStatus,
+  };
+}
+
+/**
+ * `POST /api/v1/post-shares/{token}/save` — 스냅샷(게시물 + 장소)을 내 아카이브로 복사한다.
+ * 저장 API 에 memo 가 없어 `saveSharedPost` 와 같이 메모 수정을 이어 붙인다. 이미 저장한
+ * 공유면(`alreadySaved`) 서버가 기존 메모를 지키므로 덮어쓰지 않는다. 반환값은 내 postId.
+ */
+export async function savePostShare(input: {
+  token: string;
+  groupIds: number[];
+  memo?: string;
+}): Promise<number> {
+  const result = unwrapApiResponse(
+    await savePostShareEndpoint(input.token, { groupIds: input.groupIds }, { auth: 'required' }),
+  );
+  if (!result?.postId) throw new Error('게시물을 저장하지 못했어요');
+  const memo = input.memo?.trim();
+  if (memo && !result.alreadySaved) {
+    try {
+      await updatePostMemo(result.postId, memo);
+    } catch {
+      // 저장은 이미 성공했다 — 메모는 옮겨 간 내 게시물 상세에서 다시 넣을 수 있다.
+    }
+  }
+  return result.postId;
 }
